@@ -25,6 +25,7 @@
     "test:worker-dispatch": "node --test worker/index.test.mjs",
     "test:worker-email": "node --test worker/lib/email.test.mjs",
     "test:public-pages": "node --test worker/routes/pages.test.mjs",
+    "test:guides": "node --test worker/routes/guides.test.mjs",
     "test:public-check": "node --test worker/routes/public-check.test.mjs",
     "test:audit-engine": "node --test shared/audit-engine.test.mjs",
     "test:account": "node --test worker/routes/account.test.mjs",

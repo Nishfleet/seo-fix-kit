@@ -38,6 +38,7 @@ import {
   termsHtml
 } from "./routes/pages.js";
 import { checkHtml, runPublicCheck } from "./routes/public-check.js";
+import { GUIDE_ROUTES, goRedirect } from "./routes/guides.js";
 import {
   betaLogin,
   betaLogout,
@@ -695,6 +696,17 @@ export default {
 
       if (url.pathname === "/packages") {
         return new Response(packagesHtml(origin), {
+          headers: secureHeaders({ "content-type": "text/html; charset=utf-8" })
+        });
+      }
+
+      if (url.pathname.startsWith("/go/")) {
+        const redirect = goRedirect(url.pathname);
+        if (redirect) return redirect;
+      }
+
+      if (Object.prototype.hasOwnProperty.call(GUIDE_ROUTES, url.pathname)) {
+        return new Response(GUIDE_ROUTES[url.pathname](origin), {
           headers: secureHeaders({ "content-type": "text/html; charset=utf-8" })
         });
       }

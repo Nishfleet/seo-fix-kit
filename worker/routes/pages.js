@@ -1149,6 +1149,7 @@ ${pageSocialHead({ origin, title: `${title} - SEO Fix Kit`, description, path })
 }
 
 export {
+  publicProductPageHtml,
   SOCIAL_IMAGE_PATH,
   aiAnswerReadinessHtml,
   demoHtml,
