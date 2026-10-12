@@ -21,3 +21,7 @@ a6bed6d190d6203eeb1a41bab5d6ca1010f939b5:shared/index-now.js:generic-api-key:15
 32b3656727872af117ee5bae944927e1faa407d1:shared/index-now.js:generic-api-key:15
 b0aad28788e94874b0454f1402c7d56901ae2844:shared/index-now.js:generic-api-key:15
 96683eab8e2e881761898ee4e83833b9f2c21c73:shared/index-now.js:generic-api-key:15
+
+# Dashboard "Quick start" curl example in the Developers page. The header is
+# the literal placeholder "Authorization: Bearer YOUR_API_KEY", not a key.
+14286fa73a3698b20dbbc4d964c916468ee0eb49:src/pages/beta/CustomerDashboard.jsx:curl-auth-header:592
