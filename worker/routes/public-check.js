@@ -28,7 +28,7 @@ import { jsonNoStore } from "../lib/http.js";
 import { checkQuotaSet, requestIpHash, sha256Hex } from "../lib/security.js";
 import { dayWindow, hourWindow } from "../lib/text.js";
 import { auditUrl } from "./audits.js";
-import { SOCIAL_IMAGE_PATH } from "./pages.js";
+import { SOCIAL_IMAGE_PATH, publicAssetHead, siteHeader } from "./pages.js";
 
 export const CHECK_PAGE_PATH = "/check";
 export const PUBLIC_CHECK_API_PATH = "/api/public-check";
@@ -301,8 +301,7 @@ export function checkHtml(origin) {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Check One Page for SEO Proof - SEO Fix Kit</title>
     <meta name="description" content="Paste any public URL. A browser-rendered SEO audit proves measured evidence, guarded false positives, and actionable findings. No account, no ranking promises." />
-    <link rel="canonical" href="${origin}/check" />
-    <link rel="apple-touch-icon" href="${origin}/apple-touch-icon.svg" />
+    <link rel="canonical" href="${origin}/check" />${publicAssetHead(origin)}
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="SEO Fix Kit" />
     <meta property="og:title" content="Check One Page for SEO Proof - SEO Fix Kit" />
@@ -315,66 +314,63 @@ export function checkHtml(origin) {
     <meta name="twitter:image" content="${origin}${SOCIAL_IMAGE_PATH}" />
     ${checkJsonLd(origin)}
     <style>
-      :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #070908; color: #fbf8ef; }
       * { box-sizing: border-box; }
       body { margin: 0; }
-      main { margin: 0 auto; max-width: 980px; padding: 36px 22px 68px; }
-      a { color: #98f0cc; font-weight: 780; text-decoration: none; }
-      header { align-items: center; display: flex; justify-content: space-between; margin-bottom: 54px; }
-      h1 { font-size: clamp(40px, 8vw, 88px); letter-spacing: 0; line-height: .92; margin: 0 0 18px; max-width: 820px; overflow-wrap: break-word; }
-      h2 { font-size: clamp(22px, 3vw, 30px); margin: 0 0 12px; }
-      p, li { color: rgba(251,248,239,.75); font-size: 18px; line-height: 1.6; }
-      .kicker { color: #98f0cc; font-size: 13px; font-weight: 880; letter-spacing: .08em; text-transform: uppercase; }
-      .lead { font-size: clamp(19px, 2.4vw, 24px); max-width: 760px; }
-      .check-form { background: rgba(251,248,239,.055); border: 1px solid rgba(152,240,204,.28); border-radius: 10px; display: flex; flex-direction: column; gap: 10px; margin: 30px 0 8px; padding: 18px; }
-      .check-form label { color: #fbf8ef; font-size: 14px; font-weight: 760; }
+      main { margin: 0 auto; max-width: 980px; padding: 32px 22px 72px; }
+      h1 { font-size: clamp(40px, 7.5vw, 84px); line-height: .95; margin: 0 0 20px; max-width: 820px; overflow-wrap: break-word; }
+      h2 { font-size: clamp(22px, 3vw, 28px); line-height: 1.2; margin: 0 0 12px; }
+      h3 { font-size: 17px; line-height: 1.4; margin: 24px 0 6px; }
+      p, li { color: var(--ink-soft); font-size: 17px; line-height: 1.62; }
+      .lead { font-size: clamp(18px, 2.2vw, 22px); line-height: 1.55; max-width: 760px; }
+      .check-form { background: var(--surface); border: 1px solid var(--line-accent); border-radius: 12px; display: flex; flex-direction: column; gap: 12px; margin: 32px 0 8px; padding: 20px; }
+      .check-form label { color: var(--ink); font-size: 14px; font-weight: 600; }
       .check-form .row { display: flex; gap: 10px; }
-      .check-form input { background: #0c1210; border: 1px solid rgba(251,248,239,.22); border-radius: 8px; color: #fbf8ef; flex: 1; font-size: 16px; min-height: 48px; min-width: 0; padding: 0 14px; }
-      .check-form button { background: #98f0cc; border: 0; border-radius: 8px; color: #06100c; cursor: pointer; font-weight: 880; min-height: 48px; padding: 0 20px; }
+      .check-form input { flex: 1; }
+      .check-form button { min-height: 48px; padding: 0 20px; }
       .check-form button:disabled { cursor: wait; opacity: .6; }
-      .form-note { color: rgba(251,248,239,.6); font-size: 14px; margin: 0; }
-      .grid { display: grid; gap: 14px; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 30px 0; }
-      .panel { background: rgba(251,248,239,.055); border: 1px solid rgba(251,248,239,.12); border-radius: 8px; padding: 20px; }
-      .panel strong { color: #98f0cc; display: block; font-size: 13px; font-weight: 860; margin-bottom: 8px; text-transform: uppercase; }
-      .proof { border-color: rgba(152,240,204,.28); }
-      .band { border-top: 1px solid rgba(251,248,239,.14); padding: 30px 0; }
-      .result { display: none; margin: 30px 0 0; }
+      .form-note { color: var(--ink-muted); font-size: 14px; line-height: 1.5; margin: 0; }
+      .grid { display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 32px 0; }
+      .panel { display: grid; gap: 8px; }
+      .panel p { margin: 0; }
+      .panel strong { color: var(--accent); display: block; font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+      .proof { border-color: var(--line-accent); }
+      .band { border-top: 1px solid var(--line); padding: 40px 0; }
+      .result { display: none; margin: 32px 0 0; }
       .result.show { display: block; }
-      .error-box { border: 1px solid rgba(255,150,140,.4); border-radius: 8px; color: #ffb4ad; padding: 14px 16px; }
+      .error-box { background: rgba(255,180,169,.06); border: 1px solid var(--error-line); border-radius: 8px; color: var(--error); padding: 14px 16px; }
       .measure-grid { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .measure { background: rgba(7,13,10,.58); border: 1px solid rgba(251,248,239,.1); border-radius: 8px; padding: 12px 14px; }
-      .measure .label { color: rgba(251,248,239,.6); font-size: 12px; text-transform: uppercase; }
+      .measure { background: var(--surface-sunken); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
+      .measure .label { color: var(--ink-muted); font-size: 12px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; }
       .measure .value { font-size: 16px; margin-top: 4px; overflow-wrap: anywhere; }
-      .finding { border-left: 3px solid #dcc062; margin: 12px 0; padding-left: 12px; }
+      .finding { border-left: 3px solid var(--gold); margin: 12px 0; padding-left: 12px; }
       .finding.critical { border-left-color: #ff8f7d; }
       .finding.warning { border-left-color: #f4c95d; }
       .finding.notice { border-left-color: #8fd3ff; }
       .finding h3 { font-size: 17px; margin: 0 0 6px; }
       .finding p { font-size: 15px; margin: 0 0 6px; }
-      .snippet { background: #0c1210; border: 1px solid rgba(251,248,239,.14); border-radius: 8px; color: #fbf8ef; display: block; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; margin: 8px 0 0; overflow-x: auto; padding: 12px; white-space: pre-wrap; }
-      .finding .snippet-label { color: rgba(251,248,239,.6); font-size: 12px; font-weight: 700; letter-spacing: .04em; margin: 10px 0 0; text-transform: uppercase; }
-      .cta { align-items: center; background: #98f0cc; border-radius: 8px; color: #06100c; display: inline-flex; font-weight: 880; min-height: 48px; padding: 0 18px; }
-      .next-step { border: 1px solid rgba(152,240,204,.28); }
+      .snippet { background: var(--surface-field); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); display: block; font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size: 13px; margin: 8px 0 0; overflow-x: auto; padding: 12px; white-space: pre-wrap; }
+      .finding .snippet-label { color: var(--ink-muted); font-size: 12px; font-weight: 600; letter-spacing: .04em; margin: 10px 0 0; text-transform: uppercase; }
+      .next-step { background: rgba(152,240,204,.05); border: 1px solid var(--line-accent); border-radius: 12px; margin: 40px 0 32px; padding: 20px 22px; }
+      .next-step p:last-child { margin-bottom: 0; }
+      .page-links { border-top: 1px solid var(--line); padding-top: 24px; }
+      .page-links a { font-size: 14px; font-weight: 500; }
       .box-min { min-width: 0; }
-      @media (max-width: 760px) { header { align-items: flex-start; gap: 18px; flex-direction: column; } .grid, .measure-grid { grid-template-columns: 1fr; } .check-form .row { flex-direction: column; } main { padding-top: 26px; } }
+      @media (max-width: 760px) { .grid, .measure-grid { grid-template-columns: 1fr; } .check-form .row { flex-direction: column; } main { padding-top: 24px; } }
     </style>
   </head>
   <body>
     <main>
-      <header>
-        <a href="${origin}/">SEO Fix Kit</a>
-        <span class="kicker">Anonymous one-page check</span>
-      </header>
+      ${siteHeader(origin)}
       <section class="box-min">
-        <p class="kicker">Proof before access</p>
+        <p class="kicker">Anonymous one-page check · Proof before access</p>
         <h1 class="box-min">See what a browser-visible audit proves about one page.</h1>
         <p class="lead">Paste a public URL. We open the page in a real browser, compare the raw HTML with the rendered page, and show the evidence — guarded false positives included. No account, no email, no stored report.</p>
       </section>
       <form class="check-form" id="check-form" aria-label="One-page URL check">
         <label for="url-input">Public page URL</label>
         <div class="row">
-          <input id="url-input" name="url" type="text" inputmode="url" autocomplete="off" placeholder="https://example.com/about" required />
-          <button id="check-button" type="submit">Check this page</button>
+          <input class="field" id="url-input" name="url" type="text" inputmode="url" autocomplete="off" placeholder="https://example.com/about" required />
+          <button class="btn btn-primary" id="check-button" type="submit">Check this page</button>
         </div>
         <p class="form-note">One page per check. Rate-limited per network and per site to protect the service and the pages it checks. Use only pages you own or are authorized to audit.</p>
       </form>
@@ -417,7 +413,7 @@ export function checkHtml(origin) {
         <p>To turn proof into a repair workflow, request a secure email access link: verified sessions get saved proof reports, crawl depth up to 1,000 pages per queued audit, and a repair queue with acceptance checks and one rerun after fixes.</p>
         <p><a class="cta" href="${origin}/">Request private access</a></p>
       </section>
-      <p><a href="${origin}/demo">View proof sample</a> · <a href="${origin}/methodology">Read methodology and limits</a> · <a href="${origin}/packages">View package ladder</a> · <a href="${origin}/support">Support and refunds</a> · <a href="${origin}/terms">Terms</a> · <a href="${origin}/privacy">Privacy</a></p>
+      <p class="page-links"><a href="${origin}/demo">View proof sample</a> · <a href="${origin}/methodology">Read methodology and limits</a> · <a href="${origin}/packages">View package ladder</a> · <a href="${origin}/support">Support and refunds</a> · <a href="${origin}/terms">Terms</a> · <a href="${origin}/privacy">Privacy</a></p>
     </main>
     <script>
       (function () {
