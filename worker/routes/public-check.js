@@ -65,7 +65,11 @@ export function friendlyCheckError(raw) {
   if (/ERR_NAME_NOT_RESOLVED|ERR_DNS|DNS_PROBE|getaddrinfo/i.test(message)) {
     return "That address does not resolve to a website. Check the spelling and try again.";
   }
-  if (/ERR_CONNECTION_RESET|ERR_CONNECTION_REFUSED|ERR_CONNECTION_TIMED_OUT|ERR_CONNECTION_CLOSED|ERR_TIMED_OUT|ERR_INTERNET_DISCONNECTED|ECONNREFUSED|ENOTFOUND|ETIMEDOUT|EAI_AGAIN/i.test(message)) {
+  if (
+    /ERR_CONNECTION_RESET|ERR_CONNECTION_REFUSED|ERR_CONNECTION_TIMED_OUT|ERR_CONNECTION_CLOSED|ERR_TIMED_OUT|ERR_INTERNET_DISCONNECTED|ECONNREFUSED|ENOTFOUND|ETIMEDOUT|EAI_AGAIN/i.test(
+      message
+    )
+  ) {
     return "The site did not respond. It may be down, blocking checkers, or the address may be wrong. Try another public URL.";
   }
   if (/ERR_CERT|ERR_SSL|SSL:|TLS|CERT_HAS_EXPIRED/i.test(message)) {
@@ -98,7 +102,13 @@ export async function publicCheckQuotaChecks(ipHash, targetHost) {
   const day = dayWindow(now);
   // The checked site is stored only as a hash (same pattern as the network
   // hash in requestIpHash), so D1 never holds a readable target hostname.
-  const targetKey = (await sha256Hex(String(targetHost || "").trim().toLowerCase())).slice(0, 32);
+  const targetKey = (
+    await sha256Hex(
+      String(targetHost || "")
+        .trim()
+        .toLowerCase()
+    )
+  ).slice(0, 32);
   return [
     {
       bucket: `check:ip-hour:${hour.key}:${ipHash}`,
@@ -224,10 +234,7 @@ export async function runPublicCheck(request, env) {
     return jsonNoStore(buildPublicCheckResponse(report));
   } catch (error) {
     if (error?.code === "BROWSER_BUSY") {
-      return jsonNoStore(
-        { error: "Check capacity is busy right now. Wait a moment and try again." },
-        503
-      );
+      return jsonNoStore({ error: "Check capacity is busy right now. Wait a moment and try again." }, 503);
     }
     const message = friendlyCheckError(error?.message);
     return jsonNoStore({ error: message }, 422);

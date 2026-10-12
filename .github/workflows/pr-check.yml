@@ -82,6 +82,11 @@ jobs:
         # Runs before the browser install so lint failures surface fast.
         run: npm run lint
 
+      - name: Check formatting (Prettier)
+        # Fails if any file differs from Prettier's output. Fix locally with
+        # `npm run format`.
+        run: npm run format:check
+
       - name: Install the Chromium browser Playwright needs
         # `npm ci` installs the playwright NPM package but not its browser
         # binaries, which live in a separate cache outside node_modules. The

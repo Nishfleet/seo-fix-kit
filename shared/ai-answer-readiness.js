@@ -132,7 +132,10 @@ function pageEvidenceRows(pages = []) {
       description: cleanText(rendered.description || staticFacts.description || "", 220),
       h1s: rendered.h1s || staticFacts.h1s || [],
       headings,
-      bodyText: cleanText(rendered.bodyText || staticFacts.bodyText || rendered.bodySample || staticFacts.bodySample || "", 4000),
+      bodyText: cleanText(
+        rendered.bodyText || staticFacts.bodyText || rendered.bodySample || staticFacts.bodySample || "",
+        4000
+      ),
       wordCount: Number(rendered.wordCount || staticFacts.wordCount || 0),
       staticWordCount: Number(staticFacts.wordCount || 0),
       canonical: rendered.canonical || staticFacts.canonical || "",
@@ -175,7 +178,9 @@ function structuredDataCheck(pages = []) {
     status: !indexablePages.length || pagesWithHelpfulSchema.length ? "passed" : "needs_review",
     pagesWithHelpfulSchema: pagesWithHelpfulSchema.length,
     missingPages,
-    helpfulTypes: [...new Set(indexablePages.flatMap((page) => page.schemaTypes).filter((type) => HELPFUL_SCHEMA_TYPES.has(type)))].sort()
+    helpfulTypes: [
+      ...new Set(indexablePages.flatMap((page) => page.schemaTypes).filter((type) => HELPFUL_SCHEMA_TYPES.has(type)))
+    ].sort()
   };
 }
 
@@ -209,7 +214,8 @@ function answerStructureCheck(pages = []) {
     .slice(0, 10);
 
   return {
-    status: !indexablePages.length || pagesWithQuestionStructure.length || sectionedPages.length ? "passed" : "needs_review",
+    status:
+      !indexablePages.length || pagesWithQuestionStructure.length || sectionedPages.length ? "passed" : "needs_review",
     pagesWithQuestionStructure: pagesWithQuestionStructure.length,
     pagesWithSectionHeadings: sectionedPages.length,
     missingPages
@@ -266,7 +272,8 @@ function aiReadinessRepairOpportunities(checks = {}, trafficIndex = emptyTraffic
       proof: `${pages.length} rendered ${pages.length === 1 ? "page has" : "pages have"} fewer than 250 words, led by ${lead.label} with ${lead.wordCount} words.`,
       why: "Answer systems and search crawlers need visible, page-specific text they can parse, summarize, and cite. This is a readiness heuristic, not a ranking rule.",
       fix: "Add visible page-specific explanation, proof, examples, FAQs, comparisons, and next steps before relying on structured data or metadata alone.",
-      acceptance: "Rerun the audit and confirm the page has at least 250 rendered words with visible, page-specific detail.",
+      acceptance:
+        "Rerun the audit and confirm the page has at least 250 rendered words with visible, page-specific detail.",
       estimatedEffort: "45-120 min"
     });
   }
@@ -278,10 +285,12 @@ function aiReadinessRepairOpportunities(checks = {}, trafficIndex = emptyTraffic
       severity: "notice",
       title: "AI Answer Readiness: helpful structured data was not proven",
       affectedPages: pages,
-      proof: "No rendered page exposed FAQPage, Article, Product, Service, Organization, LocalBusiness, SoftwareApplication, HowTo, or BreadcrumbList schema.",
+      proof:
+        "No rendered page exposed FAQPage, Article, Product, Service, Organization, LocalBusiness, SoftwareApplication, HowTo, or BreadcrumbList schema.",
       why: "Truthful schema can clarify page entities, relationships, products, services, and FAQs for search features and machine readers.",
       fix: "Add JSON-LD that matches visible content. Start with Organization/Service for service pages, Product for product pages, FAQPage for visible FAQs, and BreadcrumbList for hierarchical pages.",
-      acceptance: "Rerun the audit and confirm rendered JSON-LD includes helpful schema types that match visible page content.",
+      acceptance:
+        "Rerun the audit and confirm rendered JSON-LD includes helpful schema types that match visible page content.",
       workType: "code"
     });
   }
@@ -303,10 +312,13 @@ function aiReadinessRepairOpportunities(checks = {}, trafficIndex = emptyTraffic
         checks.sourceClarity.isolatedPages?.length
           ? `${checks.sourceClarity.isolatedPages.length} page${checks.sourceClarity.isolatedPages.length === 1 ? "" : "s"} had no rendered internal links.`
           : ""
-      ].filter(Boolean).join(" "),
+      ]
+        .filter(Boolean)
+        .join(" "),
       why: "Canonical URLs and internal links help crawlers and answer systems identify the preferred source page and related context.",
       fix: "Add one canonical URL per indexable page and link important related pages with normal rendered anchor tags.",
-      acceptance: "Rerun the audit and confirm every indexable readiness page has one rendered canonical URL and at least one rendered internal link.",
+      acceptance:
+        "Rerun the audit and confirm every indexable readiness page has one rendered canonical URL and at least one rendered internal link.",
       workType: "technical"
     });
   }
@@ -317,10 +329,12 @@ function aiReadinessRepairOpportunities(checks = {}, trafficIndex = emptyTraffic
       severity: "notice",
       title: "AI Answer Readiness: question-led sections are missing",
       affectedPages: checks.answerStructure.missingPages || [],
-      proof: "The rendered crawl did not prove FAQ, HowTo, question-style headings, or enough section structure to expose direct answers.",
+      proof:
+        "The rendered crawl did not prove FAQ, HowTo, question-style headings, or enough section structure to expose direct answers.",
       why: "Question-led headings and clearly sectioned answers make it easier for users, search snippets, and machine readers to extract specific answers.",
       fix: "Add visible sections that answer common buyer questions, objections, pricing/fit questions, and use-case questions. Add FAQ schema only after the FAQ is visible.",
-      acceptance: "Rerun the audit and confirm the rendered page includes visible question-led headings, FAQ/HowTo structure, or enough section headings to expose direct answers.",
+      acceptance:
+        "Rerun the audit and confirm the rendered page includes visible question-led headings, FAQ/HowTo structure, or enough section headings to expose direct answers.",
       estimatedEffort: "30-90 min"
     });
   }
@@ -334,7 +348,8 @@ function aiReadinessRepairOpportunities(checks = {}, trafficIndex = emptyTraffic
       proof: `GET /llms.txt returned ${checks.discoveryFiles.llmsTxt.status || checks.discoveryFiles.llmsTxt.error || "no usable text"}. This is advisory only; it is not a ranking, visibility, or citation failure.`,
       why: "An llms.txt file can give AI agents a concise public map of useful product pages and boundaries, but it is optional and not proof of AI visibility.",
       fix: "Publish a concise /llms.txt that links to current public docs, product pages, support, pricing/package pages, and explicit product limits.",
-      acceptance: "GET /llms.txt returns 200 with concise public product context, and public copy still avoids AI visibility or citation guarantees.",
+      acceptance:
+        "GET /llms.txt returns 200 with concise public product context, and public copy still avoids AI visibility or citation guarantees.",
       estimatedEffort: "15-30 min",
       workType: "content"
     });
@@ -409,7 +424,9 @@ function isIndexable(page = {}) {
   const status = Number(page.status || 0);
   if (page.ok === false) return false;
   if (status && (status < 200 || status >= 300)) return false;
-  return !String(page.robots || "").toLowerCase().includes("noindex");
+  return !String(page.robots || "")
+    .toLowerCase()
+    .includes("noindex");
 }
 
 function pageSummary(page = {}) {
@@ -435,7 +452,9 @@ function normalizeDiscoveryFile(file = {}) {
     status: file.status ?? null,
     url: cleanText(file.url || "", 600),
     contentType: cleanText(file.contentType || file.content_type || "", 120),
-    contentLength: Number(file.contentLength || file.content_length || byteLength(file.body || file.bodySample || file.body_sample || "")),
+    contentLength: Number(
+      file.contentLength || file.content_length || byteLength(file.body || file.bodySample || file.body_sample || "")
+    ),
     bodySample: cleanText(file.bodySample || file.body_sample || file.body || "", 500),
     error: cleanText(file.error || "", 300)
   };
@@ -470,14 +489,7 @@ function buildTrafficIndex(rows = []) {
   const byUrl = new Map();
   let rowCount = 0;
   for (const row of rows || []) {
-    const pageUrl =
-      row.pageUrl ||
-      row.page_url ||
-      row.page ||
-      row.url ||
-      row.landingPage ||
-      row.landing_page ||
-      "";
+    const pageUrl = row.pageUrl || row.page_url || row.page || row.url || row.landingPage || row.landing_page || "";
     const key = normalizePageKey(pageUrl);
     if (!key) continue;
     const clicks = positiveMetric(row.clicks ?? row.currentClicks ?? row.current_clicks);
@@ -546,7 +558,8 @@ function prioritizeReadinessRepairs(items = [], trafficIndex = emptyTrafficIndex
   if (trafficRanked) {
     scored.sort((left, right) => {
       if (right.traffic.clicks !== left.traffic.clicks) return right.traffic.clicks - left.traffic.clicks;
-      if (right.traffic.impressions !== left.traffic.impressions) return right.traffic.impressions - left.traffic.impressions;
+      if (right.traffic.impressions !== left.traffic.impressions)
+        return right.traffic.impressions - left.traffic.impressions;
       return left.index - right.index;
     });
   }

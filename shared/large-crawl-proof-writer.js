@@ -36,7 +36,4 @@ function constantTimeEqual(left, right) {
   return maxLength > 0 && diff === 0;
 }
 
-export {
-  LARGE_CRAWL_PROOF_TRUST_ERROR,
-  largeCrawlProofWriteStatus
-};
+export { LARGE_CRAWL_PROOF_TRUST_ERROR, largeCrawlProofWriteStatus };

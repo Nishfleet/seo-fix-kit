@@ -4,8 +4,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 const BASE_URL = process.env.SEOFIXKIT_BASE_URL || "https://seofixkit.com";
-const TARGETS_PATH =
-  process.env.SEOFIXKIT_TARGETS_PATH || "ops/audit-batches/owned-project-targets.json";
+const TARGETS_PATH = process.env.SEOFIXKIT_TARGETS_PATH || "ops/audit-batches/owned-project-targets.json";
 const OUT_DIR = process.env.SEOFIXKIT_AUDIT_OUT_DIR || "ops/audit-batches";
 const MAX_PAGES = Number(process.env.SEOFIXKIT_MAX_PAGES || 6);
 const PREFLIGHT_TIMEOUT_MS = Number(process.env.SEOFIXKIT_PREFLIGHT_TIMEOUT_MS || 15000);
@@ -130,20 +129,11 @@ function readAdminToken() {
   if (envToken) return envToken.trim();
 
   try {
-    return execFileSync("security", [
-      "find-generic-password",
-      "-a",
-      "nish",
-      "-s",
-      "seofixkit-admin-token",
-      "-w"
-    ])
+    return execFileSync("security", ["find-generic-password", "-a", "nish", "-s", "seofixkit-admin-token", "-w"])
       .toString("utf8")
       .trim();
   } catch {
-    throw new Error(
-      "Missing admin token. Set SEOFIXKIT_ADMIN_TOKEN or store seofixkit-admin-token in Keychain."
-    );
+    throw new Error("Missing admin token. Set SEOFIXKIT_ADMIN_TOKEN or store seofixkit-admin-token in Keychain.");
   }
 }
 
@@ -157,22 +147,13 @@ async function readFounderPassword() {
     try {
       fromFile = (await readFile(passwordFilePath, "utf8")).trim();
     } catch {
-      throw new Error(
-        `Could not read SEOFIXKIT_FOUNDER_PASSWORD_FILE at ${passwordFilePath}.`
-      );
+      throw new Error(`Could not read SEOFIXKIT_FOUNDER_PASSWORD_FILE at ${passwordFilePath}.`);
     }
     if (fromFile) return fromFile;
   }
 
   try {
-    return execFileSync("security", [
-      "find-generic-password",
-      "-a",
-      "nish",
-      "-s",
-      "seofixkit-founder-password",
-      "-w"
-    ])
+    return execFileSync("security", ["find-generic-password", "-a", "nish", "-s", "seofixkit-founder-password", "-w"])
       .toString("utf8")
       .trim();
   } catch {
@@ -183,19 +164,23 @@ async function readFounderPassword() {
 }
 
 async function createInvite(email, adminToken) {
-  const response = await fetchWithTimeout(`${BASE_URL}/admin/invites`, {
-    method: "POST",
-    headers: {
-      authorization: `Bearer ${adminToken}`,
-      "content-type": "application/json"
+  const response = await fetchWithTimeout(
+    `${BASE_URL}/admin/invites`,
+    {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${adminToken}`,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        ownerEmail: email,
+        label: `Owned project audit batch ${runId}`,
+        maxUses: 1,
+        ttlDays: 1
+      })
     },
-    body: JSON.stringify({
-      ownerEmail: email,
-      label: `Owned project audit batch ${runId}`,
-      maxUses: 1,
-      ttlDays: 1
-    })
-  }, 30000);
+    30000
+  );
   const payload = await response.json().catch(() => ({}));
   if (!response.ok || !payload?.invite?.code) {
     throw new Error(`Could not create invite: ${payload.error || response.status}`);
@@ -206,16 +191,21 @@ async function createInvite(email, adminToken) {
 async function createAdminBetaSession(email, adminToken, options = {}) {
   const baseUrl = options.baseUrl || BASE_URL;
   const fetcher = options.fetcher || fetch;
-  const response = await fetchWithTimeout(`${baseUrl}/admin/beta-session`, {
-    method: "POST",
-    headers: {
-      authorization: `Bearer ${adminToken}`,
-      "content-type": "application/json"
+  const response = await fetchWithTimeout(
+    `${baseUrl}/admin/beta-session`,
+    {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${adminToken}`,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        ownerEmail: email
+      })
     },
-    body: JSON.stringify({
-      ownerEmail: email
-    })
-  }, options.timeoutMs || 30000, fetcher);
+    options.timeoutMs || 30000,
+    fetcher
+  );
   const payload = await response.json().catch(() => ({}));
   if (!response.ok || !payload?.ok) {
     throw new Error(`Could not create admin proof session: ${payload.error || response.status}`);
@@ -226,11 +216,15 @@ async function createAdminBetaSession(email, adminToken, options = {}) {
 }
 
 async function login(email, inviteCode) {
-  const response = await fetchWithTimeout(`${BASE_URL}/api/beta/login`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ email, inviteCode })
-  }, 30000);
+  const response = await fetchWithTimeout(
+    `${BASE_URL}/api/beta/login`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email, inviteCode })
+    },
+    30000
+  );
   const payload = await response.json().catch(() => ({}));
   if (!response.ok || !payload?.ok) {
     throw new Error(`Could not start beta session: ${payload.error || response.status}`);
@@ -242,19 +236,25 @@ async function login(email, inviteCode) {
 
 function betaCookieFromResponse(response) {
   const setCookie = response.headers.get("set-cookie") || "";
-  return setCookie
-    .split(/,(?=\s*sfk_beta_session=)/)
-    .map((part) => part.trim().split(";")[0])
-    .find((part) => part.startsWith("sfk_beta_session=")) || "";
+  return (
+    setCookie
+      .split(/,(?=\s*sfk_beta_session=)/)
+      .map((part) => part.trim().split(";")[0])
+      .find((part) => part.startsWith("sfk_beta_session=")) || ""
+  );
 }
 
 async function preflight(url) {
   const startedAt = Date.now();
   try {
-    const response = await fetchWithTimeout(url, {
-      headers: { "user-agent": `SEOFixKitBatch/0.1 (+${BASE_URL})` },
-      redirect: "follow"
-    }, PREFLIGHT_TIMEOUT_MS);
+    const response = await fetchWithTimeout(
+      url,
+      {
+        headers: { "user-agent": `SEOFixKitBatch/0.1 (+${BASE_URL})` },
+        redirect: "follow"
+      },
+      PREFLIGHT_TIMEOUT_MS
+    );
     const text = await response.text().catch(() => "");
     return {
       ok: response.ok,
@@ -277,14 +277,19 @@ async function preflight(url) {
 async function audit(url, cookie, options = {}) {
   const baseUrl = options.baseUrl || BASE_URL;
   const fetcher = options.fetcher || fetch;
-  const response = await fetchWithTimeout(`${baseUrl}/api/audit`, {
-    method: "POST",
-    headers: {
-      cookie,
-      "content-type": "application/json"
+  const response = await fetchWithTimeout(
+    `${baseUrl}/api/audit`,
+    {
+      method: "POST",
+      headers: {
+        cookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({ url, maxPages: MAX_PAGES })
     },
-    body: JSON.stringify({ url, maxPages: MAX_PAGES })
-  }, options.auditTimeoutMs || AUDIT_TIMEOUT_MS, fetcher);
+    options.auditTimeoutMs || AUDIT_TIMEOUT_MS,
+    fetcher
+  );
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
     throw new Error(payload.error || `Audit failed with ${response.status}`);
@@ -318,14 +323,19 @@ async function requestFixPack(reportId, cookie, options = {}) {
   const fetcher = options.fetcher || fetch;
   const body = { reportId };
   if (options.testMode) body.testMode = true;
-  const response = await fetchWithTimeout(`${baseUrl}/api/beta/fix-request`, {
-    method: "POST",
-    headers: {
-      cookie,
-      "content-type": "application/json"
+  const response = await fetchWithTimeout(
+    `${baseUrl}/api/beta/fix-request`,
+    {
+      method: "POST",
+      headers: {
+        cookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify(body)
     },
-    body: JSON.stringify(body)
-  }, options.timeoutMs || AUDIT_TIMEOUT_MS, fetcher);
+    options.timeoutMs || AUDIT_TIMEOUT_MS,
+    fetcher
+  );
   const payload = await response.json().catch(() => ({}));
   const summary = summarizeFixPackProof(payload, response.status, response.ok);
   if (options.webhookDrill) {
@@ -348,20 +358,24 @@ function summarizeFixPackProof(payload = {}, httpStatus = 0, responseOk = false)
     checkoutAvailable: payload.checkoutAvailable ?? Boolean(payload.checkoutUrl),
     checkoutUrlPresent: Boolean(payload.checkoutUrl),
     checkoutHost,
-    request: payload.request ? {
-      id: payload.request.id || "",
-      status: payload.request.status || "",
-      checkoutSessionIdPresent: Boolean(payload.request.checkoutSessionId),
-      checkoutCreatedAt: payload.request.checkoutCreatedAt || "",
-      proposalSummary: payload.request.repairProposalSummary || null
-    } : null,
-    selectedRepair: payload.selectedRepair ? {
-      id: payload.selectedRepair.id || "",
-      queueItemId: payload.selectedRepair.queueItemId || "",
-      issueId: payload.selectedRepair.issueId || "",
-      title: payload.selectedRepair.title || "",
-      severity: payload.selectedRepair.severity || ""
-    } : null,
+    request: payload.request
+      ? {
+          id: payload.request.id || "",
+          status: payload.request.status || "",
+          checkoutSessionIdPresent: Boolean(payload.request.checkoutSessionId),
+          checkoutCreatedAt: payload.request.checkoutCreatedAt || "",
+          proposalSummary: payload.request.repairProposalSummary || null
+        }
+      : null,
+    selectedRepair: payload.selectedRepair
+      ? {
+          id: payload.selectedRepair.id || "",
+          queueItemId: payload.selectedRepair.queueItemId || "",
+          issueId: payload.selectedRepair.issueId || "",
+          title: payload.selectedRepair.title || "",
+          severity: payload.selectedRepair.severity || ""
+        }
+      : null,
     code: payload.code || "",
     message: payload.message || "",
     error: payload.error || ""
@@ -391,7 +405,7 @@ async function runFixPackWebhookDrill(payload = {}, cookie = "", options = {}) {
   }
 
   const baseUrl = options.baseUrl || BASE_URL;
-  const dodoConfig = options.dodoConfig || await readDodoPublicConfig();
+  const dodoConfig = options.dodoConfig || (await readDodoPublicConfig());
   const webhookSecret = options.webhookSecret || readDodoWebhookSecret();
   const event = buildDodoWebhookDrillEvent({
     request,
@@ -409,26 +423,36 @@ async function runFixPackWebhookDrill(payload = {}, cookie = "", options = {}) {
   });
   const afterWebhook = webhook.received
     ? await requestFixPack(options.reportId, cookie, {
-      ...options,
-      webhookDrill: false,
-      testMode: true
-    })
+        ...options,
+        webhookDrill: false,
+        testMode: true
+      })
     : null;
 
   return {
     ...webhook,
-    afterWebhook: afterWebhook ? {
-      status: afterWebhook.status,
-      request: afterWebhook.request ? {
-        id: afterWebhook.request.id,
-        status: afterWebhook.request.status,
-        proposalSummary: afterWebhook.request.proposalSummary
-      } : null
-    } : null
+    afterWebhook: afterWebhook
+      ? {
+          status: afterWebhook.status,
+          request: afterWebhook.request
+            ? {
+                id: afterWebhook.request.id,
+                status: afterWebhook.request.status,
+                proposalSummary: afterWebhook.request.proposalSummary
+              }
+            : null
+        }
+      : null
   };
 }
 
-function buildDodoWebhookDrillEvent({ request = {}, selectedRepair = {}, reportId = "", ownerEmail = "", dodoConfig = {} }) {
+function buildDodoWebhookDrillEvent({
+  request = {},
+  selectedRepair = {},
+  reportId = "",
+  ownerEmail = "",
+  dodoConfig = {}
+}) {
   if (!dodoConfig.productId || !dodoConfig.brandId) {
     throw new Error("Missing Dodo public product or brand id for webhook drill.");
   }
@@ -463,16 +487,21 @@ async function postDodoWebhookDrill({ baseUrl, event, webhookSecret, fetcher = f
   const webhookId = `evt_sfk_drill_${Date.now()}_${crypto.randomUUID()}`;
   const webhookTimestamp = String(Math.floor(Date.now() / 1000));
   const webhookSignature = `v1,${await signDodoWebhookPayload({ payload, webhookId, webhookTimestamp, secret: webhookSecret })}`;
-  const response = await fetchWithTimeout(`${baseUrl}/api/webhooks/dodo`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "webhook-id": webhookId,
-      "webhook-timestamp": webhookTimestamp,
-      "webhook-signature": webhookSignature
+  const response = await fetchWithTimeout(
+    `${baseUrl}/api/webhooks/dodo`,
+    {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "webhook-id": webhookId,
+        "webhook-timestamp": webhookTimestamp,
+        "webhook-signature": webhookSignature
+      },
+      body: payload
     },
-    body: payload
-  }, timeoutMs, fetcher);
+    timeoutMs,
+    fetcher
+  );
   const body = await response.json().catch(() => ({}));
   return {
     status: response.ok && body.received ? "processed" : "failed",
@@ -507,7 +536,9 @@ async function signDodoWebhookPayload({ payload, webhookId, webhookTimestamp, se
 }
 
 function decodeDodoWebhookSecret(secret) {
-  const normalized = String(secret || "").trim().replace(/^whsec_/, "");
+  const normalized = String(secret || "")
+    .trim()
+    .replace(/^whsec_/, "");
   try {
     return Uint8Array.from(atob(normalized), (char) => char.charCodeAt(0));
   } catch {
@@ -566,9 +597,14 @@ async function waitForQueuedAuditReport(payload, cookie, options = {}) {
 
   while (Date.now() < deadline) {
     const remainingMs = Math.max(deadline - Date.now(), 1);
-    const jobPayload = await fetchJson(resolveUrl(statusUrl, options.baseUrl || BASE_URL), {
-      headers: { cookie }
-    }, options.fetcher || fetch, Math.min(maxRequestTimeoutMs, remainingMs));
+    const jobPayload = await fetchJson(
+      resolveUrl(statusUrl, options.baseUrl || BASE_URL),
+      {
+        headers: { cookie }
+      },
+      options.fetcher || fetch,
+      Math.min(maxRequestTimeoutMs, remainingMs)
+    );
     const job = jobPayload.job || {};
     lastStatus = job.status || lastStatus;
     if (lastStatus === "failed") {
@@ -578,10 +614,16 @@ async function waitForQueuedAuditReport(payload, cookie, options = {}) {
       const reportId = job.reportId || job.report_id || "";
       if (!reportId) throw new Error("Completed audit job did not include a report ID.");
       const remainingMs = Math.max(deadline - Date.now(), 1);
-      const reportPayload = await fetchJson(resolveUrl(`/api/reports/${encodeURIComponent(reportId)}`, options.baseUrl || BASE_URL), {
-        headers: { cookie }
-      }, options.fetcher || fetch, Math.min(maxRequestTimeoutMs, remainingMs));
-      if (!isAuditReportPayload(reportPayload)) throw new Error("Completed audit report payload was missing report fields.");
+      const reportPayload = await fetchJson(
+        resolveUrl(`/api/reports/${encodeURIComponent(reportId)}`, options.baseUrl || BASE_URL),
+        {
+          headers: { cookie }
+        },
+        options.fetcher || fetch,
+        Math.min(maxRequestTimeoutMs, remainingMs)
+      );
+      if (!isAuditReportPayload(reportPayload))
+        throw new Error("Completed audit report payload was missing report fields.");
       return reportPayload.report || reportPayload;
     }
     const sleepMs = Math.min(pollIntervalMs, Math.max(deadline - Date.now(), 0));
@@ -665,9 +707,7 @@ function recommendOffer(batch) {
   const audited = batch.targets.filter((target) => target.status === "audited");
   const totalFindings = audited.reduce((sum, target) => sum + (target.report?.findings || 0), 0);
   const priorityPatterns = batch.repeatedIssues.filter((issue) =>
-    /canonical|social share image|meta description|title|structured data|apple touch icon/i.test(
-      issue.issue
-    )
+    /canonical|social share image|meta description|title|structured data|apple touch icon/i.test(issue.issue)
   );
 
   if (!audited.length) {
@@ -687,8 +727,7 @@ function recommendOffer(batch) {
   return {
     offer: "SEO Fix Pack",
     price: "Dodo checkout price",
-    scope:
-      "Fix the top proven metadata, canonical, social preview, schema, and crawlability issues on one site.",
+    scope: "Fix the top proven metadata, canonical, social preview, schema, and crawlability issues on one site.",
     reason: `${audited.length} projects produced ${totalFindings} actionable findings. ${priorityPatterns.length} repeated revenue-relevant issue patterns appeared across the batch.`
   };
 }
@@ -718,7 +757,7 @@ function decodeHtml(value) {
     .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, "\"")
+    .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'");
 }
 
@@ -755,11 +794,15 @@ function renderMarkdown(batch) {
 
 ## Recommendation
 
-${batch.recommendation ? `**${batch.recommendation.offer}** (${batch.recommendation.price || "n/a"})
+${
+  batch.recommendation
+    ? `**${batch.recommendation.offer}** (${batch.recommendation.price || "n/a"})
 
 ${batch.recommendation.scope || ""}
 
-Reason: ${batch.recommendation.reason}` : "No recommendation generated."}
+Reason: ${batch.recommendation.reason}`
+    : "No recommendation generated."
+}
 
 ## Audited Targets
 
@@ -774,7 +817,9 @@ ${audited
 - Findings: ${target.report.findings}
 - Guarded false positives: ${target.report.guardedFalsePositives}
 - Report: ${target.report.reportUrl}
-${target.fixPack ? `
+${
+  target.fixPack
+    ? `
 Fix Pack proof:
 - Status: ${target.fixPack.status}
 - Checkout available: ${target.fixPack.checkoutAvailable ? "yes" : "no"}
@@ -783,11 +828,17 @@ Fix Pack proof:
 - Request: ${target.fixPack.request?.id || "n/a"} (${target.fixPack.request?.status || "n/a"})
 - Selected repair: ${target.fixPack.selectedRepair?.title || "n/a"}
 - Note: ${target.fixPack.reason || target.fixPack.error || target.fixPack.message || "n/a"}
-${target.fixPack.webhookDrill ? `- Webhook drill: ${target.fixPack.webhookDrill.status} (${target.fixPack.webhookDrill.paid ? "test payment processed" : target.fixPack.webhookDrill.reason || target.fixPack.webhookDrill.error || "not paid"})
+${
+  target.fixPack.webhookDrill
+    ? `- Webhook drill: ${target.fixPack.webhookDrill.status} (${target.fixPack.webhookDrill.paid ? "test payment processed" : target.fixPack.webhookDrill.reason || target.fixPack.webhookDrill.error || "not paid"})
 - Post-drill request: ${target.fixPack.webhookDrill.afterWebhook?.request?.status || "n/a"}
 - Post-drill proposals: ${target.fixPack.webhookDrill.afterWebhook?.request?.proposalSummary ? JSON.stringify(target.fixPack.webhookDrill.afterWebhook.request.proposalSummary) : "n/a"}
-` : ""}
-` : ""}
+`
+    : ""
+}
+`
+    : ""
+}
 
 Top issues:
 ${target.report.topIssues
@@ -799,9 +850,13 @@ ${target.report.topIssues
 
 ## Repeated Issues
 
-${batch.repeatedIssues.length ? batch.repeatedIssues
-  .map((issue) => `- ${issue.issue}: ${issue.count} findings across ${issue.projects.join(", ")}`)
-  .join("\n") : "- No repeated issues found."}
+${
+  batch.repeatedIssues.length
+    ? batch.repeatedIssues
+        .map((issue) => `- ${issue.issue}: ${issue.count} findings across ${issue.projects.join(", ")}`)
+        .join("\n")
+    : "- No repeated issues found."
+}
 
 ## Failed Targets
 

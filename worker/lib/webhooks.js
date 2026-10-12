@@ -139,7 +139,11 @@ async function deliverApiWebhook(env, webhook, eventType, body, options = {}) {
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     const remainingMs = Math.max(deadline - Date.now(), 0);
     if (remainingMs <= 0) {
-      return { status: "failed", httpStatus: lastStatus || 0, error: lastError || "Webhook delivery budget exhausted." };
+      return {
+        status: "failed",
+        httpStatus: lastStatus || 0,
+        error: lastError || "Webhook delivery budget exhausted."
+      };
     }
     const urlStatus = publicWebhookUrlStatus(webhook.url);
     if (!urlStatus.ok) {
@@ -154,17 +158,22 @@ async function deliverApiWebhook(env, webhook, eventType, body, options = {}) {
     }
     const timestamp = String(Math.floor(Date.now() / 1000));
     try {
-      const response = await fetchWithTimeout(fetcher, urlStatus.url, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "user-agent": "SEO Fix Kit Webhooks",
-          "x-seofixkit-event": eventType,
-          "x-seofixkit-signature": `t=${timestamp},v1=${await apiWebhookSignature(env, webhook.id, timestamp, body)}`
+      const response = await fetchWithTimeout(
+        fetcher,
+        urlStatus.url,
+        {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "user-agent": "SEO Fix Kit Webhooks",
+            "x-seofixkit-event": eventType,
+            "x-seofixkit-signature": `t=${timestamp},v1=${await apiWebhookSignature(env, webhook.id, timestamp, body)}`
+          },
+          body,
+          redirect: "manual"
         },
-        body,
-        redirect: "manual"
-      }, Math.min(timeoutMs, remainingMs));
+        Math.min(timeoutMs, remainingMs)
+      );
       lastStatus = response.status;
       if (response.ok) return { status: "delivered", httpStatus: response.status, error: "" };
       lastError = `HTTP ${response.status}`;
@@ -204,7 +213,7 @@ function shouldRetryWebhookResponse(status) {
 }
 
 function webhookRetryDelayMs(attempt) {
-  return Math.min(WEBHOOK_DELIVERY_RETRY_BASE_MS * (2 ** Math.max(attempt - 1, 0)), 1000);
+  return Math.min(WEBHOOK_DELIVERY_RETRY_BASE_MS * 2 ** Math.max(attempt - 1, 0), 1000);
 }
 
 function webhookDeliveryTimeoutMs(env) {
@@ -216,7 +225,10 @@ function webhookDeliveryMaxAttempts(env) {
 }
 
 function webhookDeliveryEventBudgetMs(env) {
-  return Math.min(Math.max(Number(env.SEOFIXKIT_WEBHOOK_EVENT_BUDGET_MS || WEBHOOK_DELIVERY_EVENT_BUDGET_MS), 1000), 30000);
+  return Math.min(
+    Math.max(Number(env.SEOFIXKIT_WEBHOOK_EVENT_BUDGET_MS || WEBHOOK_DELIVERY_EVENT_BUDGET_MS), 1000),
+    30000
+  );
 }
 
 function sleep(ms) {

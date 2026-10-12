@@ -7,9 +7,7 @@ const HEAVY_TOTAL_BYTES = 2 * 1024 * 1024;
 
 export function buildResourceWaterfall(page = {}) {
   const rendered = page.rendered || {};
-  const rawResources = Array.isArray(rendered.resourceTimings)
-    ? rendered.resourceTimings
-    : [];
+  const rawResources = Array.isArray(rendered.resourceTimings) ? rendered.resourceTimings : [];
   const navigation = rendered.navigationTiming || {};
   const pageUrl = rendered.finalUrl || page.finalUrl || page.url || "";
   const pageOrigin = safeOrigin(pageUrl);
@@ -22,9 +20,10 @@ export function buildResourceWaterfall(page = {}) {
     return {
       status: "empty",
       source: "browser-resource-timing",
-      reason: rendered.source === "static-fallback"
-        ? "Rendered browser timing was unavailable for this page."
-        : "The browser did not expose resource timing rows for this page.",
+      reason:
+        rendered.source === "static-fallback"
+          ? "Rendered browser timing was unavailable for this page."
+          : "The browser did not expose resource timing rows for this page.",
       summary: emptySummary(),
       navigation,
       resources: [],
@@ -36,9 +35,7 @@ export function buildResourceWaterfall(page = {}) {
     };
   }
 
-  const renderBlockingCandidates = resources.filter((resource) =>
-    isRenderBlockingCandidate(resource, navigation)
-  );
+  const renderBlockingCandidates = resources.filter((resource) => isRenderBlockingCandidate(resource, navigation));
   const slowResources = resources
     .filter((resource) => resource.durationMs >= SLOW_RESOURCE_MS)
     .sort((a, b) => b.durationMs - a.durationMs)
@@ -73,12 +70,13 @@ export function resourceWaterfallFindings(waterfall = {}, pageLabel = "home", so
   if (waterfall.status !== "ready") return [];
   const summary = waterfall.summary || {};
   const findings = [];
-  const add = (finding) => findings.push({
-    type: "performance",
-    source,
-    confidence: "needs-review",
-    ...finding
-  });
+  const add = (finding) =>
+    findings.push({
+      type: "performance",
+      source,
+      confidence: "needs-review",
+      ...finding
+    });
 
   if ((waterfall.renderBlockingCandidates || []).length >= 2) {
     add({
@@ -165,14 +163,18 @@ export function resourceWaterfallBriefLines(waterfall = {}) {
     `- JavaScript: ${formatWaterfallBytes(summary.scriptBytes)} across ${summary.scriptRequests} request${summary.scriptRequests === 1 ? "" : "s"}`,
     `- CSS: ${formatWaterfallBytes(summary.stylesheetBytes)}; images: ${formatWaterfallBytes(summary.imageBytes)}; fonts: ${formatWaterfallBytes(summary.fontBytes)}`,
     `- Third-party requests: ${summary.thirdPartyRequests}`,
-    `- Slow resources: ${summary.slowRequests}; render-blocking candidates: ${summary.renderBlockingCandidates}`,
+    `- Slow resources: ${summary.slowRequests}; render-blocking candidates: ${summary.renderBlockingCandidates}`
   ];
 
   if (waterfall.heavyResources?.length) {
-    lines.push(`- Heaviest resource: ${resourceLabel(waterfall.heavyResources[0])} (${formatWaterfallBytes(waterfall.heavyResources[0].sizeBytes)})`);
+    lines.push(
+      `- Heaviest resource: ${resourceLabel(waterfall.heavyResources[0])} (${formatWaterfallBytes(waterfall.heavyResources[0].sizeBytes)})`
+    );
   }
   if (waterfall.slowResources?.length) {
-    lines.push(`- Slowest resource: ${resourceLabel(waterfall.slowResources[0])} (${Math.round(waterfall.slowResources[0].durationMs)}ms)`);
+    lines.push(
+      `- Slowest resource: ${resourceLabel(waterfall.slowResources[0])} (${Math.round(waterfall.slowResources[0].durationMs)}ms)`
+    );
   }
   if (waterfall.repairOpportunities?.length) {
     lines.push(`- Top waterfall repair: ${waterfall.repairOpportunities[0].title}`);
@@ -203,7 +205,8 @@ function normalizeResource(resource = {}, pageOrigin = "") {
   const url = safeUrl(name);
   const host = url?.hostname || "";
   const type = classifyResource(resource.initiatorType, url?.pathname || name);
-  const sizeBytes = positiveNumber(resource.transferSize) ||
+  const sizeBytes =
+    positiveNumber(resource.transferSize) ||
     positiveNumber(resource.encodedBodySize) ||
     positiveNumber(resource.decodedBodySize);
   const startTimeMs = rounded(resource.startTime ?? resource.startTimeMs);
@@ -311,9 +314,7 @@ function isRenderBlockingCandidate(resource, navigation = {}) {
   if (renderBlockingStatus === "blocking") return true;
   if (renderBlockingStatus === "non-blocking") return false;
   if (!["script", "stylesheet"].includes(resource.type)) return false;
-  const cutoff = positiveNumber(navigation.domContentLoadedMs) ||
-    positiveNumber(navigation.loadEventMs) ||
-    1500;
+  const cutoff = positiveNumber(navigation.domContentLoadedMs) || positiveNumber(navigation.loadEventMs) || 1500;
   return resource.startTimeMs <= Math.max(1500, cutoff);
 }
 
@@ -354,16 +355,23 @@ function classifyResource(initiatorType = "", pathname = "") {
 }
 
 function formatResourceList(resources = [], mode = "size") {
-  return resources.slice(0, 3).map((resource) => {
-    const value = mode === "duration"
-      ? `${Math.round(resource.durationMs)}ms`
-      : formatWaterfallBytes(resource.sizeBytes);
-    return `${resourceLabel(resource)} (${value})`;
-  }).join("; ");
+  return resources
+    .slice(0, 3)
+    .map((resource) => {
+      const value =
+        mode === "duration" ? `${Math.round(resource.durationMs)}ms` : formatWaterfallBytes(resource.sizeBytes);
+      return `${resourceLabel(resource)} (${value})`;
+    })
+    .join("; ");
 }
 
 function formatThirdPartyHosts(hosts = []) {
-  return hosts.slice(0, 3).map((host) => `${host.host} (${host.requests})`).join(", ") || "third-party hosts";
+  return (
+    hosts
+      .slice(0, 3)
+      .map((host) => `${host.host} (${host.requests})`)
+      .join(", ") || "third-party hosts"
+  );
 }
 
 function resourceLabel(resource = {}) {

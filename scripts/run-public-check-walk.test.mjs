@@ -147,7 +147,10 @@ test("walk reports needs-quota on 429 with the reset window", async () => {
     baseUrl: origin,
     fetcher: async () =>
       jsonResponse(
-        { error: "Daily one-page check limit reached from this network. Try again tomorrow.", resetAt: "2026-08-12T00:00:00.000Z" },
+        {
+          error: "Daily one-page check limit reached from this network. Try again tomorrow.",
+          resetAt: "2026-08-12T00:00:00.000Z"
+        },
         429
       )
   });

@@ -19,6 +19,7 @@ bundling starts. An unattributed host tool periodically drops a project-init sca
 batch (empty `.env*` ×8, `.gitmodules`, `package-lock.json`, `pnpm-lock.yaml`,
 `yarn.lock`, `bunfig.toml`, empty `node_modules/`, and zero-byte `package.json`) into
 directories it should not touch:
+
 - 2026-08-02: `/home/nish/package.json`
 - 2026-08-09 12:40 IST: `/home/nish/workspaces/agent-state/package.json` (batch described
   in `agent-state/lanes/hourly-audit/reports/20260809T082000Z-timers-and-units.md`)

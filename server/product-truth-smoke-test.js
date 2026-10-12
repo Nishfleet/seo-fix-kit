@@ -19,9 +19,24 @@ const index = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const schema = homepageSchema(index);
 const schemaTypes = schemaTypesFromGraph(schema);
 
-assert.equal(sellableOffers(offers).map((offer) => offer.key).join(","), "fix_pack");
-assert.equal(sellableOffers(monitoringOffers).map((offer) => offer.key).join(","), "fix_pack,proof_monitoring");
-assert.equal(sellableOffers(repairSprintOffers).map((offer) => offer.key).join(","), "fix_pack,proof_monitoring");
+assert.equal(
+  sellableOffers(offers)
+    .map((offer) => offer.key)
+    .join(","),
+  "fix_pack"
+);
+assert.equal(
+  sellableOffers(monitoringOffers)
+    .map((offer) => offer.key)
+    .join(","),
+  "fix_pack,proof_monitoring"
+);
+assert.equal(
+  sellableOffers(repairSprintOffers)
+    .map((offer) => offer.key)
+    .join(","),
+  "fix_pack,proof_monitoring"
+);
 assert.equal(repairSprintOffers.find((offer) => offer.key === "repair_sprint").checkoutConfigured, true);
 assert.equal(llms.includes("Proof Monitoring checkout is config-gated"), true);
 assert.equal(llms.includes("access activates from subscription webhooks"), true);
@@ -31,7 +46,10 @@ assert.equal(llms.includes("paid Agency Workspace checkout is not live yet"), tr
 assert.equal(llms.includes("Does not claim llms.txt is required for Google Search"), true);
 assert.equal(llms.includes("owner-approved implementation packs"), true);
 assert.equal(llms.includes("proof receipts after fixed rerun proof"), true);
-assert.equal(llms.includes("Implementation packs and repair proof receipts are private handoff/proof documents only"), true);
+assert.equal(
+  llms.includes("Implementation packs and repair proof receipts are private handoff/proof documents only"),
+  true
+);
 assert.equal(llms.includes("Agent-readable acquisition and action surfaces"), true);
 assert.equal(llms.includes("There is no live SEO Fix Kit MCP endpoint today"), true);
 assert.equal(llms.includes("Does not expose unauthenticated agent actions"), true);
@@ -44,7 +62,7 @@ assert.equal(/\$299-\$799\/mo/.test(llms), false);
 for (const type of ["Organization", "WebSite", "SoftwareApplication", "FAQPage"]) {
   assert.equal(schemaTypes.has(type), true, `homepage schema should include ${type}`);
 }
-assert.equal(JSON.stringify(schema).includes("\"price\""), false);
+assert.equal(JSON.stringify(schema).includes('"price"'), false);
 assert.equal(/guaranteed rankings|guarantees rankings|guarantees traffic/i.test(JSON.stringify(schema)), false);
 
 console.log(JSON.stringify({ ok: true, checked: "product truth and offer gates" }));

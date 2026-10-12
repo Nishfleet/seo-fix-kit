@@ -20,7 +20,10 @@ export function CompetitorBenchmarkPanel({ benchmark }) {
       </div>
 
       <div className="benchmark-metrics" aria-label="Competitor benchmark summary">
-        <Metric label="Your rank" value={`${summary.targetRank || 1}/${summary.totalSitesRanked || competitors.length + 1}`} />
+        <Metric
+          label="Your rank"
+          value={`${summary.targetRank || 1}/${summary.totalSitesRanked || competitors.length + 1}`}
+        />
         <Metric label="Your score" value={target.score || 0} />
         <Metric label="Best rival" value={summary.bestCompetitorScore || 0} />
         <Metric label="Avg rival" value={summary.competitorAverageScore || 0} />
@@ -57,7 +60,9 @@ export function CompetitorBenchmarkPanel({ benchmark }) {
             <span>{repair.severity}</span>
             <strong>{repair.title}</strong>
             <p>{repair.proof}</p>
-            <small>{repair.estimatedEffort || "15-30 min"} - {repair.workType || "review"}</small>
+            <small>
+              {repair.estimatedEffort || "15-30 min"} - {repair.workType || "review"}
+            </small>
           </article>
         ))}
         {!repairs.length && <p className="quiet-note">No competitor-backed repair gaps were found in this snapshot.</p>}
@@ -81,7 +86,10 @@ export function BacklinkAuditPanel({ audit }) {
             ? `${summary.repairOpportunityCount} link repair ${summary.repairOpportunityCount === 1 ? "action" : "actions"} found.`
             : "Imported backlinks are clean in this proof pass."}
         </h2>
-        <p>Self-serve backlink import with live source-page proof and link-edge history. This is not proprietary backlink discovery.</p>
+        <p>
+          Self-serve backlink import with live source-page proof and link-edge history. This is not proprietary backlink
+          discovery.
+        </p>
       </div>
 
       <div className="backlink-metrics" aria-label="Backlink audit summary">
@@ -97,13 +105,18 @@ export function BacklinkAuditPanel({ audit }) {
           <span>{highestPriority.severity}</span>
           <strong>{highestPriority.title}</strong>
           <p>{highestPriority.proof}</p>
-          <small>{highestPriority.estimatedEffort || "30-90 min"} - {highestPriority.workType || "review"}</small>
+          <small>
+            {highestPriority.estimatedEffort || "30-90 min"} - {highestPriority.workType || "review"}
+          </small>
         </article>
       )}
 
       <div className="backlink-grid">
         {rows.slice(0, 6).map((row) => (
-          <article className={`backlink-row ${row.live ? "is-live" : "is-lost"}`} key={row.id || `${row.sourceUrl}-${row.targetUrl}`}>
+          <article
+            className={`backlink-row ${row.live ? "is-live" : "is-lost"}`}
+            key={row.id || `${row.sourceUrl}-${row.targetUrl}`}
+          >
             <div>
               <span>{row.live ? "Live" : "Lost"}</span>
               <strong>{safeHostnameLabel(row.sourceUrl)}</strong>
@@ -149,7 +162,9 @@ export function LocalSeoAuditPanel({ audit }) {
           <span>{highestPriority.severity}</span>
           <strong>{highestPriority.title}</strong>
           <p>{highestPriority.proof}</p>
-          <small>{highestPriority.estimatedEffort || "30-90 min"} - {highestPriority.workType || "review"}</small>
+          <small>
+            {highestPriority.estimatedEffort || "30-90 min"} - {highestPriority.workType || "review"}
+          </small>
         </article>
       )}
 
@@ -169,9 +184,15 @@ export function LocalSeoAuditPanel({ audit }) {
             <div>
               <span>{item.found ? "Covered" : "Missing"}</span>
               <strong>{item.keyword}</strong>
-              <small>{item.pages?.length ? item.pages.map((page) => page.label).join(", ") : "No rendered page match"}</small>
+              <small>
+                {item.pages?.length ? item.pages.map((page) => page.label).join(", ") : "No rendered page match"}
+              </small>
             </div>
-            <p>{item.found ? "Keyword appears naturally in rendered page content." : "Keyword was not found in the rendered pages crawled."}</p>
+            <p>
+              {item.found
+                ? "Keyword appears naturally in rendered page content."
+                : "Keyword was not found in the rendered pages crawled."}
+            </p>
           </article>
         ))}
       </div>
@@ -194,7 +215,10 @@ export function KeywordRankAuditPanel({ audit }) {
             ? `${summary.repairOpportunityCount} keyword repair ${summary.repairOpportunityCount === 1 ? "action" : "actions"} found.`
             : "Imported keyword rows are clean in this proof pass."}
         </h2>
-        <p>Self-serve Search Console or rank-tracker import with rendered landing-page proof and trend history. This is not live volume or continuous rank tracking.</p>
+        <p>
+          Self-serve Search Console or rank-tracker import with rendered landing-page proof and trend history. This is
+          not live volume or continuous rank tracking.
+        </p>
       </div>
 
       <div className="keyword-rank-metrics" aria-label="Keyword audit summary">
@@ -211,7 +235,9 @@ export function KeywordRankAuditPanel({ audit }) {
           <span>{highestPriority.severity}</span>
           <strong>{highestPriority.title}</strong>
           <p>{highestPriority.proof}</p>
-          <small>{highestPriority.estimatedEffort || "30-90 min"} - {highestPriority.workType || "content"}</small>
+          <small>
+            {highestPriority.estimatedEffort || "30-90 min"} - {highestPriority.workType || "content"}
+          </small>
         </article>
       )}
 
@@ -293,16 +319,17 @@ export function PlatformSeoAuditPanel({ audit }) {
   const repairs = audit.repairOpportunities || [];
   const checks = audit.checks || {};
   const highestPriority = repairs[0];
-  const platformNames = summary.detectedPlatformNames?.length
-    ? summary.detectedPlatformNames.join(", ")
-    : "Platform";
+  const platformNames = summary.detectedPlatformNames?.length ? summary.detectedPlatformNames.join(", ") : "Platform";
 
   return (
     <section className="platform-seo-panel">
       <div className="section-heading">
         <p className="beta-eyebrow">Platform SEO audit</p>
         <h2>{platformNames} proof with platform-specific repairs.</h2>
-        <p>Rendered WordPress and ecommerce checks for product schema, faceted links, archives, and plugin resource impact.</p>
+        <p>
+          Rendered WordPress and ecommerce checks for product schema, faceted links, archives, and plugin resource
+          impact.
+        </p>
       </div>
 
       <div className="platform-seo-metrics" aria-label="Platform SEO audit summary">
@@ -319,7 +346,9 @@ export function PlatformSeoAuditPanel({ audit }) {
           <span>{highestPriority.severity}</span>
           <strong>{highestPriority.title}</strong>
           <p>{highestPriority.proof}</p>
-          <small>{highestPriority.estimatedEffort || "30-90 min"} - {highestPriority.workType || "technical"}</small>
+          <small>
+            {highestPriority.estimatedEffort || "30-90 min"} - {highestPriority.workType || "technical"}
+          </small>
         </article>
       )}
 

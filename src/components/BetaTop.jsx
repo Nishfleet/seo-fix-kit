@@ -9,9 +9,19 @@ export function BetaTop({ onLock, showBilling = false, showOps = false }) {
         <span>SEO Fix Kit</span>
       </Link>
       <nav>
-        <Link discover="none" to="/">Public page</Link>
-        {showBilling && <Link discover="none" to="/beta/billing">Billing</Link>}
-        {showOps && <Link discover="none" to="/beta/admin">Ops</Link>}
+        <Link discover="none" to="/">
+          Public page
+        </Link>
+        {showBilling && (
+          <Link discover="none" to="/beta/billing">
+            Billing
+          </Link>
+        )}
+        {showOps && (
+          <Link discover="none" to="/beta/admin">
+            Ops
+          </Link>
+        )}
         {onLock && (
           <button className="text-button" onClick={onLock} type="button">
             Lock

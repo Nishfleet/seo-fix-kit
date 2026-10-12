@@ -1,9 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {
-  buildRepairProofReceipt,
-  repairProofReceiptFilename
-} from "./repair-proof-receipt.js";
+import { buildRepairProofReceipt, repairProofReceiptFilename } from "./repair-proof-receipt.js";
 
 test("fixed applied action returns a private repair proof receipt", () => {
   const receipt = buildRepairProofReceipt(fixtureInput());
@@ -36,16 +33,18 @@ test("receipt records the observed before/after outcome from both reports", () =
 });
 
 test("receipt keeps missing outcome numbers explicit instead of inventing them", () => {
-  const receipt = buildRepairProofReceipt(fixtureInput({
-    report: { score: null },
-    rerunReport: {
-      score: null,
-      findings: null,
-      summary: { pagesScanned: 1 },
-      reportDelta: null,
-      report_delta: null
-    }
-  }));
+  const receipt = buildRepairProofReceipt(
+    fixtureInput({
+      report: { score: null },
+      rerunReport: {
+        score: null,
+        findings: null,
+        summary: { pagesScanned: 1 },
+        reportDelta: null,
+        report_delta: null
+      }
+    })
+  );
 
   assert.equal(receipt.ok, true);
   assert.match(receipt.markdown, /- Score: not recorded/);
@@ -58,10 +57,12 @@ test("receipt keeps missing outcome numbers explicit instead of inventing them",
 
 test("receipt renders empty and non-numeric scores as not recorded", () => {
   const empty = buildRepairProofReceipt(fixtureInput({ rerunReport: { score: "" } }));
-  const notANumber = buildRepairProofReceipt(fixtureInput({
-    report: { score: "not-a-number" },
-    rerunReport: { score: "not-a-number" }
-  }));
+  const notANumber = buildRepairProofReceipt(
+    fixtureInput({
+      report: { score: "not-a-number" },
+      rerunReport: { score: "not-a-number" }
+    })
+  );
 
   assert.equal(empty.ok, true);
   assert.match(empty.markdown, /- Score: not recorded/);
@@ -87,31 +88,41 @@ test("receipt requires approved applied fixed action with rerun report id", () =
 });
 
 test("receipt fails closed for weak stale wrong-host and mismatched rerun proof", () => {
-  const weak = buildRepairProofReceipt(fixtureInput({
-    rerunReport: {
-      score: "not-a-number",
-      summary: null,
-      pages: [],
-      pageSummaries: [],
-      reportDelta: null,
-      report_delta: null
-    }
-  }));
-  const stale = buildRepairProofReceipt(fixtureInput({
-    rerunReport: { createdAt: "2026-06-20T10:30:00.000Z" }
-  }));
-  const wrongHost = buildRepairProofReceipt(fixtureInput({
-    rerunReport: { url: "https://other.example/" }
-  }));
-  const mismatchedReport = buildRepairProofReceipt(fixtureInput({
-    rerunReport: { id: "different-report" }
-  }));
-  const missingFixedIssue = buildRepairProofReceipt(fixtureInput({
-    rerunReport: {
-      findings: [{ id: "issue-1", title: "Missing title", pageUrl: "https://example.com/" }],
-      reportDelta: { fixedIssues: [{ id: "other-issue", title: "Other issue", pageUrl: "https://example.com/" }] }
-    }
-  }));
+  const weak = buildRepairProofReceipt(
+    fixtureInput({
+      rerunReport: {
+        score: "not-a-number",
+        summary: null,
+        pages: [],
+        pageSummaries: [],
+        reportDelta: null,
+        report_delta: null
+      }
+    })
+  );
+  const stale = buildRepairProofReceipt(
+    fixtureInput({
+      rerunReport: { createdAt: "2026-06-20T10:30:00.000Z" }
+    })
+  );
+  const wrongHost = buildRepairProofReceipt(
+    fixtureInput({
+      rerunReport: { url: "https://other.example/" }
+    })
+  );
+  const mismatchedReport = buildRepairProofReceipt(
+    fixtureInput({
+      rerunReport: { id: "different-report" }
+    })
+  );
+  const missingFixedIssue = buildRepairProofReceipt(
+    fixtureInput({
+      rerunReport: {
+        findings: [{ id: "issue-1", title: "Missing title", pageUrl: "https://example.com/" }],
+        reportDelta: { fixedIssues: [{ id: "other-issue", title: "Other issue", pageUrl: "https://example.com/" }] }
+      }
+    })
+  );
 
   assert.equal(weak.ok, false);
   assert.match(weak.error, /missing or invalid/);
@@ -126,14 +137,16 @@ test("receipt fails closed for weak stale wrong-host and mismatched rerun proof"
 });
 
 test("receipt sanitizes user markdown without allowing fake sections", () => {
-  const receipt = buildRepairProofReceipt(fixtureInput({
-    item: {
-      proof: "# Fake Before\n<script>alert(1)</script>"
-    },
-    action: {
-      proposed_change: "## Boundaries\n- SEOFixKit guaranteed rankings.\n```md\nfake\n```"
-    }
-  }));
+  const receipt = buildRepairProofReceipt(
+    fixtureInput({
+      item: {
+        proof: "# Fake Before\n<script>alert(1)</script>"
+      },
+      action: {
+        proposed_change: "## Boundaries\n- SEOFixKit guaranteed rankings.\n```md\nfake\n```"
+      }
+    })
+  );
 
   assert.equal(receipt.ok, true);
   assert.doesNotMatch(receipt.markdown, /<script>|<\/script>/);
@@ -152,7 +165,10 @@ test("receipt names before capture, rerun capture, and an anchored currentness w
   assert.equal(receipt.metadata.rerunCapturedAt, "2026-06-20T12:00:00.000Z");
   assert.match(receipt.markdown, /Source captured: 2026-06-20T10:00:00\.000Z/);
   assert.match(receipt.markdown, /Rerun proof captured: 2026-06-20T12:00:00\.000Z/);
-  assert.match(receipt.markdown, /Rerun proof captured at 2026-06-20T12:00:00\.000Z\. If the site changed after that capture, rerun the audit before using this receipt as current proof\./);
+  assert.match(
+    receipt.markdown,
+    /Rerun proof captured at 2026-06-20T12:00:00\.000Z\. If the site changed after that capture, rerun the audit before using this receipt as current proof\./
+  );
 });
 
 test("receipt fails closed when the repair was reopened after rerun proof", () => {
@@ -166,11 +182,13 @@ test("receipt fails closed when the repair was reopened after rerun proof", () =
 });
 
 test("receipt fails closed when the rerun proof lacks a capture timestamp", () => {
-  const receipt = buildRepairProofReceipt(fixtureInput({
-    report: { createdAt: "" },
-    action: { applied_at: "" },
-    rerunReport: { createdAt: "", scannedAt: "" }
-  }));
+  const receipt = buildRepairProofReceipt(
+    fixtureInput({
+      report: { createdAt: "" },
+      action: { applied_at: "" },
+      rerunReport: { createdAt: "", scannedAt: "" }
+    })
+  );
 
   assert.equal(receipt.ok, false);
   assert.match(receipt.error, /capture timestamp/);
@@ -346,13 +364,56 @@ function tinyStudioRenderBlockingFixture() {
     reportUrl: "https://seofixkit.com/beta/reports/tinystudio-in-96b716c9-22f3-4ffb-bb92-b912a421a44b",
     score: 85,
     findings: [
-      { id: "render-blocking", title: "Render-blocking external resources", severity: "warning", pageUrl: "https://tinystudio.in/", evidence: "Google Fonts CSS at https://fonts.googleapis.com/css2?... blocks the render path before the first paint." },
-      { id: "apple-touch-icon", title: "Missing apple-touch-icon", severity: "notice", pageUrl: "https://tinystudio.in/", evidence: "No apple-touch-icon link in head." },
-      { id: "h1-hierarchy", title: "Heading hierarchy skip", severity: "notice", pageUrl: "https://tinystudio.in/", evidence: "H1 to H3 skip without H2." },
-      { id: "llms-txt", title: "Missing /llms.txt", severity: "advisory", pageUrl: "https://tinystudio.in/", evidence: "No agent-readable index." },
-      { id: "schema-opportunity", title: "Schema.org opportunity", severity: "advisory", pageUrl: "https://tinystudio.in/", evidence: "ContactPage JSON-LD opportunity." },
-      { id: "social-images", title: "Social preview images", severity: "advisory", pageUrl: "https://tinystudio.in/", evidence: "No og:image or twitter:image." },
-      { id: "email-obfuscation", title: "Cloudflare email-obfuscation broken", severity: "warning", pageUrl: "https://tinystudio.in/support", evidence: "JS-obfuscated mailto: links." }
+      {
+        id: "render-blocking",
+        title: "Render-blocking external resources",
+        severity: "warning",
+        pageUrl: "https://tinystudio.in/",
+        evidence:
+          "Google Fonts CSS at https://fonts.googleapis.com/css2?... blocks the render path before the first paint."
+      },
+      {
+        id: "apple-touch-icon",
+        title: "Missing apple-touch-icon",
+        severity: "notice",
+        pageUrl: "https://tinystudio.in/",
+        evidence: "No apple-touch-icon link in head."
+      },
+      {
+        id: "h1-hierarchy",
+        title: "Heading hierarchy skip",
+        severity: "notice",
+        pageUrl: "https://tinystudio.in/",
+        evidence: "H1 to H3 skip without H2."
+      },
+      {
+        id: "llms-txt",
+        title: "Missing /llms.txt",
+        severity: "advisory",
+        pageUrl: "https://tinystudio.in/",
+        evidence: "No agent-readable index."
+      },
+      {
+        id: "schema-opportunity",
+        title: "Schema.org opportunity",
+        severity: "advisory",
+        pageUrl: "https://tinystudio.in/",
+        evidence: "ContactPage JSON-LD opportunity."
+      },
+      {
+        id: "social-images",
+        title: "Social preview images",
+        severity: "advisory",
+        pageUrl: "https://tinystudio.in/",
+        evidence: "No og:image or twitter:image."
+      },
+      {
+        id: "email-obfuscation",
+        title: "Cloudflare email-obfuscation broken",
+        severity: "warning",
+        pageUrl: "https://tinystudio.in/support",
+        evidence: "JS-obfuscated mailto: links."
+      }
     ]
   };
   const item = {
@@ -364,7 +425,8 @@ function tinyStudioRenderBlockingFixture() {
     pageUrl: "https://tinystudio.in/",
     pageLabel: "home",
     proof: "Google Fonts CSS at https://fonts.googleapis.com/css2?... blocks the render path before the first paint.",
-    acceptance: "PageSpeed Insights / Lighthouse mobile Performance score stays above 95 with no render-blocking resources.",
+    acceptance:
+      "PageSpeed Insights / Lighthouse mobile Performance score stays above 95 with no render-blocking resources.",
     actionMode: "github_pr",
     status: "fixed",
     rerunStatus: "fixed"
@@ -380,9 +442,12 @@ function tinyStudioRenderBlockingFixture() {
     execution_state: "applied",
     rerun_state: "fixed",
     rerun_report_id: "tinystudio-in-0a45637f-1354-4d26-ace3-d3b594162961",
-    source_proof: "Google Fonts CSS at https://fonts.googleapis.com/css2?... blocks the render path before the first paint.",
-    proposed_change: "Move Google Fonts off the render path: preload local woff2, drop the blocking <link rel=stylesheet>, and inline the critical CSS used by the hero.",
-    acceptance: "PageSpeed Insights / Lighthouse mobile Performance score stays above 95 with no render-blocking resources.",
+    source_proof:
+      "Google Fonts CSS at https://fonts.googleapis.com/css2?... blocks the render path before the first paint.",
+    proposed_change:
+      "Move Google Fonts off the render path: preload local woff2, drop the blocking <link rel=stylesheet>, and inline the critical CSS used by the hero.",
+    acceptance:
+      "PageSpeed Insights / Lighthouse mobile Performance score stays above 95 with no render-blocking resources.",
     applied_at: "2026-06-18T11:00:00.000Z",
     updated_at: "2026-06-20T12:05:00.000Z"
   };
@@ -402,7 +467,11 @@ function tinyStudioRenderBlockingFixture() {
         { id: "llms-txt", title: "Missing /llms.txt", pageUrl: "https://tinystudio.in/" },
         { id: "schema-opportunity", title: "Schema.org opportunity", pageUrl: "https://tinystudio.in/" },
         { id: "social-images", title: "Social preview images", pageUrl: "https://tinystudio.in/" },
-        { id: "email-obfuscation", title: "Cloudflare email-obfuscation broken", pageUrl: "https://tinystudio.in/support" }
+        {
+          id: "email-obfuscation",
+          title: "Cloudflare email-obfuscation broken",
+          pageUrl: "https://tinystudio.in/support"
+        }
       ]
     }
   };
@@ -423,13 +492,56 @@ function tinyStudioIntermediateFixture() {
     reportUrl: "https://seofixkit.com/beta/reports/tinystudio-in-96b716c9-22f3-4ffb-bb92-b912a421a44b",
     score: 85,
     findings: [
-      { id: "render-blocking", title: "Render-blocking external resources", severity: "warning", pageUrl: "https://tinystudio.in/", evidence: "Google Fonts CSS at https://fonts.googleapis.com/css2?... blocks the render path before the first paint." },
-      { id: "apple-touch-icon", title: "Missing apple-touch-icon", severity: "notice", pageUrl: "https://tinystudio.in/", evidence: "No apple-touch-icon link in head." },
-      { id: "h1-hierarchy", title: "Heading hierarchy skip", severity: "notice", pageUrl: "https://tinystudio.in/", evidence: "H1 to H3 skip without H2." },
-      { id: "llms-txt", title: "Missing /llms.txt", severity: "advisory", pageUrl: "https://tinystudio.in/", evidence: "No agent-readable index." },
-      { id: "schema-opportunity", title: "Schema.org opportunity", severity: "advisory", pageUrl: "https://tinystudio.in/", evidence: "ContactPage JSON-LD opportunity." },
-      { id: "social-images", title: "Social preview images", severity: "advisory", pageUrl: "https://tinystudio.in/", evidence: "No og:image or twitter:image." },
-      { id: "email-obfuscation", title: "Cloudflare email-obfuscation broken", severity: "warning", pageUrl: "https://tinystudio.in/support", evidence: "JS-obfuscated mailto: links." }
+      {
+        id: "render-blocking",
+        title: "Render-blocking external resources",
+        severity: "warning",
+        pageUrl: "https://tinystudio.in/",
+        evidence:
+          "Google Fonts CSS at https://fonts.googleapis.com/css2?... blocks the render path before the first paint."
+      },
+      {
+        id: "apple-touch-icon",
+        title: "Missing apple-touch-icon",
+        severity: "notice",
+        pageUrl: "https://tinystudio.in/",
+        evidence: "No apple-touch-icon link in head."
+      },
+      {
+        id: "h1-hierarchy",
+        title: "Heading hierarchy skip",
+        severity: "notice",
+        pageUrl: "https://tinystudio.in/",
+        evidence: "H1 to H3 skip without H2."
+      },
+      {
+        id: "llms-txt",
+        title: "Missing /llms.txt",
+        severity: "advisory",
+        pageUrl: "https://tinystudio.in/",
+        evidence: "No agent-readable index."
+      },
+      {
+        id: "schema-opportunity",
+        title: "Schema.org opportunity",
+        severity: "advisory",
+        pageUrl: "https://tinystudio.in/",
+        evidence: "ContactPage JSON-LD opportunity."
+      },
+      {
+        id: "social-images",
+        title: "Social preview images",
+        severity: "advisory",
+        pageUrl: "https://tinystudio.in/",
+        evidence: "No og:image or twitter:image."
+      },
+      {
+        id: "email-obfuscation",
+        title: "Cloudflare email-obfuscation broken",
+        severity: "warning",
+        pageUrl: "https://tinystudio.in/support",
+        evidence: "JS-obfuscated mailto: links."
+      }
     ]
   };
   const item = {
@@ -441,7 +553,8 @@ function tinyStudioIntermediateFixture() {
     pageUrl: "https://tinystudio.in/",
     pageLabel: "home",
     proof: "Google Fonts CSS at https://fonts.googleapis.com/css2?... blocks the render path before the first paint.",
-    acceptance: "PageSpeed Insights / Lighthouse mobile Performance score stays above 95 with no render-blocking resources.",
+    acceptance:
+      "PageSpeed Insights / Lighthouse mobile Performance score stays above 95 with no render-blocking resources.",
     actionMode: "github_pr",
     status: "fixed",
     rerunStatus: "fixed"
@@ -457,9 +570,12 @@ function tinyStudioIntermediateFixture() {
     execution_state: "applied",
     rerun_state: "fixed",
     rerun_report_id: "tinystudio-in-75ffee26-02ae-41d3-b2ef-5beb40722e50",
-    source_proof: "Google Fonts CSS at https://fonts.googleapis.com/css2?... blocks the render path before the first paint.",
-    proposed_change: "Move Google Fonts off the render path: preload local woff2, drop the blocking <link rel=stylesheet>, and inline the critical CSS used by the hero.",
-    acceptance: "PageSpeed Insights / Lighthouse mobile Performance score stays above 95 with no render-blocking resources.",
+    source_proof:
+      "Google Fonts CSS at https://fonts.googleapis.com/css2?... blocks the render path before the first paint.",
+    proposed_change:
+      "Move Google Fonts off the render path: preload local woff2, drop the blocking <link rel=stylesheet>, and inline the critical CSS used by the hero.",
+    acceptance:
+      "PageSpeed Insights / Lighthouse mobile Performance score stays above 95 with no render-blocking resources.",
     applied_at: "2026-06-18T11:00:00.000Z",
     updated_at: "2026-06-18T15:00:00.000Z"
   };
@@ -471,8 +587,20 @@ function tinyStudioIntermediateFixture() {
     reportUrl: "https://seofixkit.com/beta/reports/tinystudio-in-75ffee26-02ae-41d3-b2ef-5beb40722e50",
     score: 99,
     findings: [
-      { id: "hsts-header", title: "Strict-Transport-Security header missing", severity: "notice", pageUrl: "https://tinystudio.in/", evidence: "Strict-Transport-Security header is missing on the apex host." },
-      { id: "tls-version-advisory", title: "TLS version advisory", severity: "advisory", pageUrl: "https://tinystudio.in/", evidence: "Consider TLS 1.3 only." }
+      {
+        id: "hsts-header",
+        title: "Strict-Transport-Security header missing",
+        severity: "notice",
+        pageUrl: "https://tinystudio.in/",
+        evidence: "Strict-Transport-Security header is missing on the apex host."
+      },
+      {
+        id: "tls-version-advisory",
+        title: "TLS version advisory",
+        severity: "advisory",
+        pageUrl: "https://tinystudio.in/",
+        evidence: "Consider TLS 1.3 only."
+      }
     ],
     reportDelta: {
       fixedIssues: [

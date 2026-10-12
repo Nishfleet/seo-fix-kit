@@ -190,7 +190,9 @@ export function ClientReportPanel({ report }) {
         <form className="client-report-card" onSubmit={onBrandingSave}>
           <div className="client-report-card-head">
             <strong>Branding</strong>
-            <button disabled={status === "loading"} type="submit">Save</button>
+            <button disabled={status === "loading"} type="submit">
+              Save
+            </button>
           </div>
           <label htmlFor="agency-name">Agency name</label>
           <input
@@ -246,7 +248,9 @@ export function ClientReportPanel({ report }) {
         <form className="client-report-card" onSubmit={onDomainCreate}>
           <div className="client-report-card-head">
             <strong>Custom domain</strong>
-            <button disabled={status === "loading"} type="submit">Add</button>
+            <button disabled={status === "loading"} type="submit">
+              Add
+            </button>
           </div>
           <label htmlFor="report-domain">Report subdomain</label>
           <input
@@ -264,19 +268,37 @@ export function ClientReportPanel({ report }) {
                   <span>{domain.status === "verified" ? "Verified" : "Pending verification"}</span>
                   {domain.cnameTarget && <code>CNAME {domain.cnameTarget}</code>}
                   {domain.dnsName ? (
-                    <code>{domain.dnsType || "TXT"} {domain.dnsName}{" -> "}{domain.dnsValue || domain.verificationToken}</code>
+                    <code>
+                      {domain.dnsType || "TXT"} {domain.dnsName}
+                      {" -> "}
+                      {domain.dnsValue || domain.verificationToken}
+                    </code>
                   ) : (
-                    <code>{domain.verificationPath}{" -> "}{domain.verificationToken}</code>
+                    <code>
+                      {domain.verificationPath}
+                      {" -> "}
+                      {domain.verificationToken}
+                    </code>
                   )}
                   {domain.lastError && <small>{domain.lastError}</small>}
                 </div>
                 <div className="domain-actions">
                   {domain.status !== "verified" && (
-                    <button className="text-button accent-text" disabled={status === "loading"} onClick={() => onDomainVerify(domain.id)} type="button">
+                    <button
+                      className="text-button accent-text"
+                      disabled={status === "loading"}
+                      onClick={() => onDomainVerify(domain.id)}
+                      type="button"
+                    >
                       Verify
                     </button>
                   )}
-                  <button className="text-button" disabled={status === "loading"} onClick={() => onDomainRevoke(domain.id)} type="button">
+                  <button
+                    className="text-button"
+                    disabled={status === "loading"}
+                    onClick={() => onDomainRevoke(domain.id)}
+                    type="button"
+                  >
                     Remove
                   </button>
                 </div>
@@ -289,15 +311,12 @@ export function ClientReportPanel({ report }) {
         <form className="client-report-card" onSubmit={onShareCreate}>
           <div className="client-report-card-head">
             <strong>Create link</strong>
-            <button disabled={status === "loading"} type="submit">Create</button>
+            <button disabled={status === "loading"} type="submit">
+              Create
+            </button>
           </div>
           <label htmlFor="client-name">Client name</label>
-          <input
-            id="client-name"
-            onChange={(event) => setClientName(event.target.value)}
-            required
-            value={clientName}
-          />
+          <input id="client-name" onChange={(event) => setClientName(event.target.value)} required value={clientName} />
           <label htmlFor="client-password">Password</label>
           <input
             id="client-password"
@@ -349,7 +368,12 @@ export function ClientReportPanel({ report }) {
               <a className="text-button accent-text" href={share.pdfPath || `${share.sharePath}.pdf`}>
                 PDF
               </a>
-              <button className="text-button" disabled={status === "loading"} onClick={() => onShareRevoke(share.id)} type="button">
+              <button
+                className="text-button"
+                disabled={status === "loading"}
+                onClick={() => onShareRevoke(share.id)}
+                type="button"
+              >
                 Revoke
               </button>
             </div>

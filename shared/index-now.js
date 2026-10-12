@@ -14,10 +14,7 @@
 // has to be stable and unique to this host.
 export const INDEX_NOW_KEY = "3219d564f9f914772e178f33ae543e60";
 
-export const INDEX_NOW_ENDPOINTS = [
-  "https://api.indexnow.org/indexnow",
-  "https://www.bing.com/indexnow"
-];
+export const INDEX_NOW_ENDPOINTS = ["https://api.indexnow.org/indexnow", "https://www.bing.com/indexnow"];
 
 export const INDEX_NOW_HOST = "seofixkit.com";
 

@@ -10,13 +10,7 @@ import { betaAccessResponse, betaAccessStatus } from "../lib/auth.js";
 import { cookieValue, json, jsonNoStore, secureHeaders } from "../lib/http.js";
 import { agencyWorkspaceAccessForOwner } from "../lib/offers.js";
 import { ownerReportRow, reportJsonForRow } from "../lib/report-data.js";
-import {
-  checkQuotaSet,
-  constantTimeEqual,
-  hmacSha256Hex,
-  requestIpHash,
-  sha256Hex
-} from "../lib/security.js";
+import { checkQuotaSet, constantTimeEqual, hmacSha256Hex, requestIpHash, sha256Hex } from "../lib/security.js";
 import {
   cleanReportDomain,
   cleanText,
@@ -196,7 +190,10 @@ async function createReportShare(request, env) {
   const now = new Date().toISOString();
   const { password } = body;
   if (password && password.length < REPORT_SHARE_PASSWORD_MIN_LENGTH) {
-    return jsonNoStore({ error: `Client report passwords must be at least ${REPORT_SHARE_PASSWORD_MIN_LENGTH} characters.` }, 400);
+    return jsonNoStore(
+      { error: `Client report passwords must be at least ${REPORT_SHARE_PASSWORD_MIN_LENGTH} characters.` },
+      400
+    );
   }
   const expiresDays = body.expiresDays || 0;
   const share = {
@@ -318,15 +315,24 @@ async function getClientReportPdf(request, env) {
 }
 
 async function getClientReport(request, env) {
-  if (!env.WAITLIST_DB) return clientReportLockedResponse(request, defaultBranding(), { id: "" }, 503, "Client reports are not configured.");
+  if (!env.WAITLIST_DB)
+    return clientReportLockedResponse(
+      request,
+      defaultBranding(),
+      { id: "" },
+      503,
+      "Client reports are not configured."
+    );
   const url = new URL(request.url);
   const id = clientReportShareId(url.pathname);
-  if (!isSafeUuid(id)) return clientReportLockedResponse(request, defaultBranding(), { id }, 404, "Report link not found or expired.");
+  if (!isSafeUuid(id))
+    return clientReportLockedResponse(request, defaultBranding(), { id }, 404, "Report link not found or expired.");
 
   const share = await activeReportShare(env, id);
   const domainCheck = await clientReportHostAccess(env, request, share);
   if (!domainCheck.ok) return clientReportLockedResponse(request, defaultBranding(), { id }, 404, domainCheck.error);
-  if (!share) return clientReportLockedResponse(request, defaultBranding(), { id }, 404, "Report link not found or expired.");
+  if (!share)
+    return clientReportLockedResponse(request, defaultBranding(), { id }, 404, "Report link not found or expired.");
   const branding = await reportBrandingForOwner(env, share.owner_email);
   const reportRow = await env.WAITLIST_DB.prepare(
     `SELECT report_json, expires_at
@@ -372,26 +378,35 @@ async function getClientReport(request, env) {
 }
 
 async function unlockClientReport(request, env) {
-  if (!env.WAITLIST_DB) return clientReportLockedResponse(request, defaultBranding(), { id: "" }, 503, "Client reports are not configured.");
+  if (!env.WAITLIST_DB)
+    return clientReportLockedResponse(
+      request,
+      defaultBranding(),
+      { id: "" },
+      503,
+      "Client reports are not configured."
+    );
   const url = new URL(request.url);
   const id = clientReportShareId(url.pathname, "/unlock");
-  if (!isSafeUuid(id)) return clientReportLockedResponse(request, defaultBranding(), { id }, 404, "Report link not found or expired.");
+  if (!isSafeUuid(id))
+    return clientReportLockedResponse(request, defaultBranding(), { id }, 404, "Report link not found or expired.");
   const share = await activeReportShare(env, id);
   const domainCheck = await clientReportHostAccess(env, request, share);
   if (!domainCheck.ok) return clientReportLockedResponse(request, defaultBranding(), { id }, 404, domainCheck.error);
-  if (!share) return clientReportLockedResponse(request, defaultBranding(), { id }, 404, "Report link not found or expired.");
+  if (!share)
+    return clientReportLockedResponse(request, defaultBranding(), { id }, 404, "Report link not found or expired.");
   const branding = await reportBrandingForOwner(env, share.owner_email);
   const parsed = await passwordFromRequest(request);
   if (parsed.error) return clientReportLockedResponse(request, branding, shareToCamel(share), 400, parsed.error.error);
   const { password } = parsed.data;
   const quota = await clientReportUnlockQuotaStatus(request, env, share);
   if (!quota.ok) return clientReportLockedResponse(request, branding, shareToCamel(share), 429, quota.error);
-  if (!share.password_hash || await verifyReportSharePassword(password, share.password_hash)) {
+  if (!share.password_hash || (await verifyReportSharePassword(password, share.password_hash))) {
     return new Response("", {
       status: 303,
       headers: secureHeaders({
         "cache-control": "no-store",
-        "location": `/r/${encodeURIComponent(share.id)}`,
+        location: `/r/${encodeURIComponent(share.id)}`,
         "set-cookie": await clientReportCookie(request, env, share)
       })
     });
@@ -508,7 +523,19 @@ async function createReportDomain(request, env) {
       (id, owner_email, domain, verification_token, status, created_at, updated_at, verified_at, last_checked_at, last_error, revoked_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   )
-    .bind(row.id, row.owner_email, row.domain, row.verification_token, row.status, row.created_at, row.updated_at, null, null, null, null)
+    .bind(
+      row.id,
+      row.owner_email,
+      row.domain,
+      row.verification_token,
+      row.status,
+      row.created_at,
+      row.updated_at,
+      null,
+      null,
+      null,
+      null
+    )
     .run();
   return jsonNoStore({ ok: true, domain: reportDomainResponse(row, env) }, 201);
 }
@@ -546,11 +573,14 @@ async function verifyReportDomain(request, env) {
     )
       .bind(now, result.error, now, id)
       .run();
-    return jsonNoStore({
-      ok: false,
-      error: result.error,
-      domain: reportDomainResponse({ ...row, last_checked_at: now, last_error: result.error, updated_at: now }, env)
-    }, 400);
+    return jsonNoStore(
+      {
+        ok: false,
+        error: result.error,
+        domain: reportDomainResponse({ ...row, last_checked_at: now, last_error: result.error, updated_at: now }, env)
+      },
+      400
+    );
   }
 
   await env.WAITLIST_DB.prepare(
@@ -563,7 +593,17 @@ async function verifyReportDomain(request, env) {
   return jsonNoStore({
     ok: true,
     verified: true,
-    domain: reportDomainResponse({ ...row, status: "verified", verified_at: row.verified_at || now, last_checked_at: now, last_error: "", updated_at: now }, env)
+    domain: reportDomainResponse(
+      {
+        ...row,
+        status: "verified",
+        verified_at: row.verified_at || now,
+        last_checked_at: now,
+        last_error: "",
+        updated_at: now
+      },
+      env
+    )
   });
 }
 
@@ -640,10 +680,9 @@ async function verifyReportDomainTxt(domain = "", token = "") {
   const dnsName = reportDomainDnsName(domain);
   if (!expected || !dnsName) return { ok: false, error: "Report domain verification is not configured." };
   try {
-    const response = await fetch(
-      `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(dnsName)}&type=TXT`,
-      { headers: { accept: "application/dns-json" } }
-    );
+    const response = await fetch(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(dnsName)}&type=TXT`, {
+      headers: { accept: "application/dns-json" }
+    });
     if (!response.ok) return { ok: false, error: "DNS verification lookup failed." };
     const payload = await response.json().catch(() => ({}));
     const answers = Array.isArray(payload.Answer) ? payload.Answer : [];
@@ -715,7 +754,8 @@ async function clientReportHostAccess(env, request, share) {
   if (!host || workerAppHost(host, env)) return { ok: true };
   const domain = await reportDomainForHost(env, host, { verifiedOnly: true });
   if (!domain) return { ok: false, error: "Report domain not verified." };
-  if (share && domain.owner_email !== share.owner_email) return { ok: false, error: "Report link not found on this domain." };
+  if (share && domain.owner_email !== share.owner_email)
+    return { ok: false, error: "Report link not found on this domain." };
   return { ok: true, domain };
 }
 
@@ -777,9 +817,7 @@ async function activeReportShare(env, id) {
     .first();
   if (!row?.id || row.status !== "active") return null;
   if (row.expires_at && row.expires_at <= new Date().toISOString()) {
-    await env.WAITLIST_DB.prepare(
-      `UPDATE report_share_links SET status = 'expired', updated_at = ? WHERE id = ?`
-    )
+    await env.WAITLIST_DB.prepare(`UPDATE report_share_links SET status = 'expired', updated_at = ? WHERE id = ?`)
       .bind(new Date().toISOString(), row.id)
       .run();
     return null;
@@ -838,7 +876,10 @@ async function renderWorkerWhiteLabelPdf(env, { report, branding, share, origin,
     });
     const headers = secureHeaders();
     headers.set("cache-control", "no-store");
-    headers.set("content-disposition", `attachment; filename="${whiteLabelReportFilename({ report, branding, share })}"`);
+    headers.set(
+      "content-disposition",
+      `attachment; filename="${whiteLabelReportFilename({ report, branding, share })}"`
+    );
     headers.set("content-type", "application/pdf");
     headers.set("x-robots-tag", "noindex, nofollow");
     return new Response(pdf, { headers });
@@ -850,7 +891,9 @@ async function renderWorkerWhiteLabelPdf(env, { report, branding, share, origin,
 }
 
 function clientReportCookieName(share) {
-  return `sfk_report_${String(share.id || "").replace(/[^a-z0-9]/gi, "").slice(0, 36)}`;
+  return `sfk_report_${String(share.id || "")
+    .replace(/[^a-z0-9]/gi, "")
+    .slice(0, 36)}`;
 }
 
 async function clientReportCookieValue(env, share) {
@@ -899,7 +942,9 @@ async function clientReportUnlockQuotaStatus(request, env, share = {}) {
   if (!env.WAITLIST_DB) return { ok: true };
   const hour = hourWindow(new Date());
   const ipHash = await requestIpHash(request);
-  const shareKey = String(share.id || "").replace(/[^a-f0-9-]/gi, "").slice(0, 40);
+  const shareKey = String(share.id || "")
+    .replace(/[^a-f0-9-]/gi, "")
+    .slice(0, 40);
   return checkQuotaSet(env, [
     {
       bucket: `client-report-unlock:ip:${hour.key}:${shareKey}:${ipHash}`,
@@ -936,14 +981,14 @@ async function verifyReportSharePassword(password = "", storedHash = "") {
   return constantTimeEqual(await sha256Hex(password), stored);
 }
 
-async function deriveReportSharePasswordHash(password = "", saltHex = "", iterations = REPORT_SHARE_PASSWORD_PBKDF2_ITERATIONS) {
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(String(password || "")),
-    "PBKDF2",
-    false,
-    ["deriveBits"]
-  );
+async function deriveReportSharePasswordHash(
+  password = "",
+  saltHex = "",
+  iterations = REPORT_SHARE_PASSWORD_PBKDF2_ITERATIONS
+) {
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(String(password || "")), "PBKDF2", false, [
+    "deriveBits"
+  ]);
   const bits = await crypto.subtle.deriveBits(
     {
       name: "PBKDF2",

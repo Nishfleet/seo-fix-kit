@@ -3,8 +3,8 @@ import { safeDodoCheckoutUrl } from "./dodo-checkout-url.js";
 const CLOSED_REPAIR_STATUSES = new Set(["fixed", "ignored"]);
 
 export function fixPackRepairTarget(report = {}, queueItems = []) {
-  const liveRepair = (queueItems || []).find((item) =>
-    repairId(item) && repairIssueId(item) && !CLOSED_REPAIR_STATUSES.has(repairStatus(item))
+  const liveRepair = (queueItems || []).find(
+    (item) => repairId(item) && repairIssueId(item) && !CLOSED_REPAIR_STATUSES.has(repairStatus(item))
   );
   if (liveRepair) return repairTargetFromQueueItem(liveRepair);
 

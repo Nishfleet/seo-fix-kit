@@ -84,7 +84,11 @@ export async function loadDeveloperSummary(setDeveloperData, setStatus, setMessa
 }
 
 export async function postSiteClaim(host) {
-  return apiFetch("/api/sites/claim", { method: "POST", body: { host }, fallbackError: "Could not create site verification." });
+  return apiFetch("/api/sites/claim", {
+    method: "POST",
+    body: { host },
+    fallbackError: "Could not create site verification."
+  });
 }
 
 export async function postSiteVerify(claimId) {
@@ -104,15 +108,25 @@ export async function postAuditSchedule(url, options = {}) {
 }
 
 export async function pauseAuditSchedule(scheduleId) {
-  return apiFetch(`/api/audit/schedules/${encodeURIComponent(scheduleId)}`, { method: "DELETE", fallbackError: "Could not pause monitor." });
+  return apiFetch(`/api/audit/schedules/${encodeURIComponent(scheduleId)}`, {
+    method: "DELETE",
+    fallbackError: "Could not pause monitor."
+  });
 }
 
 export async function postDeveloperToken() {
-  return apiFetch("/api/developer/tokens", { method: "POST", body: { label: "Default API key" }, fallbackError: "Could not create API key." });
+  return apiFetch("/api/developer/tokens", {
+    method: "POST",
+    body: { label: "Default API key" },
+    fallbackError: "Could not create API key."
+  });
 }
 
 export async function deleteDeveloperToken(tokenId) {
-  return apiFetch(`/api/developer/tokens/${encodeURIComponent(tokenId)}`, { method: "DELETE", fallbackError: "Could not revoke API key." });
+  return apiFetch(`/api/developer/tokens/${encodeURIComponent(tokenId)}`, {
+    method: "DELETE",
+    fallbackError: "Could not revoke API key."
+  });
 }
 
 export async function postDeveloperWebhook(url) {
@@ -121,7 +135,10 @@ export async function postDeveloperWebhook(url) {
 }
 
 export async function deleteDeveloperWebhook(webhookId) {
-  return apiFetch(`/api/developer/webhooks/${encodeURIComponent(webhookId)}`, { method: "DELETE", fallbackError: "Could not revoke webhook." });
+  return apiFetch(`/api/developer/webhooks/${encodeURIComponent(webhookId)}`, {
+    method: "DELETE",
+    fallbackError: "Could not revoke webhook."
+  });
 }
 
 export async function loadReportBranding() {
@@ -129,7 +146,11 @@ export async function loadReportBranding() {
 }
 
 export async function saveReportBranding(branding) {
-  return apiFetch("/api/branding", { method: "POST", body: branding, fallbackError: "Could not save report branding." });
+  return apiFetch("/api/branding", {
+    method: "POST",
+    body: branding,
+    fallbackError: "Could not save report branding."
+  });
 }
 
 export async function loadReportDomains() {
@@ -137,47 +158,83 @@ export async function loadReportDomains() {
 }
 
 export async function createReportDomain(domain) {
-  return apiFetch("/api/report-domains", { method: "POST", body: { domain }, fallbackError: "Could not create report domain." });
+  return apiFetch("/api/report-domains", {
+    method: "POST",
+    body: { domain },
+    fallbackError: "Could not create report domain."
+  });
 }
 
 export async function verifyReportDomain(domainId) {
-  return apiFetch(`/api/report-domains/${encodeURIComponent(domainId)}/verify`, { method: "POST", body: {}, fallbackError: "Could not verify report domain." });
+  return apiFetch(`/api/report-domains/${encodeURIComponent(domainId)}/verify`, {
+    method: "POST",
+    body: {},
+    fallbackError: "Could not verify report domain."
+  });
 }
 
 export async function revokeReportDomain(domainId) {
-  return apiFetch(`/api/report-domains/${encodeURIComponent(domainId)}`, { method: "DELETE", fallbackError: "Could not remove report domain." });
+  return apiFetch(`/api/report-domains/${encodeURIComponent(domainId)}`, {
+    method: "DELETE",
+    fallbackError: "Could not remove report domain."
+  });
 }
 
 export async function loadReportShares(reportId) {
-  return apiFetch(`/api/reports/${encodeURIComponent(reportId)}/shares`, { fallbackError: "Could not load client links." });
+  return apiFetch(`/api/reports/${encodeURIComponent(reportId)}/shares`, {
+    fallbackError: "Could not load client links."
+  });
 }
 
 export async function createReportShare(reportId, body) {
-  return apiFetch(`/api/reports/${encodeURIComponent(reportId)}/share`, { method: "POST", body, fallbackError: "Could not create client link." });
+  return apiFetch(`/api/reports/${encodeURIComponent(reportId)}/share`, {
+    method: "POST",
+    body,
+    fallbackError: "Could not create client link."
+  });
 }
 
 export async function revokeReportShare(shareId) {
-  return apiFetch(`/api/report-shares/${encodeURIComponent(shareId)}`, { method: "DELETE", fallbackError: "Could not revoke client link." });
+  return apiFetch(`/api/report-shares/${encodeURIComponent(shareId)}`, {
+    method: "DELETE",
+    fallbackError: "Could not revoke client link."
+  });
 }
 
 export async function loadReportCollaboration(reportId) {
-  return apiFetch(`/api/reports/${encodeURIComponent(reportId)}/collaboration`, { fallbackError: "Could not load repair board." });
+  return apiFetch(`/api/reports/${encodeURIComponent(reportId)}/collaboration`, {
+    fallbackError: "Could not load repair board."
+  });
 }
 
 export async function saveReportCollaboration(reportId, body) {
-  return apiFetch(`/api/reports/${encodeURIComponent(reportId)}/collaboration`, { method: "PATCH", body, fallbackError: "Could not save repair board." });
+  return apiFetch(`/api/reports/${encodeURIComponent(reportId)}/collaboration`, {
+    method: "PATCH",
+    body,
+    fallbackError: "Could not save repair board."
+  });
 }
 
 export async function loadRepairQueue(reportId) {
-  return apiFetch(`/api/reports/${encodeURIComponent(reportId)}/repair-queue`, { fallbackError: "Could not load repair queue." });
+  return apiFetch(`/api/reports/${encodeURIComponent(reportId)}/repair-queue`, {
+    fallbackError: "Could not load repair queue."
+  });
 }
 
 export async function saveRepairQueue(reportId, body) {
-  return apiFetch(`/api/reports/${encodeURIComponent(reportId)}/repair-queue`, { method: "PATCH", body, fallbackError: "Could not save repair queue." });
+  return apiFetch(`/api/reports/${encodeURIComponent(reportId)}/repair-queue`, {
+    method: "PATCH",
+    body,
+    fallbackError: "Could not save repair queue."
+  });
 }
 
 export async function createRepairAction(reportId, body) {
-  return apiFetch(`/api/reports/${encodeURIComponent(reportId)}/repair-actions`, { method: "POST", body, fallbackError: "Could not draft agent action." });
+  return apiFetch(`/api/reports/${encodeURIComponent(reportId)}/repair-actions`, {
+    method: "POST",
+    body,
+    fallbackError: "Could not draft agent action."
+  });
 }
 
 export async function updateRepairAction(reportId, actionId, body) {
@@ -190,7 +247,10 @@ export async function createTeamMember(member) {
 }
 
 export async function revokeTeamMember(memberId) {
-  return apiFetch(`/api/team/members/${encodeURIComponent(memberId)}`, { method: "DELETE", fallbackError: "Could not remove teammate." });
+  return apiFetch(`/api/team/members/${encodeURIComponent(memberId)}`, {
+    method: "DELETE",
+    fallbackError: "Could not remove teammate."
+  });
 }
 
 export async function loadReport(id, setReport, setStatus, setMessage, onUnauthorized) {

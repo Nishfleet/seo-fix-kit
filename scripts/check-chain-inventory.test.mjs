@@ -55,9 +55,7 @@ function chainCoveredTestFiles(packageJson) {
 
   // The chain invokes suites as `npm run test:<name>`; resolve each name to
   // its script and extract the explicit `node --test <file>` target.
-  const chainNames = [...checkChain.matchAll(/npm run (test:[A-Za-z0-9_.-]+)/g)].map(
-    (match) => match[1]
-  );
+  const chainNames = [...checkChain.matchAll(/npm run (test:[A-Za-z0-9_.-]+)/g)].map((match) => match[1]);
   const covered = new Set();
   for (const name of chainNames) {
     const script = packageJson.scripts?.[name];
@@ -81,9 +79,7 @@ function chainCoveredTestFiles(packageJson) {
 }
 
 test("every committed Node test file is covered by the canonical check chain", () => {
-  const packageJson = JSON.parse(
-    fs.readFileSync(path.join(repoRoot, "package.json"), "utf8")
-  );
+  const packageJson = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"));
   const covered = chainCoveredTestFiles(packageJson);
   const committed = committedTestFiles();
 
@@ -99,9 +95,7 @@ test("every committed Node test file is covered by the canonical check chain", (
 });
 
 test("the check chain only references committed node --test files", () => {
-  const packageJson = JSON.parse(
-    fs.readFileSync(path.join(repoRoot, "package.json"), "utf8")
-  );
+  const packageJson = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"));
   const committed = new Set(committedTestFiles());
 
   for (const [name, script] of Object.entries(packageJson.scripts ?? {})) {

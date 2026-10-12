@@ -11,13 +11,19 @@ test("deliverApiWebhooks retries transient failure and keeps one event row", asy
     return new Response("", { status: fetchCalls === 1 ? 503 : 200 });
   };
 
-  await deliverApiWebhooks(env, "owner@example.com", "audit.completed", {
-    audit: { audit_id: "audit-1", report_id: "report-1" }
-  }, {
-    fetcher,
-    resolvesToPrivateAddress: async () => false,
-    sleep: async () => {}
-  });
+  await deliverApiWebhooks(
+    env,
+    "owner@example.com",
+    "audit.completed",
+    {
+      audit: { audit_id: "audit-1", report_id: "report-1" }
+    },
+    {
+      fetcher,
+      resolvesToPrivateAddress: async () => false,
+      sleep: async () => {}
+    }
+  );
 
   assert.equal(fetchCalls, 2);
   assert.equal(env.events.length, 1);
@@ -27,22 +33,25 @@ test("deliverApiWebhooks retries transient failure and keeps one event row", asy
 });
 
 test("cleanWebhookEvents allows repair action lifecycle events", () => {
-  assert.deepEqual(cleanWebhookEvents([
-    "audit.completed",
-    "repair_action.drafted",
-    "repair_action.approved",
-    "repair_action.applied",
-    "repair_action.fixed",
-    "repair_action.regressed",
-    "unknown.event"
-  ]), [
-    "audit.completed",
-    "repair_action.drafted",
-    "repair_action.approved",
-    "repair_action.applied",
-    "repair_action.fixed",
-    "repair_action.regressed"
-  ]);
+  assert.deepEqual(
+    cleanWebhookEvents([
+      "audit.completed",
+      "repair_action.drafted",
+      "repair_action.approved",
+      "repair_action.applied",
+      "repair_action.fixed",
+      "repair_action.regressed",
+      "unknown.event"
+    ]),
+    [
+      "audit.completed",
+      "repair_action.drafted",
+      "repair_action.approved",
+      "repair_action.applied",
+      "repair_action.fixed",
+      "repair_action.regressed"
+    ]
+  );
 });
 
 test("deliverApiWebhook does not retry non-transient client errors", async () => {
@@ -130,13 +139,19 @@ test("deliverApiWebhooks refuses a host whose DNS resolves privately and records
     throw new Error(`Unexpected fetch: ${url}`);
   };
   try {
-    await deliverApiWebhooks(env, "owner@example.com", "audit.completed", {}, {
-      fetcher: async () => {
-        deliveries += 1;
-        return new Response(null, { status: 204 });
-      },
-      sleep: async () => {}
-    });
+    await deliverApiWebhooks(
+      env,
+      "owner@example.com",
+      "audit.completed",
+      {},
+      {
+        fetcher: async () => {
+          deliveries += 1;
+          return new Response(null, { status: 204 });
+        },
+        sleep: async () => {}
+      }
+    );
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -150,18 +165,24 @@ test("deliverApiWebhooks refuses a host whose DNS resolves privately and records
 test("deliverApiWebhooks records a timed-out delivery on the webhook row", async () => {
   const env = fakeWebhookEnv();
   env.SEOFIXKIT_WEBHOOK_MAX_ATTEMPTS = "1";
-  await deliverApiWebhooks(env, "owner@example.com", "audit.completed", {}, {
-    fetcher: async (_url, options = {}) =>
-      new Promise((_resolve, reject) => {
-        options.signal.addEventListener("abort", () => {
-          const error = new Error("aborted");
-          error.name = "AbortError";
-          reject(error);
-        });
-      }),
-    resolvesToPrivateAddress: async () => false,
-    sleep: async () => {}
-  });
+  await deliverApiWebhooks(
+    env,
+    "owner@example.com",
+    "audit.completed",
+    {},
+    {
+      fetcher: async (_url, options = {}) =>
+        new Promise((_resolve, reject) => {
+          options.signal.addEventListener("abort", () => {
+            const error = new Error("aborted");
+            error.name = "AbortError";
+            reject(error);
+          });
+        }),
+      resolvesToPrivateAddress: async () => false,
+      sleep: async () => {}
+    }
+  );
 
   assert.equal(env.events[0].status, "failed");
   assert.equal(env.webhooks[0].last_delivery_status, "failed");
@@ -171,14 +192,20 @@ test("deliverApiWebhooks records a timed-out delivery on the webhook row", async
 test("deliverApiWebhooks signs each delivery with a verifiable t=,v1= HMAC header", async () => {
   const env = fakeWebhookEnv();
   const requests = [];
-  await deliverApiWebhooks(env, "owner@example.com", "audit.completed", { audit: { audit_id: "audit-1" } }, {
-    fetcher: async (_url, options = {}) => {
-      requests.push(options);
-      return new Response(null, { status: 204 });
-    },
-    resolvesToPrivateAddress: async () => false,
-    sleep: async () => {}
-  });
+  await deliverApiWebhooks(
+    env,
+    "owner@example.com",
+    "audit.completed",
+    { audit: { audit_id: "audit-1" } },
+    {
+      fetcher: async (_url, options = {}) => {
+        requests.push(options);
+        return new Response(null, { status: 204 });
+      },
+      resolvesToPrivateAddress: async () => false,
+      sleep: async () => {}
+    }
+  );
 
   assert.equal(requests.length, 1);
   assert.equal(requests[0].headers["x-seofixkit-event"], "audit.completed");
@@ -251,36 +278,42 @@ function statement(sql, values, env) {
       if (sql.includes("UPDATE api_webhook_events")) {
         const failedUpdate = sql.includes("SET status = 'failed'");
         const event = env.events.find((row) => row.id === values[failedUpdate ? 2 : 4]);
-        Object.assign(event, failedUpdate
-          ? {
-              status: "failed",
-              error: values[0],
-              delivered_at: values[1]
-            }
-          : {
-              status: values[0],
-              http_status: values[1],
-              error: values[2],
-              delivered_at: values[3]
-            });
+        Object.assign(
+          event,
+          failedUpdate
+            ? {
+                status: "failed",
+                error: values[0],
+                delivered_at: values[1]
+              }
+            : {
+                status: values[0],
+                http_status: values[1],
+                error: values[2],
+                delivered_at: values[3]
+              }
+        );
         return { meta: { changes: 1 } };
       }
       if (sql.includes("UPDATE api_webhooks")) {
         const failedUpdate = sql.includes("last_delivery_status = 'failed'");
         const webhook = env.webhooks.find((row) => row.id === values[failedUpdate ? 3 : 4]);
-        Object.assign(webhook, failedUpdate
-          ? {
-              last_delivery_at: values[0],
-              last_delivery_status: "failed",
-              last_error: values[1],
-              updated_at: values[2]
-            }
-          : {
-              last_delivery_at: values[0],
-              last_delivery_status: values[1],
-              last_error: values[2],
-              updated_at: values[3]
-            });
+        Object.assign(
+          webhook,
+          failedUpdate
+            ? {
+                last_delivery_at: values[0],
+                last_delivery_status: "failed",
+                last_error: values[1],
+                updated_at: values[2]
+              }
+            : {
+                last_delivery_at: values[0],
+                last_delivery_status: values[1],
+                last_error: values[2],
+                updated_at: values[3]
+              }
+        );
         return { meta: { changes: 1 } };
       }
       throw new Error(`Unexpected run SQL: ${sql}`);

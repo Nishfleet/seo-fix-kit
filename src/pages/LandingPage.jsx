@@ -66,12 +66,7 @@ export function WaitlistPage() {
 
   return (
     <main className="waitlist-shell">
-      <img
-        alt=""
-        aria-hidden="true"
-        className="hero-art"
-        src="/assets/waitlist-hero.jpg"
-      />
+      <img alt="" aria-hidden="true" className="hero-art" src="/assets/waitlist-hero.jpg" />
       <div className="hero-shade" />
 
       <header className="site-top">
@@ -87,14 +82,12 @@ export function WaitlistPage() {
         <h1 id="page-title">SEO Fix Kit</h1>
         <p className="coming-soon">Private beta access.</p>
         <p className="hero-text">
-          Evidence-backed SEO audits for site owners and founders are opening by
-          secure email link. Join the private beta, run a proof audit, and only
-          pay when the report finds repairs worth doing.
+          Evidence-backed SEO audits for site owners and founders are opening by secure email link. Join the private
+          beta, run a proof audit, and only pay when the report finds repairs worth doing.
         </p>
         <p className="hero-pricing">
-          Audits are free in the beta. The paid SEO Fix Pack shows the Dodo checkout
-          price before payment — one proof-backed repair pass plus one rerun, only
-          offered when real fixes exist.
+          Audits are free in the beta. The paid SEO Fix Pack shows the Dodo checkout price before payment — one
+          proof-backed repair pass plus one rerun, only offered when real fixes exist.
         </p>
         <nav className="public-proof-links" aria-label="Public proof pages">
           <a href="/demo">Sample proof report</a>
@@ -149,9 +142,7 @@ export function WaitlistPage() {
             <a className="check-entry-cta" href="/check">
               Check one page now
             </a>
-            <p className="check-entry-note">
-              Live rendered proof for one public page. No report or URL is stored.
-            </p>
+            <p className="check-entry-note">Live rendered proof for one public page. No report or URL is stored.</p>
           </div>
         </div>
 
@@ -176,21 +167,26 @@ export function WaitlistPage() {
           <p className="kicker">Proof-backed repair agent</p>
           <h2 id="proof-loop-title">The audit is useful only if it leads to a safe fix.</h2>
           <p>
-            SEO Fix Kit renders the site like a browser, compares the visible page
-            with the raw app shell, and keeps false positives out of the repair
-            queue. When a real issue is proven, the report keeps the page, source
-            evidence, suggested fix, effort, confidence, and acceptance check in one
-            place so a founder, teammate, or developer can act without guessing.
+            SEO Fix Kit renders the site like a browser, compares the visible page with the raw app shell, and keeps
+            false positives out of the repair queue. When a real issue is proven, the report keeps the page, source
+            evidence, suggested fix, effort, confidence, and acceptance check in one place so a founder, teammate, or
+            developer can act without guessing.
           </p>
         </div>
         <div className="proof-step-grid" aria-label="Proof-backed repair steps">
           <article>
             <strong>1. Prove</strong>
-            <p>Run a private audit, verify site ownership for deeper crawls, and see rendered proof before paying for repairs.</p>
+            <p>
+              Run a private audit, verify site ownership for deeper crawls, and see rendered proof before paying for
+              repairs.
+            </p>
           </article>
           <article>
             <strong>2. Approve</strong>
-            <p>Review the repair queue, ignore noise, approve safe drafts, or start the paid Fix Pack from a report with real fixes.</p>
+            <p>
+              Review the repair queue, ignore noise, approve safe drafts, or start the paid Fix Pack from a report with
+              real fixes.
+            </p>
           </article>
           <article>
             <strong>3. Re-measure</strong>
@@ -206,40 +202,34 @@ export function WaitlistPage() {
           <article>
             <h3>What happens after I enter a URL?</h3>
             <p>
-              Anyone can check one public page now at{" "}
-              <a href="/check">/check</a> with no account. After a secure email
-              access link you get a rate-limited private audit: a one-page Lite
-              check can run before verification, and verified sites unlock deeper
-              self-serve crawls, imports, saved reports, monitoring controls, and
+              Anyone can check one public page now at <a href="/check">/check</a> with no account. After a secure email
+              access link you get a rate-limited private audit: a one-page Lite check can run before verification, and
+              verified sites unlock deeper self-serve crawls, imports, saved reports, monitoring controls, and
               owner-scoped repair queues.
             </p>
           </article>
           <article>
             <h3>What does the paid Fix Pack include?</h3>
             <p>
-              The live paid offer is one proof-backed repair pass tied to one saved
-              report, plus one rerun after fixes. Dodo shows the checkout price, and
-              the support policy covers refund handling if payment succeeds but the
+              The live paid offer is one proof-backed repair pass tied to one saved report, plus one rerun after fixes.
+              Dodo shows the checkout price, and the support policy covers refund handling if payment succeeds but the
               repair queue cannot start.
             </p>
           </article>
           <article>
             <h3>How is AI or GEO readiness handled?</h3>
             <p>
-              AI Answer Readiness is proof-derived from rendered content, schema,
-              canonical and internal-link clarity, sitemap context, question-led
-              sections, and optional llms.txt boundaries. When Search Console rows
-              are imported, those faults are ranked by the clicks and impressions
-              on the affected pages. It is not live answer-engine sampling or AI
-              citation monitoring.
+              AI Answer Readiness is proof-derived from rendered content, schema, canonical and internal-link clarity,
+              sitemap context, question-led sections, and optional llms.txt boundaries. When Search Console rows are
+              imported, those faults are ranked by the clicks and impressions on the affected pages. It is not live
+              answer-engine sampling or AI citation monitoring.
             </p>
           </article>
           <article>
             <h3>What is not live yet?</h3>
             <p>
-              SEO Fix Kit does not auto-publish content, call CMS admin APIs, open
-              GitHub pull requests, sell recurring repair-agent subscriptions, or
-              guarantee rankings, traffic, indexing, AI citations, or revenue.
+              SEO Fix Kit does not auto-publish content, call CMS admin APIs, open GitHub pull requests, sell recurring
+              repair-agent subscriptions, or guarantee rankings, traffic, indexing, AI citations, or revenue.
             </p>
           </article>
         </div>

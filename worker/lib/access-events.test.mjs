@@ -1,12 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {
-  FUNNEL_STEPS,
-  isFunnelStep,
-  stepIndex,
-  recordAccessEvent,
-  summarizeAccessEvents
-} from "./access-events.js";
+import { FUNNEL_STEPS, isFunnelStep, stepIndex, recordAccessEvent, summarizeAccessEvents } from "./access-events.js";
 
 function makePrepared() {
   const calls = [];

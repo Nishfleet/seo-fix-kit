@@ -57,7 +57,9 @@ async function main() {
   console.log(JSON.stringify(result, null, 2));
   process.exitCode = WALK_EXIT_CODES[result.status];
   if (result.status === WALK_STATUS.NEEDS_QUOTA) {
-    console.error("Walk skipped: anonymous-check daily budget exhausted from this network (needs-quota). Retry tomorrow; the offline regression lock still covers the assertions.");
+    console.error(
+      "Walk skipped: anonymous-check daily budget exhausted from this network (needs-quota). Retry tomorrow; the offline regression lock still covers the assertions."
+    );
   }
 }
 
@@ -153,7 +155,13 @@ export function validateWalkPayload(payload) {
   if (!measured || typeof measured !== "object") {
     failures.push("missing measured proof fields");
   } else {
-    for (const key of ["staticWordCount", "renderedWordCount", "renderedH1", "renderedTitle", "renderedInternalLinkCount"]) {
+    for (const key of [
+      "staticWordCount",
+      "renderedWordCount",
+      "renderedH1",
+      "renderedTitle",
+      "renderedInternalLinkCount"
+    ]) {
       if (!(key in measured)) failures.push(`missing measured.${key}`);
     }
     if (typeof measured.staticWordCount !== "number" || typeof measured.renderedWordCount !== "number") {
@@ -187,7 +195,8 @@ export function validateWalkPayload(payload) {
 // indexing, revenue, AI citations, or live answer-engine visibility
 // guarantees/promises. The truthful boundary copy negates them ("does not
 // guarantee rankings"), so negated phrasings are stripped before scanning.
-const UNSUPPORTED_CLAIM = /\b(guarantees?|promises?|will\s+ensure)\s+(rankings?|traffic|indexing|revenue|AI citations?|answer[- ]engine visibility)/i;
+const UNSUPPORTED_CLAIM =
+  /\b(guarantees?|promises?|will\s+ensure)\s+(rankings?|traffic|indexing|revenue|AI citations?|answer[- ]engine visibility)/i;
 const NEGATIONS = [
   /does not guarantee/gi,
   /do not guarantee/gi,

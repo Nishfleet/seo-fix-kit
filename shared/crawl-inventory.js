@@ -1,10 +1,5 @@
-import {
-  CRAWLRAVEN_ENTERPRISE_CRAWL_PAGES,
-  CRAWLRAVEN_PUBLIC_CRAWL_PAGES
-} from "./crawl-depth.js";
-import {
-  fetchPublicUrl
-} from "./url-safety.js";
+import { CRAWLRAVEN_ENTERPRISE_CRAWL_PAGES, CRAWLRAVEN_PUBLIC_CRAWL_PAGES } from "./crawl-depth.js";
+import { fetchPublicUrl } from "./url-safety.js";
 
 const DEFAULT_MAX_SITEMAPS = 500;
 const FETCH_TIMEOUT_MS = 7000;
@@ -176,9 +171,10 @@ async function fetchSitemap(url, fetcher, options = {}) {
       }
     );
     const contentType = response.headers?.get?.("content-type") || "";
-    const body = contentType.includes("xml") || contentType.includes("text") || contentType === ""
-      ? (await response.text()).slice(0, MAX_SITEMAP_BYTES)
-      : "";
+    const body =
+      contentType.includes("xml") || contentType.includes("text") || contentType === ""
+        ? (await response.text()).slice(0, MAX_SITEMAP_BYTES)
+        : "";
     return {
       ok: response.ok,
       status: response.status,
@@ -199,14 +195,18 @@ async function fetchSitemap(url, fetcher, options = {}) {
 function parseSitemap(xml = "", baseUrl = "") {
   const text = String(xml || "");
   if (!text.trim()) return { type: "empty", urls: [], sitemaps: [], error: "Sitemap body was empty." };
-  const sitemaps = [...text.matchAll(/<sitemap\b[\s\S]*?<\/sitemap>/gi)].map((block) => ({
-    loc: absoluteUrl(tagValue(block[0], "loc"), baseUrl),
-    lastmod: tagValue(block[0], "lastmod")
-  })).filter((item) => item.loc);
-  const urls = [...text.matchAll(/<url\b[\s\S]*?<\/url>/gi)].map((block) => ({
-    loc: absoluteUrl(tagValue(block[0], "loc"), baseUrl),
-    lastmod: tagValue(block[0], "lastmod")
-  })).filter((item) => item.loc);
+  const sitemaps = [...text.matchAll(/<sitemap\b[\s\S]*?<\/sitemap>/gi)]
+    .map((block) => ({
+      loc: absoluteUrl(tagValue(block[0], "loc"), baseUrl),
+      lastmod: tagValue(block[0], "lastmod")
+    }))
+    .filter((item) => item.loc);
+  const urls = [...text.matchAll(/<url\b[\s\S]*?<\/url>/gi)]
+    .map((block) => ({
+      loc: absoluteUrl(tagValue(block[0], "loc"), baseUrl),
+      lastmod: tagValue(block[0], "lastmod")
+    }))
+    .filter((item) => item.loc);
   return {
     type: sitemaps.length ? "sitemapindex" : "urlset",
     urls,

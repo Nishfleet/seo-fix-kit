@@ -15,13 +15,16 @@ export function mergeRepairQueueWithCollaboration(queueItems = [], collaboration
 }
 
 export function repairBoardCounts(issues = []) {
-  return issues.reduce((counts, issue) => {
-    counts.total += 1;
-    if (issue.status === "drafted") counts.drafted += 1;
-    if (issue.status === "approved") counts.approved += 1;
-    if (issue.status === "fixed") counts.fixed += 1;
-    return counts;
-  }, { total: 0, drafted: 0, approved: 0, fixed: 0 });
+  return issues.reduce(
+    (counts, issue) => {
+      counts.total += 1;
+      if (issue.status === "drafted") counts.drafted += 1;
+      if (issue.status === "approved") counts.approved += 1;
+      if (issue.status === "fixed") counts.fixed += 1;
+      return counts;
+    },
+    { total: 0, drafted: 0, approved: 0, fixed: 0 }
+  );
 }
 
 export function collaborationStatusForQueueStatus(status) {

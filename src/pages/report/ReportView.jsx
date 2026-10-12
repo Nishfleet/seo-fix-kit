@@ -5,17 +5,9 @@ import { Metric } from "../../components/Metric.jsx";
 import { formatCount } from "../../lib/format.js";
 import { summarizePages } from "../../lib/page-scoring.js";
 import { fetchBrief } from "../../lib/requests.js";
-import {
-  AiAnswerReadinessPanel,
-  GrowthOpportunitiesPanel,
-  GeoReadinessPanel
-} from "./AiReadinessPanels.jsx";
+import { AiAnswerReadinessPanel, GrowthOpportunitiesPanel, GeoReadinessPanel } from "./AiReadinessPanels.jsx";
 import { ClientReportPanel } from "./ClientReportPanel.jsx";
-import {
-  CrawlInventoryPanel,
-  RenderedCrawlScalePanel,
-  CrawlIntelligencePanel
-} from "./CrawlPanels.jsx";
+import { CrawlInventoryPanel, RenderedCrawlScalePanel, CrawlIntelligencePanel } from "./CrawlPanels.jsx";
 import { FindingItem, FixItem, PageProof, PageSummaryTable } from "./FindingItems.jsx";
 import { ReportDeltaPanel, RemediationBriefPanel } from "./HistoryPanels.jsx";
 import {
@@ -30,14 +22,8 @@ import { FixRequestStatusPanel, RepairProposalPanel, FixQuotePanel } from "./Rep
 import { TeamRepairBoard } from "./TeamRepairBoard.jsx";
 
 export function ReportView({ report }) {
-  const issues = useMemo(
-    () => (report.findings || []).filter((finding) => finding.severity !== "good"),
-    [report]
-  );
-  const guarded = useMemo(
-    () => (report.findings || []).filter((finding) => finding.severity === "good"),
-    [report]
-  );
+  const issues = useMemo(() => (report.findings || []).filter((finding) => finding.severity !== "good"), [report]);
+  const guarded = useMemo(() => (report.findings || []).filter((finding) => finding.severity === "good"), [report]);
   const topFixes = report.repairPlan || [];
   const competitorBenchmark = report.competitorBenchmark || null;
   const crawlInventory = report.crawlInventory || report.crawl_inventory || null;
@@ -45,10 +31,7 @@ export function ReportView({ report }) {
   const crawlIntelligence = report.crawlIntelligence || report.crawl_intelligence || null;
   const reportDelta = report.reportDelta || report.report_delta || null;
   const resourceWaterfall =
-    report.resourceWaterfall ||
-    report.resource_waterfall ||
-    report.pages?.[0]?.resourceWaterfall ||
-    null;
+    report.resourceWaterfall || report.resource_waterfall || report.pages?.[0]?.resourceWaterfall || null;
   const backlinkAudit = report.backlinkAudit || null;
   const localSeoAudit = report.localSeoAudit || null;
   const keywordRankAudit = report.keywordRankAudit || report.keyword_rank_audit || null;
@@ -115,7 +98,10 @@ export function ReportView({ report }) {
       )}
 
       <section className="metric-strip" aria-label="Audit summary">
-        <Metric label="Pages" value={`${formatCount(report.summary?.pagesScanned || 0)}/${formatCount(report.summary?.maxPages || DEFAULT_CRAWL_PAGES)}`} />
+        <Metric
+          label="Pages"
+          value={`${formatCount(report.summary?.pagesScanned || 0)}/${formatCount(report.summary?.maxPages || DEFAULT_CRAWL_PAGES)}`}
+        />
         <Metric label="Critical" value={report.summary?.critical || 0} />
         <Metric label="Warnings" value={report.summary?.warnings || 0} />
         <Metric label="Notices" value={report.summary?.notices || 0} />
@@ -159,15 +145,20 @@ export function ReportView({ report }) {
           <p className="beta-eyebrow">Verified repair brief</p>
           <h2>{topFixes.length ? "Fix the proven issues first." : "No priority repairs found."}</h2>
           <p>
-            SEO Fix Kit compares raw HTML with the rendered page, then only queues fixes with visible proof.
-            This is the anti-noise layer: no duplicate H1s, no busywork, no static-crawler panic.
+            SEO Fix Kit compares raw HTML with the rendered page, then only queues fixes with visible proof. This is the
+            anti-noise layer: no duplicate H1s, no busywork, no static-crawler panic.
           </p>
         </div>
         <ol>
-          {(topThree.length ? topThree : [{ title: "Keep monitoring", fix: "Re-run after content or template changes.", estimatedEffort: "5 min" }]).map((fix) => (
+          {(topThree.length
+            ? topThree
+            : [{ title: "Keep monitoring", fix: "Re-run after content or template changes.", estimatedEffort: "5 min" }]
+          ).map((fix) => (
             <li key={`${fix.priority || "ok"}-${fix.title}`}>
               <strong>{fix.title}</strong>
-              <span>{fix.estimatedEffort || "15-30 min"} · {fix.workType || "review"}</span>
+              <span>
+                {fix.estimatedEffort || "15-30 min"} · {fix.workType || "review"}
+              </span>
             </li>
           ))}
         </ol>

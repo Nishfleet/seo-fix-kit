@@ -29,7 +29,8 @@ const OFFER_CATALOG = [
     priceRange: "$49-$99/mo target",
     checkoutState: "account_checkout",
     description: "Recurring proof monitoring, report deltas, and change alerts for verified sites.",
-    availability: "Available for verified sites only when Dodo subscription checkout and webhook entitlements are configured.",
+    availability:
+      "Available for verified sites only when Dodo subscription checkout and webhook entitlements are configured.",
     requirements: ["Verified site", "Audit schedules", "Report deltas", "Billing entitlement"],
     limits: { monitoredSites: 1, cadenceDays: 7 }
   },
@@ -42,7 +43,8 @@ const OFFER_CATALOG = [
     priceRange: "$249-$499 one-time target",
     checkoutState: "report_checkout",
     description: "A scoped repair queue, owner approval, delivery notes, and final rerun proof.",
-    availability: "Available from a report after executable proposals are approved and Repair Sprint checkout is configured.",
+    availability:
+      "Available from a report after executable proposals are approved and Repair Sprint checkout is configured.",
     requirements: ["Saved report", "Executable proposals", "Owner approval", "Final rerun proof"],
     limits: { proposalQueue: 1, reruns: 1 }
   },
@@ -100,7 +102,8 @@ function offerCatalog({
           : false;
     return {
       ...offer,
-      statusLabel: entitlement?.status === "active" ? "Active entitlement" : liveCheckout ? "Checkout live" : offer.statusLabel,
+      statusLabel:
+        entitlement?.status === "active" ? "Active entitlement" : liveCheckout ? "Checkout live" : offer.statusLabel,
       checkoutLive: liveCheckout,
       checkoutConfigured: offer.key === OFFER_KEYS.REPAIR_SPRINT ? repairSprintProviderReady : liveCheckout,
       entitlementStatus: entitlement?.status || "inactive",
@@ -139,9 +142,15 @@ function monitoringAccessFromEntitlements(entitlements = [], activeCount = 0, op
 }
 
 function repairSprintEligibilityFromProposals(proposals = [], fixRequest = null, options = {}) {
-  const executable = (proposals || []).filter((proposal) => (proposal.executionMode || proposal.execution_mode) !== "unsupported");
-  const approved = executable.filter((proposal) => (proposal.approvalStatus || proposal.approval_status) === "approved");
-  const delivered = executable.filter((proposal) => (proposal.deliveryStatus || proposal.delivery_status) === "delivered");
+  const executable = (proposals || []).filter(
+    (proposal) => (proposal.executionMode || proposal.execution_mode) !== "unsupported"
+  );
+  const approved = executable.filter(
+    (proposal) => (proposal.approvalStatus || proposal.approval_status) === "approved"
+  );
+  const delivered = executable.filter(
+    (proposal) => (proposal.deliveryStatus || proposal.delivery_status) === "delivered"
+  );
   const paidStatus = fixRequest?.status || "";
   const hasPaidRequest = ["paid", "in_progress", "delivered"].includes(paidStatus);
   const checkoutReady = Boolean(options.checkoutReady);

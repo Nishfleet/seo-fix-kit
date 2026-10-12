@@ -12,13 +12,7 @@ const QUEUE_STATUSES = new Set([
 ]);
 const QUEUE_PATCH_STATUSES = new Set(["open", "in_progress", "ignored"]);
 
-const ACTION_MODES = new Set([
-  "self_serve",
-  "teammate",
-  "fix_pack",
-  "cms_draft",
-  "github_pr"
-]);
+const ACTION_MODES = new Set(["self_serve", "teammate", "fix_pack", "cms_draft", "github_pr"]);
 
 const ACTION_TYPES = new Set([
   "draft_fix",
@@ -35,7 +29,9 @@ const RERUN_STATES = new Set(["not_run", "fixed", "still_open", "regressed", "ne
 const REPAIR_QUEUE_ITEM_LIMIT = 100;
 
 function normalizedEnumValue(value) {
-  return String(value || "").trim().toLowerCase();
+  return String(value || "")
+    .trim()
+    .toLowerCase();
 }
 
 function deriveRepairQueueItems(report = {}, savedRows = [], actionRows = []) {
@@ -45,9 +41,7 @@ function deriveRepairQueueItems(report = {}, savedRows = [], actionRows = []) {
   const seen = new Set();
   const consumedPlanKeys = new Set();
   const repairPlan = Array.isArray(report.repairPlan) ? report.repairPlan : [];
-  const planByKey = new Map(
-    repairPlan.map((item, index) => [repairPlanKey(item), { item, index }])
-  );
+  const planByKey = new Map(repairPlan.map((item, index) => [repairPlanKey(item), { item, index }]));
 
   for (const finding of reportIssuesForQueue(report)) {
     const issueId = cleanId(finding.id) || fallbackIssueId(finding, items.length);
@@ -56,11 +50,17 @@ function deriveRepairQueueItems(report = {}, savedRows = [], actionRows = []) {
     const key = repairPlanKey(finding);
     const plan = planByKey.get(key)?.item || {};
     if (planByKey.has(key)) consumedPlanKeys.add(key);
-    items.push(queueItemResponse({
-      ...queueSnapshotFromFinding(finding, plan),
-      issue_id: issueId,
-      source_kind: "finding"
-    }, savedByIssue.get(issueId), actionsByIssue.get(issueId)));
+    items.push(
+      queueItemResponse(
+        {
+          ...queueSnapshotFromFinding(finding, plan),
+          issue_id: issueId,
+          source_kind: "finding"
+        },
+        savedByIssue.get(issueId),
+        actionsByIssue.get(issueId)
+      )
+    );
   }
 
   repairPlan.forEach((plan, index) => {
@@ -69,21 +69,33 @@ function deriveRepairQueueItems(report = {}, savedRows = [], actionRows = []) {
     const issueId = cleanId(plan.issueId || plan.issue_id) || fallbackIssueId(plan, index, "repair");
     if (seen.has(issueId)) return;
     seen.add(issueId);
-    items.push(queueItemResponse({
-      ...queueSnapshotFromPlan(plan),
-      issue_id: issueId,
-      source_kind: "repair_plan"
-    }, savedByIssue.get(issueId), actionsByIssue.get(issueId)));
+    items.push(
+      queueItemResponse(
+        {
+          ...queueSnapshotFromPlan(plan),
+          issue_id: issueId,
+          source_kind: "repair_plan"
+        },
+        savedByIssue.get(issueId),
+        actionsByIssue.get(issueId)
+      )
+    );
   });
 
   for (const row of savedRows || []) {
     const issueId = cleanId(row.issue_id || row.issueId);
     if (!issueId || seen.has(issueId)) continue;
     seen.add(issueId);
-    items.push(queueItemResponse({
-      issue_id: issueId,
-      source_kind: row.source_kind || row.sourceKind || "finding"
-    }, row, actionsByIssue.get(issueId)));
+    items.push(
+      queueItemResponse(
+        {
+          issue_id: issueId,
+          source_kind: row.source_kind || row.sourceKind || "finding"
+        },
+        row,
+        actionsByIssue.get(issueId)
+      )
+    );
   }
 
   return items
@@ -278,7 +290,13 @@ function repairPlanKey(item = {}) {
     issuePatternKey(item.title || ""),
     item.pageUrl || item.page_url || "",
     item.pageLabel || item.page_label || ""
-  ].map((value) => String(value || "").trim().toLowerCase()).join("|");
+  ]
+    .map((value) =>
+      String(value || "")
+        .trim()
+        .toLowerCase()
+    )
+    .join("|");
 }
 
 function fallbackIssueId(item = {}, index = 0, prefix = "issue") {
@@ -300,12 +318,14 @@ function latestByUpdatedAt(rows = []) {
 }
 
 function latestAppliedAt(rows = []) {
-  return [...rows]
-    .filter((row) => cleanExecutionState(row.execution_state || row.executionState) === "applied")
-    .map((row) => row.applied_at || row.appliedAt || "")
-    .filter((value) => Number.isFinite(Date.parse(value || "")))
-    .sort()
-    .at(-1) || "";
+  return (
+    [...rows]
+      .filter((row) => cleanExecutionState(row.execution_state || row.executionState) === "applied")
+      .map((row) => row.applied_at || row.appliedAt || "")
+      .filter((value) => Number.isFinite(Date.parse(value || "")))
+      .sort()
+      .at(-1) || ""
+  );
 }
 
 function cleanQueueStatus(value) {
@@ -363,7 +383,9 @@ function isActionType(value) {
 }
 
 function cleanSeverity(value) {
-  const severity = String(value || "").trim().toLowerCase();
+  const severity = String(value || "")
+    .trim()
+    .toLowerCase();
   return ["critical", "warning", "notice", "good"].includes(severity) ? severity : "notice";
 }
 
@@ -380,11 +402,13 @@ function cleanId(input) {
 }
 
 function slug(input) {
-  return String(input || "repair")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80) || "repair";
+  return (
+    String(input || "repair")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 80) || "repair"
+  );
 }
 
 function severityRank(severity) {

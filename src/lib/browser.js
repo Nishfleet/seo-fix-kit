@@ -50,17 +50,17 @@ export function sendAccessBeacon(step, { funnelKey = "", source = "", landingPat
       timeOnPageMs
     });
     const blob = new Blob([body], { type: "application/json" });
-    const beacon = navigator.sendBeacon
-      ? navigator.sendBeacon("/api/access/track", blob)
-      : false;
+    const beacon = navigator.sendBeacon ? navigator.sendBeacon("/api/access/track", blob) : false;
     if (!beacon) {
-      window.fetch("/api/access/track", {
-        method: "POST",
-        credentials: "same-origin",
-        headers: { "content-type": "application/json" },
-        body,
-        keepalive: true
-      }).catch(() => {});
+      window
+        .fetch("/api/access/track", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "content-type": "application/json" },
+          body,
+          keepalive: true
+        })
+        .catch(() => {});
     }
   } catch {
     // Instrumentation is best-effort; never break the page.

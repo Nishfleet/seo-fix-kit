@@ -58,7 +58,9 @@ export function growthOpportunitiesBriefLines(growth = {}) {
   for (const item of growth.opportunities.slice(0, MAX_GROWTH_OPPORTUNITIES)) {
     lines.push(`${item.priority}. ${item.title}`);
     lines.push(`   Proof: ${item.proof}`);
-    lines.push(`   Draft: ${item.draftBrief?.summary || item.suggestedAction || item.fix || "Create a reviewed draft from the proof."}`);
+    lines.push(
+      `   Draft: ${item.draftBrief?.summary || item.suggestedAction || item.fix || "Create a reviewed draft from the proof."}`
+    );
     if (item.draftBrief?.sections?.length) {
       lines.push(`   Sections: ${item.draftBrief.sections.join(" | ")}`);
     }
@@ -89,7 +91,8 @@ function addKeywordRefresh(audit = {}, add) {
       pageUrl: lowCtr.pageUrl || "",
       pageLabel: lowCtr.pageLabel || "",
       proof: `"${lowCtr.query}" has ${formatCount(lowCtr.impressions)} impressions, position ${formatPosition(lowCtr.position)}, and ${formatPercent(lowCtr.ctr)} CTR on ${lowCtr.pageLabel || "the supplied landing page"}.`,
-      suggestedAction: "Draft a tighter title, meta description, opening answer, and two supporting sections for the query intent.",
+      suggestedAction:
+        "Draft a tighter title, meta description, opening answer, and two supporting sections for the query intent.",
       draftBrief: {
         summary: `Refresh ${lowCtr.pageLabel || "the landing page"} around the proven query "${lowCtr.query}".`,
         sections: [
@@ -100,7 +103,8 @@ function addKeywordRefresh(audit = {}, add) {
         audience: "Searchers already seeing the page but not clicking often enough"
       },
       guardrail: "Use the supplied query proof as direction only; keep the draft human-reviewed before publishing.",
-      acceptance: "Fresh Search Console rows show CTR reviewed against the prior baseline, or the query is explicitly deprioritized with a note."
+      acceptance:
+        "Fresh Search Console rows show CTR reviewed against the prior baseline, or the query is explicitly deprioritized with a note."
     });
   }
 
@@ -114,7 +118,8 @@ function addKeywordRefresh(audit = {}, add) {
       pageUrl: pageTwo.pageUrl || "",
       pageLabel: pageTwo.pageLabel || "",
       proof: `"${pageTwo.query}" has ${formatCount(pageTwo.impressions)} impressions at position ${formatPosition(pageTwo.position)} with ${formatCount(pageTwo.clicks)} clicks.`,
-      suggestedAction: "Draft a lightweight checklist, calculator, template, or comparison helper that directly answers the query intent.",
+      suggestedAction:
+        "Draft a lightweight checklist, calculator, template, or comparison helper that directly answers the query intent.",
       draftBrief: {
         summary: `Create a small useful asset for "${pageTwo.query}" and link it from the matched page.`,
         sections: [
@@ -125,7 +130,8 @@ function addKeywordRefresh(audit = {}, add) {
         audience: "Searchers close to discovering the product"
       },
       guardrail: "Keep the idea as a reviewed brief; do not auto-generate or mass-publish pages.",
-      acceptance: "A reviewed asset brief exists, is linked to the source proof, and is tested before any public launch.",
+      acceptance:
+        "A reviewed asset brief exists, is linked to the source proof, and is tested before any public launch.",
       estimatedEffort: "1-3 hours"
     });
   }
@@ -192,7 +198,9 @@ function addAiReadinessBrief(audit = {}, add) {
 
 function addCrawlProofBrief(audit = {}, add) {
   if (audit.status !== "ready") return;
-  const orphanRepair = audit.repairOpportunities?.find((item) => /orphan|internal link|hub|sitemap/i.test(`${item.title} ${item.fix}`));
+  const orphanRepair = audit.repairOpportunities?.find((item) =>
+    /orphan|internal link|hub|sitemap/i.test(`${item.title} ${item.fix}`)
+  );
   if (!orphanRepair) return;
   add({
     id: "growth-crawl-hub-brief",
@@ -205,11 +213,7 @@ function addCrawlProofBrief(audit = {}, add) {
     suggestedAction: "Draft a hub or resource section that links important sitemap URLs from relevant rendered pages.",
     draftBrief: {
       summary: "Create a reviewed hub section that helps users and crawlers discover important pages.",
-      sections: [
-        "Top pages that need discovery",
-        "Why each page matters",
-        "Suggested anchor text and source page"
-      ],
+      sections: ["Top pages that need discovery", "Why each page matters", "Suggested anchor text and source page"],
       audience: "Users who need a guided path to related pages"
     },
     guardrail: "Only suggest links to verified public URLs; do not fabricate pages or anchors.",
@@ -219,7 +223,11 @@ function addCrawlProofBrief(audit = {}, add) {
 }
 
 function cleanLabel(value = "") {
-  return String(value || "growth").replace(/^Competitor gap:\s*/i, "").trim() || "growth";
+  return (
+    String(value || "growth")
+      .replace(/^Competitor gap:\s*/i, "")
+      .trim() || "growth"
+  );
 }
 
 function formatCount(value) {
@@ -240,9 +248,11 @@ function formatPosition(value) {
 }
 
 function slug(value = "") {
-  return String(value || "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 80) || "opportunity";
+  return (
+    String(value || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 80) || "opportunity"
+  );
 }

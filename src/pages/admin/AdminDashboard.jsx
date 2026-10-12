@@ -46,7 +46,13 @@ export function AdminDashboard({
           <h1>Beta ops</h1>
         </div>
         {!opsLoaded && (
-          <form className="admin-token-form" onSubmit={(event) => { event.preventDefault(); onLoad(); }}>
+          <form
+            className="admin-token-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              onLoad();
+            }}
+          >
             <label htmlFor="admin-token">Admin token</label>
             <input
               id="admin-token"
@@ -96,7 +102,9 @@ export function AdminDashboard({
                 <span>{audit.totalFindings} findings</span>
               </Link>
             ))}
-            {!adminData?.recentAudits?.length && <p className="quiet-note">{adminData ? "No recent audits yet." : "Load ops to see recent audits."}</p>}
+            {!adminData?.recentAudits?.length && (
+              <p className="quiet-note">{adminData ? "No recent audits yet." : "Load ops to see recent audits."}</p>
+            )}
           </div>
         </div>
 
@@ -140,7 +148,9 @@ export function AdminDashboard({
             {(adminData?.invites || []).slice(0, 6).map((invite) => (
               <div key={invite.id}>
                 <strong>{invite.ownerEmail}</strong>
-                <span>{invite.status} · {invite.usedCount}/{invite.maxUses}</span>
+                <span>
+                  {invite.status} · {invite.usedCount}/{invite.maxUses}
+                </span>
               </div>
             ))}
           </div>

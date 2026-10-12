@@ -63,7 +63,10 @@ export function CustomerDashboard({
         <Metric label="Running" value={metrics.runningAudits || 0} />
         <Metric label="Fix Packs" value={metrics.fixRequests || 0} />
         <Metric label="Verified sites" value={metrics.verifiedSites || verifiedSites.length || 0} />
-        <Metric label="Monitors" value={`${metrics.monitors || schedules.length || 0}/${metrics.monitorLimit || monitoring.limit || 5}`} />
+        <Metric
+          label="Monitors"
+          value={`${metrics.monitors || schedules.length || 0}/${metrics.monitorLimit || monitoring.limit || 5}`}
+        />
         <Metric label="Open repairs" value={metrics.openRepairs || repairCounts.active || 0} />
         <Metric label="Drafts" value={metrics.draftedActions || repairCounts.awaitingApproval || 0} />
         <Metric label="Regressed" value={metrics.regressedRepairs || 0} />
@@ -79,7 +82,10 @@ export function CustomerDashboard({
                 : "Beta monitoring allowance"}
           </h3>
         </div>
-        <p>{monitoring.message || "Weekly monitoring watches verified sites and reports proof deltas without claiming to fix issues."}</p>
+        <p>
+          {monitoring.message ||
+            "Weekly monitoring watches verified sites and reports proof deltas without claiming to fix issues."}
+        </p>
       </section>
       <RepairAgentFeed items={repairItems} nextAction={primaryAction} reports={reports} />
       <div className="site-verification-panel">
@@ -111,19 +117,29 @@ export function CustomerDashboard({
       {Boolean(sites.length) && (
         <div className="site-claim-list">
           {sites.map((site) => {
-            const monitor = schedules.find((schedule) => hostKey(schedule.targetHost || schedule.targetUrl) === hostKey(site.host));
+            const monitor = schedules.find(
+              (schedule) => hostKey(schedule.targetHost || schedule.targetUrl) === hostKey(site.host)
+            );
             return (
               <article className={`site-claim-card ${site.status}`} key={site.id || site.host}>
                 <div>
                   <span className="status-pill">{site.status}</span>
                   <h3>{site.host}</h3>
                   {site.status === "verified" ? (
-                    <p>{monitor ? `Monitoring ${monitor.cadenceLabel?.toLowerCase() || "weekly"}.` : `Verified by ${site.verificationMethod || "site proof"}.`}</p>
+                    <p>
+                      {monitor
+                        ? `Monitoring ${monitor.cadenceLabel?.toLowerCase() || "weekly"}.`
+                        : `Verified by ${site.verificationMethod || "site proof"}.`}
+                    </p>
                   ) : (
                     <div className="verification-instructions">
                       <p>Add either proof, then click verify.</p>
-                      <code>TXT {site.dnsName}: {site.dnsValue}</code>
-                      <code>{site.filePath}: {site.fileContents}</code>
+                      <code>
+                        TXT {site.dnsName}: {site.dnsValue}
+                      </code>
+                      <code>
+                        {site.filePath}: {site.fileContents}
+                      </code>
                     </div>
                   )}
                 </div>
@@ -174,7 +190,9 @@ export function CustomerDashboard({
               </div>
               <div className="schedule-actions">
                 {schedule.lastReportPath ? (
-                  <a className="action-link" href={schedule.lastReportPath}>Latest report</a>
+                  <a className="action-link" href={schedule.lastReportPath}>
+                    Latest report
+                  </a>
                 ) : (
                   <span className="quiet-note">Waiting for first run</span>
                 )}
@@ -201,7 +219,9 @@ export function CustomerDashboard({
                 <p>{auditJobDetail(job)}</p>
               </div>
               {job.reportPath ? (
-                <Link discover="none" className="action-link" to={job.reportPath}>Open report</Link>
+                <Link discover="none" className="action-link" to={job.reportPath}>
+                  Open report
+                </Link>
               ) : (
                 <span className="quiet-note">{job.status === "failed" ? "Needs rerun" : "Working"}</span>
               )}
@@ -216,7 +236,11 @@ export function CustomerDashboard({
             <h3>{primaryAction?.label || "Start with a page that matters"}</h3>
           </div>
           <p>{primaryAction?.detail || "Paste your homepage, pricing page, or highest-value product page."}</p>
-          {primaryAction?.href && <a className="action-link" href={primaryAction.href}>Open next action</a>}
+          {primaryAction?.href && (
+            <a className="action-link" href={primaryAction.href}>
+              Open next action
+            </a>
+          )}
         </div>
         <div className="account-panel">
           <div className="section-heading">
@@ -230,7 +254,9 @@ export function CustomerDashboard({
                 <strong>{item.score}/100</strong>
               </Link>
             ))}
-            {!reports.length && <p className="quiet-note">Your saved reports will appear here after the first audit.</p>}
+            {!reports.length && (
+              <p className="quiet-note">Your saved reports will appear here after the first audit.</p>
+            )}
           </div>
         </div>
         <div className="account-panel">
@@ -245,11 +271,7 @@ export function CustomerDashboard({
                 <strong>{request.statusLabel || statusLabel(request.status)}</strong>
               </Link>
             ))}
-            {!fixRequests.length && (
-              <p className="quiet-note">
-                Checkout starts from a report with proven fixes.
-              </p>
-            )}
+            {!fixRequests.length && <p className="quiet-note">Checkout starts from a report with proven fixes.</p>}
           </div>
         </div>
       </div>
@@ -286,11 +308,19 @@ export function RepairAgentFeed({ items = [], nextAction = null, reports = [] })
                 : "Run the first audit to create a queue."}
           </p>
         </div>
-        {nextAction?.href && <a className="action-link" href={nextAction.href}>Open action</a>}
+        {nextAction?.href && (
+          <a className="action-link" href={nextAction.href}>
+            Open action
+          </a>
+        )}
       </div>
       <div className="repair-agent-list">
         {items.slice(0, 4).map((item) => (
-          <a className={`repair-agent-card ${item.status || "open"}`} href={item.reportPath || nextAction?.href || "/beta"} key={item.id}>
+          <a
+            className={`repair-agent-card ${item.status || "open"}`}
+            href={item.reportPath || nextAction?.href || "/beta"}
+            key={item.id}
+          >
             <div className="repair-agent-card-head">
               <span className={`status-pill ${item.severity || "notice"}`}>{item.severity || "notice"}</span>
               <span className="status-pill">{repairStatusLabel(item.status)}</span>
@@ -306,7 +336,11 @@ export function RepairAgentFeed({ items = [], nextAction = null, reports = [] })
         {!items.length && (
           <div className="repair-agent-empty">
             <strong>{hasReports ? "No active repair queue yet." : "No reports yet."}</strong>
-            <span>{hasReports ? "Latest reports and drafts will appear here once issues are queued." : "Verify a site and run an audit first."}</span>
+            <span>
+              {hasReports
+                ? "Latest reports and drafts will appear here once issues are queued."
+                : "Verify a site and run an audit first."}
+            </span>
           </div>
         )}
       </div>
@@ -366,7 +400,10 @@ export function DeveloperApiPanel({
               <div className="developer-api-row" key={token.id}>
                 <div>
                   <strong>{token.label || "API key"}</strong>
-                  <span>{token.tokenPrefix || "hidden"}{token.lastUsedAt ? ` · used ${formatDate(token.lastUsedAt)}` : ""}</span>
+                  <span>
+                    {token.tokenPrefix || "hidden"}
+                    {token.lastUsedAt ? ` · used ${formatDate(token.lastUsedAt)}` : ""}
+                  </span>
                 </div>
                 <button
                   className="text-button"
@@ -413,7 +450,10 @@ export function DeveloperApiPanel({
               <div className="developer-api-row" key={webhook.id}>
                 <div>
                   <strong>{safeUrlLabel(webhook.url)}</strong>
-                  <span>{(webhook.events || []).join(", ")}{webhook.lastDeliveryStatus ? ` · ${webhook.lastDeliveryStatus}` : ""}</span>
+                  <span>
+                    {(webhook.events || []).join(", ")}
+                    {webhook.lastDeliveryStatus ? ` · ${webhook.lastDeliveryStatus}` : ""}
+                  </span>
                 </div>
                 <button
                   className="text-button"

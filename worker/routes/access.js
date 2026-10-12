@@ -9,13 +9,7 @@ import {
 import { emailButton } from "../../shared/email-layout.js";
 import { sendWorkerEmail } from "../lib/email.js";
 import { json, jsonNoStore } from "../lib/http.js";
-import {
-  checkQuotaSet,
-  constantTimeEqual,
-  randomToken,
-  requestIpHash,
-  sha256Hex
-} from "../lib/security.js";
+import { checkQuotaSet, constantTimeEqual, randomToken, requestIpHash, sha256Hex } from "../lib/security.js";
 import { siteClaimResponse, siteVerificationText } from "../lib/serializers.js";
 import {
   claimHostFromInput,
@@ -53,9 +47,7 @@ const utmFields = {
 };
 
 function utmTags(body) {
-  return Object.fromEntries(
-    Object.keys(utmTag).map((key) => [key, body.utm?.[key] || body[`utm_${key}`] || ""])
-  );
+  return Object.fromEntries(Object.keys(utmTag).map((key) => [key, body.utm?.[key] || body[`utm_${key}`] || ""]));
 }
 
 const WaitlistBody = body(
@@ -93,12 +85,7 @@ const BetaLoginBody = body(
 const SiteClaimBody = body({ host: text(500), id: text(80) }, { url: "host", claimId: "id" });
 
 function funnelKeyFromRequest(request, body) {
-  return cleanText(
-    body?.funnelKey ||
-      request?.headers?.get?.("x-seofixkit-funnel-key") ||
-      "",
-    64
-  );
+  return cleanText(body?.funnelKey || request?.headers?.get?.("x-seofixkit-funnel-key") || "", 64);
 }
 
 function landingPathFromRequest(body, fallback = "/") {
@@ -397,7 +384,14 @@ async function sendAccessLinkEmail(env, { ownerEmail, accessUrl }) {
   });
 }
 
-async function recordWaitlistLead(request, env, email, body = {}, sourceFallback = "locked-homepage", now = new Date().toISOString()) {
+async function recordWaitlistLead(
+  request,
+  env,
+  email,
+  body = {},
+  sourceFallback = "locked-homepage",
+  now = new Date().toISOString()
+) {
   const utm = utmTags(body);
   await env.WAITLIST_DB.prepare(
     `INSERT INTO waitlist_leads
@@ -629,7 +623,9 @@ async function verifySiteClaim(request, env) {
     )
       .bind(method, now, now, now, row.id)
       .run();
-    const updated = await env.WAITLIST_DB.prepare(`SELECT * FROM site_claims WHERE id = ? LIMIT 1`).bind(row.id).first();
+    const updated = await env.WAITLIST_DB.prepare(`SELECT * FROM site_claims WHERE id = ? LIMIT 1`)
+      .bind(row.id)
+      .first();
     return jsonNoStore({ ok: true, verified: true, site: siteClaimResponse(updated) });
   }
 
@@ -654,10 +650,9 @@ async function verifySiteClaimDns(host, token) {
   const expected = siteVerificationText(token);
   const dnsName = `_seofixkit.${host}`;
   try {
-    const response = await fetch(
-      `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(dnsName)}&type=TXT`,
-      { headers: { accept: "application/dns-json" } }
-    );
+    const response = await fetch(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(dnsName)}&type=TXT`, {
+      headers: { accept: "application/dns-json" }
+    });
     if (!response.ok) return { ok: false, error: "DNS verification lookup failed." };
     const payload = await response.json().catch(() => ({}));
     const answers = Array.isArray(payload.Answer) ? payload.Answer : [];

@@ -10,6 +10,7 @@ Follow `~/.codex/AGENTS.md` first, then this repo-specific layer.
 - Make the smallest change that solves the current task and verify it before calling it done.
 
 <!-- SPECKIT START -->
+
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
 <!-- SPECKIT END -->

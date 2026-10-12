@@ -5,21 +5,21 @@ const REPAIR_TABLES_MISSING_CODE = "REPAIR_QUEUE_MIGRATION_MISSING";
 function isRepairTablesMissingError(error) {
   const message = String(error?.message || error || "").toLowerCase();
   return (
-    message.includes("no such table") ||
-    message.includes("does not exist") ||
-    message.includes("not found")
-  ) && (
-    message.includes("repair_queue_items") ||
-    message.includes("repair_agent_actions") ||
-    message.includes("repair_proposals")
+    (message.includes("no such table") || message.includes("does not exist") || message.includes("not found")) &&
+    (message.includes("repair_queue_items") ||
+      message.includes("repair_agent_actions") ||
+      message.includes("repair_proposals"))
   );
 }
 
 function repairTablesMissingResponse() {
-  return jsonNoStore({
-    error: "Repair queue storage has not been migrated yet.",
-    code: REPAIR_TABLES_MISSING_CODE
-  }, 503);
+  return jsonNoStore(
+    {
+      error: "Repair queue storage has not been migrated yet.",
+      code: REPAIR_TABLES_MISSING_CODE
+    },
+    503
+  );
 }
 
 async function repairTableAll(statement) {
@@ -49,8 +49,4 @@ function firstPrepared(statement) {
   return statement.bind().first();
 }
 
-export {
-  isRepairTablesMissingError,
-  repairTableAll,
-  requireRepairTables
-};
+export { isRepairTablesMissingError, repairTableAll, requireRepairTables };

@@ -28,11 +28,13 @@ function withPrivateHeaders(response) {
   const headers = new Headers(response.headers);
   headers.set("cache-control", "no-store");
   headers.set("x-robots-tag", "noindex, nofollow");
-  return withSecurityHeaders(new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers
-  }));
+  return withSecurityHeaders(
+    new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers
+    })
+  );
 }
 
 function withSecurityHeaders(response) {
@@ -69,11 +71,4 @@ function secureHeaders(input = {}) {
   return headers;
 }
 
-export {
-  cookieValue,
-  json,
-  jsonNoStore,
-  secureHeaders,
-  withPrivateHeaders,
-  withSecurityHeaders
-};
+export { cookieValue, json, jsonNoStore, secureHeaders, withPrivateHeaders, withSecurityHeaders };

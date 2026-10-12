@@ -34,11 +34,7 @@ function repairActionProofReceiptAvailable(maybeAction) {
   const rerunState = action.rerunState || action.rerun_state || "";
   const rerunReportId = action.rerunReportId || action.rerun_report_id || "";
   return Boolean(
-    action.id &&
-    approvalState === "approved" &&
-    executionState === "applied" &&
-    rerunState === "fixed" &&
-    rerunReportId
+    action.id && approvalState === "approved" && executionState === "applied" && rerunState === "fixed" && rerunReportId
   );
 }
 

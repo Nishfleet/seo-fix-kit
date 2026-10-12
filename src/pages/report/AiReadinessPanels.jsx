@@ -23,7 +23,11 @@ export function AiAnswerReadinessPanel({ audit }) {
             ? `${summary.repairOpportunityCount} proof-derived readiness ${summary.repairOpportunityCount === 1 ? "repair" : "repairs"} found.`
             : "Rendered proof is ready for machine-readable answers."}
         </h2>
-        <p>Site-proof checks for extractable content, helpful schema, canonical/source clarity, answer structure, and optional llms.txt. When Search Console rows are imported, faults are ranked by the traffic behind them. This is not AI visibility tracking or citation monitoring.</p>
+        <p>
+          Site-proof checks for extractable content, helpful schema, canonical/source clarity, answer structure, and
+          optional llms.txt. When Search Console rows are imported, faults are ranked by the traffic behind them. This
+          is not AI visibility tracking or citation monitoring.
+        </p>
       </div>
 
       <div className="ai-readiness-metrics" aria-label="AI Answer Readiness summary">
@@ -40,10 +44,13 @@ export function AiAnswerReadinessPanel({ audit }) {
           <span>{highestPriority.severity}</span>
           <strong>{highestPriority.title}</strong>
           <p>{highestPriority.proof}</p>
-          <small>{highestPriority.estimatedEffort || "30-90 min"} - {highestPriority.workType || "content"}</small>
+          <small>
+            {highestPriority.estimatedEffort || "30-90 min"} - {highestPriority.workType || "content"}
+          </small>
           {highestPriority.trafficRanked ? (
             <small>
-              {formatCount(highestPriority.trafficClicks)} clicks / {formatCount(highestPriority.trafficImpressions)} impressions on affected pages
+              {formatCount(highestPriority.trafficClicks)} clicks / {formatCount(highestPriority.trafficImpressions)}{" "}
+              impressions on affected pages
             </small>
           ) : null}
         </article>
@@ -129,7 +136,10 @@ export function GrowthOpportunitiesPanel({ growth }) {
             ? `${summary.opportunityCount} proof-backed growth ${summary.opportunityCount === 1 ? "brief" : "briefs"} ready.`
             : "No growth briefs were created from this report."}
         </h2>
-        <p>Drafts from verified keyword, competitor, AI-readiness, or crawl gaps. These do not publish content, open pull requests, or promise rankings, traffic, citations, or revenue.</p>
+        <p>
+          Drafts from verified keyword, competitor, AI-readiness, or crawl gaps. These do not publish content, open pull
+          requests, or promise rankings, traffic, citations, or revenue.
+        </p>
       </div>
 
       <div className="growth-opportunities-metrics" aria-label="Growth opportunity summary">
@@ -145,7 +155,9 @@ export function GrowthOpportunitiesPanel({ growth }) {
           <span>{growthTypeLabel(topOpportunity.type)}</span>
           <strong>{topOpportunity.title}</strong>
           <p>{topOpportunity.proof}</p>
-          <small>{topOpportunity.estimatedEffort || "30-90 min"} - {topOpportunity.workType || "content"}</small>
+          <small>
+            {topOpportunity.estimatedEffort || "30-90 min"} - {topOpportunity.workType || "content"}
+          </small>
         </article>
       )}
 
@@ -157,7 +169,9 @@ export function GrowthOpportunitiesPanel({ growth }) {
               <strong>{item.draftBrief?.summary || item.suggestedAction || item.title}</strong>
               <small>{item.sourceKind || "proof"} - draft only</small>
             </div>
-            <p>{item.draftBrief?.sections?.length ? item.draftBrief.sections.join(" | ") : item.guardrail || item.proof}</p>
+            <p>
+              {item.draftBrief?.sections?.length ? item.draftBrief.sections.join(" | ") : item.guardrail || item.proof}
+            </p>
           </article>
         ))}
       </div>
@@ -176,7 +190,10 @@ export function GeoReadinessPanel({ audit }) {
       <div className="section-heading">
         <p className="beta-eyebrow">SEO/GEO readiness</p>
         <h2>Repair signals for answer-ready search surfaces.</h2>
-        <p>{audit.guidance?.llmsTxt || "AI-search readiness starts with crawlable content, entity clarity, and truthful schema."}</p>
+        <p>
+          {audit.guidance?.llmsTxt ||
+            "AI-search readiness starts with crawlable content, entity clarity, and truthful schema."}
+        </p>
       </div>
       <div className="geo-readiness-metrics" aria-label="SEO and GEO readiness summary">
         <Metric label="Checks" value={`${summary.passed || 0}/${summary.total || 0}`} />
@@ -189,7 +206,9 @@ export function GeoReadinessPanel({ audit }) {
           <span>{topRepair.severity}</span>
           <strong>{topRepair.title}</strong>
           <p>{topRepair.proof}</p>
-          <small>{topRepair.estimatedEffort || "30-90 min"} - {topRepair.workType || "content"}</small>
+          <small>
+            {topRepair.estimatedEffort || "30-90 min"} - {topRepair.workType || "content"}
+          </small>
         </article>
       )}
       <div className="geo-check-grid">

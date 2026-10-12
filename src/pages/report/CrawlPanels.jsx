@@ -15,12 +15,17 @@ export function CrawlInventoryPanel({ inventory }) {
             ? `${formatCount(summary.urlsDiscovered)} sitemap ${summary.urlsDiscovered === 1 ? "URL" : "URLs"} discovered.`
             : "No sitemap inventory URLs were discovered."}
         </h2>
-        <p>Sitemap inventory proof up to CrawlRaven public scale. Rendered repairs still use the selected crawl depth.</p>
+        <p>
+          Sitemap inventory proof up to CrawlRaven public scale. Rendered repairs still use the selected crawl depth.
+        </p>
       </div>
 
       <div className="crawl-inventory-metrics" aria-label="Crawl inventory summary">
         <Metric label="Inventory URLs" value={formatCount(summary.urlsDiscovered || 0)} />
-        <Metric label="Rendered proof" value={`${formatCount(summary.renderedPagesCovered || 0)}/${formatCount(summary.renderedPagesScanned || 0)}`} />
+        <Metric
+          label="Rendered proof"
+          value={`${formatCount(summary.renderedPagesCovered || 0)}/${formatCount(summary.renderedPagesScanned || 0)}`}
+        />
         <Metric label="Coverage" value={`${summary.coveragePercent || 0}%`} />
         <Metric label="Sitemaps" value={formatCount(summary.sitemapsFetched || 0)} />
         <Metric label="Inventory cap" value={formatCount(summary.inventoryLimit || 50000)} />
@@ -60,8 +65,13 @@ export function RenderedCrawlScalePanel({ plan }) {
     <section className="rendered-crawl-scale-panel">
       <div className="section-heading">
         <p className="beta-eyebrow">Rendered crawl scale</p>
-        <h2>{formatCount(summary.plannedUrlCount || summary.requestedTargetPages || 0)} URLs staged for rendered crawl proof.</h2>
-        <p>Large-crawl manifest for CrawlRaven-scale parity. This is a plan, not a completed 50K rendered crawl claim.</p>
+        <h2>
+          {formatCount(summary.plannedUrlCount || summary.requestedTargetPages || 0)} URLs staged for rendered crawl
+          proof.
+        </h2>
+        <p>
+          Large-crawl manifest for CrawlRaven-scale parity. This is a plan, not a completed 50K rendered crawl claim.
+        </p>
       </div>
 
       <div className="rendered-crawl-scale-metrics" aria-label="Rendered crawl scale summary">
@@ -78,19 +88,30 @@ export function RenderedCrawlScalePanel({ plan }) {
           <span>{highestPriority.severity}</span>
           <strong>{highestPriority.title}</strong>
           <p>{highestPriority.proof}</p>
-          <small>{highestPriority.estimatedEffort || "30-90 min"} - {highestPriority.workType || "technical"}</small>
+          <small>
+            {highestPriority.estimatedEffort || "30-90 min"} - {highestPriority.workType || "technical"}
+          </small>
         </article>
       )}
 
       <div className="rendered-crawl-scale-grid">
         {batches.slice(0, 5).map((batch) => (
-          <article className={`rendered-crawl-scale-row ${batch.status === "rendered" ? "is-live" : "is-lost"}`} key={batch.batch}>
+          <article
+            className={`rendered-crawl-scale-row ${batch.status === "rendered" ? "is-live" : "is-lost"}`}
+            key={batch.batch}
+          >
             <div>
               <span>{batch.status}</span>
               <strong>Batch {batch.batch}</strong>
-              <small>{formatCount(batch.startIndex)}-{formatCount(batch.endIndex)} of staged URLs</small>
+              <small>
+                {formatCount(batch.startIndex)}-{formatCount(batch.endIndex)} of staged URLs
+              </small>
             </div>
-            <p>{batch.sampleUrls?.length ? batch.sampleUrls.slice(0, 3).join(", ") : `${formatCount(batch.plannedUrlCount)} planned rendered URLs.`}</p>
+            <p>
+              {batch.sampleUrls?.length
+                ? batch.sampleUrls.slice(0, 3).join(", ")
+                : `${formatCount(batch.plannedUrlCount)} planned rendered URLs.`}
+            </p>
           </article>
         ))}
       </div>
@@ -109,7 +130,9 @@ export function CrawlIntelligencePanel({ audit }) {
       <div className="section-heading">
         <p className="beta-eyebrow">Crawl intelligence</p>
         <h2>Rendered link graph with duplicate and orphan proof.</h2>
-        <p>Self-serve crawl-budget, orphan, duplicate-content, parameter, and cannibalization checks from rendered pages.</p>
+        <p>
+          Self-serve crawl-budget, orphan, duplicate-content, parameter, and cannibalization checks from rendered pages.
+        </p>
       </div>
 
       <div className="crawl-intelligence-metrics" aria-label="Crawl intelligence summary">
@@ -126,7 +149,9 @@ export function CrawlIntelligencePanel({ audit }) {
           <span>{highestPriority.severity}</span>
           <strong>{highestPriority.title}</strong>
           <p>{highestPriority.proof}</p>
-          <small>{highestPriority.estimatedEffort || "30-90 min"} - {highestPriority.workType || "technical"}</small>
+          <small>
+            {highestPriority.estimatedEffort || "30-90 min"} - {highestPriority.workType || "technical"}
+          </small>
         </article>
       )}
 
@@ -156,7 +181,9 @@ export function CrawlIntelligencePanel({ audit }) {
             <div>
               <span>Duplicate content</span>
               <strong>{pair.similarityPercent}% similar</strong>
-              <small>{pair.left.label} and {pair.right.label}</small>
+              <small>
+                {pair.left.label} and {pair.right.label}
+              </small>
             </div>
             <p>{pair.left.title || pair.right.title || "Rendered content overlap"}</p>
           </article>

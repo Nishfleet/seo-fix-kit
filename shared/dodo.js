@@ -3,29 +3,15 @@ import { Webhook } from "standardwebhooks";
 const DODO_LIVE_URL = "https://live.dodopayments.com";
 const DODO_TEST_URL = "https://test.dodopayments.com";
 
-export const DODO_PAYMENT_SUCCESS_EVENTS = new Set([
-  "payment.succeeded",
-  "payment.completed",
-  "payment.paid"
-]);
+export const DODO_PAYMENT_SUCCESS_EVENTS = new Set(["payment.succeeded", "payment.completed", "payment.paid"]);
 
-export const DODO_PAYMENT_FAILURE_EVENTS = new Set([
-  "payment.failed",
-  "payment.cancelled",
-  "payment.canceled"
-]);
+export const DODO_PAYMENT_FAILURE_EVENTS = new Set(["payment.failed", "payment.cancelled", "payment.canceled"]);
 
-export const DODO_PAYMENT_PROCESSING_EVENTS = new Set([
-  "payment.processing"
-]);
+export const DODO_PAYMENT_PROCESSING_EVENTS = new Set(["payment.processing"]);
 
-export const DODO_REFUND_SUCCESS_EVENTS = new Set([
-  "refund.succeeded"
-]);
+export const DODO_REFUND_SUCCESS_EVENTS = new Set(["refund.succeeded"]);
 
-export const DODO_REFUND_FAILURE_EVENTS = new Set([
-  "refund.failed"
-]);
+export const DODO_REFUND_FAILURE_EVENTS = new Set(["refund.failed"]);
 
 export const DODO_DISPUTE_EVENTS = new Set([
   "dispute.opened",
@@ -86,7 +72,9 @@ export function dodoBrandId(env = {}) {
 }
 
 export function dodoEnvironment(env = {}) {
-  const mode = String(env.DODO_SEOFIXKIT_ENVIRONMENT || "").trim().toLowerCase();
+  const mode = String(env.DODO_SEOFIXKIT_ENVIRONMENT || "")
+    .trim()
+    .toLowerCase();
   if (["live", "live_mode", "production", "prod"].includes(mode)) return "live";
   if (["test", "test_mode", "sandbox", "development", "dev"].includes(mode)) return "test";
   return "";
@@ -105,10 +93,7 @@ export function dodoAdaptiveCurrencyFeesInclusive(env = {}) {
 
 export function dodoCountryFromRequest(request) {
   const country = String(
-    request?.cf?.country ||
-      request?.headers?.get?.("cf-ipcountry") ||
-      request?.headers?.get?.("x-country") ||
-      ""
+    request?.cf?.country || request?.headers?.get?.("cf-ipcountry") || request?.headers?.get?.("x-country") || ""
   ).toUpperCase();
   return /^[A-Z]{2}$/.test(country) && country !== "XX" ? country : "";
 }
@@ -156,13 +141,7 @@ export function hasDodoRepairSprintCheckoutConfig(env = {}) {
 // (https://www.standardwebhooks.com), so verification is delegated to the
 // reference implementation: signature over `id.timestamp.body`, multiple
 // space-separated `v1,` signatures, and a 5-minute replay tolerance.
-export async function verifyDodoWebhookSignature({
-  payload,
-  webhookId,
-  webhookTimestamp,
-  webhookSignature,
-  secret
-}) {
+export async function verifyDodoWebhookSignature({ payload, webhookId, webhookTimestamp, webhookSignature, secret }) {
   if (!payload || !webhookId || !webhookTimestamp || !webhookSignature || !secret) return false;
   try {
     new Webhook(decodeWebhookSecret(secret), { format: "raw" }).verify(payload, {
@@ -183,12 +162,27 @@ export function extractDodoPayment(payment = {}) {
   return {
     paymentId: firstText(payment.payment_id, payment.paymentId, payment.id),
     refundId: firstText(payment.refund_id, payment.refundId),
-    checkoutSessionId: firstText(payment.checkout_session_id, payment.checkoutSessionId, payment.session_id, payment.sessionId),
+    checkoutSessionId: firstText(
+      payment.checkout_session_id,
+      payment.checkoutSessionId,
+      payment.session_id,
+      payment.sessionId
+    ),
     metadataFixRequestId: firstText(metadata.fix_request_id, metadata.fixRequestId),
     metadataReportId: firstText(metadata.report_id, metadata.reportId),
     metadataProductKey: firstText(metadata.product_key, metadata.productKey),
-    metadataRepairIssueId: firstText(metadata.repair_issue_id, metadata.repairIssueId, metadata.issue_id, metadata.issueId),
-    metadataRepairQueueItemId: firstText(metadata.repair_queue_item_id, metadata.repairQueueItemId, metadata.queue_item_id, metadata.queueItemId),
+    metadataRepairIssueId: firstText(
+      metadata.repair_issue_id,
+      metadata.repairIssueId,
+      metadata.issue_id,
+      metadata.issueId
+    ),
+    metadataRepairQueueItemId: firstText(
+      metadata.repair_queue_item_id,
+      metadata.repairQueueItemId,
+      metadata.queue_item_id,
+      metadata.queueItemId
+    ),
     metadataRepairTitle: firstText(metadata.repair_title, metadata.repairTitle),
     metadataWebhookDrill: truthyText(metadata.seofixkit_webhook_drill, metadata.webhook_drill, metadata.webhookDrill),
     businessId: firstText(payment.business_id, payment.businessId),
@@ -225,11 +219,7 @@ export function extractDodoSubscription(subscription = {}) {
     productItems,
     productQuantity: productItems.reduce((sum, item) => sum + item.quantity, 0) || (productItems.length ? 1 : 0),
     status: String(subscription.status || "").toLowerCase(),
-    currentPeriodStart: firstText(
-      subscription.current_period_start,
-      subscription.currentPeriodStart,
-      period.start
-    ),
+    currentPeriodStart: firstText(subscription.current_period_start, subscription.currentPeriodStart, period.start),
     currentPeriodEnd: firstText(
       subscription.current_period_end,
       subscription.currentPeriodEnd,
@@ -254,7 +244,9 @@ function extractProductItems(payment = {}) {
     payment.line_items,
     payment.lineItems,
     payment.items
-  ].filter(Array.isArray).flat();
+  ]
+    .filter(Array.isArray)
+    .flat();
   const directProductId = firstText(
     payment.product_id,
     payment.productId,
@@ -270,16 +262,27 @@ function extractProductItems(payment = {}) {
     .filter((item) => item.productId);
   if (lineItems.length) return lineItems;
   if (!directProductId) return [];
-  return [{
-    productId: directProductId,
-    quantity: Math.max(0, numberOrZero(
-      payment.quantity ?? payment.product_quantity ?? payment.productQuantity ?? objectOrEmpty(payment.plan).quantity ?? 1
-    ))
-  }];
+  return [
+    {
+      productId: directProductId,
+      quantity: Math.max(
+        0,
+        numberOrZero(
+          payment.quantity ??
+            payment.product_quantity ??
+            payment.productQuantity ??
+            objectOrEmpty(payment.plan).quantity ??
+            1
+        )
+      )
+    }
+  ];
 }
 
 function decodeWebhookSecret(secret) {
-  const normalized = String(secret || "").trim().replace(/^whsec_/, "");
+  const normalized = String(secret || "")
+    .trim()
+    .replace(/^whsec_/, "");
   try {
     return Uint8Array.from(atob(normalized), (char) => char.charCodeAt(0));
   } catch {
@@ -308,11 +311,15 @@ function numberOrZero(value) {
 }
 
 function normalizeCurrency(value) {
-  return String(value || "").trim().toUpperCase();
+  return String(value || "")
+    .trim()
+    .toUpperCase();
 }
 
 function normalizeEmailText(value) {
-  const email = String(value || "").trim().toLowerCase();
+  const email = String(value || "")
+    .trim()
+    .toLowerCase();
   if (email.length > 254) return "";
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : "";
 }

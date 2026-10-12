@@ -51,7 +51,4 @@ function repairActionDetailResponse(action = {}) {
   };
 }
 
-export {
-  repairActionDetailResponse,
-  repairQueueItemDetailResponse
-};
+export { repairActionDetailResponse, repairQueueItemDetailResponse };

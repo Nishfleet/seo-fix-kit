@@ -548,7 +548,12 @@ test("repair agent route rejects same-owner rerun proof from another host", asyn
     updated_at: new Date(Date.now() + 60_000).toISOString(),
     url: "https://other.example/",
     target_host: "other.example",
-    report_json: JSON.stringify({ id: "rerun-other-host-1", url: "https://other.example/", findings: [], repairPlan: [] })
+    report_json: JSON.stringify({
+      id: "rerun-other-host-1",
+      url: "https://other.example/",
+      findings: [],
+      repairPlan: []
+    })
   });
   await getRepairQueue(sessionRequest(`/api/reports/${reportId}/repair-queue`), env);
   await createRepairAction(
@@ -715,12 +720,14 @@ test("repair queue save rejects terminal rerun proof without matching status", a
       sessionRequest(`/api/reports/${reportId}/repair-queue`, {
         method: "PATCH",
         body: JSON.stringify({
-          items: [{
-            issueId: "issue-1",
-            status: "applied",
-            rerunStatus,
-            lastRerunReportId: "rerun-report-1"
-          }]
+          items: [
+            {
+              issueId: "issue-1",
+              status: "applied",
+              rerunStatus,
+              lastRerunReportId: "rerun-report-1"
+            }
+          ]
         })
       }),
       env
@@ -908,12 +915,14 @@ test("repair queue save rejects direct fixed closure after apply", async () => {
     sessionRequest(`/api/reports/${reportId}/repair-queue`, {
       method: "PATCH",
       body: JSON.stringify({
-        items: [{
-          issueId: "issue-1",
-          status: "fixed",
-          rerunStatus: "fixed",
-          lastRerunReportId: "rerun-report-1"
-        }]
+        items: [
+          {
+            issueId: "issue-1",
+            status: "fixed",
+            rerunStatus: "fixed",
+            lastRerunReportId: "rerun-report-1"
+          }
+        ]
       })
     }),
     env
@@ -969,12 +978,14 @@ test("repair queue save rejects direct fixed closure when newer draft hides appl
     sessionRequest(`/api/reports/${reportId}/repair-queue`, {
       method: "PATCH",
       body: JSON.stringify({
-        items: [{
-          issueId: "issue-1",
-          status: "fixed",
-          rerunStatus: "fixed",
-          lastRerunReportId: "rerun-report-1"
-        }]
+        items: [
+          {
+            issueId: "issue-1",
+            status: "fixed",
+            rerunStatus: "fixed",
+            lastRerunReportId: "rerun-report-1"
+          }
+        ]
       })
     }),
     env
@@ -1134,21 +1145,23 @@ test("repair action records fixed state after owned rerun proof", async () => {
 test("repair action webhook delivers lifecycle transitions without private draft payload", async () => {
   const env = fakeRepairEnv();
   env.SEOFIXKIT_API_WEBHOOK_SECRET = "test-secret";
-  env.webhooks = [{
-    id: "webhook-1",
-    owner_email: "owner@example.com",
-    url: "https://hooks.example.com/seo",
-    events_json: JSON.stringify([
-      "repair_action.drafted",
-      "repair_action.approved",
-      "repair_action.applied",
-      "repair_action.fixed",
-      "repair_action.regressed"
-    ]),
-    status: "active",
-    revoked_at: null,
-    created_at: new Date().toISOString()
-  }];
+  env.webhooks = [
+    {
+      id: "webhook-1",
+      owner_email: "owner@example.com",
+      url: "https://hooks.example.com/seo",
+      events_json: JSON.stringify([
+        "repair_action.drafted",
+        "repair_action.approved",
+        "repair_action.applied",
+        "repair_action.fixed",
+        "repair_action.regressed"
+      ]),
+      status: "active",
+      revoked_at: null,
+      created_at: new Date().toISOString()
+    }
+  ];
   const reportId = "example-report-1";
   const waitUntilPromises = [];
   const sentPayloads = [];
@@ -1238,32 +1251,35 @@ test("repair action webhook delivers lifecycle transitions without private draft
     globalThis.fetch = originalFetch;
   }
 
-  assert.deepEqual(env.events.map((event) => event.event_type), [
-    "repair_action.drafted",
-    "repair_action.approved",
-    "repair_action.applied",
-    "repair_action.fixed",
-    "repair_action.regressed"
-  ]);
-  assert.equal(sentPayloads.length, 5);
-  const payloadsByEvent = new Map(sentPayloads.map((payload) => [payload.event, payload]));
   assert.deepEqual(
-    [...payloadsByEvent.keys()].sort(),
+    env.events.map((event) => event.event_type),
     [
-      "repair_action.applied",
-      "repair_action.approved",
       "repair_action.drafted",
+      "repair_action.approved",
+      "repair_action.applied",
       "repair_action.fixed",
       "repair_action.regressed"
     ]
   );
+  assert.equal(sentPayloads.length, 5);
+  const payloadsByEvent = new Map(sentPayloads.map((payload) => [payload.event, payload]));
+  assert.deepEqual([...payloadsByEvent.keys()].sort(), [
+    "repair_action.applied",
+    "repair_action.approved",
+    "repair_action.drafted",
+    "repair_action.fixed",
+    "repair_action.regressed"
+  ]);
   assert.equal(payloadsByEvent.get("repair_action.drafted").data.repair_action.approval_state, "drafted");
   assert.equal(payloadsByEvent.get("repair_action.approved").data.repair_action.approval_state, "approved");
   assert.equal(payloadsByEvent.get("repair_action.applied").data.repair_action.execution_state, "applied");
   assert.equal(payloadsByEvent.get("repair_action.fixed").data.repair_action.rerun_state, "fixed");
   assert.equal(payloadsByEvent.get("repair_action.fixed").data.repair_action.rerun_report_id, "rerun-fixed-report-1");
   assert.equal(payloadsByEvent.get("repair_action.regressed").data.repair_action.rerun_state, "regressed");
-  assert.equal(payloadsByEvent.get("repair_action.regressed").data.repair_action.rerun_report_id, "rerun-regressed-report-1");
+  assert.equal(
+    payloadsByEvent.get("repair_action.regressed").data.repair_action.rerun_report_id,
+    "rerun-regressed-report-1"
+  );
   assert.doesNotMatch(JSON.stringify(sentPayloads), /Private draft title copy|source_proof|proposed_change/i);
   assert.equal(env.webhooks[0].last_delivery_status, "delivered");
 });
@@ -1710,14 +1726,16 @@ test("repair queue read preserves saved state before applying the response cap",
       last_rerun_report_id: "rerun-report-1",
       updated_at: "2020-01-01T00:00:00.000Z"
     }),
-    ...Array.from({ length: 120 }, (_, index) => repairQueueRow({
-      id: `queue-old-${index}`,
-      issue_id: `old-issue-${index}`,
-      title: `Old saved repair ${index}`,
-      severity: "notice",
-      status: "ignored",
-      updated_at: new Date(Date.parse("2020-01-02T00:00:00.000Z") + index * 1000).toISOString()
-    }))
+    ...Array.from({ length: 120 }, (_, index) =>
+      repairQueueRow({
+        id: `queue-old-${index}`,
+        issue_id: `old-issue-${index}`,
+        title: `Old saved repair ${index}`,
+        severity: "notice",
+        status: "ignored",
+        updated_at: new Date(Date.parse("2020-01-02T00:00:00.000Z") + index * 1000).toISOString()
+      })
+    )
   ];
 
   const response = await getRepairQueue(sessionRequest(`/api/reports/${reportId}/repair-queue`), env);
@@ -1752,12 +1770,14 @@ function fixedRerunReport(id) {
     repairPlan: [],
     reportDelta: {
       status: "ready",
-      fixedIssues: [{
-        id: "issue-1",
-        title: "Missing title",
-        pageUrl: "https://example.com/",
-        source: "rendered"
-      }]
+      fixedIssues: [
+        {
+          id: "issue-1",
+          title: "Missing title",
+          pageUrl: "https://example.com/",
+          source: "rendered"
+        }
+      ]
     }
   };
 }
@@ -1769,16 +1789,18 @@ function stillOpenRerunReport(id) {
     score: 75,
     summary: { pagesScanned: 1, totalFindings: 1 },
     pages: [{ url: "https://example.com/" }],
-    findings: [{
-      id: "issue-1",
-      severity: "critical",
-      title: "Missing title",
-      pageUrl: "https://example.com/",
-      evidence: "Rendered title is still missing.",
-      fix: "Add a descriptive title.",
-      confidence: "verified",
-      source: "rendered"
-    }],
+    findings: [
+      {
+        id: "issue-1",
+        severity: "critical",
+        title: "Missing title",
+        pageUrl: "https://example.com/",
+        evidence: "Rendered title is still missing.",
+        fix: "Add a descriptive title.",
+        confidence: "verified",
+        source: "rendered"
+      }
+    ],
     repairPlan: []
   };
 }
@@ -1790,16 +1812,18 @@ function differentPageRerunReport(id) {
     score: 75,
     summary: { pagesScanned: 1, totalFindings: 1 },
     pages: [{ url: "https://example.com/other" }],
-    findings: [{
-      id: "issue-1",
-      severity: "critical",
-      title: "Missing title",
-      pageUrl: "https://example.com/other",
-      evidence: "Rendered title is missing on another page.",
-      fix: "Add a descriptive title.",
-      confidence: "verified",
-      source: "rendered"
-    }],
+    findings: [
+      {
+        id: "issue-1",
+        severity: "critical",
+        title: "Missing title",
+        pageUrl: "https://example.com/other",
+        evidence: "Rendered title is missing on another page.",
+        fix: "Add a descriptive title.",
+        confidence: "verified",
+        source: "rendered"
+      }
+    ],
     repairPlan: []
   };
 }
@@ -1812,18 +1836,20 @@ function repairPlanOnlyReport(id) {
     summary: { pagesScanned: 1, totalFindings: 1 },
     pages: [{ url: "https://example.com/" }],
     findings: [],
-    repairPlan: [{
-      priority: 1,
-      severity: "warning",
-      title: "Missing product schema",
-      pageUrl: "https://example.com/",
-      pageLabel: "home",
-      proof: "Product schema is missing.",
-      fix: "Add Product schema.",
-      acceptance: "Product schema validates.",
-      confidence: "verified",
-      source: "schema"
-    }]
+    repairPlan: [
+      {
+        priority: 1,
+        severity: "warning",
+        title: "Missing product schema",
+        pageUrl: "https://example.com/",
+        pageLabel: "home",
+        proof: "Product schema is missing.",
+        fix: "Add Product schema.",
+        acceptance: "Product schema validates.",
+        confidence: "verified",
+        source: "schema"
+      }
+    ]
   };
 }
 
@@ -1831,50 +1857,56 @@ function fakeRepairEnv() {
   const now = new Date(Date.now() + 60_000).toISOString();
   const env = {
     ownerEmail: "owner@example.com",
-    reports: [{
-      id: "example-report-1",
-      owner_email: "owner@example.com",
-      owner_invite_id: null,
-      expires_at: now,
-      created_at: "2020-01-01T00:00:00.000Z",
-      updated_at: "2020-01-01T00:00:00.000Z",
-      url: "https://example.com/",
-      target_host: "example.com",
-      report_json: JSON.stringify({
+    reports: [
+      {
         id: "example-report-1",
+        owner_email: "owner@example.com",
+        owner_invite_id: null,
+        expires_at: now,
+        created_at: "2020-01-01T00:00:00.000Z",
+        updated_at: "2020-01-01T00:00:00.000Z",
         url: "https://example.com/",
-        createdAt: "2020-01-01T00:00:00.000Z",
-        score: 85,
-        findings: [{
-          id: "issue-1",
-          severity: "critical",
-          title: "Missing title",
-          pageUrl: "https://example.com/",
-          pageLabel: "home",
-          evidence: "Rendered title is missing.",
-          fix: "Add a descriptive title.",
-          confidence: "verified",
-          source: "rendered"
-        }],
-        repairPlan: [{
-          priority: 1,
-          severity: "critical",
-          title: "Missing title",
-          pageUrl: "https://example.com/",
-          pageLabel: "home",
-          proof: "Rendered title is missing.",
-          fix: "Add a descriptive title.",
-          acceptance: "Rendered title exists.",
-          confidence: "verified",
-          source: "rendered"
-        }]
-      })
-	    }],
-	    queueItems: [],
-	    actions: [],
-	    webhooks: [],
-	    events: []
-	  };
+        target_host: "example.com",
+        report_json: JSON.stringify({
+          id: "example-report-1",
+          url: "https://example.com/",
+          createdAt: "2020-01-01T00:00:00.000Z",
+          score: 85,
+          findings: [
+            {
+              id: "issue-1",
+              severity: "critical",
+              title: "Missing title",
+              pageUrl: "https://example.com/",
+              pageLabel: "home",
+              evidence: "Rendered title is missing.",
+              fix: "Add a descriptive title.",
+              confidence: "verified",
+              source: "rendered"
+            }
+          ],
+          repairPlan: [
+            {
+              priority: 1,
+              severity: "critical",
+              title: "Missing title",
+              pageUrl: "https://example.com/",
+              pageLabel: "home",
+              proof: "Rendered title is missing.",
+              fix: "Add a descriptive title.",
+              acceptance: "Rendered title exists.",
+              confidence: "verified",
+              source: "rendered"
+            }
+          ]
+        })
+      }
+    ],
+    queueItems: [],
+    actions: [],
+    webhooks: [],
+    events: []
+  };
   env.WAITLIST_DB = {
     prepare(sql) {
       return {
@@ -1960,14 +1992,16 @@ function first(sql, values, env) {
   if (sql.includes("FROM repair_queue_items")) {
     return env.queueItems[0] ? { id: env.queueItems[0].id } : null;
   }
-	  if (sql.includes("FROM repair_agent_actions")) {
-	    if (sql.includes("SELECT id FROM repair_agent_actions")) {
-	      return env.actions[0] ? { id: env.actions[0].id } : null;
-	    }
-	    const [id, reportId, ownerEmail] = values;
-	    const row = env.actions.find((row) => row.id === id && row.report_id === reportId && row.owner_email === ownerEmail);
-	    return row ? { ...row } : null;
-	  }
+  if (sql.includes("FROM repair_agent_actions")) {
+    if (sql.includes("SELECT id FROM repair_agent_actions")) {
+      return env.actions[0] ? { id: env.actions[0].id } : null;
+    }
+    const [id, reportId, ownerEmail] = values;
+    const row = env.actions.find(
+      (row) => row.id === id && row.report_id === reportId && row.owner_email === ownerEmail
+    );
+    return row ? { ...row } : null;
+  }
   throw new Error(`Unexpected first SQL: ${sql}`);
 }
 
@@ -1988,9 +2022,9 @@ function all(sql, values, env) {
     const [reportId, ownerEmail] = values;
     return { results: env.actions.filter((row) => row.report_id === reportId && row.owner_email === ownerEmail) };
   }
-	  if (sql.includes("FROM api_webhooks")) {
-	    return { results: env.webhooks };
-	  }
+  if (sql.includes("FROM api_webhooks")) {
+    return { results: env.webhooks };
+  }
   throw new Error(`Unexpected all SQL: ${sql}`);
 }
 
@@ -2030,10 +2064,8 @@ function run(sql, values, env) {
   if (sql.includes("INSERT INTO repair_agent_actions")) {
     if (env.dropQueueBeforeActionInsert) env.queueItems = env.queueItems.filter((row) => row.id !== values[19]);
     if (sql.includes("WHERE EXISTS")) {
-      const queueExists = env.queueItems.some((row) =>
-        row.id === values[19] &&
-        row.report_id === values[20] &&
-        row.owner_email === values[21]
+      const queueExists = env.queueItems.some(
+        (row) => row.id === values[19] && row.report_id === values[20] && row.owner_email === values[21]
       );
       if (!queueExists) return { meta: { changes: 0 } };
     }
@@ -2091,14 +2123,12 @@ function run(sql, values, env) {
     }
     return { meta: { changes: row ? 1 : 0 } };
   }
-	  if (sql.includes("UPDATE repair_agent_actions")) {
-	    const row = env.actions.find((action) => action.id === values[8]);
+  if (sql.includes("UPDATE repair_agent_actions")) {
+    const row = env.actions.find((action) => action.id === values[8]);
     if (env.dropQueueBeforeActionUpdate) env.queueItems = env.queueItems.filter((item) => item.id !== values[11]);
     if (sql.includes("EXISTS")) {
-      const queueExists = env.queueItems.some((item) =>
-        item.id === values[11] &&
-        item.report_id === values[12] &&
-        item.owner_email === values[13]
+      const queueExists = env.queueItems.some(
+        (item) => item.id === values[11] && item.report_id === values[12] && item.owner_email === values[13]
       );
       if (!queueExists) return { meta: { changes: 0 } };
     }
@@ -2112,59 +2142,65 @@ function run(sql, values, env) {
       row.applied_at = values[6];
       row.updated_by_email = values[7];
     }
-	    return { meta: { changes: row ? 1 : 0 } };
-	  }
-	  if (sql.includes("INSERT INTO api_webhook_events")) {
-	    env.events.push({
-	      id: values[0],
-	      webhook_id: values[1],
-	      owner_email: values[2],
-	      event_type: values[3],
-	      audit_job_id: values[4],
-	      report_id: values[5],
-	      status: values[6],
-	      http_status: values[7],
-	      error: values[8],
-	      payload_json: values[9],
-	      created_at: values[10],
-	      delivered_at: values[11]
-	    });
-	    return { meta: { changes: 1 } };
-	  }
-	  if (sql.includes("UPDATE api_webhook_events")) {
-	    const failedUpdate = sql.includes("SET status = 'failed'");
-	    const event = env.events.find((row) => row.id === values[failedUpdate ? 2 : 4]);
-	    Object.assign(event, failedUpdate
-	      ? {
-	          status: "failed",
-	          error: values[0],
-	          delivered_at: values[1]
-	        }
-	      : {
-	          status: values[0],
-	          http_status: values[1],
-	          error: values[2],
-	          delivered_at: values[3]
-	        });
-	    return { meta: { changes: 1 } };
-	  }
-	  if (sql.includes("UPDATE api_webhooks")) {
-	    const failedUpdate = sql.includes("last_delivery_status = 'failed'");
-	    const webhook = env.webhooks.find((row) => row.id === values[failedUpdate ? 3 : 4]);
-	    Object.assign(webhook, failedUpdate
-	      ? {
-	          last_delivery_at: values[0],
-	          last_delivery_status: "failed",
-	          last_error: values[1],
-	          updated_at: values[2]
-	        }
-	      : {
-	          last_delivery_at: values[0],
-	          last_delivery_status: values[1],
-	          last_error: values[2],
-	          updated_at: values[3]
-	        });
-	    return { meta: { changes: 1 } };
-	  }
-	  throw new Error(`Unexpected run SQL: ${sql}`);
-	}
+    return { meta: { changes: row ? 1 : 0 } };
+  }
+  if (sql.includes("INSERT INTO api_webhook_events")) {
+    env.events.push({
+      id: values[0],
+      webhook_id: values[1],
+      owner_email: values[2],
+      event_type: values[3],
+      audit_job_id: values[4],
+      report_id: values[5],
+      status: values[6],
+      http_status: values[7],
+      error: values[8],
+      payload_json: values[9],
+      created_at: values[10],
+      delivered_at: values[11]
+    });
+    return { meta: { changes: 1 } };
+  }
+  if (sql.includes("UPDATE api_webhook_events")) {
+    const failedUpdate = sql.includes("SET status = 'failed'");
+    const event = env.events.find((row) => row.id === values[failedUpdate ? 2 : 4]);
+    Object.assign(
+      event,
+      failedUpdate
+        ? {
+            status: "failed",
+            error: values[0],
+            delivered_at: values[1]
+          }
+        : {
+            status: values[0],
+            http_status: values[1],
+            error: values[2],
+            delivered_at: values[3]
+          }
+    );
+    return { meta: { changes: 1 } };
+  }
+  if (sql.includes("UPDATE api_webhooks")) {
+    const failedUpdate = sql.includes("last_delivery_status = 'failed'");
+    const webhook = env.webhooks.find((row) => row.id === values[failedUpdate ? 3 : 4]);
+    Object.assign(
+      webhook,
+      failedUpdate
+        ? {
+            last_delivery_at: values[0],
+            last_delivery_status: "failed",
+            last_error: values[1],
+            updated_at: values[2]
+          }
+        : {
+            last_delivery_at: values[0],
+            last_delivery_status: values[1],
+            last_error: values[2],
+            updated_at: values[3]
+          }
+    );
+    return { meta: { changes: 1 } };
+  }
+  throw new Error(`Unexpected run SQL: ${sql}`);
+}

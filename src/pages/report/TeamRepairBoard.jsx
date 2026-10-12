@@ -53,10 +53,7 @@ export function TeamRepairBoard({ report }) {
     let cancelled = false;
     setStatus("loading");
     setMessage("Loading repair board.");
-    Promise.all([
-      loadReportCollaboration(report.id),
-      loadRepairQueue(report.id)
-    ])
+    Promise.all([loadReportCollaboration(report.id), loadRepairQueue(report.id)])
       .then(([collaborationPayload, queuePayload]) => {
         if (cancelled) return;
         setMembers(collaborationPayload.members || []);
@@ -88,9 +85,7 @@ export function TeamRepairBoard({ report }) {
     if (patch.status && !["fixed", "regressed"].includes(patch.status)) {
       nextPatch.rerunStatus = "not_run";
     }
-    setIssues((current) =>
-      current.map((issue) => (issue.issueId === issueId ? { ...issue, ...nextPatch } : issue))
-    );
+    setIssues((current) => current.map((issue) => (issue.issueId === issueId ? { ...issue, ...nextPatch } : issue)));
   }
 
   async function reloadBoard(nextMessage = "Repair board updated.") {
@@ -150,14 +145,18 @@ export function TeamRepairBoard({ report }) {
         })
       ];
       if (issue.sourceKind !== "repair_plan") {
-        writes.push(saveReportCollaboration(report.id, {
-          items: [{
-            issueId: issue.issueId,
-            status: collaborationStatusForQueueStatus(issue.status),
-            assigneeEmail: issue.assigneeEmail,
-            note: issue.note
-          }]
-        }));
+        writes.push(
+          saveReportCollaboration(report.id, {
+            items: [
+              {
+                issueId: issue.issueId,
+                status: collaborationStatusForQueueStatus(issue.status),
+                assigneeEmail: issue.assigneeEmail,
+                note: issue.note
+              }
+            ]
+          })
+        );
       }
       await Promise.all(writes);
       await reloadBoard("Repair item saved.");
@@ -242,10 +241,7 @@ export function TeamRepairBoard({ report }) {
         </div>
         <label className="repair-filter">
           View
-          <select
-            onChange={(event) => setStatusFilter(event.target.value)}
-            value={statusFilter}
-          >
+          <select onChange={(event) => setStatusFilter(event.target.value)} value={statusFilter}>
             <option value="active">Active</option>
             <option value="all">All</option>
             <option value="drafted">Drafted</option>
@@ -269,7 +265,9 @@ export function TeamRepairBoard({ report }) {
         <form className="team-member-card" onSubmit={onMemberCreate}>
           <div className="client-report-card-head">
             <strong>Teammates</strong>
-            <button disabled={status === "loading"} type="submit">Add</button>
+            <button disabled={status === "loading"} type="submit">
+              Add
+            </button>
           </div>
           <label htmlFor="team-email">Email</label>
           <input
@@ -304,9 +302,16 @@ export function TeamRepairBoard({ report }) {
               <div className="team-member-row" key={member.id}>
                 <div>
                   <strong>{member.name || member.email}</strong>
-                  <span>{member.email} · {teamRoleLabel(member.role)}</span>
+                  <span>
+                    {member.email} · {teamRoleLabel(member.role)}
+                  </span>
                 </div>
-                <button className="text-button" disabled={status === "loading"} onClick={() => onMemberRevoke(member.id)} type="button">
+                <button
+                  className="text-button"
+                  disabled={status === "loading"}
+                  onClick={() => onMemberRevoke(member.id)}
+                  type="button"
+                >
                   Remove
                 </button>
               </div>
@@ -323,10 +328,14 @@ export function TeamRepairBoard({ report }) {
                   <div className="repair-pill-row">
                     <span className={`status-pill ${issue.severity}`}>{issue.severity}</span>
                     <span className={`status-pill ${issue.status}`}>{repairStatusLabel(issue.status)}</span>
-                    {issue.latestAction && <span className="status-pill">{repairApprovalLabel(issue.latestAction.approvalState)}</span>}
+                    {issue.latestAction && (
+                      <span className="status-pill">{repairApprovalLabel(issue.latestAction.approvalState)}</span>
+                    )}
                   </div>
                   <h3>{issue.title}</h3>
-                  <p>{issue.pageLabel || safeUrlLabel(issue.pageUrl)} - {issue.fix}</p>
+                  <p>
+                    {issue.pageLabel || safeUrlLabel(issue.pageUrl)} - {issue.fix}
+                  </p>
                 </div>
                 <button
                   className="action-link"
@@ -352,7 +361,9 @@ export function TeamRepairBoard({ report }) {
                 <label>
                   Status
                   <select
-                    onChange={(event) => updateIssue(issue.issueId, { status: event.target.value || issue.status || "open" })}
+                    onChange={(event) =>
+                      updateIssue(issue.issueId, { status: event.target.value || issue.status || "open" })
+                    }
                     value={manualRepairQueueStatus(issue.status)}
                   >
                     <option value="">Managed by action</option>
@@ -455,10 +466,12 @@ export function TeamRepairBoard({ report }) {
                       <button
                         className="action-link paid-action"
                         disabled={actingIssueId === issue.issueId || status === "loading"}
-                        onClick={() => onActionUpdate(issue, repairActionApprovalPatch(), {
-                          pendingMessage: "Approving agent action.",
-                          successMessage: "Agent action approved."
-                        })}
+                        onClick={() =>
+                          onActionUpdate(issue, repairActionApprovalPatch(), {
+                            pendingMessage: "Approving agent action.",
+                            successMessage: "Agent action approved."
+                          })
+                        }
                         type="button"
                       >
                         Approve
@@ -466,29 +479,34 @@ export function TeamRepairBoard({ report }) {
                       <button
                         className="text-button"
                         disabled={actingIssueId === issue.issueId || status === "loading"}
-                        onClick={() => onActionUpdate(issue, repairActionIgnorePatch(), {
-                          pendingMessage: "Ignoring agent action.",
-                          successMessage: "Agent action ignored."
-                        })}
+                        onClick={() =>
+                          onActionUpdate(issue, repairActionIgnorePatch(), {
+                            pendingMessage: "Ignoring agent action.",
+                            successMessage: "Agent action ignored."
+                          })
+                        }
                         type="button"
                       >
                         Ignore
                       </button>
-	                    </>
-	                  )}
-                  {issue.latestAction?.approvalState === "approved" && issue.latestAction?.executionState !== "applied" && (
-                    <button
-                      className="action-link paid-action"
-                      disabled={actingIssueId === issue.issueId || status === "loading"}
-                      onClick={() => onActionUpdate(issue, repairActionApplyPatch(), {
-                        pendingMessage: "Marking approved action applied.",
-                        successMessage: "Agent action marked applied."
-                      })}
-                      type="button"
-                    >
-                      Apply
-                    </button>
+                    </>
                   )}
+                  {issue.latestAction?.approvalState === "approved" &&
+                    issue.latestAction?.executionState !== "applied" && (
+                      <button
+                        className="action-link paid-action"
+                        disabled={actingIssueId === issue.issueId || status === "loading"}
+                        onClick={() =>
+                          onActionUpdate(issue, repairActionApplyPatch(), {
+                            pendingMessage: "Marking approved action applied.",
+                            successMessage: "Agent action marked applied."
+                          })
+                        }
+                        type="button"
+                      >
+                        Apply
+                      </button>
+                    )}
                   {issue.latestAction?.executionState === "applied" && (
                     <>
                       <button
@@ -520,7 +538,10 @@ export function TeamRepairBoard({ report }) {
                 </div>
               </div>
               {issue.updatedAt && (
-                <p className="quiet-note">Updated {formatDate(issue.updatedAt)}{issue.updatedByEmail ? ` by ${issue.updatedByEmail}` : ""}</p>
+                <p className="quiet-note">
+                  Updated {formatDate(issue.updatedAt)}
+                  {issue.updatedByEmail ? ` by ${issue.updatedByEmail}` : ""}
+                </p>
               )}
             </article>
           ))}

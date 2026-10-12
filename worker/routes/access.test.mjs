@@ -1,10 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { isFunnelStep, FUNNEL_STEPS } from "../lib/access-events.js";
-import {
-  recordAccessBeacon,
-  requestAccessLink
-} from "./access.js";
+import { recordAccessBeacon, requestAccessLink } from "./access.js";
 
 function makeAccessEnv() {
   const inserts = [];
@@ -182,9 +179,6 @@ test("getFunnelSummary returns steps and conversion rates for an authorized admi
 
 test("getFunnelSummary rejects callers without a valid admin token", async () => {
   const env = makeAdminEnv();
-  const response = await getFunnelSummary(
-    new Request("https://seofixkit.test/admin/funnel"),
-    env
-  );
+  const response = await getFunnelSummary(new Request("https://seofixkit.test/admin/funnel"), env);
   assert.equal(response.status, 401);
 });

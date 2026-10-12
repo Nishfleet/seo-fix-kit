@@ -85,7 +85,8 @@ export function checkoutMessage(status, checkoutReturned) {
   if (status === "payment_failed") return "Payment did not complete. You can reopen checkout from this report.";
   if (status === "refunded") return "This Fix Pack was refunded.";
   if (status === "disputed") return "This payment needs manual support review.";
-  if (checkoutReturned) return "Checkout returned. Payment confirmation can take a moment after Dodo finishes processing.";
+  if (checkoutReturned)
+    return "Checkout returned. Payment confirmation can take a moment after Dodo finishes processing.";
   return "Checkout has been opened for this report.";
 }
 

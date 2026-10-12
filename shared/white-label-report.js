@@ -3,10 +3,7 @@ import { competitorBenchmarkSummaryCopy } from "./competitor-benchmark.js";
 import { crawlIntelligenceSummaryCopy } from "./crawl-intelligence.js";
 import { aiAnswerReadinessSummaryCopy } from "./ai-answer-readiness.js";
 import { growthOpportunitiesSummaryCopy } from "./growth-opportunities.js";
-import {
-  formatWaterfallBytes,
-  resourceWaterfallSummaryCopy
-} from "./resource-waterfall.js";
+import { formatWaterfallBytes, resourceWaterfallSummaryCopy } from "./resource-waterfall.js";
 import { renderedCrawlScaleSummaryCopy } from "./rendered-crawl-scale.js";
 import { keywordRankAuditSummaryCopy } from "./keyword-rank-audit.js";
 import { platformSeoSummaryCopy } from "./platform-seo-audit.js";
@@ -17,9 +14,7 @@ const DEFAULT_ACCENT_COLOR = "#0f9f6e";
 
 export function defaultBranding(ownerEmail = "") {
   const owner = String(ownerEmail || "").split("@")[1] || "";
-  const agencyName = owner
-    ? `${titleCase(owner.split(".")[0])} SEO`
-    : "Client SEO Report";
+  const agencyName = owner ? `${titleCase(owner.split(".")[0])} SEO` : "Client SEO Report";
   return normalizeBrandingInput({
     agencyName,
     brandColor: DEFAULT_BRAND_COLOR,
@@ -34,9 +29,15 @@ export function normalizeBrandingInput(input = {}, fallback = {}) {
       cleanText(input.agencyName ?? input.agency_name ?? fallback.agencyName ?? fallback.agency_name ?? "", 120) ||
       "Client SEO Report",
     logoUrl: cleanPublicAssetUrl(input.logoUrl ?? input.logo_url ?? fallback.logoUrl ?? fallback.logo_url ?? ""),
-    brandColor: cleanColor(input.brandColor ?? input.brand_color ?? fallback.brandColor ?? fallback.brand_color ?? "") || DEFAULT_BRAND_COLOR,
-    accentColor: cleanColor(input.accentColor ?? input.accent_color ?? fallback.accentColor ?? fallback.accent_color ?? "") || DEFAULT_ACCENT_COLOR,
-    customDomain: cleanDomain(input.customDomain ?? input.custom_domain ?? fallback.customDomain ?? fallback.custom_domain ?? ""),
+    brandColor:
+      cleanColor(input.brandColor ?? input.brand_color ?? fallback.brandColor ?? fallback.brand_color ?? "") ||
+      DEFAULT_BRAND_COLOR,
+    accentColor:
+      cleanColor(input.accentColor ?? input.accent_color ?? fallback.accentColor ?? fallback.accent_color ?? "") ||
+      DEFAULT_ACCENT_COLOR,
+    customDomain: cleanDomain(
+      input.customDomain ?? input.custom_domain ?? fallback.customDomain ?? fallback.custom_domain ?? ""
+    ),
     footerText:
       cleanText(input.footerText ?? input.footer_text ?? fallback.footerText ?? fallback.footer_text ?? "", 180) ||
       "Prepared for your team."
@@ -47,10 +48,7 @@ export function whiteLabelReportFilename({ report = {}, branding = {}, share = {
   const brand = normalizeBrandingInput(branding);
   const host = safeHost(report.url || report.origin || "") || "seo-report";
   const client = cleanText(share.clientName || share.client_name || "", 80);
-  const pieces = [client || host, brand.agencyName, "seo-audit-report"]
-    .filter(Boolean)
-    .map(slugPart)
-    .filter(Boolean);
+  const pieces = [client || host, brand.agencyName, "seo-audit-report"].filter(Boolean).map(slugPart).filter(Boolean);
   return `${pieces.join("-") || "seo-audit-report"}.pdf`;
 }
 
@@ -627,7 +625,9 @@ function resourceWaterfallSection(waterfall = {}) {
         <h2>${waterfall.status === "ready" ? "Browser-loaded resource proof" : "Waterfall unavailable for this page"}</h2>
       </div>
       <p>${escapeHtml(resourceWaterfallSummaryCopy(waterfall))}</p>
-      ${waterfall.status === "ready" ? `
+      ${
+        waterfall.status === "ready"
+          ? `
         <div class="meta-grid">
           ${metric("Requests", summary.totalRequests || 0)}
           ${metric("Transfer", formatWaterfallBytes(summary.totalTransferBytes || 0))}
@@ -636,7 +636,9 @@ function resourceWaterfallSection(waterfall = {}) {
           ${metric("Blocking", summary.renderBlockingCandidates || 0)}
         </div>
         ${repairs.length ? `<ol class="repair-list">${repairs.map(waterfallRepairItem).join("")}</ol>` : `<p class="muted">No priority resource repair actions were created from this waterfall.</p>`}
-      ` : ""}
+      `
+          : ""
+      }
     </section>
   `;
 }
@@ -914,14 +916,19 @@ function findingItem(finding) {
 
 function defaultFindingAcceptanceCheck(finding = {}) {
   const title = String(finding.title || "").toLowerCase();
-  if (title.includes("title")) return "The rendered page has a unique, descriptive title that is not obviously truncated.";
-  if (title.includes("description")) return "The rendered page has one useful meta description, roughly 70-165 characters.";
+  if (title.includes("title"))
+    return "The rendered page has a unique, descriptive title that is not obviously truncated.";
+  if (title.includes("description"))
+    return "The rendered page has one useful meta description, roughly 70-165 characters.";
   if (title.includes("h1")) return "The rendered page has one visible H1 that matches the main page purpose.";
-  if (title.includes("internal links")) return "The rendered DOM exposes normal internal anchor links to important pages.";
-  if (title.includes("broken") && title.includes("link")) return "Every link in the finding returns a live 2xx/3xx response or has been removed intentionally.";
+  if (title.includes("internal links"))
+    return "The rendered DOM exposes normal internal anchor links to important pages.";
+  if (title.includes("broken") && title.includes("link"))
+    return "Every link in the finding returns a live 2xx/3xx response or has been removed intentionally.";
   if (title.includes("canonical")) return "The rendered head includes one rel=canonical pointing to the preferred URL.";
   if (title.includes("sitemap")) return "The sitemap and rendered crawl proof no longer show this issue after rerun.";
-  if (title.includes("robots") || title.includes("noindex")) return "Rendered robots directives match the page's intended indexability.";
+  if (title.includes("robots") || title.includes("noindex"))
+    return "Rendered robots directives match the page's intended indexability.";
   return "Rerun the audit and confirm this finding no longer appears.";
 }
 
@@ -933,14 +940,19 @@ function pagesTable(pages) {
         <tr><th>Page</th><th>Status</th><th>Title</th><th>H1</th></tr>
       </thead>
       <tbody>
-        ${pages.slice(0, 30).map((page) => `
+        ${pages
+          .slice(0, 30)
+          .map(
+            (page) => `
           <tr>
             <td>${escapeHtml(page.url || "")}</td>
             <td>${escapeHtml(String(page.status || page.statusCode || ""))}</td>
             <td>${escapeHtml(page.rendered?.title || page.title || "")}</td>
             <td>${escapeHtml(pageH1Text(page))}</td>
           </tr>
-        `).join("")}
+        `
+          )
+          .join("")}
       </tbody>
     </table>
   `;
@@ -967,8 +979,16 @@ function formatDate(value) {
 }
 
 function initials(name) {
-  const words = String(name || "SEO").trim().split(/\s+/).filter(Boolean);
-  return words.slice(0, 2).map((word) => word[0]?.toUpperCase() || "").join("") || "S";
+  const words = String(name || "SEO")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  return (
+    words
+      .slice(0, 2)
+      .map((word) => word[0]?.toUpperCase() || "")
+      .join("") || "S"
+  );
 }
 
 function titleCase(value) {
@@ -992,7 +1012,9 @@ function cleanColor(value) {
 }
 
 function cleanDomain(value) {
-  const text = cleanText(value, 120).replace(/^https?:\/\//i, "").replace(/\/.*$/, "");
+  const text = cleanText(value, 120)
+    .replace(/^https?:\/\//i, "")
+    .replace(/\/.*$/, "");
   if (!text) return "";
   return /^[a-z0-9.-]+(?::\d+)?$/i.test(text) ? text.toLowerCase() : "";
 }
@@ -1025,4 +1047,3 @@ function cleanText(input, maxLength = 500) {
     .trim()
     .slice(0, maxLength);
 }
-

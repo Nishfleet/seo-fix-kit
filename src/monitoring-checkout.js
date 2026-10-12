@@ -44,8 +44,4 @@ function monitoringCheckoutErrorOutcome(error, { offerName = "Proof Monitoring" 
   };
 }
 
-export {
-  monitoringCheckoutDisabled,
-  monitoringCheckoutErrorOutcome,
-  monitoringCheckoutOutcome
-};
+export { monitoringCheckoutDisabled, monitoringCheckoutErrorOutcome, monitoringCheckoutOutcome };
