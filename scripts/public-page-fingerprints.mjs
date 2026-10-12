@@ -14,7 +14,16 @@ import worker from "../worker/index.js";
 
 export const FINGERPRINTS_FILE = new URL("../shared/public-page-fingerprints.json", import.meta.url);
 const ORIGIN = "https://seofixkit.com";
-const SPA_LANDING_FILES = ["src/pages/LandingPage.jsx", "src/components/LogoMark.jsx", "index.html"];
+const SPA_LANDING_FILES = [
+  "src/pages/LandingPage.jsx",
+  "src/pages/landing.css",
+  "src/components/SiteChrome.jsx",
+  "src/components/Icon.jsx",
+  "src/design/tokens.css",
+  "src/design/site.css",
+  "shared/site-nav.js",
+  "index.html"
+];
 
 function sha256(text) {
   return createHash("sha256").update(text).digest("hex");

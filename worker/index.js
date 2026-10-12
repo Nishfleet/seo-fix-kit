@@ -448,8 +448,10 @@ for (const path of [
 }
 
 // --- Single-page app ---------------------------------------------------------
+// The signed-in app gets the empty SPA shell (dist/beta-shell.html, written by
+// scripts/prerender.mjs); "/" serves the prerendered homepage instead.
 async function betaShell(c) {
-  const indexUrl = new URL("/", c.req.url);
+  const indexUrl = new URL("/beta-shell", c.req.url);
   const response = await c.env.ASSETS.fetch(new Request(indexUrl, c.req.raw));
   return withPrivateHeaders(response);
 }

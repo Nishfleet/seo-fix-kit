@@ -1,0 +1,186 @@
+/*
+ * SEO Fix Kit design tokens: the single source of truth for colour, type,
+ * spacing, radius, elevation and motion.
+ *
+ * Imported by the React app (src/main.jsx) and bundled into /tokens.css for
+ * the worker-rendered public pages (see the `siteStylesheet` plugin in
+ * vite.config.js). Only custom properties, @font-face and @keyframes live
+ * here, so importing it never restyles an element by itself.
+ */
+
+/* Inter variable (latin subset), self-hosted. SIL Open Font License 1.1 —
+   see /fonts/Inter-OFL-LICENSE.txt. Copied from @fontsource-variable/inter. */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src:
+    url("/fonts/inter-latin-wght-normal.woff2") format("woff2-variations"),
+    url("/fonts/inter-latin-wght-normal.woff2") format("woff2");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC,
+    U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  color-scheme: dark;
+
+  /* Colour: neutrals */
+  --bg: #070908;
+  --bg-raised: #0b0f0d;
+  --surface: rgba(251, 248, 239, 0.045);
+  --surface-hover: rgba(251, 248, 239, 0.07);
+  --surface-strong: rgba(251, 248, 239, 0.09);
+  --surface-sunken: rgba(7, 13, 10, 0.58);
+  --surface-field: #0c1210;
+  --line: rgba(251, 248, 239, 0.1);
+  --line-strong: rgba(251, 248, 239, 0.2);
+  --ink: #fbf8ef;
+  --ink-soft: rgba(251, 248, 239, 0.76);
+  --ink-muted: rgba(251, 248, 239, 0.6);
+  /* >= .56 alpha keeps placeholder text at WCAG AA on --bg / --surface-field. */
+  --ink-placeholder: rgba(251, 248, 239, 0.58);
+
+  /* Colour: brand */
+  --accent: #98f0cc;
+  --accent-hover: #b6f6dc;
+  --accent-ink: #06100c;
+  --accent-strong: #0f7a56;
+  --accent-surface: rgba(152, 240, 204, 0.08);
+  --line-accent: rgba(152, 240, 204, 0.28);
+  --gold: #d6b15f;
+  --gold-line: rgba(214, 177, 95, 0.32);
+  --gold-surface: rgba(214, 177, 95, 0.08);
+
+  /* Colour: status. Text values meet WCAG AA on --bg. */
+  --success: #98f0cc;
+  --success-surface: rgba(152, 240, 204, 0.1);
+  --warning: #f2cf7e;
+  --warning-surface: rgba(242, 207, 126, 0.1);
+  --error: #ffb4a9;
+  --error-line: rgba(255, 180, 169, 0.4);
+  --error-surface: rgba(255, 180, 169, 0.1);
+  --info: #a9c7ff;
+  --info-surface: rgba(169, 199, 255, 0.1);
+
+  /* Type */
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --text-12: 12px;
+  --text-13: 13px;
+  --text-14: 14px;
+  --text-16: 16px;
+  --text-18: 18px;
+  --text-20: 20px;
+  --text-22: 22px;
+  --text-28: 28px;
+  --text-40: 40px;
+  --text-h2: clamp(30px, 4.2vw, 48px);
+  --text-display: clamp(42px, 6.6vw, 76px);
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --tracking-display: -0.042em;
+  --tracking-heading: -0.028em;
+  --tracking-tight: -0.012em;
+  --tracking-caps: 0.08em;
+  --leading-display: 1.02;
+  --leading-heading: 1.1;
+  --leading-body: 1.6;
+
+  /* Spacing (4px grid) */
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-48: 48px;
+  --space-64: 64px;
+  --space-96: 96px;
+  --section-gap: clamp(72px, 10vw, 128px);
+
+  /* Layout */
+  --container: 1120px;
+  --container-narrow: 760px;
+  --gutter: 22px;
+  --header-height: 64px;
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 999px;
+
+  /* Elevation: a hairline highlight on top plus a soft drop shadow. */
+  --shadow-sm: 0 1px 0 rgba(251, 248, 239, 0.04) inset, 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 1px 0 rgba(251, 248, 239, 0.05) inset, 0 8px 24px -8px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 1px 0 rgba(251, 248, 239, 0.06) inset, 0 24px 64px -16px rgba(0, 0, 0, 0.7);
+  --shadow-accent: 0 0 0 1px rgba(152, 240, 204, 0.3), 0 12px 40px -12px rgba(152, 240, 204, 0.35);
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+
+  /* Motion. Durations collapse to ~0 under prefers-reduced-motion below. */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --duration-fast: 120ms;
+  --duration: 200ms;
+  --duration-slow: 400ms;
+  --duration-enter: 700ms;
+
+  /* Ambient lighting used behind heroes. */
+  --glow-accent: radial-gradient(60% 60% at 50% 0%, rgba(152, 240, 204, 0.16), transparent 70%);
+  --glow-gold: radial-gradient(35% 45% at 22% 30%, rgba(214, 177, 95, 0.06), transparent 70%);
+  --grid-line: rgba(251, 248, 239, 0.035);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 1ms;
+    --duration: 1ms;
+    --duration-slow: 1ms;
+    --duration-enter: 1ms;
+  }
+}
+
+@keyframes sfk-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes sfk-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes sfk-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@keyframes sfk-shimmer {
+  from {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}

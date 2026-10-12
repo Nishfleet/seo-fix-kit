@@ -1,0 +1,141 @@
+/*
+ * Element defaults for the worker-rendered public pages only
+ * (worker/routes/pages.js, worker/routes/public-check.js, public/404.html).
+ * Bundled into /tokens.css after tokens.css; the React app has its own
+ * element defaults in src/styles.css, so this file is never imported there.
+ */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-padding-top: calc(var(--header-height) + var(--space-16));
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-regular);
+  margin: 0;
+  min-width: 0;
+  /* Hero lighting is wider than the page; clip it without a scroll container. */
+  overflow-x: clip;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3 {
+  color: var(--ink);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-tight);
+  text-wrap: balance;
+}
+
+h1 {
+  letter-spacing: var(--tracking-display);
+}
+
+h2 {
+  letter-spacing: var(--tracking-heading);
+}
+
+p,
+li {
+  text-wrap: pretty;
+}
+
+a {
+  color: var(--accent);
+  font-weight: var(--weight-semibold);
+  text-decoration: none;
+  text-underline-offset: 3px;
+  transition: color var(--duration) var(--ease-out);
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+:focus-visible {
+  border-radius: 4px;
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: rgba(152, 240, 204, 0.3);
+  color: var(--ink);
+}
+
+/* Form fields */
+.field {
+  background: var(--surface-field);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: var(--text-16);
+  min-height: 48px;
+  min-width: 0;
+  padding: 0 14px;
+  transition:
+    border-color var(--duration) var(--ease-out),
+    box-shadow var(--duration) var(--ease-out);
+}
+
+.field:hover {
+  border-color: rgba(251, 248, 239, 0.3);
+}
+
+.field:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(152, 240, 204, 0.18);
+  outline: none;
+}
+
+.field::placeholder,
+input::placeholder,
+textarea::placeholder {
+  color: var(--ink-placeholder);
+  opacity: 1;
+}
+
+/* Code */
+code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+.code-block {
+  background: var(--surface-field);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--ink);
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  margin: var(--space-8) 0 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  padding: var(--space-12) var(--space-16);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Sections after the hero reveal as they scroll in (see .reveal in site.css). */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    main.hero-light > :is(section, .band, .grid, .panel):not(.enter) {
+      animation: sfk-enter linear both;
+      animation-range: entry 0% entry 55%;
+      animation-timeline: view();
+    }
+  }
+}

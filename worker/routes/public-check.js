@@ -327,8 +327,8 @@ export function checkHtml(origin) {
     <style>
       * { box-sizing: border-box; }
       body { margin: 0; }
-      main { margin: 0 auto; max-width: 980px; padding: 32px 22px 72px; }
-      h1 { font-size: clamp(40px, 7.5vw, 84px); line-height: .95; margin: 0 0 20px; max-width: 820px; overflow-wrap: break-word; }
+      main { margin: 0 auto; max-width: 980px; padding: clamp(40px, 6vw, 72px) 22px 72px; }
+      h1 { font-size: var(--text-display); line-height: var(--leading-display); margin: 0 0 20px; max-width: 820px; overflow-wrap: break-word; }
       h2 { font-size: clamp(22px, 3vw, 28px); line-height: 1.2; margin: 0 0 12px; }
       h3 { font-size: 17px; line-height: 1.4; margin: 24px 0 6px; }
       .site-foot a { overflow-wrap: anywhere; }
@@ -349,9 +349,9 @@ export function checkHtml(origin) {
       .band { border-top: 1px solid var(--line); padding: 40px 0; }
       .result { display: none; margin: 32px 0 0; }
       .result.show { display: block; }
-      .error-box { background: rgba(255,180,169,.06); border: 1px solid var(--error-line); border-radius: 8px; color: var(--error); padding: 14px 16px; }
+      .error-box { background: rgba(255,180,169,.06); border: 1px solid var(--error-line); border-radius: var(--radius-lg); color: var(--error); padding: 14px 16px; }
       .measure-grid { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .measure { background: var(--surface-sunken); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
+      .measure { background: var(--surface-sunken); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 12px 14px; }
       .measure .label { color: var(--ink-muted); font-size: 12px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; }
       .measure .value { font-size: 16px; margin-top: 4px; overflow-wrap: anywhere; }
       .finding { border-left: 3px solid var(--gold); margin: 12px 0; padding-left: 12px; }
@@ -360,18 +360,18 @@ export function checkHtml(origin) {
       .finding.notice { border-left-color: #8fd3ff; }
       .finding h3 { font-size: 17px; margin: 0 0 6px; }
       .finding p { font-size: 15px; margin: 0 0 6px; }
-      .snippet { background: var(--surface-field); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); display: block; font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size: 13px; margin: 8px 0 0; overflow-x: auto; padding: 12px; white-space: pre-wrap; }
+      .snippet { background: var(--surface-field); border: 1px solid var(--line); border-radius: var(--radius-lg); color: var(--ink); display: block; font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size: 13px; margin: 8px 0 0; overflow-x: auto; padding: 12px; white-space: pre-wrap; }
       .finding .snippet-label { color: var(--ink-muted); font-size: 12px; font-weight: 600; letter-spacing: .04em; margin: 10px 0 0; text-transform: uppercase; }
       .next-step { background: rgba(152,240,204,.05); border: 1px solid var(--line-accent); border-radius: 12px; margin: 40px 0 32px; padding: 20px 22px; }
       .next-step p:last-child { margin-bottom: 0; }
       .box-min { min-width: 0; }
-      @media (max-width: 760px) { .grid, .measure-grid { grid-template-columns: 1fr; } .check-form .row { flex-direction: column; } main { padding-top: 24px; } }
+      @media (max-width: 760px) { .grid, .measure-grid { grid-template-columns: 1fr; } .check-form .row { flex-direction: column; } main { padding-top: 32px; } }
     </style>
   </head>
   <body>
-    <main>
-      ${siteHeader(origin)}
-      <section class="box-min">
+    ${siteHeader(origin)}
+    <main class="hero-light" id="main">
+      <section class="box-min enter">
         <p class="kicker">Free page check · No account needed</p>
         <h1 class="box-min">Check any page the way a browser sees it.</h1>
         <p class="lead">Paste a public URL. We load it in a real browser, compare it with the raw HTML that simple crawlers read, and show what is actually wrong, plus the warnings that don’t apply. No account, no email, no stored report.</p>
@@ -423,8 +423,8 @@ export function checkHtml(origin) {
         <p>To fix what you found, create a free account. You get saved reports, audits of up to 1,000 pages, and a repair checklist with one rerun to confirm the fixes worked.</p>
         <p><a class="cta" href="${origin}/beta">Create a free account</a></p>
       </section>
-      ${siteFooter(origin)}
     </main>
+    ${siteFooter(origin)}
     <script>
       (function () {
         const form = document.getElementById("check-form");

@@ -111,7 +111,14 @@ export default [
     }
   },
   {
-    files: ["shared/audit-engine.js", "server/**/*.js", "scripts/**/*.mjs", "**/*.test.mjs"],
+    files: [
+      "shared/audit-engine.js",
+      "server/**/*.js",
+      "scripts/**/*.mjs",
+      "**/*.test.mjs",
+      "e2e/**/*.mjs",
+      "playwright.config.mjs"
+    ],
     languageOptions: {
       globals: pageEvaluateGlobals
     }

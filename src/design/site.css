@@ -1,0 +1,598 @@
+/*
+ * Shared marketing components: site header and footer, buttons, panels,
+ * eyebrows, pills, hero lighting and scroll reveal. Used by the
+ * worker-rendered public pages (bundled into /tokens.css) and by the React
+ * landing page (imported directly), so both surfaces render one product.
+ * Every class here is namespaced to avoid clashing with app styles.
+ */
+
+/* ---------------------------------------------------------------- Header */
+
+/* Keyboard users skip straight past the header to the page content. */
+.site-skip {
+  background: var(--accent);
+  border-radius: var(--radius-sm);
+  color: var(--accent-ink);
+  font-size: var(--text-14);
+  font-weight: var(--weight-semibold);
+  left: var(--space-16);
+  padding: 10px 14px;
+  position: fixed;
+  text-decoration: none;
+  top: var(--space-12);
+  transform: translateY(-160%);
+  transition: transform var(--duration) var(--ease-out);
+  z-index: 100;
+}
+
+.site-skip:focus {
+  transform: none;
+}
+
+/* siteHeader() in worker/routes/pages.js, SiteHeader in
+   src/components/SiteChrome.jsx and the copy in public/404.html. */
+.site-header {
+  -webkit-backdrop-filter: saturate(160%) blur(14px);
+  backdrop-filter: saturate(160%) blur(14px);
+  background: rgba(7, 9, 8, 0.72);
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+/* Fully transparent at the top of the page, solid once scrolled. Browsers
+   without scroll-driven animations keep the solid look above. */
+@supports (animation-timeline: scroll()) {
+  .site-header {
+    animation: sfk-header-solid linear both;
+    animation-range: 0 72px;
+    animation-timeline: scroll(root);
+  }
+}
+
+@keyframes sfk-header-solid {
+  from {
+    background-color: rgba(7, 9, 8, 0);
+    border-bottom-color: rgba(251, 248, 239, 0);
+  }
+  to {
+    background-color: rgba(7, 9, 8, 0.78);
+    border-bottom-color: var(--line);
+  }
+}
+
+.site-header-inner {
+  align-items: center;
+  display: flex;
+  gap: var(--space-12) var(--space-32);
+  margin: 0 auto;
+  max-width: var(--container);
+  min-height: var(--header-height);
+  padding: 0 var(--gutter);
+}
+
+.site-header .brand,
+.site-foot .brand {
+  align-items: center;
+  color: var(--ink);
+  display: inline-flex;
+  flex: none;
+  font-size: 15px;
+  font-weight: var(--weight-semibold);
+  gap: 10px;
+  letter-spacing: var(--tracking-tight);
+  text-decoration: none;
+}
+
+.site-header .brand::before,
+.site-foot .brand::before {
+  background: url("/favicon.svg") center / contain no-repeat;
+  content: "";
+  flex: none;
+  height: 24px;
+  width: 24px;
+}
+
+.site-nav {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4) var(--space-8);
+  margin-left: auto;
+  min-width: 0;
+}
+
+.site-nav a {
+  border-radius: var(--radius-sm);
+  color: var(--ink-soft);
+  display: inline-block;
+  font-size: var(--text-14);
+  font-weight: var(--weight-medium);
+  padding: 8px 10px;
+  text-decoration: none;
+  transition:
+    color var(--duration) var(--ease-out),
+    background-color var(--duration) var(--ease-out);
+}
+
+.site-nav a:hover,
+.site-nav a[aria-current="page"] {
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.site-header-actions {
+  align-items: center;
+  display: flex;
+  flex: none;
+  gap: var(--space-8);
+}
+
+.site-menu-button {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  cursor: pointer;
+  display: none;
+  font: inherit;
+  font-size: var(--text-14);
+  font-weight: var(--weight-medium);
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 12px;
+}
+
+.site-menu-button svg {
+  height: 16px;
+  transition: transform var(--duration) var(--ease-out);
+  width: 16px;
+}
+
+.site-menu-button[aria-expanded="true"] svg {
+  transform: rotate(90deg);
+}
+
+@media (max-width: 760px) {
+  /* Without JavaScript the nav simply wraps onto its own row. */
+  .site-header-inner {
+    flex-wrap: wrap;
+    padding-bottom: var(--space-8);
+    padding-top: var(--space-8);
+  }
+
+  .site-header .header-cta {
+    margin-left: auto;
+  }
+
+  .site-nav {
+    margin-left: 0;
+    order: 3;
+    width: 100%;
+  }
+
+  /* With JavaScript, the nav becomes a disclosure menu. */
+  .js .site-menu-button {
+    display: inline-flex;
+  }
+
+  .js .site-header-inner {
+    flex-wrap: nowrap;
+    padding-bottom: 0;
+    padding-top: 0;
+  }
+
+  .js .site-header .header-cta {
+    margin-left: auto;
+  }
+
+  .js .site-nav {
+    background: rgba(7, 9, 8, 0.96);
+    border-bottom: 1px solid var(--line);
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    left: 0;
+    padding: var(--space-8) var(--gutter) var(--space-16);
+    position: absolute;
+    right: 0;
+    top: 100%;
+  }
+
+  .js .site-nav[data-open] {
+    animation: sfk-enter var(--duration-slow) var(--ease-out) both;
+    display: flex;
+  }
+
+  .js .site-nav a {
+    border-bottom: 1px solid var(--line);
+    border-radius: 0;
+    font-size: var(--text-16);
+    padding: 14px 0;
+  }
+
+  .js .site-nav a:last-child {
+    border-bottom: 0;
+  }
+
+  .js .site-nav a:hover {
+    background: transparent;
+  }
+}
+
+@media (max-width: 380px) {
+  .site-header .brand {
+    font-size: 0;
+    gap: 0;
+  }
+}
+
+/* ---------------------------------------------------------------- Footer */
+
+/* A direct child of <body>, after <main>, so it is the page's contentinfo
+   landmark. The hairline is inset to the content width. */
+.site-foot {
+  display: grid;
+  gap: var(--space-32) var(--space-24);
+  grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr));
+  margin: var(--space-64) auto 0;
+  max-width: var(--container);
+  padding: var(--space-48) var(--gutter) var(--space-32);
+  position: relative;
+}
+
+.site-foot::before {
+  border-top: 1px solid var(--line);
+  content: "";
+  left: var(--gutter);
+  position: absolute;
+  right: var(--gutter);
+  top: 0;
+}
+
+.site-foot-brand p {
+  color: var(--ink-muted);
+  font-size: var(--text-14);
+  line-height: var(--leading-body);
+  margin: var(--space-12) 0 0;
+  max-width: 280px;
+}
+
+.site-foot nav {
+  align-content: start;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.site-foot h2 {
+  color: var(--ink);
+  font-size: var(--text-13);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0;
+  margin: 0 0 4px;
+}
+
+.site-foot nav a {
+  color: var(--ink-muted);
+  font-size: var(--text-14);
+  font-weight: var(--weight-regular);
+  overflow-wrap: anywhere;
+  text-decoration: none;
+  transition: color var(--duration) var(--ease-out);
+}
+
+.site-foot nav a:hover {
+  color: var(--ink);
+}
+
+.site-foot-legal {
+  border-top: 1px solid var(--line);
+  color: var(--ink-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: var(--text-13);
+  gap: var(--space-8) var(--space-24);
+  grid-column: 1 / -1;
+  justify-content: space-between;
+  margin: 0;
+  padding-top: var(--space-24);
+}
+
+@media (max-width: 760px) {
+  .site-foot {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .site-foot-brand {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 420px) {
+  .site-foot {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------------------------------------------------------------- Buttons */
+
+/* `.cta` is the historical class on page CTAs; it shares .btn-primary. */
+.btn,
+.cta {
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: inherit;
+  font-size: var(--text-16);
+  font-weight: var(--weight-semibold);
+  gap: var(--space-8);
+  justify-content: center;
+  letter-spacing: -0.006em;
+  line-height: 1.2;
+  min-height: 44px;
+  padding: 0 18px;
+  position: relative;
+  text-align: center;
+  text-decoration: none;
+  transition:
+    background-color var(--duration) var(--ease-out),
+    border-color var(--duration) var(--ease-out),
+    box-shadow var(--duration) var(--ease-out),
+    color var(--duration) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.btn:hover,
+.cta:hover {
+  text-decoration: none;
+}
+
+.btn:active,
+.cta:active {
+  transform: translateY(1px) scale(0.985);
+}
+
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+}
+
+.btn-primary,
+.cta {
+  background: linear-gradient(180deg, #aaf4d6, var(--accent));
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.35) inset,
+    0 0 0 1px rgba(152, 240, 204, 0.4),
+    0 6px 20px -8px rgba(152, 240, 204, 0.55);
+  color: var(--accent-ink);
+}
+
+.btn-primary:hover,
+.cta:hover {
+  background: linear-gradient(180deg, #c4f8e2, var(--accent-hover));
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.4) inset,
+    0 0 0 1px rgba(152, 240, 204, 0.55),
+    0 10px 28px -8px rgba(152, 240, 204, 0.65);
+  color: var(--accent-ink);
+}
+
+.btn-secondary {
+  background: var(--surface);
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-sm);
+  color: var(--ink);
+}
+
+.btn-secondary:hover {
+  background: var(--surface-hover);
+  border-color: rgba(251, 248, 239, 0.3);
+  color: var(--ink);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--ink-soft);
+}
+
+.btn-ghost:hover {
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.btn-sm {
+  border-radius: var(--radius-sm);
+  font-size: var(--text-14);
+  min-height: 36px;
+  padding: 0 14px;
+}
+
+.btn-lg {
+  font-size: var(--text-16);
+  min-height: 52px;
+  padding: 0 24px;
+}
+
+.btn .arrow {
+  transition: transform var(--duration) var(--ease-out);
+}
+
+.btn:hover .arrow,
+.link-arrow:hover .arrow {
+  transform: translateX(3px);
+}
+
+.link-arrow {
+  align-items: center;
+  color: var(--accent);
+  display: inline-flex;
+  font-weight: var(--weight-semibold);
+  gap: 6px;
+  text-decoration: none;
+}
+
+.link-arrow:hover {
+  text-decoration: none;
+}
+
+.link-arrow .arrow {
+  display: inline-block;
+  transition: transform var(--duration) var(--ease-out);
+}
+
+/* ---------------------------------------------------------------- Surfaces */
+
+.panel {
+  align-content: start;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  min-width: 0;
+  padding: 20px;
+}
+
+/* An interactive or emphasised card: lifts slightly on hover. */
+.card {
+  background: linear-gradient(180deg, rgba(251, 248, 239, 0.055), rgba(251, 248, 239, 0.025));
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  min-width: 0;
+  padding: 24px;
+  transition:
+    border-color var(--duration-slow) var(--ease-out),
+    box-shadow var(--duration-slow) var(--ease-out),
+    transform var(--duration-slow) var(--ease-out);
+}
+
+.card:hover {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-md);
+}
+
+/* Eyebrow / kicker label: one style everywhere. */
+.eyebrow,
+.kicker {
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: var(--text-12);
+  font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-caps);
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.pill {
+  align-items: center;
+  background: var(--accent-surface);
+  border: 1px solid var(--line-accent);
+  border-radius: var(--radius-full);
+  color: var(--accent);
+  display: inline-flex;
+  font-size: var(--text-13);
+  font-weight: var(--weight-medium);
+  gap: 8px;
+  padding: 5px 12px 5px 10px;
+}
+
+.pill::before {
+  animation: sfk-pulse 2.4s var(--ease-in-out) infinite;
+  background: var(--accent);
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px rgba(152, 240, 204, 0.18);
+  content: "";
+  height: 6px;
+  width: 6px;
+}
+
+/* Gradient ink for display headings. */
+.ink-gradient {
+  -webkit-background-clip: text;
+  background-clip: text;
+  background-image: linear-gradient(180deg, var(--ink) 30%, rgba(251, 248, 239, 0.62));
+  color: transparent;
+}
+
+/* Ambient light and a faint grid behind a hero. Put on a positioned
+   ancestor; the light sits behind content and never takes pointer events. */
+.hero-light {
+  isolation: isolate;
+  position: relative;
+}
+
+.hero-light::before {
+  background: var(--glow-accent), var(--glow-gold);
+  content: "";
+  height: 720px;
+  left: 50%;
+  pointer-events: none;
+  position: absolute;
+  top: calc(var(--header-height) * -1);
+  transform: translateX(-50%);
+  width: min(1400px, 140vw);
+  z-index: -1;
+}
+
+.hero-light::after {
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 56px 56px;
+  content: "";
+  height: 640px;
+  left: 50%;
+  -webkit-mask-image: radial-gradient(60% 70% at 50% 0%, #000 30%, transparent 75%);
+  mask-image: radial-gradient(60% 70% at 50% 0%, #000 30%, transparent 75%);
+  pointer-events: none;
+  position: absolute;
+  top: calc(var(--header-height) * -1);
+  transform: translateX(-50%);
+  width: min(1400px, 140vw);
+  z-index: -1;
+}
+
+/* ---------------------------------------------------------------- Motion */
+
+/* Above-the-fold entrance: plain CSS, so it runs on first paint with no
+   JavaScript and cannot leave content hidden. Stagger with --enter-delay. */
+.enter {
+  animation: sfk-enter var(--duration-enter) var(--ease-out) both;
+  animation-delay: var(--enter-delay, 0ms);
+}
+
+/* Below-the-fold reveal driven by scroll position, no JavaScript. Browsers
+   without scroll-driven animations, and anyone who prefers reduced motion,
+   simply see the content. */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .reveal {
+      animation: sfk-enter linear both;
+      animation-range: entry 0% entry 55%;
+      animation-timeline: view();
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .enter,
+  .reveal,
+  .pill::before {
+    animation: none;
+  }
+
+  .btn:active,
+  .cta:active {
+    transform: none;
+  }
+}

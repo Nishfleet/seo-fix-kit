@@ -1,3 +1,4 @@
+import { SITE_FOOTER, SITE_NAV, SITE_TAGLINE } from "../../shared/site-nav.js";
 import { escapeHtml } from "../../shared/audit-engine.js";
 import { DEMO_PROOF, DEMO_FIXTURE_PATH, demoProofSnippet } from "./demo-proof.js";
 
@@ -161,57 +162,58 @@ function publicAssetHead(origin) {
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="${origin}/apple-touch-icon.png" sizes="180x180" />
     <link rel="preload" href="/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="stylesheet" href="/tokens.css" />`;
+    <link rel="stylesheet" href="/tokens.css" />
+    <script>document.documentElement.classList.add("js")</script>
+    <script src="/site.js" defer></script>`;
 }
 
-// The one site header every worker-rendered public page uses (mirrored by
-// hand in public/404.html, which is a static asset, and in the React landing
-// page). Styles live in public/tokens.css under .site-header; the logo mark
-// is /favicon.svg drawn by .brand::before so the link text stays the plain
-// product name.
-function siteHeader(origin) {
-  return `<header class="site-header">
+// The one site header every worker-rendered public page uses, including the
+// static 404 page (notFoundHtml(), written to dist/404.html at build time),
+// twinned by SiteHeader in src/components/SiteChrome.jsx for the React
+// landing page. It sits
+// directly in <body>, outside the page's own layout wrapper, so it can stick
+// to the top full width. Styles live in src/design/site.css; the logo mark is
+// /favicon.svg drawn by .brand::before so the link text stays the plain
+// product name. /site.js turns the nav into a menu on small screens.
+function siteHeader(origin, currentPath = "") {
+  const links = SITE_NAV.map(
+    ({ href, label }) => `<a href="${origin}${href}"${href === currentPath ? ' aria-current="page"' : ""}>${label}</a>`
+  ).join("\n          ");
+  return `<a class="site-skip" href="#main">Skip to content</a>
+    <header class="site-header">
+      <div class="site-header-inner">
         <a class="brand" href="${origin}/">SEO Fix Kit</a>
-        <nav aria-label="Main">
-          <a href="${origin}/demo">Demo</a>
-          <a href="${origin}/pricing">Pricing</a>
-          <a href="${origin}/methodology">How it works</a>
-          <a href="${origin}/beta">Sign in</a>
+        <nav class="site-nav" id="site-nav" aria-label="Main">
+          ${links}
         </nav>
-        <a class="btn btn-primary btn-sm header-cta" href="${origin}/check">Check a page free</a>
-      </header>`;
+        <div class="site-header-actions">
+          <a class="btn btn-primary btn-sm header-cta" href="${origin}/check">Check a page free</a>
+          <button class="site-menu-button" type="button" aria-controls="site-nav" aria-expanded="false" data-site-menu>
+            Menu
+            <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2.5 5h11M2.5 11h11" /></svg>
+          </button>
+        </div>
+      </div>
+    </header>`;
 }
 
-// The one site footer every worker-rendered public page uses (mirrored in
-// public/404.html and the React landing page). Styles live in
-// public/tokens.css under .site-foot.
+// The one site footer every worker-rendered public page uses (twinned by
+// SiteFooter in src/components/SiteChrome.jsx). Links come from
+// shared/site-nav.js; styles live in src/design/site.css under .site-foot.
 function siteFooter(origin) {
+  const link = ({ href, label }) => `<a href="${href.startsWith("/") ? origin + href : href}">${label}</a>`;
+  const columns = SITE_FOOTER.map(
+    (column) => `
+        <nav aria-label="${column.title}">
+          <h2>${column.title}</h2>
+          ${column.links.map(link).join("\n          ")}
+        </nav>`
+  ).join("");
   return `<footer class="site-foot">
         <div class="site-foot-brand">
           <a class="brand" href="${origin}/">SEO Fix Kit</a>
-          <p>Find the SEO problems that matter, prove them, and fix them.</p>
-        </div>
-        <nav aria-label="Product">
-          <h2>Product</h2>
-          <a href="${origin}/check">Free page check</a>
-          <a href="${origin}/demo">Sample report</a>
-          <a href="${origin}/proof">Customer proof</a>
-          <a href="${origin}/pricing">Pricing</a>
-        </nav>
-        <nav aria-label="Use cases">
-          <h2>Use cases</h2>
-          <a href="${origin}/small-business-seo-audit">Small business SEO audit</a>
-          <a href="${origin}/rendered-vs-static-seo-audit">JavaScript SEO audit</a>
-          <a href="${origin}/ai-answer-readiness">AI answer readiness</a>
-        </nav>
-        <nav aria-label="Company">
-          <h2>Company</h2>
-          <a href="${origin}/methodology">How it works</a>
-          <a href="${origin}/support">Support</a>
-          <a href="${origin}/terms">Terms</a>
-          <a href="${origin}/privacy">Privacy</a>
-          <a href="mailto:support@seofixkit.com">support@seofixkit.com</a>
-        </nav>
+          <p>${SITE_TAGLINE}</p>
+        </div>${columns}
       </footer>`;
 }
 
@@ -253,8 +255,8 @@ function demoHtml(origin) {
 ${pageSocialHead({ origin, title: "Proof-Backed SEO Repair Demo - SEO Fix Kit", description: "A public sample showing how SEO Fix Kit refuses static crawler false positives and turns verified issues into repair briefs.", path: "/demo" })}
     <style>
       body { margin: 0; min-width: 0; }
-      main { margin: 0 auto; max-width: 980px; padding: 32px 22px 64px; min-width: 0; }
-      h1 { font-size: clamp(44px, 9vw, 96px); line-height: .95; margin: 0 0 20px; max-width: 780px; overflow-wrap: break-word; }
+      main { margin: 0 auto; max-width: 980px; padding: clamp(40px, 6vw, 72px) 22px 64px; min-width: 0; }
+      h1 { font-size: var(--text-display); line-height: var(--leading-display); margin: 0 0 20px; max-width: 780px; overflow-wrap: break-word; }
       h2 { font-size: clamp(22px, 3vw, 28px); line-height: 1.2; margin: 0 0 12px; overflow-wrap: break-word; }
       p, li { color: var(--ink-soft); font-size: 18px; line-height: 1.6; overflow-wrap: anywhere; word-break: break-word; }
       section { margin: 0 0 32px; }
@@ -268,13 +270,13 @@ ${pageSocialHead({ origin, title: "Proof-Backed SEO Repair Demo - SEO Fix Kit", 
       .proof strong { color: var(--accent); }
       .panel li strong, .panel p strong { color: var(--ink); font-weight: 600; letter-spacing: 0; text-transform: none; font-size: inherit; display: inline; }
       code { max-width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; }
-      @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } main { padding-top: 24px; } }
+      @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } main { padding-top: 32px; } }
     </style>
   </head>
   <body>
-    <main>
-      ${siteHeader(origin)}
-      <section>
+    ${siteHeader(origin)}
+    <main class="hero-light" id="main">
+      <section class="enter">
         <p class="kicker">Sample report · Real output</p>
         <h1>Fix only what is actually broken.</h1>
         <p>Basic SEO scanners read a page’s raw code and flag problems that aren’t there. SEO Fix Kit loads the page in a real browser, shows the evidence, and only suggests a fix when something is actually wrong.</p>
@@ -340,8 +342,8 @@ ${DEMO_PROOF.repairPlan.map((item) => `          <li><strong>${escapeHtml(item.s
         <p>This page is a sample, not an audit of your site. The proof excerpt above is the engine's real output for the test page, not a preview of your site's results. Anonymous one-page checks are live at ${origin}/check: paste a public URL and get real-browser evidence, the false alarms it rules out, and real problems with fixes — with no account, no email, and no stored report. Full reports still run inside the private beta after secure email access and, for deeper crawls, site verification. Neither the sample nor the one-page check promises rankings, traffic, indexing, revenue, AI citations, or live answer-engine visibility. The product standard is the same everywhere: prove the issue, avoid false positives, ask for approval, then rerun the same measurement after the fix.</p>
       </section>
       <p><a class="cta" href="${origin}/check">Check one page now</a></p>
-      ${siteFooter(origin)}
     </main>
+    ${siteFooter(origin)}
   </body>
 </html>`;
 }
@@ -525,25 +527,45 @@ function pricingCheck(included) {
     : `<span class="dash" aria-label="Not included">–</span>`;
 }
 
+// One card line per feature: "Up to 1,000 pages per audit" for value rows.
+function planFeatureLine(feature, planKey) {
+  if (!feature.values) return feature.label;
+  const value = feature.values[planKey];
+  return `${value} ${value === "1" ? "page" : "pages"} per audit`;
+}
+
+// Each card lists only what it adds over the plan before it, under an
+// "Everything in X, plus:" lead, so the difference reads at a glance. The
+// full grid stays in the comparison table below.
+function planFeatureLines(plan, index) {
+  const previous = PRICING_PLANS[index - 1];
+  const included = (feature, key) => Boolean(feature.values?.[key]) || Boolean(feature.plans?.includes(key));
+  return PRICING_FEATURES.filter((feature) => {
+    if (!included(feature, plan.key)) return false;
+    if (!previous) return true;
+    if (feature.values) return feature.values[plan.key] !== feature.values[previous.key];
+    return !included(feature, previous.key);
+  }).map((feature) => planFeatureLine(feature, plan.key));
+}
+
 function pricingHtml(origin) {
-  const cards = PRICING_PLANS.map(
-    (plan) => `
+  const cards = PRICING_PLANS.map((plan, index) => {
+    const previous = PRICING_PLANS[index - 1];
+    return `
         <article class="plan${plan.featured ? " featured" : ""}">
           ${plan.featured ? `<p class="plan-badge">Most popular</p>` : ""}
           <h2>${escapeHtml(plan.name)}</h2>
           <p class="plan-price"><strong>${escapeHtml(plan.price)}</strong><span>${escapeHtml(plan.cadence)}</span></p>
           <p class="plan-summary">${escapeHtml(plan.summary)}</p>
           <a class="btn ${plan.featured ? "btn-primary" : "btn-secondary"}" href="${origin}${plan.cta.href}">${escapeHtml(plan.cta.label)}</a>
+          <p class="plan-includes">${previous ? `Everything in ${escapeHtml(previous.name)}, plus:` : "Includes:"}</p>
           <ul>
-            ${PRICING_FEATURES.filter((feature) => feature.plans?.includes(plan.key) || feature.values)
-              .map(
-                (feature) =>
-                  `<li>${escapeHtml(feature.values ? `${feature.values[plan.key]} ${feature.values[plan.key] === "1" ? "page" : "pages"} per audit` : feature.label)}</li>`
-              )
+            ${planFeatureLines(plan, index)
+              .map((line) => `<li>${escapeHtml(line)}</li>`)
               .join("")}
           </ul>
-        </article>`
-  ).join("");
+        </article>`;
+  }).join("");
   const rows = PRICING_FEATURES.map(
     (feature) => `
             <tr>
@@ -587,8 +609,8 @@ function pricingHtml(origin) {
     faq: PRICING_FAQ,
     extraStyle: `
       .plans { display: grid; gap: 16px; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0 0 48px; }
-      .plan { align-content: start; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; display: grid; gap: 16px; padding: 28px 24px; position: relative; min-width: 0; }
-      .plan.featured { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 24px 60px -30px rgba(152,240,204,.35); }
+      .plan { align-content: start; background: linear-gradient(180deg, rgba(251,248,239,.055), rgba(251,248,239,.02)); border: 1px solid var(--line); border-radius: var(--radius-xl); box-shadow: var(--shadow-sm); display: grid; gap: 16px; padding: 28px 24px; position: relative; min-width: 0; }
+      .plan.featured { background: linear-gradient(180deg, rgba(152,240,204,.09), rgba(152,240,204,.02) 45%, rgba(251,248,239,.02)); border-color: rgba(152,240,204,.55); box-shadow: 0 0 0 1px rgba(152,240,204,.35), 0 32px 80px -36px rgba(152,240,204,.45); }
       .plan h2 { font-size: 20px; margin: 0; }
       .plan-badge { background: var(--accent); border-radius: 999px; color: var(--accent-ink); font-size: 12px; font-weight: 600; justify-self: start; margin: 0; padding: 4px 10px; position: absolute; right: 20px; top: 24px; }
       .plan-price { display: grid; gap: 4px; margin: 0; }
@@ -596,7 +618,8 @@ function pricingHtml(origin) {
       .plan-price span { color: var(--ink-muted); font-size: 14px; }
       .plan-summary { margin: 0; min-height: 78px; }
       .plan .btn { width: 100%; }
-      .plan ul { border-top: 1px solid var(--line); display: grid; gap: 10px; list-style: none; margin: 4px 0 0; padding: 20px 0 0; }
+      .plan-includes { border-top: 1px solid var(--line); color: var(--ink); font-size: 14px; font-weight: 600; margin: 4px 0 0; padding-top: 20px; }
+      .plan ul { display: grid; gap: 10px; list-style: none; margin: 0; padding: 0; }
       .plan li { font-size: 15px; line-height: 1.5; padding-left: 26px; position: relative; }
       .plan li::before { color: var(--accent); content: "✓"; font-weight: 700; left: 0; position: absolute; }
       .compare { border-collapse: collapse; table-layout: fixed; width: 100%; }
@@ -940,8 +963,8 @@ ${extraLd.join("\n")}
     <style>
       * { box-sizing: border-box; }
       body { margin: 0; min-width: 0; }
-      main { margin: 0 auto; max-width: 1120px; padding: 32px 22px 72px; min-width: 0; }
-      h1 { font-size: clamp(44px, 7.5vw, 96px); line-height: .95; margin: 0; max-width: 860px; overflow-wrap: break-word; }
+      main { margin: 0 auto; max-width: 1120px; padding: clamp(40px, 6vw, 72px) 22px 72px; min-width: 0; }
+      h1 { font-size: var(--text-display); line-height: var(--leading-display); margin: 0; max-width: 860px; overflow-wrap: break-word; }
       h2 { font-size: clamp(22px, 3vw, 28px); line-height: 1.2; margin: 0 0 16px; overflow-wrap: break-word; }
       h3 { font-size: 18px; line-height: 1.4; margin: 0 0 8px; }
       p, li { color: var(--ink-soft); font-size: 16px; line-height: 1.65; overflow-wrap: anywhere; }
@@ -956,7 +979,7 @@ ${extraLd.join("\n")}
       .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .grid.two, .package-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       section.grid { margin: 0 0 40px; }
-      .panel, .package-card { align-content: start; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; display: grid; gap: 8px; padding: 20px; min-width: 0; }
+      .panel, .package-card { align-content: start; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); display: grid; gap: 8px; padding: 20px; min-width: 0; }
       .panel p, .package-card p { margin: 0; }
       .package-card { gap: 12px; padding: 24px; }
       .panel.proof, .package-card.live { border-color: var(--line-accent); }
@@ -964,28 +987,28 @@ ${extraLd.join("\n")}
       .package-card h2 { margin: 0; }
       .package-price { border-left: 3px solid var(--gold); color: var(--ink); margin: 2px 0; padding-left: 12px; }
       .package-price strong { color: var(--gold); font-size: 22px; font-weight: 700; }
-      .package-card a { align-items: center; border: 1px solid var(--line-accent); border-radius: 8px; display: inline-flex; font-size: 14px; justify-content: center; min-height: 40px; padding: 0 14px; width: fit-content; }
+      .package-card a { align-items: center; border: 1px solid var(--line-accent); border-radius: var(--radius-lg); display: inline-flex; font-size: 14px; justify-content: center; min-height: 40px; padding: 0 14px; width: fit-content; }
       .package-card a:hover { background: rgba(152,240,204,.08); border-color: var(--accent); text-decoration: none; }
       .check-list { display: grid; gap: 12px; list-style: none; margin: 0 0 16px; padding-left: 0; }
-      .check-list li { background: var(--surface-sunken); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; min-width: 0; }
+      .check-list li { background: var(--surface-sunken); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 14px 16px; min-width: 0; }
       .faq-list { display: grid; gap: 12px; }
-      .faq-item { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 20px; min-width: 0; }
+      .faq-item { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 20px; min-width: 0; }
       .faq-item p { margin: 0; }
-      @media (max-width: 760px) { .grid.three, .grid.two, .package-grid { grid-template-columns: 1fr; } main { padding-top: 24px; } }${extraStyle}
+      @media (max-width: 760px) { .grid.three, .grid.two, .package-grid { grid-template-columns: 1fr; } main { padding-top: 32px; } }${extraStyle}
     </style>
   </head>
   <body>
-    <main>
-      ${siteHeader(origin)}
-      <section class="hero">
+    ${siteHeader(origin)}
+    <main class="hero-light" id="main">
+      <section class="hero enter">
         <p class="eyebrow">${escapeHtml(eyebrow)}</p>
         <h1>${escapeHtml(heading)}</h1>
         <p class="lead">${escapeHtml(lead)}</p>
       </section>
       ${body}
       ${faqSection}
-      ${siteFooter(origin)}
     </main>
+    ${siteFooter(origin)}
   </body>
 </html>`;
 }
@@ -1050,8 +1073,8 @@ ${ldBlock({
     <style>
       * { box-sizing: border-box; }
       body { margin: 0; min-width: 0; }
-      main { margin: 0 auto; max-width: 980px; padding: 32px 22px 64px; min-width: 0; }
-      h1 { font-size: clamp(40px, 7vw, 84px); line-height: .95; margin: 0 0 20px; max-width: 820px; overflow-wrap: break-word; }
+      main { margin: 0 auto; max-width: 980px; padding: clamp(40px, 6vw, 72px) 22px 64px; min-width: 0; }
+      h1 { font-size: var(--text-display); line-height: var(--leading-display); margin: 0 0 20px; max-width: 820px; overflow-wrap: break-word; }
       h2 { font-size: clamp(22px, 3vw, 28px); line-height: 1.2; margin: 0 0 12px; overflow-wrap: break-word; }
       p, li { color: var(--ink-soft); font-size: 17px; line-height: 1.62; overflow-wrap: anywhere; word-break: break-word; }
       ul { padding-left: 22px; }
@@ -1065,19 +1088,19 @@ ${ldBlock({
       .panel.intermediate { border-color: var(--line-strong); }
       .panel.after { border-color: var(--line-accent); }
       .panel.after > strong { color: var(--accent); }
-      .receipt { background: var(--surface-sunken); border: 1px solid var(--line-accent); border-radius: 8px; padding: 20px 22px; margin: 24px 0; min-width: 0; }
+      .receipt { background: var(--surface-sunken); border: 1px solid var(--line-accent); border-radius: var(--radius-lg); padding: 20px 22px; margin: 24px 0; min-width: 0; }
       .receipt h3 { color: var(--accent); font-size: 12px; font-weight: 600; letter-spacing: .08em; margin: 0 0 12px; text-transform: uppercase; }
       .receipt dl { display: grid; grid-template-columns: max-content 1fr; gap: 8px 16px; margin: 0; }
       .receipt dt { color: var(--ink-muted); font-weight: 500; }
       .receipt dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
-      .boundary { background: var(--gold-surface); border: 1px solid var(--gold-line); border-radius: 8px; padding: 20px 22px; margin: 24px 0; }
-      @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } .receipt dl { grid-template-columns: 1fr; gap: 2px 0; } .receipt dd { margin-bottom: 8px; } main { padding-top: 24px; } }
+      .boundary { background: var(--gold-surface); border: 1px solid var(--gold-line); border-radius: var(--radius-lg); padding: 20px 22px; margin: 24px 0; }
+      @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } .receipt dl { grid-template-columns: 1fr; gap: 2px 0; } .receipt dd { margin-bottom: 8px; } main { padding-top: 32px; } }
     </style>
   </head>
   <body>
-    <main>
-      ${siteHeader(origin)}
-      <section>
+    ${siteHeader(origin)}
+    <main class="hero-light" id="main">
+      <section class="enter">
         <p class="kicker">Real before/after · Repair proof receipt</p>
         <h1>One real repair, with the same measurement path before and after.</h1>
         <p>This page is a proof receipt for the first completed beta repair done with SEO Fix Kit: the founder-owned Tiny Studio portfolio site, audited with consent, repaired by the operator with the help of an SEO Fix Kit implementation pack, and rerun on the same host with the same measurement path. The receipt states the founder-owned scope, names the owner-approved change, links the same audit path before and after, and restates the no-ranking boundary.</p>
@@ -1132,8 +1155,8 @@ ${PROOF_CASE.changes.map((change) => `          <li><strong>${escapeHtml(change.
         <p>The same audit path ran three times against the same host: once before the repair, once after the first merge, and once after the second. The proof receipt pins the report ids, scores, finding counts, and merged PR refs so anyone can rerun the same measurement path against <code>https://${PROOF_CASE.site}/</code> and compare. SEO Fix Kit does not claim this receipt represents the result you will see on your site; it is evidence that the same measurement path can connect a real issue to a real operator-applied fix and a real rerun.</p>
         <p>For an anonymous one-page check on any public URL, see <a href="${origin}/check">${origin}/check</a>. For methodology and limits, see <a href="${origin}/methodology">${origin}/methodology</a>. For plans and prices, see <a href="${origin}/pricing">${origin}/pricing</a>.</p>
       </section>
-      ${siteFooter(origin)}
     </main>
+    ${siteFooter(origin)}
   </body>
 </html>`;
 }
@@ -1193,21 +1216,18 @@ function privacyHtml(origin) {
 ${pageSocialHead({ origin, title: "Privacy - SEO Fix Kit", description: "SEO Fix Kit privacy note for access requests, private beta audits, payments, and fulfillment.", path: "/privacy" })}
     <style>
       body { margin: 0; min-width: 0; }
-      .shell { margin: 0 auto; max-width: 1120px; padding: 32px 22px 0; min-width: 0; }
-      main { margin: 0 auto; max-width: 760px; padding: 16px 22px 24px; min-width: 0; }
-      h1 { font-size: clamp(40px, 7vw, 72px); line-height: .95; margin: 0 0 32px; overflow-wrap: break-word; }
+      main { margin: 0 auto; max-width: 760px; padding: clamp(40px, 6vw, 72px) 22px 24px; min-width: 0; }
+      h1 { font-size: clamp(36px, 5.5vw, 56px); line-height: var(--leading-heading); margin: 0 0 32px; overflow-wrap: break-word; }
       h2 { font-size: clamp(20px, 3vw, 24px); line-height: 1.25; margin: 40px 0 12px; overflow-wrap: break-word; }
       p, li { color: var(--ink-soft); font-size: 17px; line-height: 1.65; overflow-wrap: anywhere; }
       ul { padding-left: 22px; }
       li + li { margin-top: 8px; }
-      @media (max-width: 760px) { .shell { padding-top: 24px; } main { padding-top: 0; } }
+      @media (max-width: 760px) { main { padding-top: 32px; } }
     </style>
   </head>
   <body>
-    <div class="shell">
-      ${siteHeader(origin)}
-    </div>
-    <main>
+    ${siteHeader(origin)}
+    <main class="hero-light" id="main">
       <h1>Privacy</h1>
       <p>SEO Fix Kit ("we") collects the information needed to run self-serve access, create proof-backed SEO reports, process paid Fix Pack checkout, and deliver repair updates. We are the data controller for this information; reach us at <a href="mailto:support@seofixkit.com">support@seofixkit.com</a>.</p>
       <ul>
@@ -1222,9 +1242,7 @@ ${pageSocialHead({ origin, title: "Privacy - SEO Fix Kit", description: "SEO Fix
       </ul>
       <p>Last updated: June 15, 2026.</p>
     </main>
-    <div class="shell">
-      ${siteFooter(origin)}
-    </div>
+    ${siteFooter(origin)}
   </body>
 </html>`;
 }
@@ -1325,27 +1343,92 @@ function policyPageHtml({ origin, title, description, body, path = "/" }) {
 ${pageSocialHead({ origin, title: `${title} - SEO Fix Kit`, description, path })}
     <style>
       body { margin: 0; min-width: 0; }
-      .shell { margin: 0 auto; max-width: 1120px; padding: 32px 22px 0; min-width: 0; }
-      main { margin: 0 auto; max-width: 760px; padding: 16px 22px 24px; min-width: 0; }
-      h1 { font-size: clamp(40px, 7vw, 72px); line-height: .95; margin: 0 0 32px; overflow-wrap: break-word; }
+      main { margin: 0 auto; max-width: 760px; padding: clamp(40px, 6vw, 72px) 22px 24px; min-width: 0; }
+      h1 { font-size: clamp(36px, 5.5vw, 56px); line-height: var(--leading-heading); margin: 0 0 32px; overflow-wrap: break-word; }
       h2 { font-size: clamp(20px, 3vw, 24px); line-height: 1.25; margin: 40px 0 12px; overflow-wrap: break-word; }
       p, li { color: var(--ink-soft); font-size: 17px; line-height: 1.65; overflow-wrap: anywhere; }
       ul { padding-left: 22px; }
       li + li { margin-top: 8px; }
-      @media (max-width: 760px) { .shell { padding-top: 24px; } main { padding-top: 0; } }
+      @media (max-width: 760px) { main { padding-top: 32px; } }
     </style>
   </head>
   <body>
-    <div class="shell">
-      ${siteHeader(origin)}
-    </div>
-    <main>
+    ${siteHeader(origin)}
+    <main class="hero-light" id="main">
       <h1>${escapeHtml(title)}</h1>
       ${body}
     </main>
-    <div class="shell">
-      ${siteFooter(origin)}
-    </div>
+    ${siteFooter(origin)}
+  </body>
+</html>`;
+}
+
+// The static 404 page. Cloudflare serves dist/404.html for unknown paths
+// ("not_found_handling": "404-page"); vite.config.js writes it from this
+// function at build time, so it shares the live header, footer and styles
+// instead of a hand-kept copy. The audit card is a small brand moment: the
+// broken URL rendered as if SEO Fix Kit had just checked it.
+function notFoundHtml(origin = "") {
+  const description =
+    "This page does not exist on SEO Fix Kit. Start from the homepage, check one page for free, or read the methodology.";
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Page not found - SEO Fix Kit</title>
+    <meta name="description" content="${description}" />
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="canonical" href="https://seofixkit.com/" />${publicAssetHead("https://seofixkit.com")}
+    <style>
+      main { margin: 0 auto; max-width: 1120px; min-width: 0; padding: clamp(40px, 6vw, 72px) 22px 64px; }
+      .lost { align-items: center; display: grid; gap: clamp(32px, 5vw, 64px); grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); }
+      h1 { font-size: var(--text-display); line-height: var(--leading-display); margin: 16px 0 20px; min-width: 0; overflow-wrap: break-word; }
+      p { color: var(--ink-soft); font-size: 18px; line-height: 1.6; margin: 0; overflow-wrap: anywhere; }
+      .links { align-items: center; display: flex; flex-wrap: wrap; gap: 12px; margin: 32px 0 0; min-width: 0; }
+      .result { background: linear-gradient(180deg, rgba(251,248,239,.06), rgba(251,248,239,.02)); border: 1px solid var(--line); border-radius: var(--radius-xl); box-shadow: var(--shadow-lg); min-width: 0; overflow: hidden; }
+      .result-bar { align-items: center; border-bottom: 1px solid var(--line); color: var(--ink-muted); display: flex; font-family: var(--font-mono); font-size: 12px; gap: 10px; padding: 12px 16px; }
+      .result-bar i { background: var(--line-strong); border-radius: 50%; display: inline-block; height: 8px; width: 8px; }
+      .result-body { display: grid; gap: 12px; padding: 20px; }
+      .result-row { align-items: center; background: var(--surface-sunken); border: 1px solid var(--line); border-radius: var(--radius); display: flex; gap: 12px; justify-content: space-between; min-width: 0; padding: 12px 14px; }
+      .result-row code { color: var(--ink); font-size: 13px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .chip { border-radius: var(--radius-full); flex: none; font-size: 12px; font-weight: 600; padding: 3px 9px; }
+      .chip-bad { background: var(--error-surface); color: var(--error); }
+      .chip-ok { background: var(--success-surface); color: var(--success); }
+      .result-fix { color: var(--ink-muted); font-size: 14px; }
+      .result-fix strong { color: var(--ink); font-weight: 600; }
+      @media (max-width: 860px) { .lost { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    ${siteHeader(origin)}
+    <main class="hero-light" id="main">
+      <section class="lost">
+        <div class="enter">
+          <p class="kicker">404 · Page not found</p>
+          <h1>Nothing to fix here.</h1>
+          <p>We couldn’t find that page. It may have moved, or the link may be out of date.</p>
+          <nav class="links" aria-label="Alternative pages">
+            <a class="btn btn-primary" href="${origin}/">Go to homepage</a>
+            <a class="btn btn-secondary" href="${origin}/check">Check one page for free</a>
+            <a class="btn btn-ghost" href="${origin}/support">Contact support</a>
+          </nav>
+        </div>
+        <figure class="result enter" style="--enter-delay: 120ms" aria-label="This address, checked">
+          <div class="result-bar"><i></i><i></i><i></i><span>seofixkit.com · 1 page checked</span></div>
+          <div class="result-body">
+            <div class="result-row"><code data-lost-path>/this-page</code><span class="chip chip-bad">404</span></div>
+            <div class="result-row"><code>Linked from somewhere</code><span class="chip chip-bad">Broken link</span></div>
+            <div class="result-row"><code>seofixkit.com/</code><span class="chip chip-ok">200 OK</span></div>
+            <p class="result-fix"><strong>Suggested fix:</strong> start from the homepage.</p>
+          </div>
+        </figure>
+      </section>
+    </main>
+    ${siteFooter(origin)}
+    <script>
+      for (const el of document.querySelectorAll("[data-lost-path]")) el.textContent = location.pathname;
+    </script>
   </body>
 </html>`;
 }
@@ -1359,6 +1442,7 @@ export {
   homeMarkdown,
   llmsText,
   methodologyHtml,
+  notFoundHtml,
   pricingHtml,
   policyPageHtml,
   privacyHtml,

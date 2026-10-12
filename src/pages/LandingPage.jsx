@@ -1,17 +1,23 @@
 import { useEffect, useState } from "react";
+import { Icon } from "../components/Icon.jsx";
+import { SiteFooter, SiteHeader } from "../components/SiteChrome.jsx";
 import { readOrCreateFunnelKey, sendAccessBeacon } from "../lib/browser.js";
 import { postAccessRequest } from "../lib/requests.js";
+import "./landing.css";
 
 const STEPS = [
   {
+    icon: "search",
     title: "Find",
     text: "We open your pages in a real browser, the way Google and your customers see them, and list what is actually broken."
   },
   {
+    icon: "wrench",
     title: "Fix",
     text: "Each problem comes with the evidence, why it matters, and a ready-to-paste fix your developer can ship."
   },
   {
+    icon: "receipt",
     title: "Prove",
     text: "After the fix goes live, rerun the audit. Every item is marked fixed, still open, or new, so you know it worked."
   }
@@ -19,26 +25,22 @@ const STEPS = [
 
 const FEATURES = [
   {
-    title: "No false alarms",
-    text: "Most scanners only read raw HTML and flag problems that are not there. We compare it with the real page and drop the noise."
-  },
-  {
-    title: "Ready-to-paste fixes",
-    text: "Missing tags, schema, and social previews come with the exact snippet to add, built from your own page."
-  },
-  {
+    icon: "queue",
     title: "A repair queue for your team",
     text: "Assign fixes, add notes, approve changes, and track every item from open to proven fixed."
   },
   {
+    icon: "pulse",
     title: "Weekly monitoring",
     text: "Verified sites get a weekly rerun, so you hear about a regression early."
   },
   {
+    icon: "sparkle",
     title: "Ready for AI search",
     text: "See whether ChatGPT-style crawlers, which skip JavaScript, can read your content and structure."
   },
   {
+    icon: "plug",
     title: "API and webhooks",
     text: "Start audits and pull results from your own tools, and get notified when an audit finishes."
   }
@@ -63,6 +65,21 @@ const FAQ = [
   }
 ];
 
+const PLANS = [
+  { name: "Page check", price: "Free", text: "One public page, no account." },
+  {
+    name: "Site audit",
+    price: "Free",
+    text: "Up to 1,000 pages, saved reports, and a repair queue. Free during the beta.",
+    featured: true
+  },
+  {
+    name: "Fix Pack",
+    price: "$99",
+    text: "One-time repair pass and a rerun that proves it, only when a report finds real fixes."
+  }
+];
+
 export function WaitlistPage() {
   useEffect(() => {
     document.title = "SEO Fix Kit - SEO fixes you can prove";
@@ -70,36 +87,25 @@ export function WaitlistPage() {
 
   return (
     <div className="landing">
-      <header className="landing-header">
-        <a className="landing-brand" href="/">
-          SEO Fix Kit
-        </a>
-        <nav aria-label="Main">
-          <a href="/demo">Demo</a>
-          <a href="/pricing">Pricing</a>
-          <a href="/methodology">How it works</a>
-          <a href="/beta">Sign in</a>
-        </nav>
-        <a className="landing-btn landing-btn-sm" href="/check">
-          Check a page free
-        </a>
-      </header>
+      <SiteHeader />
 
-      <main>
-        <section className="landing-hero" aria-labelledby="page-title">
-          <div className="landing-hero-copy">
-            <p className="landing-pill">Now in private beta · Free to try</p>
-            <h1 id="page-title">SEO fixes you can prove.</h1>
-            <p className="landing-lead">
-              SEO Fix Kit checks your site in a real browser, shows exactly what is broken with the evidence, and hands
-              your developer ready-to-paste fixes. Then it reruns the check to prove they worked.
-            </p>
+      <main id="main">
+        <section className="landing-hero hero-light" aria-labelledby="page-title">
+          <p className="pill enter">Now in private beta · Free to try</p>
+          <h1 className="enter ink-gradient" id="page-title" style={{ "--enter-delay": "60ms" }}>
+            SEO fixes you can prove.
+          </h1>
+          <p className="landing-lead enter" style={{ "--enter-delay": "120ms" }}>
+            SEO Fix Kit checks your site in a real browser, shows exactly what is broken with the evidence, and hands
+            your developer ready-to-paste fixes. Then it reruns the check to prove they worked.
+          </p>
+          <div className="enter" style={{ "--enter-delay": "180ms" }}>
             <AccessForm />
           </div>
-          <ReportPreview />
+          <ProductShot />
         </section>
 
-        <section className="landing-facts" aria-label="At a glance">
+        <section className="landing-facts reveal" aria-label="At a glance">
           <div>
             <strong>1,000</strong>
             <span>pages per audit</span>
@@ -119,12 +125,17 @@ export function WaitlistPage() {
         </section>
 
         <section className="landing-section" aria-labelledby="how-title">
-          <p className="landing-eyebrow">How it works</p>
-          <h2 id="how-title">From “something is wrong” to “proven fixed”.</h2>
+          <header className="landing-section-head reveal">
+            <p className="eyebrow">How it works</p>
+            <h2 id="how-title">From “something is wrong” to “proven fixed”.</h2>
+          </header>
           <ol className="landing-steps">
             {STEPS.map((step, index) => (
-              <li key={step.title}>
-                <span className="landing-step-number">{index + 1}</span>
+              <li className="card reveal" key={step.title}>
+                <span className="landing-step-icon">
+                  <Icon name={step.icon} />
+                </span>
+                <span className="landing-step-number">0{index + 1}</span>
                 <h3>{step.title}</h3>
                 <p>{step.text}</p>
               </li>
@@ -133,11 +144,51 @@ export function WaitlistPage() {
         </section>
 
         <section className="landing-section" aria-labelledby="features-title">
-          <p className="landing-eyebrow">Made for site owners and founders</p>
-          <h2 id="features-title">Built for fixing, not for another to-do list.</h2>
-          <div className="landing-features">
+          <header className="landing-section-head reveal">
+            <p className="eyebrow">Made for site owners and founders</p>
+            <h2 id="features-title">Built for fixing, not for another to-do list.</h2>
+          </header>
+          <div className="landing-bento">
+            <article className="card landing-bento-wide reveal">
+              <div className="landing-bento-copy">
+                <span className="landing-feature-icon">
+                  <Icon name="shieldCheck" />
+                </span>
+                <h3>No false alarms</h3>
+                <p>
+                  Most scanners only read raw HTML and flag problems that are not there. We compare it with the real
+                  page and drop the noise.
+                </p>
+              </div>
+              <FalseAlarmDiff />
+            </article>
+            <article className="card landing-bento-wide reveal">
+              <div className="landing-bento-copy">
+                <span className="landing-feature-icon">
+                  <Icon name="code" />
+                </span>
+                <h3>Ready-to-paste fixes</h3>
+                <p>
+                  Missing tags, schema, and social previews come with the exact snippet to add, built from your own
+                  page.
+                </p>
+              </div>
+              <pre className="landing-snippet" aria-label="Example fix">
+                <code>
+                  <span className="tok-tag">&lt;meta</span> <span className="tok-attr">property</span>=
+                  <span className="tok-str">&quot;og:image&quot;</span>
+                  {"\n  "}
+                  <span className="tok-attr">content</span>=
+                  <span className="tok-str">&quot;https://example.com/og.png&quot;</span>{" "}
+                  <span className="tok-tag">/&gt;</span>
+                </code>
+              </pre>
+            </article>
             {FEATURES.map((feature) => (
-              <article key={feature.title}>
+              <article className="card reveal" key={feature.title}>
+                <span className="landing-feature-icon">
+                  <Icon name={feature.icon} />
+                </span>
                 <h3>{feature.title}</h3>
                 <p>{feature.text}</p>
               </article>
@@ -145,66 +196,59 @@ export function WaitlistPage() {
           </div>
         </section>
 
-        <section className="landing-proof" aria-labelledby="proof-title">
-          <div>
-            <p className="landing-eyebrow">Real result</p>
+        <section className="landing-proof reveal" aria-labelledby="proof-title">
+          <div className="landing-proof-copy">
+            <p className="eyebrow">Real result</p>
             <h2 id="proof-title">85 to 100, with a receipt.</h2>
             <p>
               Our founder’s own portfolio site went from 7 problems to none across two small changes. The same audit ran
               before and after each one, so every step is on the record.
             </p>
-            <a className="landing-link" href="/proof">
-              See the before and after →
+            <a className="link-arrow" href="/proof">
+              See the before and after <span className="arrow">→</span>
             </a>
           </div>
           <dl className="landing-proof-scores">
-            <div>
-              <dt>Before</dt>
-              <dd>85</dd>
-              <span>7 problems</span>
-            </div>
-            <div>
-              <dt>After fix 1</dt>
-              <dd>99</dd>
-              <span>2 problems</span>
-            </div>
-            <div>
-              <dt>After fix 2</dt>
-              <dd>100</dd>
-              <span>0 problems</span>
-            </div>
+            {[
+              ["Before", 85, "7 problems"],
+              ["After fix 1", 99, "2 problems"],
+              ["After fix 2", 100, "0 problems"]
+            ].map(([label, score, problems]) => (
+              <div key={label}>
+                <dt>{label}</dt>
+                <dd>{score}</dd>
+                <span className="landing-proof-bar" style={{ "--score": score }} aria-hidden="true" />
+                <span>{problems}</span>
+              </div>
+            ))}
           </dl>
         </section>
 
         <section className="landing-section" aria-labelledby="pricing-title">
-          <p className="landing-eyebrow">Pricing</p>
-          <h2 id="pricing-title">Free to find it. Pay only to fix it.</h2>
+          <header className="landing-section-head reveal">
+            <p className="eyebrow">Pricing</p>
+            <h2 id="pricing-title">Free to find it. Pay only to fix it.</h2>
+          </header>
           <div className="landing-plans">
-            <article>
-              <h3>Page check</h3>
-              <p className="landing-price">Free</p>
-              <p>One public page, no account.</p>
-            </article>
-            <article className="featured">
-              <h3>Site audit</h3>
-              <p className="landing-price">Free</p>
-              <p>Up to 1,000 pages, saved reports, and a repair queue. Free during the beta.</p>
-            </article>
-            <article>
-              <h3>Fix Pack</h3>
-              <p className="landing-price">$99</p>
-              <p>One-time repair pass and a rerun that proves it, only when a report finds real fixes.</p>
-            </article>
+            {PLANS.map((plan) => (
+              <article className={`card reveal${plan.featured ? " featured" : ""}`} key={plan.name}>
+                <h3>{plan.name}</h3>
+                <p className="landing-price">{plan.price}</p>
+                <p>{plan.text}</p>
+              </article>
+            ))}
           </div>
-          <a className="landing-link" href="/pricing">
-            Compare plans →
+          <a className="link-arrow landing-more" href="/pricing">
+            Compare plans <span className="arrow">→</span>
           </a>
         </section>
 
-        <section className="landing-section" aria-labelledby="faq-title">
-          <p className="landing-eyebrow">Questions</p>
-          <h2 id="faq-title">Straight answers.</h2>
-          <div className="landing-faq">
+        <section className="landing-section landing-faq-section" aria-labelledby="faq-title">
+          <header className="landing-section-head reveal">
+            <p className="eyebrow">Questions</p>
+            <h2 id="faq-title">Straight answers.</h2>
+          </header>
+          <div className="landing-faq reveal">
             {FAQ.map((item) => (
               <details key={item.q}>
                 <summary>{item.q}</summary>
@@ -214,21 +258,23 @@ export function WaitlistPage() {
           </div>
         </section>
 
-        <section className="landing-final" aria-labelledby="final-title">
-          <h2 id="final-title">Find out what is really wrong with your site.</h2>
+        <section className="landing-final hero-light reveal" aria-labelledby="final-title">
+          <h2 className="ink-gradient" id="final-title">
+            Find out what is really wrong with your site.
+          </h2>
           <p>Start with one page for free. No account, no card.</p>
           <div className="landing-final-actions">
-            <a className="landing-btn" href="/check">
-              Check a page free
+            <a className="btn btn-primary btn-lg" href="/check">
+              Check a page free <span className="arrow">→</span>
             </a>
-            <a className="landing-btn landing-btn-ghost" href="#get-started">
+            <a className="btn btn-secondary btn-lg" href="#get-started">
               Create a free account
             </a>
           </div>
         </section>
       </main>
 
-      <LandingFooter />
+      <SiteFooter />
     </div>
   );
 }
@@ -292,7 +338,9 @@ function AccessForm() {
 
   return (
     <form className="landing-form" id="get-started" onSubmit={requestAccess}>
-      <label htmlFor="email">Work email</label>
+      <label className="sr-only" htmlFor="email">
+        Work email
+      </label>
       <div className="landing-form-row">
         <input
           autoComplete="email"
@@ -304,7 +352,7 @@ function AccessForm() {
           type="email"
           value={email}
         />
-        <button disabled={status === "submitting"} type="submit">
+        <button className="btn btn-primary" disabled={status === "submitting"} type="submit">
           {status === "submitting" ? "Sending…" : "Get started free"}
         </button>
       </div>
@@ -337,88 +385,169 @@ function AccessForm() {
   );
 }
 
-// Illustrative report card for the hero. It mirrors the real report's
-// structure (score, proven issues, a filtered false alarm, a fix snippet)
-// and is labelled as an example.
-function ReportPreview() {
+const SHOT_ROWS = [
+  {
+    severity: "critical",
+    label: "Critical",
+    text: "Pricing page is set to noindex",
+    pages: "1 page",
+    status: "Fix ready"
+  },
+  {
+    severity: "warning",
+    label: "Warning",
+    text: "12 pages share the same title",
+    pages: "12 pages",
+    status: "Fix ready"
+  },
+  {
+    severity: "notice",
+    label: "Notice",
+    text: "Social preview image missing",
+    pages: "48 pages",
+    status: "Proven fixed"
+  },
+  {
+    severity: "ok",
+    label: "Filtered",
+    text: "“Missing H1” is a false alarm: it appears once the page loads",
+    pages: "6 pages",
+    status: "Ignored"
+  }
+];
+
+// Illustrative product shot for the hero, built in HTML so it stays crisp
+// and light. It mirrors the real report (score, repair queue, a filtered
+// false alarm, a fix snippet, rerun proof) and is labelled as an example.
+function ProductShot() {
   return (
-    <figure className="landing-preview" aria-label="Example SEO Fix Kit report">
-      <div className="preview-bar">
-        <span className="preview-dots" aria-hidden="true">
+    <figure className="shot enter" aria-label="Example SEO Fix Kit report" style={{ "--enter-delay": "260ms" }}>
+      <div className="shot-bar">
+        <span className="shot-dots" aria-hidden="true">
           <i />
           <i />
           <i />
         </span>
-        <span className="preview-url">example.com · 48 pages audited</span>
+        <span className="shot-url">example.com · 48 pages audited</span>
+        <span className="shot-tabs" aria-hidden="true">
+          <span className="is-active">Repair queue</span>
+          <span>Pages</span>
+          <span>Proof</span>
+        </span>
       </div>
-      <div className="preview-body">
-        <div className="preview-score">
-          <div>
-            <span className="preview-label">Site score</span>
-            <strong>72</strong>
-          </div>
-          <div className="preview-delta">
-            <span className="preview-label">After fixes</span>
-            <strong>96</strong>
+      <div className="shot-body">
+        <aside className="shot-side">
+          <ShotRing before={72} after={96} />
+          <dl className="shot-counts">
+            <div>
+              <dt>Critical</dt>
+              <dd className="sev-critical">1</dd>
+            </div>
+            <div>
+              <dt>Warnings</dt>
+              <dd className="sev-warning">3</dd>
+            </div>
+            <div>
+              <dt>False alarms filtered</dt>
+              <dd className="sev-ok">6</dd>
+            </div>
+          </dl>
+        </aside>
+        <div className="shot-main">
+          <p className="shot-heading">Repair queue</p>
+          <ul className="shot-rows">
+            {SHOT_ROWS.map((row, index) => (
+              <li
+                className={`enter${row.severity === "ok" ? " is-filtered" : ""}`}
+                key={row.text}
+                style={{ "--enter-delay": `${420 + index * 70}ms` }}
+              >
+                <span className={`chip chip-${row.severity}`}>{row.label}</span>
+                <span className="shot-row-text">{row.text}</span>
+                <span className="shot-row-pages">{row.pages}</span>
+                <span className={`shot-status${row.status === "Proven fixed" ? " is-proven" : ""}`}>{row.status}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="shot-detail">
+          <p className="shot-heading">Suggested fix</p>
+          <pre className="landing-snippet">
+            <code>
+              <span className="tok-tag">&lt;meta</span> <span className="tok-attr">property</span>=
+              <span className="tok-str">&quot;og:image&quot;</span>
+              {"\n  "}
+              <span className="tok-attr">content</span>=<span className="tok-str">&quot;/og.png&quot;</span>{" "}
+              <span className="tok-tag">/&gt;</span>
+            </code>
+          </pre>
+          <div className="shot-receipt">
+            <p className="shot-heading">Rerun proof</p>
+            <p>
+              <strong>3 fixed</strong> · 0 new · 1 still open
+            </p>
           </div>
         </div>
-        <ul className="preview-issues">
-          <li>
-            <span className="chip chip-critical">Critical</span>
-            <span>Pricing page is set to noindex</span>
-          </li>
-          <li>
-            <span className="chip chip-warning">Warning</span>
-            <span>12 pages share the same title</span>
-          </li>
-          <li>
-            <span className="chip chip-notice">Notice</span>
-            <span>Social preview image missing</span>
-          </li>
-          <li className="preview-filtered">
-            <span className="chip chip-ok">Filtered</span>
-            <span>“Missing H1” is a false alarm: it appears once the page loads</span>
-          </li>
-        </ul>
-        <pre className="preview-snippet" aria-label="Suggested fix">
-          <code>{`<meta property="og:image"\n  content="https://example.com/og.png" />`}</code>
-        </pre>
       </div>
       <figcaption>Example report</figcaption>
     </figure>
   );
 }
 
-function LandingFooter() {
+function ShotRing({ before, after }) {
+  const radius = 34;
+  const circumference = 2 * Math.PI * radius;
   return (
-    <footer className="landing-footer">
-      <div className="landing-footer-brand">
-        <a className="landing-brand" href="/">
-          SEO Fix Kit
-        </a>
-        <p>Find the SEO problems that matter, prove them, and fix them.</p>
+    <div className="shot-ring">
+      <svg aria-hidden="true" viewBox="0 0 80 80">
+        <circle className="shot-ring-track" cx="40" cy="40" r={radius} />
+        <circle
+          className="shot-ring-before"
+          cx="40"
+          cy="40"
+          r={radius}
+          strokeDasharray={circumference}
+          strokeDashoffset={circumference * (1 - before / 100)}
+        />
+        <circle
+          className="shot-ring-after"
+          cx="40"
+          cy="40"
+          r={radius}
+          strokeDasharray={circumference}
+          style={{ "--ring-from": circumference * (1 - before / 100), "--ring-to": circumference * (1 - after / 100) }}
+        />
+      </svg>
+      <div className="shot-ring-label">
+        <strong>{after}</strong>
+        <span>from {before}</span>
       </div>
-      <nav aria-label="Product">
-        <h2>Product</h2>
-        <a href="/check">Free page check</a>
-        <a href="/demo">Sample report</a>
-        <a href="/proof">Customer proof</a>
-        <a href="/pricing">Pricing</a>
-      </nav>
-      <nav aria-label="Use cases">
-        <h2>Use cases</h2>
-        <a href="/small-business-seo-audit">Small business SEO audit</a>
-        <a href="/rendered-vs-static-seo-audit">JavaScript SEO audit</a>
-        <a href="/ai-answer-readiness">AI answer readiness</a>
-      </nav>
-      <nav aria-label="Company">
-        <h2>Company</h2>
-        <a href="/methodology">How it works</a>
-        <a href="/support">Support</a>
-        <a href="/terms">Terms</a>
-        <a href="/privacy">Privacy</a>
-        <a href="mailto:support@seofixkit.com">support@seofixkit.com</a>
-      </nav>
-    </footer>
+    </div>
+  );
+}
+
+// Raw HTML vs rendered page, the comparison behind "no false alarms".
+function FalseAlarmDiff() {
+  return (
+    <div className="landing-diff" aria-label="Raw HTML compared with the rendered page">
+      <div>
+        <p className="landing-diff-head">Raw HTML</p>
+        <p className="landing-diff-row is-bad">
+          <Icon name="x" size={14} /> No &lt;h1&gt; found
+        </p>
+        <p className="landing-diff-row is-bad">
+          <Icon name="x" size={14} /> 41 words
+        </p>
+      </div>
+      <div>
+        <p className="landing-diff-head">Real browser</p>
+        <p className="landing-diff-row is-good">
+          <Icon name="check" size={14} /> &lt;h1&gt; present
+        </p>
+        <p className="landing-diff-row is-good">
+          <Icon name="check" size={14} /> 1,284 words
+        </p>
+      </div>
+    </div>
   );
 }
