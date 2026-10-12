@@ -28,7 +28,11 @@ export async function prerender({ dist = DIST } = {}) {
     const { render } = await vite.ssrLoadModule("/src/entry-server.jsx");
     const html = render("/");
     fs.writeFileSync(new URL("beta-shell.html", dist), template);
-    fs.writeFileSync(indexFile, template.replace(EMPTY_ROOT, `<div id="root">${html}</div>`));
+    // The public site is light; the signed-in app shell above stays dark.
+    const page = template
+      .replace('<html lang="en">', '<html lang="en" data-theme="light">')
+      .replace(EMPTY_ROOT, `<div id="root">${html}</div>`);
+    fs.writeFileSync(indexFile, page);
     return html;
   } finally {
     await vite.close();

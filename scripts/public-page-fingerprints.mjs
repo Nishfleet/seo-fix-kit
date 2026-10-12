@@ -19,6 +19,7 @@ const SPA_LANDING_FILES = [
   "src/pages/landing.css",
   "src/components/SiteChrome.jsx",
   "src/components/Icon.jsx",
+  "src/components/ProofField.jsx",
   "src/design/tokens.css",
   "src/design/site.css",
   "shared/site-nav.js",

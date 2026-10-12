@@ -49,6 +49,28 @@ test.describe("homepage", () => {
     await expect(page).toHaveURL(/#main$/);
   });
 
+  test("the public site is light and the signed-in app stays dark", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+    await page.goto("/pricing");
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+    await page.goto("/beta");
+    await expect(page.locator("html")).not.toHaveAttribute("data-theme", "light");
+  });
+
+  test("the product tour switches between real screens", async ({ page }) => {
+    await page.goto("/");
+    const tabs = page.getByRole("tablist", { name: "Product screens" });
+    const panel = page.getByRole("tabpanel");
+    await expect(panel.getByRole("img", { name: /report/ })).toBeVisible();
+    await tabs.getByRole("tab", { name: /Every page/ }).click();
+    await expect(tabs.getByRole("tab", { name: /Every page/ })).toHaveAttribute("aria-selected", "true");
+    const screen = panel.getByRole("img", { name: /pages table/ });
+    await screen.scrollIntoViewIfNeeded();
+    await expect(screen).toBeVisible();
+    expect(await screen.evaluate((img) => img.naturalWidth)).toBeGreaterThan(0);
+  });
+
   test("motion turns off for people who ask for reduced motion", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/");
@@ -94,6 +116,25 @@ test.describe("site header", () => {
       await menu.click();
       await nav.getByRole("link", { name: "How it works" }).click();
       await expect(page).toHaveURL(/\/methodology$/);
+    });
+  }
+
+  for (const path of ["/", "/pricing"]) {
+    test(`the Product menu opens, links out and closes on ${path}`, async ({ page, isMobile }) => {
+      await page.goto(path);
+      const header = page.getByRole("banner");
+      if (isMobile) await header.getByRole("button", { name: "Menu" }).click();
+      const trigger = header.getByRole("button", { name: "Product" });
+      const sample = header.getByRole("link", { name: /Sample report/ });
+      await expect(sample).toBeHidden();
+      await trigger.click();
+      await expect(trigger).toHaveAttribute("aria-expanded", "true");
+      await expect(sample).toBeVisible();
+      await page.keyboard.press("Escape");
+      await expect(trigger).toHaveAttribute("aria-expanded", "false");
+      await trigger.click();
+      await sample.click();
+      await expect(page).toHaveURL(/\/demo$/);
     });
   }
 

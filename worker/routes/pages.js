@@ -176,9 +176,27 @@ function publicAssetHead(origin) {
 // /favicon.svg drawn by .brand::before so the link text stays the plain
 // product name. /site.js turns the nav into a menu on small screens.
 function siteHeader(origin, currentPath = "") {
-  const links = SITE_NAV.map(
-    ({ href, label }) => `<a href="${origin}${href}"${href === currentPath ? ' aria-current="page"' : ""}>${label}</a>`
-  ).join("\n          ");
+  const current = (href) => (href === currentPath ? ' aria-current="page"' : "");
+  const chevron =
+    '<svg aria-hidden="true" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m3 4.5 3 3 3-3" /></svg>';
+  const links = SITE_NAV.map((entry) => {
+    if (!entry.items) {
+      const kind = entry.kind ? ` class="site-nav-${entry.kind}"` : "";
+      return `<a${kind} href="${origin}${entry.href}"${current(entry.href)}>${entry.label}</a>`;
+    }
+    const items = entry.items
+      .map(
+        ({ href, label, text }) =>
+          `<a href="${origin}${href}"${current(href)}><strong>${label}</strong><span>${text}</span></a>`
+      )
+      .join("\n              ");
+    return `<div class="site-nav-group" data-nav-group>
+            <button class="site-nav-trigger" type="button" aria-expanded="false" aria-controls="site-nav-${entry.id}">${entry.label}${chevron}</button>
+            <div class="site-nav-menu" id="site-nav-${entry.id}">
+              ${items}
+            </div>
+          </div>`;
+  }).join("\n          ");
   return `<a class="site-skip" href="#main">Skip to content</a>
     <header class="site-header">
       <div class="site-header-inner">
@@ -246,7 +264,7 @@ function pageSocialHead({ origin, title, description, path = "/" }) {
 
 function demoHtml(origin) {
   return `<!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -584,7 +602,7 @@ function pricingHtml(origin) {
     heading: "Free to find it. Pay only to fix it.",
     lead: "Check pages and audit your site for free. When a report finds real problems, a one-time Fix Pack walks you through the repairs and proves they worked.",
     body: `
-      <section class="plans" aria-label="Plans">${cards}
+      <section class="plans" id="plans" aria-label="Plans">${cards}
       </section>
       <section class="band">
         <h2>Compare plans</h2>
@@ -611,8 +629,8 @@ function pricingHtml(origin) {
     faq: PRICING_FAQ,
     extraStyle: `
       .plans { display: grid; gap: 16px; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0 0 48px; }
-      .plan { align-content: start; background: linear-gradient(180deg, rgba(251,248,239,.055), rgba(251,248,239,.02)); border: 1px solid var(--line); border-radius: var(--radius-xl); box-shadow: var(--shadow-sm); display: grid; gap: 16px; padding: 28px 24px; position: relative; min-width: 0; }
-      .plan.featured { background: linear-gradient(180deg, rgba(152,240,204,.09), rgba(152,240,204,.02) 45%, rgba(251,248,239,.02)); border-color: rgba(152,240,204,.55); box-shadow: 0 0 0 1px rgba(152,240,204,.35), 0 32px 80px -36px rgba(152,240,204,.45); }
+      .plan { align-content: start; background: var(--card-bg); border: 1px solid var(--line); border-radius: var(--radius-xl); box-shadow: var(--shadow-sm); display: grid; gap: 16px; padding: 28px 24px; position: relative; min-width: 0; }
+      .plan.featured { background: linear-gradient(180deg, var(--accent-surface), transparent 45%), var(--card-bg); border-color: var(--line-accent); box-shadow: var(--shadow-accent); }
       .plan h2 { font-size: 20px; margin: 0; }
       .plan-badge { background: var(--accent); border-radius: 999px; color: var(--accent-ink); font-size: 12px; font-weight: 600; justify-self: start; margin: 0; padding: 4px 10px; position: absolute; right: 20px; top: 24px; }
       .plan-price { display: grid; gap: 4px; margin: 0; }
@@ -954,7 +972,7 @@ function publicProductPageHtml({
     `
       : "";
   return `<!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -990,7 +1008,7 @@ ${extraLd.join("\n")}
       .package-price { border-left: 3px solid var(--gold); color: var(--ink); margin: 2px 0; padding-left: 12px; }
       .package-price strong { color: var(--gold); font-size: 22px; font-weight: 700; }
       .package-card a { align-items: center; border: 1px solid var(--line-accent); border-radius: var(--radius-lg); display: inline-flex; font-size: 14px; justify-content: center; min-height: 40px; padding: 0 14px; width: fit-content; }
-      .package-card a:hover { background: rgba(152,240,204,.08); border-color: var(--accent); text-decoration: none; }
+      .package-card a:hover { background: var(--accent-surface); border-color: var(--accent); text-decoration: none; }
       .check-list { display: grid; gap: 12px; list-style: none; margin: 0 0 16px; padding-left: 0; }
       .check-list li { background: var(--surface-sunken); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 14px 16px; min-width: 0; }
       .faq-list { display: grid; gap: 12px; }
@@ -1054,7 +1072,7 @@ function proofCaseHtml(origin) {
   const description = `Real before/after proof: a portfolio site went from ${PROOF_CASE.before.score}/100 with ${PROOF_CASE.before.findings} findings to ${PROOF_CASE.after.score}/100 with ${PROOF_CASE.after.findings} after owner-approved fixes.`;
   const title = "Before/After Repair Proof - SEO Fix Kit";
   return `<!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -1211,7 +1229,7 @@ The same audit path ran three times against the same host: once before the repai
 
 function privacyHtml(origin) {
   return `<!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -1338,7 +1356,7 @@ function termsHtml(origin) {
 
 function policyPageHtml({ origin, title, description, body, path = "/" }) {
   return `<!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -1376,7 +1394,7 @@ function notFoundHtml(origin = "") {
   const description =
     "This page does not exist on SEO Fix Kit. Start from the homepage, check one page for free, or read the methodology.";
   return `<!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -1390,7 +1408,7 @@ function notFoundHtml(origin = "") {
       h1 { font-size: var(--text-display); line-height: var(--leading-display); margin: 16px 0 20px; min-width: 0; overflow-wrap: break-word; }
       p { color: var(--ink-soft); font-size: 18px; line-height: 1.6; margin: 0; overflow-wrap: anywhere; }
       .links { align-items: center; display: flex; flex-wrap: wrap; gap: 12px; margin: 32px 0 0; min-width: 0; }
-      .result { background: linear-gradient(180deg, rgba(251,248,239,.06), rgba(251,248,239,.02)); border: 1px solid var(--line); border-radius: var(--radius-xl); box-shadow: var(--shadow-lg); min-width: 0; overflow: hidden; }
+      .result { background: var(--card-bg); border: 1px solid var(--line); border-radius: var(--radius-xl); box-shadow: var(--shadow-lg); min-width: 0; overflow: hidden; }
       .result-bar { align-items: center; border-bottom: 1px solid var(--line); color: var(--ink-muted); display: flex; font-family: var(--font-mono); font-size: 12px; gap: 10px; padding: 12px 16px; }
       .result-bar i { background: var(--line-strong); border-radius: 50%; display: inline-block; height: 8px; width: 8px; }
       .result-body { display: grid; gap: 12px; padding: 20px; }

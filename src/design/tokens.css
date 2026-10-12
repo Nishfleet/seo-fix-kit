@@ -23,7 +23,8 @@
     U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
-:root {
+:root,
+[data-theme="dark"] {
   color-scheme: dark;
 
   /* Colour: neutrals */
@@ -135,6 +136,94 @@
   --glow-accent: radial-gradient(60% 60% at 50% 0%, rgba(152, 240, 204, 0.16), transparent 70%);
   --glow-gold: radial-gradient(35% 45% at 22% 30%, rgba(214, 177, 95, 0.06), transparent 70%);
   --grid-line: rgba(251, 248, 239, 0.035);
+
+  /* Component surfaces that differ between themes. */
+  --header-bg: rgba(7, 9, 8, 0.78);
+  --header-bg-clear: rgba(7, 9, 8, 0);
+  --sheet-bg: rgba(7, 9, 8, 0.96);
+  --card-bg: linear-gradient(180deg, rgba(251, 248, 239, 0.055), rgba(251, 248, 239, 0.025));
+  --line-hover: rgba(251, 248, 239, 0.3);
+  --ink-fade: rgba(251, 248, 239, 0.62);
+  --accent-glow: rgba(152, 240, 204, 0.18);
+  --btn-primary-bg: linear-gradient(180deg, #aaf4d6, #98f0cc);
+  --btn-primary-bg-hover: linear-gradient(180deg, #c4f8e2, #b6f6dc);
+  --btn-primary-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.35) inset, 0 0 0 1px rgba(152, 240, 204, 0.4),
+    0 6px 20px -8px rgba(152, 240, 204, 0.55);
+  --btn-primary-shadow-hover:
+    0 1px 0 rgba(255, 255, 255, 0.4) inset, 0 0 0 1px rgba(152, 240, 204, 0.55),
+    0 10px 28px -8px rgba(152, 240, 204, 0.65);
+}
+
+/*
+ * Light theme: the public marketing site (homepage and worker-rendered
+ * pages set data-theme="light" on <html>). Warm paper, near-black ink and a
+ * deep "proof green" accent; the signed-in app stays dark. Only colour and
+ * elevation change, so every component keeps its shape. Put
+ * data-theme="dark" on an element to render a dark island (product shots)
+ * inside a light page. :root[...] outranks the app's own :root aliases.
+ */
+:root[data-theme="light"],
+[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #fbfaf7;
+  --bg-raised: #ffffff;
+  --surface: rgba(11, 15, 13, 0.035);
+  --surface-hover: rgba(11, 15, 13, 0.06);
+  --surface-strong: rgba(11, 15, 13, 0.08);
+  --surface-sunken: #f3f2ec;
+  --surface-field: #ffffff;
+  --line: rgba(11, 15, 13, 0.1);
+  --line-strong: rgba(11, 15, 13, 0.18);
+  --ink: #0b0f0d;
+  --ink-soft: rgba(11, 15, 13, 0.74);
+  --ink-muted: rgba(11, 15, 13, 0.62);
+  --ink-placeholder: rgba(11, 15, 13, 0.55);
+
+  --accent: #0f7a56;
+  --accent-hover: #0b6646;
+  --accent-ink: #ffffff;
+  --accent-strong: #0f7a56;
+  --accent-surface: rgba(15, 122, 86, 0.07);
+  --line-accent: rgba(15, 122, 86, 0.3);
+  --gold: #8f6210;
+  --gold-line: rgba(143, 98, 16, 0.3);
+  --gold-surface: rgba(214, 177, 95, 0.14);
+
+  /* Text values meet WCAG AA on --bg and white. */
+  --success: #0f7a56;
+  --success-surface: rgba(15, 122, 86, 0.08);
+  --warning: #8a5a00;
+  --warning-surface: rgba(242, 180, 60, 0.16);
+  --error: #b42318;
+  --error-line: rgba(180, 35, 24, 0.35);
+  --error-surface: rgba(180, 35, 24, 0.07);
+  --info: #2453b8;
+  --info-surface: rgba(36, 83, 184, 0.08);
+
+  --shadow-sm: 0 1px 2px rgba(11, 15, 13, 0.06), 0 0 0 1px rgba(11, 15, 13, 0.02);
+  --shadow-md: 0 1px 2px rgba(11, 15, 13, 0.04), 0 10px 28px -12px rgba(11, 15, 13, 0.16);
+  --shadow-lg: 0 2px 4px rgba(11, 15, 13, 0.04), 0 32px 72px -28px rgba(11, 15, 13, 0.28);
+  --shadow-accent: 0 0 0 1px rgba(15, 122, 86, 0.28), 0 14px 36px -16px rgba(15, 122, 86, 0.45);
+
+  --glow-accent: radial-gradient(60% 60% at 50% 0%, rgba(152, 240, 204, 0.32), transparent 70%);
+  --glow-gold: radial-gradient(35% 45% at 22% 30%, rgba(214, 177, 95, 0.12), transparent 70%);
+  --grid-line: rgba(11, 15, 13, 0.045);
+
+  --header-bg: rgba(251, 250, 247, 0.82);
+  --header-bg-clear: rgba(251, 250, 247, 0);
+  --sheet-bg: rgba(251, 250, 247, 0.98);
+  --card-bg: #ffffff;
+  --line-hover: rgba(11, 15, 13, 0.28);
+  --ink-fade: rgba(11, 15, 13, 0.66);
+  --accent-glow: rgba(15, 122, 86, 0.18);
+  --btn-primary-bg: linear-gradient(180deg, #14875f, #0f7a56);
+  --btn-primary-bg-hover: linear-gradient(180deg, #0f7a56, #0b6646);
+  --btn-primary-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.18) inset, 0 0 0 1px #0b6646, 0 6px 16px -8px rgba(15, 122, 86, 0.6);
+  --btn-primary-shadow-hover:
+    0 1px 0 rgba(255, 255, 255, 0.22) inset, 0 0 0 1px #095a3e, 0 10px 24px -8px rgba(15, 122, 86, 0.6);
 }
 
 @media (prefers-reduced-motion: reduce) {
