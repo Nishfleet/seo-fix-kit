@@ -202,7 +202,7 @@ export function CustomerDashboard({
                 <p>{auditJobDetail(job)}</p>
               </div>
               {job.reportPath ? (
-                <Link className="action-link" to={job.reportPath}>Open report</Link>
+                <Link discover="none" className="action-link" to={job.reportPath}>Open report</Link>
               ) : (
                 <span className="quiet-note">{job.status === "failed" ? "Needs rerun" : "Working"}</span>
               )}
@@ -226,7 +226,7 @@ export function CustomerDashboard({
           </div>
           <div className="account-list">
             {reports.slice(0, 4).map((item) => (
-              <Link to={item.reportPath} key={item.id}>
+              <Link discover="none" to={item.reportPath} key={item.id}>
                 <span>{item.targetHost || safeHostnameLabel(item.url)}</span>
                 <strong>{item.score}/100</strong>
               </Link>
@@ -241,7 +241,7 @@ export function CustomerDashboard({
           </div>
           <div className="account-list">
             {fixRequests.slice(0, 3).map((request) => (
-              <Link to={request.reportPath || "/beta/billing"} key={request.id}>
+              <Link discover="none" to={request.reportPath || "/beta/billing"} key={request.id}>
                 <span>{request.targetHost || request.targetUrl || "Fix Pack"}</span>
                 <strong>{request.statusLabel || statusLabel(request.status)}</strong>
               </Link>

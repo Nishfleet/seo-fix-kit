@@ -84,7 +84,7 @@ export function AdminDashboard({
           </div>
           <div className="ops-table">
             {(adminData?.recentAudits || []).map((audit) => (
-              <Link className="ops-row" to={audit.reportPath} key={audit.id}>
+              <Link discover="none" className="ops-row" to={audit.reportPath} key={audit.id}>
                 <span>{audit.targetHost || new URL(audit.url).hostname}</span>
                 <span>{audit.ownerEmail || "unknown"}</span>
                 <strong>{audit.score}</strong>

@@ -175,7 +175,7 @@ export function BillingPortal({ ownerEmail }) {
                   {request.deliveredAt && <span>Delivered {formatDate(request.deliveredAt)}</span>}
                 </div>
                 <div className="queue-links">
-                  {request.reportPath && <Link to={request.reportPath}>Report</Link>}
+                  {request.reportPath && <Link discover="none" to={request.reportPath}>Report</Link>}
                   {request.briefPath && <a href={request.briefPath}>Brief</a>}
                   {request.deliveryUrl && <a href={request.deliveryUrl} target="_blank" rel="noreferrer">Delivery</a>}
                 </div>
@@ -185,7 +185,7 @@ export function BillingPortal({ ownerEmail }) {
           {!requests.length && (
             <p className="quiet-note">
               No Fix Pack requests yet. Run an audit, open a report with proven fixes, then start checkout from that report.
-              <Link className="inline-link" to="/beta"> Run an audit</Link>
+              <Link discover="none" className="inline-link" to="/beta"> Run an audit</Link>
             </p>
           )}
         </div>
@@ -212,7 +212,7 @@ export function BillingPortal({ ownerEmail }) {
                 {payment.disputedAt && <span>Disputed {formatDate(payment.disputedAt)}</span>}
               </div>
               <div className="queue-links">
-                {payment.reportPath && <Link to={payment.reportPath}>Report</Link>}
+                {payment.reportPath && <Link discover="none" to={payment.reportPath}>Report</Link>}
               </div>
             </article>
           ))}
