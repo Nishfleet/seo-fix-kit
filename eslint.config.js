@@ -9,6 +9,7 @@
 // switches off every stylistic rule that would fight it.
 import js from "@eslint/js";
 import globals from "globals";
+import react from "eslint-plugin-react";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import jsxA11y from "eslint-plugin-jsx-a11y";
@@ -18,7 +19,8 @@ import prettier from "eslint-config-prettier";
 const backlogWarnings = {
   "no-unused-vars": "warn",
   "no-useless-assignment": "warn",
-  "no-control-regex": "warn",
+  // The input sanitizers deliberately strip C0 control characters.
+  "no-control-regex": "off",
   "preserve-caught-error": "warn",
   "no-useless-escape": "warn",
   "no-regex-spaces": "warn"
@@ -80,11 +82,14 @@ export default [
     files: ["src/**/*.{js,jsx}"],
     ignores: ["src/**/*.test.mjs"],
     plugins: {
+      react,
       "react-hooks": reactHooks,
       "react-refresh": reactRefresh.default ?? reactRefresh
     },
     rules: {
       ...reactHooks.configs.flat.recommended.rules,
+      // Count identifiers used only as JSX tags (<StatusMessage />) as used.
+      "react/jsx-uses-vars": "error",
       // React Compiler rule (react-hooks v7); existing effects predate it.
       "react-hooks/set-state-in-effect": "warn",
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }]
