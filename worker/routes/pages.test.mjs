@@ -496,7 +496,7 @@ function latestCommitIsoIst(renderer) {
   if (!match) return "";
   const [, base, tz] = match;
   if (!tz || tz === "+05:30" || tz === "+0530") return base;
-  // Date.parse honours the offset, so `ms` is the true UTC instant; IST is
+  // Date.parse honours the offset, so this is the true UTC instant; IST is
   // UTC+05:30.
   const istMs = Date.parse(`${base}${tz}`) + 5.5 * 60 * 60 * 1000;
   return new Date(istMs).toISOString().slice(0, 19);
