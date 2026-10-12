@@ -608,7 +608,7 @@ test("public demo and support pages carry enough buyer-facing detail", () => {
   assert.match(demo, /What this sample shows/);
   assert.match(demo, /What this sample does not claim/);
   assert.match(demo, new RegExp(`Anonymous one-page checks are live at ${origin}/check`));
-  assert.match(demo, /Check a page/);
+  assert.match(demo, new RegExp(`href="${origin}/check">Check a page`));
   assert.match(demo, /Neither the sample nor the check promises rankings, traffic, indexing, revenue, AI citations/i);
   assert.doesNotMatch(
     demo,

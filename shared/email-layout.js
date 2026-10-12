@@ -5,7 +5,7 @@
 // emailButton() for their primary link. Email clients ignore <style> blocks
 // and external CSS unevenly, so everything here is table-based with inline
 // styles: a 560px white card with 32px padding on a warm off-white canvas,
-// the mint brand tile and wordmark, and a footer with the support address.
+// the brand app icon and wordmark, and a footer with the support address.
 // The palette matches src/design/tokens.css: near-black ink for the button
 // (Linear/Vercel-style) and the deep brand green for links.
 import { escapeHtml } from "./html.js";
@@ -55,7 +55,7 @@ export function emailLayout({ preheader = "", body = "" } = {}) {
     '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px">',
     "<tr>",
     `<td style="padding:0 4px 20px;font-family:${FONT_STACK};font-size:16px;font-weight:650;color:${INK};letter-spacing:-0.015em">`,
-    `<span style="background:#67d8aa;background-image:linear-gradient(135deg,#c4f8e2,#67d8aa);border-radius:7px;color:${INK};display:inline-block;font-size:13px;font-weight:800;line-height:24px;margin-right:10px;text-align:center;vertical-align:-1px;width:24px">&#10003;</span>SEO Fix Kit`,
+    `<img src="https://seofixkit.com/brand/app-icon-48.png" width="24" height="24" alt="" style="background:${LINK};border:0;border-radius:6px;display:inline-block;margin-right:10px;vertical-align:-6px">SEO Fix Kit`,
     "</td>",
     "</tr>",
     "<tr>",

@@ -215,6 +215,19 @@ function siteHeader(origin, currentPath = "") {
     </header>`;
 }
 
+// Closing call to action shared by the marketing pages: a dark band that
+// mirrors the homepage's final section, so every page ends on a next step.
+function siteCtaBand(origin) {
+  return `<section class="site-cta" data-theme="dark" aria-labelledby="site-cta-title">
+        <h2 id="site-cta-title">See what’s wrong with your site.</h2>
+        <p>Check one page free with no account, or audit the whole site and fix what it finds.</p>
+        <div class="site-cta-actions">
+          <a class="btn btn-primary btn-lg" href="${origin}/check">Check a page <span class="arrow" aria-hidden="true">→</span></a>
+          <a class="btn btn-secondary btn-lg" href="${origin}/#get-started">Create an account</a>
+        </div>
+      </section>`;
+}
+
 // The one site footer every worker-rendered public page uses (twinned by
 // SiteFooter in src/components/SiteChrome.jsx). Links come from
 // shared/site-nav.js; styles live in src/design/site.css under .site-foot.
@@ -361,7 +374,7 @@ ${DEMO_PROOF.repairPlan.map((item) => `          <li><strong>${escapeHtml(item.s
         <h2>What this sample does not claim</h2>
         <p>This is a sample, not an audit of your site. The output above is for our test page only. Anonymous one-page checks are live at ${origin}/check: paste a public URL to see the rendered evidence, the false alarms ruled out, and real problems with fixes. No account, no email, nothing stored. Full site audits need an email sign-in, and deeper crawls need site verification. Neither the sample nor the check promises rankings, traffic, indexing, revenue, AI citations or visibility in AI answers.</p>
       </section>
-      <p><a class="cta" href="${origin}/check">Check a page</a></p>
+      ${siteCtaBand(origin)}
     </main>
     ${siteFooter(origin)}
   </body>
@@ -1019,6 +1032,7 @@ ${extraLd.join("\n")}
       </section>
       ${body}
       ${faqSection}
+      ${siteCtaBand(origin)}
     </main>
     ${siteFooter(origin)}
   </body>
@@ -1097,11 +1111,15 @@ ${ldBlock({
       .panel { display: grid; gap: 4px; min-width: 0; }
       .panel p { margin: 0; }
       .panel strong { color: var(--gold); display: block; font-size: 12px; font-weight: 600; letter-spacing: .08em; margin-bottom: 4px; text-transform: uppercase; }
-      .panel.score p strong { color: var(--ink); display: inline; font-size: 28px; font-weight: 700; letter-spacing: -0.01em; margin: 0; text-transform: none; }
+      .panel.score p strong { color: var(--ink); display: inline; font-size: clamp(36px, 4vw, 48px); font-weight: 700; letter-spacing: -0.04em; margin: 0; text-transform: none; }
       .panel.before { border-color: var(--gold-line); }
       .panel.intermediate { border-color: var(--line-strong); }
       .panel.after { border-color: var(--line-accent); }
       .panel.after > strong { color: var(--accent); }
+      .panel.score { gap: 10px; padding: 24px; }
+      .panel.score::after { background: linear-gradient(90deg, var(--accent) calc(var(--score) * 1%), var(--surface-strong) 0); border-radius: 999px; content: ""; height: 6px; order: 2; }
+      .panel.before.score::after { background: linear-gradient(90deg, var(--gold) calc(var(--score) * 1%), var(--surface-strong) 0); }
+      .panel.score p:last-child { order: 3; }
       .receipt { background: var(--surface-sunken); border: 1px solid var(--line-accent); border-radius: var(--radius-lg); padding: 20px 22px; margin: 24px 0; min-width: 0; }
       .receipt h3 { color: var(--accent); font-size: 12px; font-weight: 600; letter-spacing: .08em; margin: 0 0 12px; text-transform: uppercase; }
       .receipt dl { display: grid; grid-template-columns: max-content 1fr; gap: 8px 16px; margin: 0; }
@@ -1121,17 +1139,17 @@ ${ldBlock({
         <p><a class="cta" href="${origin}/proof.md">Download as Markdown</a></p>
       </section>
       <section class="grid" aria-label="Audit scores before and after each fix">
-        <article class="panel before score">
+        <article class="panel before score" style="--score: ${PROOF_CASE.before.score}">
           <strong>Before</strong>
           <p>Score <strong>${PROOF_CASE.before.score}</strong>/100 &middot; ${PROOF_CASE.before.findings} problems</p>
           <p><a href="${PROOF_CASE.before.reportUrl}">Report</a></p>
         </article>
-        <article class="panel intermediate score">
+        <article class="panel intermediate score" style="--score: ${PROOF_CASE.intermediate.score}">
           <strong>After fix 1</strong>
           <p>Score <strong>${PROOF_CASE.intermediate.score}</strong>/100 &middot; ${PROOF_CASE.intermediate.findings} problems</p>
           <p><a href="${PROOF_CASE.intermediate.reportUrl}">Report</a></p>
         </article>
-        <article class="panel after score">
+        <article class="panel after score" style="--score: ${PROOF_CASE.after.score}">
           <strong>After fix 2</strong>
           <p>Score <strong>${PROOF_CASE.after.score}</strong>/100 &middot; ${PROOF_CASE.after.findings} problems</p>
           <p><a href="${PROOF_CASE.after.reportUrl}">Report</a></p>
@@ -1169,6 +1187,7 @@ ${PROOF_CASE.changes.map((change) => `          <li><strong>${escapeHtml(change.
         <p>The same audit ran three times on the same host: before the repair, after the first merge and after the second. The report links, scores, problem counts and PR links are all here, so anyone can audit <code>https://${PROOF_CASE.site}/</code> again and compare. This is not a prediction of your results. It shows real problems, the fixes that closed them, and the reruns that confirmed it.</p>
         <p><a href="${origin}/check">Check a page on your site</a>, read <a href="${origin}/methodology">how the audit works</a>, or see <a href="${origin}/pricing">pricing</a>.</p>
       </section>
+      ${siteCtaBand(origin)}
     </main>
     ${siteFooter(origin)}
   </body>

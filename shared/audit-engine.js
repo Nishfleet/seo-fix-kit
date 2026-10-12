@@ -3204,18 +3204,18 @@ export const ROOT_PUBLIC_PATHS = [
 // worker/routes/pages.test.mjs refuses a stale lastmod so the update
 // cannot silently ship.
 export const ROOT_PUBLIC_LASTMODS = {
-  "/": "2026-10-12T17:35:13Z",
-  "/demo": "2026-10-12T17:35:12Z",
-  "/check": "2026-10-12T17:35:12Z",
-  "/methodology": "2026-10-12T17:35:11Z",
-  "/pricing": "2026-10-12T17:35:10Z",
-  "/small-business-seo-audit": "2026-10-12T17:35:12Z",
-  "/rendered-vs-static-seo-audit": "2026-10-12T17:35:12Z",
-  "/ai-answer-readiness": "2026-10-12T17:35:11Z",
-  "/privacy": "2026-10-12T17:35:10Z",
-  "/proof": "2026-10-12T17:35:12Z",
-  "/support": "2026-10-12T17:35:10Z",
-  "/terms": "2026-10-12T17:35:10Z"
+  "/": "2026-10-12T18:16:15Z",
+  "/demo": "2026-10-12T18:16:15Z",
+  "/check": "2026-10-12T18:16:15Z",
+  "/methodology": "2026-10-12T18:16:15Z",
+  "/pricing": "2026-10-12T18:16:15Z",
+  "/small-business-seo-audit": "2026-10-12T18:16:15Z",
+  "/rendered-vs-static-seo-audit": "2026-10-12T18:16:15Z",
+  "/ai-answer-readiness": "2026-10-12T18:16:15Z",
+  "/privacy": "2026-10-12T18:16:15Z",
+  "/proof": "2026-10-12T18:16:15Z",
+  "/support": "2026-10-12T18:16:15Z",
+  "/terms": "2026-10-12T18:16:15Z"
 };
 
 export function rootSitemap(origin) {

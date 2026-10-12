@@ -90,7 +90,22 @@ test("a report lists every problem and jumps from the top fixes to the proof", a
   await expect(rows.first()).toHaveAttribute("open", "");
   await expect(rows.nth(1).getByText("Evidence", { exact: true })).toBeHidden();
 
+  // The severity filter narrows the list; a top fix still jumps to its proof
+  // when the filter hides it.
+  const filters = page.getByRole("group", { name: "Filter problems by severity" });
+  // Every filter stays on screen, even on a narrow phone.
+  await page.setViewportSize({ width: 320, height: 700 });
+  const notices = await filters.getByRole("button", { name: /^Notices/ }).boundingBox();
+  expect(notices.x + notices.width).toBeLessThanOrEqual(320);
+  await page.setViewportSize(testInfo.project.use.viewport);
+  await filters.getByRole("button", { name: /^Warnings/ }).click();
+  await expect(filters.getByRole("button", { name: /^Warnings/ })).toHaveAttribute("aria-pressed", "true");
+  await expect(rows).toHaveCount(2);
+  await expect(rows.filter({ hasText: "Missing H1 on /pricing" })).toHaveCount(0);
+
   await page.getByRole("link", { name: "Missing H1 on /pricing" }).click();
+  await expect(filters.getByRole("button", { name: /^All/ })).toHaveAttribute("aria-pressed", "true");
+  await expect(rows).toHaveCount(6);
   const target = page.locator("details", { has: page.getByRole("heading", { name: "Missing H1 on /pricing" }) });
   await expect(target).toHaveAttribute("open", "");
   await expect(target.getByText("Evidence", { exact: true })).toBeInViewport();
