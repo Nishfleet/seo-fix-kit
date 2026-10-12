@@ -3,11 +3,24 @@ import { DEMO_PROOF, DEMO_FIXTURE_PATH, demoProofSnippet } from "./demo-proof.js
 
 const FIX_PACK_PUBLIC_PRICE = "$99.00 one-time";
 
-// The SVG share image every worker-rendered public page ships as
-// og:image/twitter:image. Single source of truth: public/og-image.svg is the
-// 1200x630 file copied into the Worker's asset bundle, and pages.test.mjs
-// pins both the tag and the shipped file so shares never point at a dead URL.
-const SOCIAL_IMAGE_PATH = "/og-image.svg";
+// The PNG share image every worker-rendered public page ships as
+// og:image/twitter:image (social platforms ignore SVG share images). Single
+// source of truth: public/og-image.png is the 1200x630 render of
+// public/og-image.svg copied into the Worker's asset bundle, and
+// pages.test.mjs pins both the tag and the shipped file's PNG dimensions so
+// shares never point at a dead or wrongly sized URL.
+const SOCIAL_IMAGE_PATH = "/og-image.png";
+const SOCIAL_IMAGE_WIDTH = 1200;
+const SOCIAL_IMAGE_HEIGHT = 630;
+
+// Meta tags that describe the share image; reused by /check.
+function socialImageMeta() {
+  return `
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="${SOCIAL_IMAGE_WIDTH}" />
+    <meta property="og:image:height" content="${SOCIAL_IMAGE_HEIGHT}" />
+    <meta property="og:image:alt" content="SEO Fix Kit: SEO fixes with receipts. Audit it. Prove it. Fix it." />`;
+}
 
 function llmsText(origin) {
   return `# SEO Fix Kit
@@ -146,7 +159,7 @@ function ldBlock(value) {
 function publicAssetHead(origin) {
   return `
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="${origin}/apple-touch-icon.svg" />
+    <link rel="apple-touch-icon" href="${origin}/apple-touch-icon.png" sizes="180x180" />
     <link rel="preload" href="/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="/tokens.css" />`;
 }
@@ -186,7 +199,7 @@ function pageSocialHead({ origin, title, description, path = "/" }) {
     <meta property="og:title" content="${escapeHtml(title)}" />
     <meta property="og:description" content="${escapeHtml(description)}" />
     <meta property="og:url" content="${url}" />
-    <meta property="og:image" content="${image}" />
+    <meta property="og:image" content="${image}" />${socialImageMeta()}
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${escapeHtml(title)}" />
     <meta name="twitter:description" content="${escapeHtml(description)}" />
@@ -1175,7 +1188,9 @@ ${pageSocialHead({ origin, title: `${title} - SEO Fix Kit`, description, path })
 }
 
 export {
+  SOCIAL_IMAGE_HEIGHT,
   SOCIAL_IMAGE_PATH,
+  SOCIAL_IMAGE_WIDTH,
   aiAnswerReadinessHtml,
   demoHtml,
   homeMarkdown,
@@ -1189,6 +1204,7 @@ export {
   publicAssetHead,
   renderedVsStaticAuditHtml,
   siteHeader,
+  socialImageMeta,
   smallBusinessSeoAuditHtml,
   supportHtml,
   termsHtml

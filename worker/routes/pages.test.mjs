@@ -11,7 +11,9 @@ import { DEMO_PROOF, DEMO_FIXTURE_PATH, demoProofSnippet } from "./demo-proof.js
 import { renderedFixture } from "./audits.js";
 import { checkHtml } from "./public-check.js";
 import {
+  SOCIAL_IMAGE_HEIGHT,
   SOCIAL_IMAGE_PATH,
+  SOCIAL_IMAGE_WIDTH,
   aiAnswerReadinessHtml,
   demoHtml,
   homeMarkdown,
@@ -29,13 +31,13 @@ import {
 
 const origin = "https://seofixkit.com";
 
-// Every worker-rendered public page must ship the SVG share image as
-// og:image/twitter:image (lane 1: "Every worker-rendered public page ships an
-// SVG as og:image/twitter:image"). The root page is the SPA app shell served
-// from index.html (not worker-rendered) and intentionally keeps its jpg
-// waitlist share image. The image URL is absolute and points at the shipped
-// public/og-image.svg asset, so a share of /demo, /packages, /check, or any
-// other public page never renders without a preview image.
+// Every worker-rendered public page must ship the PNG share image as
+// og:image/twitter:image (social platforms ignore SVG share images, so the
+// SVG source is rendered to public/og-image.png). The root page is the SPA
+// app shell served from index.html (not worker-rendered) and intentionally
+// keeps its jpg waitlist share image. The image URL is absolute and points
+// at the shipped public/og-image.png asset, so a share of /demo, /packages,
+// /check, or any other public page never renders without a preview image.
 const allWorkerRenderedPublicPages = [
   { name: "/demo", html: demoHtml(origin) },
   { name: "/check", html: checkHtml(origin) },
@@ -50,27 +52,52 @@ const allWorkerRenderedPublicPages = [
   { name: "/terms", html: termsHtml(origin) }
 ];
 
-test("every worker-rendered public page ships the SVG share image as og:image and twitter:image", () => {
+test("every worker-rendered public page ships the PNG share image as og:image and twitter:image", () => {
   const imageUrl = `${origin}${SOCIAL_IMAGE_PATH}`;
   for (const { name, html } of allWorkerRenderedPublicPages) {
     assert.match(
       html,
       new RegExp(`<meta property="og:image" content="${imageUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`),
-      `${name} must ship og:image pointing at the SVG share image`
+      `${name} must ship og:image pointing at the PNG share image`
     );
     assert.match(
       html,
       new RegExp(`<meta name="twitter:image" content="${imageUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`),
-      `${name} must ship twitter:image pointing at the SVG share image`
+      `${name} must ship twitter:image pointing at the PNG share image`
     );
-    assert.match(html, /<meta name="twitter:card" content="summary_large_image" \/>/, `${name} must keep the large-image card so the SVG renders`);
+    assert.match(html, /<meta name="twitter:card" content="summary_large_image" \/>/, `${name} must keep the large-image card so the share image renders`);
+    assert.match(html, new RegExp(`<meta property="og:image:width" content="${SOCIAL_IMAGE_WIDTH}" />`), `${name} must declare the share image width`);
+    assert.match(html, new RegExp(`<meta property="og:image:height" content="${SOCIAL_IMAGE_HEIGHT}" />`), `${name} must declare the share image height`);
+    assert.match(html, /<link rel="apple-touch-icon" href="https:\/\/seofixkit\.com\/apple-touch-icon\.png"/, `${name} must point apple-touch-icon at the PNG`);
+    assert.match(html, /<link rel="icon" href="\/favicon\.svg" type="image\/svg\+xml" \/>/, `${name} must ship the favicon`);
   }
 });
 
-test("the SVG share image exists and is a real 1200x630 SVG asset", () => {
-  const svg = readFileSync(new URL(`../../public${SOCIAL_IMAGE_PATH}`, import.meta.url), "utf8");
-  assert.match(svg, /^<svg /, "og-image.svg must be an SVG document");
-  assert.match(svg, /viewBox="0 0 1200 630"/, "og-image.svg must use the 1200x630 share-image viewBox");
+// Reads width/height from a PNG's IHDR chunk (bytes 16-23, big-endian).
+function pngDimensions(path) {
+  const bytes = readFileSync(path);
+  assert.deepEqual([...bytes.subarray(0, 8)], [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], `${path} must be a PNG file`);
+  assert.equal(bytes.subarray(12, 16).toString("ascii"), "IHDR", `${path} must start with an IHDR chunk`);
+  return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
+}
+
+test("the PNG share image and touch icon exist at their declared sizes", () => {
+  assert.equal(SOCIAL_IMAGE_PATH, "/og-image.png");
+  assert.equal(SOCIAL_IMAGE_WIDTH, 1200);
+  assert.equal(SOCIAL_IMAGE_HEIGHT, 630);
+  assert.deepEqual(
+    pngDimensions(new URL(`../../public${SOCIAL_IMAGE_PATH}`, import.meta.url)),
+    { width: SOCIAL_IMAGE_WIDTH, height: SOCIAL_IMAGE_HEIGHT },
+    "og-image.png must be a real 1200x630 PNG"
+  );
+  assert.deepEqual(
+    pngDimensions(new URL("../../public/apple-touch-icon.png", import.meta.url)),
+    { width: 180, height: 180 },
+    "apple-touch-icon.png must be a real 180x180 PNG"
+  );
+  // The SVG stays as the editable source the PNG is rendered from.
+  const svg = readFileSync(new URL("../../public/og-image.svg", import.meta.url), "utf8");
+  assert.match(svg, /viewBox="0 0 1200 630"/, "og-image.svg source must keep the 1200x630 viewBox");
 });
 const expectedSitemapUrls = ROOT_PUBLIC_PATHS.map((path) => `${origin}${path}`);
 

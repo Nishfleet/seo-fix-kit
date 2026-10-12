@@ -28,7 +28,7 @@ import { jsonNoStore } from "../lib/http.js";
 import { checkQuotaSet, requestIpHash, sha256Hex } from "../lib/security.js";
 import { dayWindow, hourWindow } from "../lib/text.js";
 import { auditUrl } from "./audits.js";
-import { SOCIAL_IMAGE_PATH, publicAssetHead, siteHeader } from "./pages.js";
+import { SOCIAL_IMAGE_PATH, publicAssetHead, siteHeader, socialImageMeta } from "./pages.js";
 
 export const CHECK_PAGE_PATH = "/check";
 export const PUBLIC_CHECK_API_PATH = "/api/public-check";
@@ -307,7 +307,7 @@ export function checkHtml(origin) {
     <meta property="og:title" content="Check One Page for SEO Proof - SEO Fix Kit" />
     <meta property="og:description" content="Paste any public page URL and see what a browser-rendered, proof-backed audit finds. No account, no ranking promises." />
     <meta property="og:url" content="${origin}/check" />
-    <meta property="og:image" content="${origin}${SOCIAL_IMAGE_PATH}" />
+    <meta property="og:image" content="${origin}${SOCIAL_IMAGE_PATH}" />${socialImageMeta()}
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Check One Page for SEO Proof - SEO Fix Kit" />
     <meta name="twitter:description" content="Paste any public page URL and see browser-rendered SEO proof. No account, no ranking promises." />
