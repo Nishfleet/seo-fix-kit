@@ -1,7 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import { buildRemediationBrief } from "../shared/remediation-brief.js";
-import { readSpaSource } from "../scripts/spa-source.mjs";
 
 const report = {
   id: "r_demo",
@@ -117,17 +115,9 @@ assert.equal(duplicateTitleBrief.priorityQueue[0].id, "missing-meta-home");
 assert.equal(duplicateTitleBrief.priorityQueue[1].id, "missing-meta-pricing");
 assert.equal(duplicateTitleBrief.priorityQueue[1].pageUrl, "https://example.com/pricing");
 
-const routeSource = readFileSync(new URL("../worker/routes/reports.js", import.meta.url), "utf8");
-assert.match(routeSource, /remediation-brief\.json/);
-assert.match(routeSource, /buildRemediationBrief\(report\)/);
+// The report and remediation-brief routes are covered end to end in
+// test/core-api-flow.test.mjs.
 
-assert.match(routeSource, /report\.remediationBrief = buildRemediationBrief\(report\)/);
-
-const workerSource = readFileSync(new URL("../worker/index.js", import.meta.url), "utf8");
-assert.match(workerSource, /api\/reports\/:id\/remediation-brief\.json/);
-
-const appSource = readSpaSource();
-assert.match(appSource, /RemediationBriefPanel/);
-assert.match(appSource, /Download remediation JSON/);
+// The report UI's remediation brief panel and JSON download are checked in a browser by test/spa.test.mjs.
 
 console.log(JSON.stringify({ ok: true, checked: "remediation brief" }, null, 2));

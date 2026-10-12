@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { offerCatalog, sellableOffers } from "../shared/offers.js";
 import { homeMarkdown, llmsText, supportHtml, termsHtml } from "../worker/routes/pages.js";
-import { readSpaSource } from "../scripts/spa-source.mjs";
 
 const origin = "https://seofixkit.com";
 const llms = llmsText(origin);
@@ -16,7 +15,6 @@ const repairSprintOffers = offerCatalog({
   monitoringCheckoutReady: true,
   repairSprintCheckoutReady: true
 });
-const app = readSpaSource();
 const index = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const schema = homepageSchema(index);
 const schemaTypes = schemaTypesFromGraph(schema);
@@ -42,12 +40,7 @@ assert.equal(support.includes("No ranking, traffic, or revenue promise is made."
 assert.equal(terms.includes("No ranking, indexing, traffic, revenue, or search-engine outcome is promised"), true);
 assert.equal(/\$199-\$399\/mo/.test(llms), false);
 assert.equal(/\$299-\$799\/mo/.test(llms), false);
-assert.equal(app.includes("What happens after I enter a URL?"), true);
-assert.equal(app.includes("What does the paid Fix Pack include?"), true);
-assert.equal(app.includes("How is AI or GEO readiness handled?"), true);
-assert.equal(app.includes("What is not live yet?"), true);
-assert.equal(app.includes("does not auto-publish content"), true);
-assert.equal(app.includes("guarantee rankings, traffic, indexing, AI citations, or revenue"), true);
+// The homepage FAQ questions and no-auto-publish / no-guarantee answers are checked in a browser by test/spa.test.mjs.
 for (const type of ["Organization", "WebSite", "SoftwareApplication", "FAQPage"]) {
   assert.equal(schemaTypes.has(type), true, `homepage schema should include ${type}`);
 }

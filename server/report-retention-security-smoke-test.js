@@ -1,24 +1,42 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import {
   deleteReportRowsWithBlobs,
   preserveProtectedFixRequestReport,
   protectedFixRequestForReport,
   protectedRepairExecutionForReport
 } from "../worker/lib/report-data.js";
+import { createTestD1 } from "../test/support/d1.mjs";
 
 const protectedStatuses = ["paid", "in_progress", "delivered", "refunded", "refund_failed", "disputed"];
 const unprotectedStatuses = ["new", "checkout_created", "payment_failed"];
 const protectedProposalApprovals = ["approved"];
 const protectedProposalDeliveries = ["in_progress", "delivered"];
-const repairMigration = readFileSync(new URL("../migrations/0028_agent_repair_queue.sql", import.meta.url), "utf8");
 
-assert.match(repairMigration, /FOREIGN KEY \(report_id\) REFERENCES audit_reports\(id\) ON DELETE CASCADE/);
-assert.match(repairMigration, /FOREIGN KEY \(queue_item_id\) REFERENCES repair_queue_items\(id\) ON DELETE CASCADE/);
-assert.match(repairMigration, /idx_repair_queue_last_rerun_report/);
-assert.match(repairMigration, /idx_repair_actions_report/);
-assert.match(repairMigration, /idx_repair_actions_rerun_report/);
-assert.match(repairMigration, /idx_audit_jobs_report_id/);
+// Schema behaviour on the real migrations: deleting a report cascades to its
+// repair queue and agent actions, and the retention lookups are indexed.
+{
+  const db = createTestD1();
+  const insertRow = (table, values) => {
+    const row = {};
+    for (const column of db.rows(`PRAGMA table_info(${table})`)) {
+      if (column.notnull && column.dflt_value === null && !column.pk) row[column.name] = column.type === "INTEGER" ? 0 : "x";
+    }
+    db.insert(table, { ...row, ...values });
+  };
+  insertRow("audit_reports", { id: "report-cascade" });
+  insertRow("repair_queue_items", { id: "queue-cascade", report_id: "report-cascade" });
+  insertRow("repair_agent_actions", { id: "action-cascade", report_id: "report-cascade", queue_item_id: "queue-cascade" });
+  await db.prepare("DELETE FROM audit_reports WHERE id = ?").bind("report-cascade").run();
+  assert.deepEqual(db.rows("SELECT id FROM repair_queue_items"), [], "deleting a report removes its repair queue items");
+  assert.deepEqual(db.rows("SELECT id FROM repair_agent_actions"), [], "deleting a report removes its repair actions");
+
+  const usesIndex = (sql) =>
+    db.rows(`EXPLAIN QUERY PLAN ${sql}`).some((step) => /USING (COVERING )?INDEX/.test(step.detail));
+  assert.ok(usesIndex("SELECT id FROM repair_queue_items WHERE last_rerun_report_id = 'r'"), "rerun report lookup on queue items is indexed");
+  assert.ok(usesIndex("SELECT id FROM repair_agent_actions WHERE report_id = 'r'"), "report lookup on repair actions is indexed");
+  assert.ok(usesIndex("SELECT id FROM repair_agent_actions WHERE rerun_report_id = 'r'"), "rerun report lookup on repair actions is indexed");
+  assert.ok(usesIndex("SELECT id FROM audit_jobs WHERE report_id = 'r'"), "report lookup on audit jobs is indexed");
+}
 
 for (const status of protectedStatuses) {
   const reportId = "report-original-abc";
