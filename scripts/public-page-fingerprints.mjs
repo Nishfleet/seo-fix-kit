@@ -23,7 +23,9 @@ const SPA_LANDING_FILES = [
   "src/design/tokens.css",
   "src/design/site.css",
   "shared/site-nav.js",
-  "index.html"
+  "index.html",
+  "public/tour/report.webp",
+  "public/tour/pages.webp"
 ];
 
 function sha256(text) {
@@ -38,15 +40,21 @@ async function workerPageHtml(path) {
   return response.text();
 }
 
+// Hashed as bytes, so the product-tour screenshots count too; for the text
+// files this matches hashing their contents joined with newlines.
+function landingFingerprint() {
+  const hash = createHash("sha256");
+  SPA_LANDING_FILES.forEach((file, index) => {
+    if (index > 0) hash.update("\n");
+    hash.update(readFileSync(new URL(`../${file}`, import.meta.url)));
+  });
+  return hash.digest("hex");
+}
+
 export async function currentPublicPageFingerprints() {
   const fingerprints = {};
   for (const path of ROOT_PUBLIC_PATHS) {
-    fingerprints[path] =
-      path === "/"
-        ? sha256(
-            SPA_LANDING_FILES.map((file) => readFileSync(new URL(`../${file}`, import.meta.url), "utf8")).join("\n")
-          )
-        : sha256(await workerPageHtml(path));
+    fingerprints[path] = path === "/" ? landingFingerprint() : sha256(await workerPageHtml(path));
   }
   return fingerprints;
 }

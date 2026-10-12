@@ -198,8 +198,10 @@
   grid-template-columns: 300px;
 }
 
+/* Keyboard focus opens a menu only without JavaScript; with it, the trigger
+   button's open state decides, so Escape and a second click really close. */
 .site-nav-group:hover > .site-nav-menu,
-.site-nav-group:focus-within > .site-nav-menu,
+:root:not(.js) .site-nav-group:focus-within > .site-nav-menu,
 .site-nav-group[data-open] > .site-nav-menu {
   opacity: 1;
   transform: none;
@@ -274,9 +276,26 @@
   }
 
   .site-nav {
+    flex: 0 0 100%;
     margin-left: 0;
     order: 3;
     width: 100%;
+  }
+
+  /* Without JavaScript, menus open as one column spanning the nav row. */
+  .site-nav {
+    position: relative;
+  }
+
+  .site-nav-group {
+    position: static;
+  }
+
+  .site-nav .site-nav-menu,
+  .site-nav .site-nav-menu:has(> a:nth-child(n):last-child) {
+    grid-template-columns: minmax(0, 1fr);
+    left: 0;
+    right: 0;
   }
 
   /* With JavaScript, the nav becomes a disclosure menu. */
@@ -303,6 +322,9 @@
     gap: 0;
     left: 0;
     padding: var(--space-8) var(--gutter) var(--space-16);
+    max-height: calc(100dvh - var(--header-height));
+    overflow-y: auto;
+    overscroll-behavior: contain;
     position: absolute;
     right: 0;
     top: 100%;

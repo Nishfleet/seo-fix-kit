@@ -127,11 +127,13 @@ test.describe("site header", () => {
       const trigger = header.getByRole("button", { name: "Product" });
       const sample = header.getByRole("link", { name: /Sample report/ });
       await expect(sample).toBeHidden();
-      await trigger.click();
+      if (isMobile) await trigger.click();
+      else await trigger.press("Enter");
       await expect(trigger).toHaveAttribute("aria-expanded", "true");
       await expect(sample).toBeVisible();
       await page.keyboard.press("Escape");
       await expect(trigger).toHaveAttribute("aria-expanded", "false");
+      await expect(sample).toBeHidden();
       await trigger.click();
       await sample.click();
       await expect(page).toHaveURL(/\/demo$/);
