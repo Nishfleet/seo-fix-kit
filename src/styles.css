@@ -221,19 +221,14 @@ h1 {
 }
 
 .access-entry {
-  align-items: center;
+  align-items: start;
   display: grid;
   gap: clamp(18px, 3vw, 28px);
-  /* Right column was previously `auto`, which resolves to the max-content of
-     .check-entry (~440px at desktop because the inner "Live rendered proof..."
-     note refuses to break). That starved the 1fr form column to ~109px and made
-     the "Email access link" submit button (white-space: nowrap, ~193px) sit on
-     top of the email input. Cap the right column at 280px so prose wraps and
-     the email form gets usable width. The 760px mobile breakpoint below
-     overrides this to a single column. */
-  grid-template-columns: minmax(0, 1fr) fit-content(280px);
+  /* One column: the email form gets the full width and the "Check one page"
+     block sits under it. A side-by-side layout starved the email input. */
+  grid-template-columns: 1fr;
   margin-top: 34px;
-  max-width: 760px;
+  max-width: 560px;
 }
 
 .waitlist-form {
@@ -567,6 +562,12 @@ h1 {
   grid-template-rows: auto 1fr;
 }
 
+.beta-gate .beta-top {
+  justify-self: stretch;
+  max-width: 1240px;
+  width: 100%;
+}
+
 .gate-panel {
   margin: 0 auto;
   max-width: 760px;
@@ -728,6 +729,7 @@ h1 {
   border: 1px solid transparent;
   border-radius: 8px;
   color: #08110d;
+  align-items: center;
   display: inline-flex;
   font-weight: 840;
   justify-content: center;
@@ -961,7 +963,7 @@ h1 {
 }
 
 .beta-hero {
-  align-items: end;
+  align-items: start;
   display: grid;
   gap: 28px;
   grid-template-columns: minmax(0, 1fr) minmax(360px, 560px);
