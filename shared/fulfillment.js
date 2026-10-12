@@ -1,3 +1,4 @@
+import { escapeHtml } from "./html.js";
 import { OFFER_KEYS } from "./offers.js";
 
 export const FIX_REQUEST_STATUSES = new Set([
@@ -366,12 +367,3 @@ function formatMoneyMinorUnits(currency, amount) {
   return `${code} ${(value / divisor).toFixed(divisor === 1 ? 0 : 2)}`;
 }
 
-function escapeHtml(value) {
-  const entities = {
-    "&": "&amp;",
-    '"': "&quot;",
-    "<": "&lt;",
-    ">": "&gt;"
-  };
-  return String(value || "").replace(/[&"<>]/g, (character) => entities[character]);
-}
