@@ -56,17 +56,21 @@
     "test:indexnow": "node --test scripts/submit-indexnow.test.mjs",
     "submit:indexnow": "node scripts/submit-indexnow.mjs",
     "test:check-inventory": "node --test scripts/check-chain-inventory.test.mjs",
-    "check": "npm run test:billing && npm run test:billing-route && npm run test:product-truth && npm run test:audit && npm run test:large-crawl-security && npm run test:report-retention-security && npm run test:local-developer-api-security && npm run test:worker-dispatch && npm run test:worker-email && npm run test:public-pages && npm run test:public-check && npm run test:audit-engine && npm run test:account && npm run test:ai-answer-readiness && npm run test:growth-opportunities && npm run test:repair-queue && npm run test:repair-proof-receipt && npm run test:repair-implementation-pack && npm run test:repair-agent && npm run test:developer-api && npm run test:remediation-brief && npm run test:audit-batch-runner && npm run test:webhooks && npm run test:access-events && npm run test:access && npm run test:app-contract && npm run test:promise-audit && npm run test:live-promise-spot-check && npm run test:public-check-walk && npm run test:funnel-walk && npm run test:large-crawl && npm run test:canary-dry-run && npm run test:indexnow && npm run test:check-inventory && npm run build",
+    "check": "npm run test:billing && npm run test:billing-route && npm run test:product-truth && npm run test:audit && npm run test:large-crawl-security && npm run test:report-retention-security && npm run test:local-developer-api-security && npm run test:worker-dispatch && npm run test:worker-email && npm run test:public-pages && npm run test:public-check && npm run test:audit-engine && npm run test:account && npm run test:ai-answer-readiness && npm run test:growth-opportunities && npm run test:repair-queue && npm run test:repair-proof-receipt && npm run test:repair-implementation-pack && npm run test:repair-agent && npm run test:developer-api && npm run test:remediation-brief && npm run test:audit-batch-runner && npm run test:webhooks && npm run test:access-events && npm run test:access && npm run test:app-contract && npm run test:api-client && npm run test:promise-audit && npm run test:live-promise-spot-check && npm run test:public-check-walk && npm run test:funnel-walk && npm run test:large-crawl && npm run test:canary-dry-run && npm run test:indexnow && npm run test:check-inventory && npm run build",
     "audit:funnel-walk": "node scripts/run-private-beta-funnel-walk.mjs",
-    "test:funnel-walk": "node --test scripts/run-private-beta-funnel-walk.test.mjs"
+    "test:funnel-walk": "node --test scripts/run-private-beta-funnel-walk.test.mjs",
+    "test:api-client": "node --test src/api.test.mjs src/storage.test.mjs"
   },
   "dependencies": {
     "@cloudflare/puppeteer": "^1.1.0",
+    "cookie": "^1.1.1",
     "cors": "^2.8.5",
     "express": "^5.1.0",
+    "hono": "^4.13.13",
     "playwright": "^1.57.0",
     "react": "^19.2.3",
-    "react-dom": "^19.2.3"
+    "react-dom": "^19.2.3",
+    "standardwebhooks": "^1.1.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
