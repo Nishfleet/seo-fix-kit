@@ -96,7 +96,7 @@ export function AdminDashboard({
                 <span>{audit.totalFindings} findings</span>
               </Link>
             ))}
-            {!adminData?.recentAudits?.length && <p className="quiet-note">Load ops to see recent audits.</p>}
+            {!adminData?.recentAudits?.length && <p className="quiet-note">{adminData ? "No recent audits yet." : "Load ops to see recent audits."}</p>}
           </div>
         </div>
 

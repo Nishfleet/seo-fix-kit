@@ -2752,7 +2752,7 @@ h1 {
 }
 
 .price-preview.error strong {
-  color: #ffb6a6;
+  color: var(--ink-muted);
 }
 
 .price-preview.loading strong {

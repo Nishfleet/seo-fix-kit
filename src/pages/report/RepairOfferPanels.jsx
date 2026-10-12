@@ -293,7 +293,7 @@ export function FixQuotePanel({ report, hasPriorityFixes }) {
       ? pricing.displayPrice
       : pricing.status === "loading"
         ? "Loading Dodo price"
-        : "Pricing unavailable";
+        : "Checkout price not ready";
 
   return (
     <aside className="paid-panel">
@@ -308,7 +308,7 @@ export function FixQuotePanel({ report, hasPriorityFixes }) {
                 ? "Pulled from Dodo before checkout."
                 : pricing.status === "loading"
                   ? "Checking the live payment source."
-                  : "Checkout is paused until Dodo pricing loads."}
+                  : "Checkout opens once live pricing is ready."}
             </span>
           </div>
         )}
