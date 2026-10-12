@@ -1,9 +1,6 @@
 import http from "node:http";
 import { auditUrl } from "./engine.js";
-import {
-  appendReportDeltaBrief,
-  buildReportDelta
-} from "../../shared/report-delta.js";
+import { appendReportDeltaBrief, buildReportDelta } from "../../shared/report-delta.js";
 import { buildGeoReadinessAudit } from "../../shared/geo-readiness.js";
 import { buildRepairProposalsFromReport } from "../../shared/repair-execution.js";
 
@@ -94,7 +91,9 @@ const siteFixtureServer = http.createServer((req, res) => {
   }
   if (path === "/hero.svg") {
     res.writeHead(200, { "content-type": "image/svg+xml" });
-    res.end('<svg xmlns="http://www.w3.org/2000/svg" width="640" height="320"><rect width="640" height="320" fill="#ccc"/></svg>');
+    res.end(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="320"><rect width="640" height="320" fill="#ccc"/></svg>'
+    );
     return;
   }
   const page = siteFixturePages[path];
@@ -181,9 +180,7 @@ if (!report.pages?.[0]?.rendered) {
 
 const home = report.pages[0].rendered;
 const hasProofFields =
-  typeof home.wordCount === "number" &&
-  Array.isArray(home.h1s) &&
-  Array.isArray(home.internalLinks);
+  typeof home.wordCount === "number" && Array.isArray(home.h1s) && Array.isArray(home.internalLinks);
 
 if (!hasProofFields) {
   throw new Error("Rendered proof fields are missing.");
@@ -215,7 +212,9 @@ if (!liveTarget) {
     }
   };
   if (report.summary.pagesScanned !== 2 || !report.summary.crawlLimitHit) {
-    throw new Error(`Fixture site crawl did not follow internal links to the 2-page limit: ${report.summary.pagesScanned}`);
+    throw new Error(
+      `Fixture site crawl did not follow internal links to the 2-page limit: ${report.summary.pagesScanned}`
+    );
   }
   if (!home.h1s.includes("Durable widgets for small workshops") || home.wordCount < 300) {
     throw new Error("Fixture site home page rendered facts are wrong.");
@@ -692,7 +691,9 @@ const fixtureReport = await auditUrl(fixtureUrl, { maxPages: 2 });
 const deepCrawlReport = await auditUrl(`${fixtureUrl}deep`, { maxPages: 12, pageSpeed: false });
 
 if (deepCrawlReport.summary.maxPages !== 12 || deepCrawlReport.summary.pagesScanned !== 12) {
-  throw new Error(`Deep crawl limit did not exceed the old 10-page cap: ${deepCrawlReport.summary.pagesScanned}/${deepCrawlReport.summary.maxPages}`);
+  throw new Error(
+    `Deep crawl limit did not exceed the old 10-page cap: ${deepCrawlReport.summary.pagesScanned}/${deepCrawlReport.summary.maxPages}`
+  );
 }
 
 if (deepCrawlReport.crawlDepth?.selfServeMaxPages < 1000) {
@@ -711,9 +712,7 @@ if (!deepCrawlReport.repairBrief.includes("Crawl inventory")) {
   throw new Error("Crawl inventory was not carried into the repair brief.");
 }
 
-const guarded = fixtureReport.findings.filter(
-  (finding) => finding.severity === "good" && finding.type === "guard"
-);
+const guarded = fixtureReport.findings.filter((finding) => finding.severity === "good" && finding.type === "guard");
 
 if (guarded.length < 2) {
   throw new Error("False-positive guard findings were not created for rendered fixture.");
@@ -787,11 +786,7 @@ if ((technicalWaterfall.summary?.scriptBytes || 0) < 300_000) {
   throw new Error("Resource waterfall did not measure the heavy JavaScript payload.");
 }
 
-for (const expected of [
-  "Heavy JavaScript payload",
-  "Render-blocking resources",
-  "Slow resource requests"
-]) {
+for (const expected of ["Heavy JavaScript payload", "Render-blocking resources", "Slow resource requests"]) {
   if (!technicalTitles.some((title) => title.includes(expected))) {
     throw new Error(`Resource waterfall finding missing: ${expected}`);
   }
@@ -816,12 +811,7 @@ if (!platformAudit.summary.detectedPlatformNames.includes("WooCommerce")) {
   throw new Error("WooCommerce platform signal was not detected.");
 }
 
-for (const expected of [
-  "Product schema",
-  "Faceted or variant",
-  "WordPress archive",
-  "WordPress plugin"
-]) {
+for (const expected of ["Product schema", "Faceted or variant", "WordPress archive", "WordPress plugin"]) {
   if (!platformAudit.repairOpportunities.some((item) => item.title.includes(expected))) {
     throw new Error(`Platform SEO repair missing: ${expected}`);
   }
@@ -1012,7 +1002,11 @@ if (!backlinkReport.repairBrief.includes("Backlink audit")) {
   throw new Error("Backlink audit was not carried into the repair brief.");
 }
 
-if (!backlinkReport.repairPlan.some((item) => item.title.includes("Backlinks") || item.title.includes("backlink") || item.title.includes("Anchor text"))) {
+if (
+  !backlinkReport.repairPlan.some(
+    (item) => item.title.includes("Backlinks") || item.title.includes("backlink") || item.title.includes("Anchor text")
+  )
+) {
   throw new Error("Backlink repair plan items are missing.");
 }
 
@@ -1041,7 +1035,9 @@ if (localSeoReport.localSeoAudit?.status !== "ready") {
   throw new Error("Local SEO audit summary is missing.");
 }
 
-if (localSeoReport.localSeoAudit.summary.napFieldsFoundOnSite >= localSeoReport.localSeoAudit.summary.napFieldsSupplied) {
+if (
+  localSeoReport.localSeoAudit.summary.napFieldsFoundOnSite >= localSeoReport.localSeoAudit.summary.napFieldsSupplied
+) {
   throw new Error("Local SEO missing NAP proof was not detected.");
 }
 
@@ -1053,7 +1049,9 @@ if (!localSeoReport.localSeoAudit.summary.citationIssues) {
   throw new Error("Local SEO citation mismatch proof is missing.");
 }
 
-if (localSeoReport.localSeoAudit.summary.localKeywordsCovered >= localSeoReport.localSeoAudit.summary.localKeywordsChecked) {
+if (
+  localSeoReport.localSeoAudit.summary.localKeywordsCovered >= localSeoReport.localSeoAudit.summary.localKeywordsChecked
+) {
   throw new Error("Local SEO local keyword gap proof is missing.");
 }
 
@@ -1061,7 +1059,12 @@ if (!localSeoReport.repairBrief.includes("Local SEO audit")) {
   throw new Error("Local SEO audit was not carried into the repair brief.");
 }
 
-if (!localSeoReport.repairPlan.some((item) => item.title.includes("Local SEO") || item.title.includes("LocalBusiness") || item.title.includes("citations"))) {
+if (
+  !localSeoReport.repairPlan.some(
+    (item) =>
+      item.title.includes("Local SEO") || item.title.includes("LocalBusiness") || item.title.includes("citations")
+  )
+) {
   throw new Error("Local SEO repair plan items are missing.");
 }
 

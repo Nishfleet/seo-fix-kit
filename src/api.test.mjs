@@ -77,7 +77,11 @@ test("2xx without ok:true fails by default but passes with requireOkFlag false",
 test("errorKeys picks the first populated server field", async () => {
   stubFetch(503, { message: "Pricing paused." });
   await assert.rejects(
-    apiFetch("/api/pricing-preview", { requireOkFlag: false, errorKeys: ["message"], fallbackError: "Pricing unavailable." }),
+    apiFetch("/api/pricing-preview", {
+      requireOkFlag: false,
+      errorKeys: ["message"],
+      fallbackError: "Pricing unavailable."
+    }),
     { message: "Pricing paused." }
   );
   assert.equal(apiErrorMessage({ message: "m" }, "f", ["error", "message"]), "m");
@@ -95,7 +99,12 @@ test("apiRequest never throws for HTTP failures", async () => {
 
 test("prebuilt init is passed through unchanged", async () => {
   const calls = stubFetch(200, { ok: true });
-  const init = { method: "PATCH", credentials: "same-origin", headers: { "content-type": "application/json" }, body: "{}" };
+  const init = {
+    method: "PATCH",
+    credentials: "same-origin",
+    headers: { "content-type": "application/json" },
+    body: "{}"
+  };
   await apiFetch("/api/reports/r/repair-actions/a", { init });
   assert.deepEqual(calls[0].init, init);
 });

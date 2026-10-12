@@ -66,18 +66,42 @@ test("every worker-rendered public page ships the PNG share image as og:image an
       new RegExp(`<meta name="twitter:image" content="${imageUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`),
       `${name} must ship twitter:image pointing at the PNG share image`
     );
-    assert.match(html, /<meta name="twitter:card" content="summary_large_image" \/>/, `${name} must keep the large-image card so the share image renders`);
-    assert.match(html, new RegExp(`<meta property="og:image:width" content="${SOCIAL_IMAGE_WIDTH}" />`), `${name} must declare the share image width`);
-    assert.match(html, new RegExp(`<meta property="og:image:height" content="${SOCIAL_IMAGE_HEIGHT}" />`), `${name} must declare the share image height`);
-    assert.match(html, /<link rel="apple-touch-icon" href="https:\/\/seofixkit\.com\/apple-touch-icon\.png"/, `${name} must point apple-touch-icon at the PNG`);
-    assert.match(html, /<link rel="icon" href="\/favicon\.svg" type="image\/svg\+xml" \/>/, `${name} must ship the favicon`);
+    assert.match(
+      html,
+      /<meta name="twitter:card" content="summary_large_image" \/>/,
+      `${name} must keep the large-image card so the share image renders`
+    );
+    assert.match(
+      html,
+      new RegExp(`<meta property="og:image:width" content="${SOCIAL_IMAGE_WIDTH}" />`),
+      `${name} must declare the share image width`
+    );
+    assert.match(
+      html,
+      new RegExp(`<meta property="og:image:height" content="${SOCIAL_IMAGE_HEIGHT}" />`),
+      `${name} must declare the share image height`
+    );
+    assert.match(
+      html,
+      /<link rel="apple-touch-icon" href="https:\/\/seofixkit\.com\/apple-touch-icon\.png"/,
+      `${name} must point apple-touch-icon at the PNG`
+    );
+    assert.match(
+      html,
+      /<link rel="icon" href="\/favicon\.svg" type="image\/svg\+xml" \/>/,
+      `${name} must ship the favicon`
+    );
   }
 });
 
 // Reads width/height from a PNG's IHDR chunk (bytes 16-23, big-endian).
 function pngDimensions(path) {
   const bytes = readFileSync(path);
-  assert.deepEqual([...bytes.subarray(0, 8)], [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], `${path} must be a PNG file`);
+  assert.deepEqual(
+    [...bytes.subarray(0, 8)],
+    [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
+    `${path} must be a PNG file`
+  );
   assert.equal(bytes.subarray(12, 16).toString("ascii"), "IHDR", `${path} must start with an IHDR chunk`);
   return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
 }
@@ -138,7 +162,11 @@ test("public proof pages expose methodology and package ladder without overclaim
     );
   }
   assert.match(methodology, /Why not just use a free AI SEO agent skill\?/);
-  assert.match(methodology, /Open-source SEO tooling is good at that/, "the free-skill answer must not disparage open source");
+  assert.match(
+    methodology,
+    /Open-source SEO tooling is good at that/,
+    "the free-skill answer must not disparage open source"
+  );
   assert.match(methodology, /no live AI-engine sampling, no AI citation monitoring, and no ranking guarantees/i);
   assert.match(
     methodology,
@@ -155,7 +183,8 @@ test("public proof pages expose methodology and package ladder without overclaim
   // stay inside the page's no-overclaim boundary: repair queue + rerun proof
   // is the wedge, never an AI-visibility parity claim.
   {
-    const seomator = (methodology.match(/<h2>Why not just use SEOmator's free audits\?<\/h2>[\s\S]*?<\/section>/) || [])[0];
+    const seomator = (methodology.match(/<h2>Why not just use SEOmator's free audits\?<\/h2>[\s\S]*?<\/section>/) ||
+      [])[0];
     assert.ok(seomator, "methodology must carry a dedicated SEOmator competitor answer");
     assert.match(seomator, /39 free SEO tools/);
     assert.match(seomator, /251-check rule engine/);
@@ -175,20 +204,32 @@ test("public proof pages expose methodology and package ladder without overclaim
   // SEOmator and agentic answers, with the repair queue + rerun proof wedge
   // and the standing no-overclaim boundary.
   {
-    const volnine = (methodology.match(/<h2>Why not just use Volume Nine's GEO Grader\?<\/h2>[\s\S]*?<\/section>/) || [])[0];
+    const volnine = (methodology.match(/<h2>Why not just use Volume Nine's GEO Grader\?<\/h2>[\s\S]*?<\/section>/) ||
+      [])[0];
     const seomatorH2 = methodology.indexOf("<h2>Why not just use SEOmator's free audits?</h2>");
     const volnineH2 = methodology.indexOf("<h2>Why not just use Volume Nine's GEO Grader?</h2>");
-    const agenticH2 = methodology.indexOf("<h2>Why not just use an agentic SEO auditor that files its own GitHub issues?</h2>");
+    const agenticH2 = methodology.indexOf(
+      "<h2>Why not just use an agentic SEO auditor that files its own GitHub issues?</h2>"
+    );
     assert.ok(volnine, "methodology must carry a dedicated Volume Nine GEO Grader competitor answer");
-    assert.ok(seomatorH2 > -1 && seomatorH2 < volnineH2 && volnineH2 < agenticH2, "Volume Nine section must sit between the SEOmator and agentic sections");
+    assert.ok(
+      seomatorH2 > -1 && seomatorH2 < volnineH2 && volnineH2 < agenticH2,
+      "Volume Nine section must sit between the SEOmator and agentic sections"
+    );
     assert.match(volnine, /Denver-based digital marketing agency/);
     assert.match(volnine, /launched in January 2026/);
     assert.match(volnine, /totally free/);
     assert.match(volnine, /60\+ signals across six categories/);
-    assert.match(volnine, /discoverability, structured data, AI readiness, performance, reputation and trust, and LLM-ready content/);
+    assert.match(
+      volnine,
+      /discoverability, structured data, AI readiness, performance, reputation and trust, and LLM-ready content/
+    );
     assert.match(volnine, /reads robots\.txt rules/);
     assert.match(volnine, /ChatGPT, Claude, Gemini, Perplexity, and Grok/);
-    assert.match(volnine, /<a href="https:\/\/www\.v9digital\.com\/geo-grader\/" rel="nofollow noopener" target="_blank">/);
+    assert.match(
+      volnine,
+      /<a href="https:\/\/www\.v9digital\.com\/geo-grader\/" rel="nofollow noopener" target="_blank">/
+    );
     assert.match(volnine, /<a href="https:\/\/geo\.v9digital\.com\/grader\/" rel="nofollow noopener" target="_blank">/);
     assert.match(volnine, /emails a detailed report with actionable to-dos/);
     assert.match(volnine, /repair queue plus rerun proof/);
@@ -202,13 +243,19 @@ test("public proof pages expose methodology and package ladder without overclaim
   // answers, with the repair queue + rerun proof wedge and the standing no-overclaim
   // boundary.
   {
-    const juma = (methodology.match(/<h2>Why not just use Juma\.ai's free GEO Audit\?<\/h2>[\s\S]*?<\/section>/) || [])[0];
+    const juma = (methodology.match(/<h2>Why not just use Juma\.ai's free GEO Audit\?<\/h2>[\s\S]*?<\/section>/) ||
+      [])[0];
     const seomatorH2 = methodology.indexOf("<h2>Why not just use SEOmator's free audits?</h2>");
     const volnineH2 = methodology.indexOf("<h2>Why not just use Volume Nine's GEO Grader?</h2>");
     const jumaH2 = methodology.indexOf("<h2>Why not just use Juma.ai's free GEO Audit?</h2>");
-    const agenticH2 = methodology.indexOf("<h2>Why not just use an agentic SEO auditor that files its own GitHub issues?</h2>");
+    const agenticH2 = methodology.indexOf(
+      "<h2>Why not just use an agentic SEO auditor that files its own GitHub issues?</h2>"
+    );
     assert.ok(juma, "methodology must carry a dedicated Juma.ai GEO Audit competitor answer");
-    assert.ok(seomatorH2 < volnineH2 && volnineH2 < jumaH2 && jumaH2 < agenticH2, "Juma section must sit between the Volume Nine and agentic sections");
+    assert.ok(
+      seomatorH2 < volnineH2 && volnineH2 < jumaH2 && jumaH2 < agenticH2,
+      "Juma section must sit between the Volume Nine and agentic sections"
+    );
     assert.match(juma, /no signup/);
     assert.match(juma, /ten weighted dimensions/);
     assert.match(juma, /impact × effort matrix/);
@@ -225,7 +272,8 @@ test("public proof pages expose methodology and package ladder without overclaim
   }
   // AEO Engine GEO Audit regression guard
   {
-    const aeo = (methodology.match(/<h2>Why not just use AEO Engine's free GEO audit\?<\/h2>[\s\S]*?<\/section>/) || [])[0];
+    const aeo = (methodology.match(/<h2>Why not just use AEO Engine's free GEO audit\?<\/h2>[\s\S]*?<\/section>/) ||
+      [])[0];
     const jumaH2 = methodology.indexOf("<h2>Why not just use Juma.ai's free GEO Audit?</h2>");
     const aeoH2 = methodology.indexOf("<h2>Why not just use AEO Engine's free GEO audit?</h2>");
     const trackerH2 = methodology.indexOf("<h2>Why not just use a tracker like Otterly.ai or Peec.ai?</h2>");
@@ -240,7 +288,10 @@ test("public proof pages expose methodology and package ladder without overclaim
     assert.match(aeo, /embeddable GEO audit widget/);
     assert.match(aeo, /<a href="https:\/\/aeoengine\.ai" rel="nofollow noopener" target="_blank">/);
     assert.match(aeo, /<a href="https:\/\/aeoengine\.ai\/geo-audit"/);
-    assert.match(aeo, /<a href="https:\/\/aeoengine\.ai\/embed\/geo-audit\?utm_source=embed&utm_medium=widget&utm_campaign=aeo_tools"/);
+    assert.match(
+      aeo,
+      /<a href="https:\/\/aeoengine\.ai\/embed\/geo-audit\?utm_source=embed&utm_medium=widget&utm_campaign=aeo_tools"/
+    );
     assert.match(aeo, /repair queue plus rerun proof/);
     assert.match(aeo, /approval-first/);
     assert.match(aeo, /publish CMS changes, open pull requests, merge code, or call provider admin APIs/);
@@ -251,12 +302,19 @@ test("public proof pages expose methodology and package ladder without overclaim
   }
   // Funded AI-visibility tracker (Otterly.ai + Peec.ai) regression guard
   {
-    const tracker = (methodology.match(/<h2>Why not just use a tracker like Otterly\.ai or Peec\.ai\?<\/h2>[\s\S]*?<\/section>/) || [])[0];
+    const tracker = (methodology.match(
+      /<h2>Why not just use a tracker like Otterly\.ai or Peec\.ai\?<\/h2>[\s\S]*?<\/section>/
+    ) || [])[0];
     const jumaH2 = methodology.indexOf("<h2>Why not just use Juma.ai's free GEO Audit?</h2>");
     const trackerH2 = methodology.indexOf("<h2>Why not just use a tracker like Otterly.ai or Peec.ai?</h2>");
-    const agenticH2 = methodology.indexOf("<h2>Why not just use an agentic SEO auditor that files its own GitHub issues?</h2>");
+    const agenticH2 = methodology.indexOf(
+      "<h2>Why not just use an agentic SEO auditor that files its own GitHub issues?</h2>"
+    );
     assert.ok(tracker, "methodology must carry a dedicated funded-tracker competitor answer");
-    assert.ok(jumaH2 < trackerH2 && trackerH2 < agenticH2, "tracker section must sit between the Juma and agentic sections");
+    assert.ok(
+      jumaH2 < trackerH2 && trackerH2 < agenticH2,
+      "tracker section must sit between the Juma and agentic sections"
+    );
     assert.match(tracker, /Otterly\.ai/);
     assert.match(tracker, /Peec AI/);
     assert.match(tracker, /Peec\.ai/);
@@ -281,11 +339,16 @@ test("public proof pages expose methodology and package ladder without overclaim
     assert.match(tracker, /<a href="https:\/\/otterly\.ai\/pricing" rel="nofollow noopener" target="_blank">/);
     assert.match(tracker, /<a href="https:\/\/peec\.ai" rel="nofollow noopener" target="_blank">/);
     assert.match(tracker, /<a href="https:\/\/peec\.ai\/pricing" rel="nofollow noopener" target="_blank">/);
-    assert.match(tracker, /<a href="https:\/\/peec\.ai\/blog\/we-raised-21m-series-a-to-help-brands-win-in-ai-search" rel="nofollow noopener" target="_blank">/);
+    assert.match(
+      tracker,
+      /<a href="https:\/\/peec\.ai\/blog\/we-raised-21m-series-a-to-help-brands-win-in-ai-search" rel="nofollow noopener" target="_blank">/
+    );
   }
   // Agentic SEO auditor (SEO Automation Club) regression guard
   {
-    const agentic = (methodology.match(/<h2>Why not just use an agentic SEO auditor that files its own GitHub issues\?<\/h2>[\s\S]*?<\/section>/) || [])[0];
+    const agentic = (methodology.match(
+      /<h2>Why not just use an agentic SEO auditor that files its own GitHub issues\?<\/h2>[\s\S]*?<\/section>/
+    ) || [])[0];
     assert.ok(agentic, "methodology must carry a dedicated agentic SEO auditor competitor answer");
     assert.match(agentic, /SEO Automation Club/);
     assert.match(agentic, /seoautomationclub\.com\/agentic-seo-autonomous-technical-audit-claude-code-github-issues/);
@@ -297,7 +360,10 @@ test("public proof pages expose methodology and package ladder without overclaim
     assert.match(agentic, /rerun|re-measure/);
     assert.match(agentic, /No live AI-engine sampling, no AI citation monitoring, and no ranking guarantees/);
     assert.match(agentic, /issue-filing|edit.*code|AST/i, "must distinguish issue-filers from code-editing agents");
-    assert.doesNotMatch(agentic, /73 issues|41 closed|6 days|guaranteed rankings|live AI-engine sampling is live|we apply your fixes/i);
+    assert.doesNotMatch(
+      agentic,
+      /73 issues|41 closed|6 days|guaranteed rankings|live AI-engine sampling is live|we apply your fixes/i
+    );
   }
   assert.match(packages, /Wondering why a hosted service at all, when free installable AI SEO agent skills exist\?/);
   assert.match(
@@ -315,7 +381,9 @@ test("public proof pages expose methodology and package ladder without overclaim
   // The Fix Pack tile itself must not be a support-only dead end: extract the
   // tile article and require at least one real checkout-path link in it.
   {
-    const tile = (packages.match(/<article class="package-card live">[\s\S]*?<h2>SEO Fix Pack<\/h2>[\s\S]*?<\/article>/) || [])[0];
+    const tile = (packages.match(
+      /<article class="package-card live">[\s\S]*?<h2>SEO Fix Pack<\/h2>[\s\S]*?<\/article>/
+    ) || [])[0];
     assert.ok(tile, "the Fix Pack tile article must exist");
     assert.match(
       tile,
@@ -410,7 +478,15 @@ test("machine-readable public surfaces list proof pages and limits", () => {
   const sitemap = rootSitemap(origin);
 
   assert.deepEqual(parseSitemapUrls(sitemap), expectedSitemapUrls);
-  for (const path of ["/demo", "/methodology", "/packages", "/check", "/small-business-seo-audit", "/rendered-vs-static-seo-audit", "/ai-answer-readiness"]) {
+  for (const path of [
+    "/demo",
+    "/methodology",
+    "/packages",
+    "/check",
+    "/small-business-seo-audit",
+    "/rendered-vs-static-seo-audit",
+    "/ai-answer-readiness"
+  ]) {
     assert.match(llms, new RegExp(`${origin}${path}`));
     assert.match(markdown, new RegExp(`${origin}${path}`));
     assert.match(sitemap, new RegExp(`${origin}${path}`));
@@ -429,7 +505,11 @@ test("machine-readable public surfaces list proof pages and limits", () => {
       new RegExp(`<loc>${origin}${path}</loc><lastmod>${ROOT_PUBLIC_LASTMODS[path]}</lastmod>`),
       `sitemap must carry the truthful lastmod for ${path}`
     );
-    assert.match(ROOT_PUBLIC_LASTMODS[path], /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/, `${path} lastmod must be a UTC W3C datetime`);
+    assert.match(
+      ROOT_PUBLIC_LASTMODS[path],
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/,
+      `${path} lastmod must be a UTC W3C datetime`
+    );
   }
   assert.match(llms, /Does not provide live AI-engine visibility tracking/);
   assert.match(llms, /Proof Monitoring checkout is config-gated/);
@@ -450,8 +530,14 @@ test("machine-readable public surfaces list proof pages and limits", () => {
   assert.match(llms, /robots\.txt and sitemap crawl inventory up to 50,000 discovered URLs/);
   assert.match(llms, /staged large rendered crawl jobs for 50,000-page targets \(early access/);
   assert.match(llms, /never sold as completed 50K rendered validation/);
-  assert.match(llms, /Persistent repair queue: proven issues stay tracked across saved reports with approval state, acceptance checks, status, and fixed-rerun proof receipts/);
-  assert.match(llms, /Owner-approved implementation packs: private handoff documents with source proof and approval state/);
+  assert.match(
+    llms,
+    /Persistent repair queue: proven issues stay tracked across saved reports with approval state, acceptance checks, status, and fixed-rerun proof receipts/
+  );
+  assert.match(
+    llms,
+    /Owner-approved implementation packs: private handoff documents with source proof and approval state/
+  );
   assert.match(llms, /Paid Fix Pack fulfillment: one proof-backed repair pass per report plus one rerun after fixes/);
   assert.match(llms, new RegExp(`The plain answer is on ${origin}/methodology`));
   assert.match(llms, /no live AI-engine sampling, no AI citation monitoring, and no ranking guarantees/);
@@ -472,7 +558,11 @@ test("sitemap lastmod is refreshed whenever a public page's content changes", as
     `Public page content changed for ${stale.join(", ")}. Run \`npm run sitemap:refresh\` to bump its sitemap lastmod.`
   );
   for (const path of ROOT_PUBLIC_PATHS) {
-    assert.match(ROOT_PUBLIC_LASTMODS[path], /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/, `${path} lastmod must be a W3C datetime`);
+    assert.match(
+      ROOT_PUBLIC_LASTMODS[path],
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/,
+      `${path} lastmod must be a W3C datetime`
+    );
   }
   const staticSitemap = readFileSync(new URL("../../public/sitemap.xml", import.meta.url), "utf8");
   for (const path of ROOT_PUBLIC_PATHS) {
@@ -507,7 +597,11 @@ test("intent-matching landing pages carry unique, truthful, machine-readable pro
     assert.match(html, /What this page does not claim/, `${name} must carry an explicit no-overclaim section`);
     assert.match(html, new RegExp(`href="${origin}/check"`), `${name} must link the anonymous one-page check`);
     assert.match(html, new RegExp(`href="${origin}/demo"`), `${name} must link the proof sample`);
-    assert.match(html, /does not guarantee rankings|never guarantees rankings/, `${name} must keep the no-ranking promise`);
+    assert.match(
+      html,
+      /does not guarantee rankings|never guarantees rankings/,
+      `${name} must keep the no-ranking promise`
+    );
     assert.ok(visibleWordCount(html) >= 250, `${name} must not look thin to rendered audits`);
   }
 
@@ -572,16 +666,8 @@ test("policy pages cross-link each other and the live anonymous check", () => {
       "policy pages must carry a path to the live anonymous one-page check"
     );
   }
-  assert.match(
-    privacy,
-    new RegExp(`href="${origin}/methodology"`),
-    "the privacy page must not be a dead end"
-  );
-  assert.match(
-    privacy,
-    new RegExp(`href="${origin}/packages"`),
-    "the privacy page must reach the package ladder"
-  );
+  assert.match(privacy, new RegExp(`href="${origin}/methodology"`), "the privacy page must not be a dead end");
+  assert.match(privacy, new RegExp(`href="${origin}/packages"`), "the privacy page must reach the package ladder");
 });
 
 test("public demo and support pages carry enough buyer-facing detail", () => {
@@ -594,11 +680,24 @@ test("public demo and support pages carry enough buyer-facing detail", () => {
   assert.match(demo, /What this sample does not claim/);
   assert.match(demo, new RegExp(`Anonymous one-page checks are live at ${origin}/check`));
   assert.match(demo, /Check one page now/);
-  assert.match(demo, /Neither the sample nor the one-page check promises rankings, traffic, indexing, revenue, AI citations/i);
-  assert.doesNotMatch(demo, /not a public anonymous audit/i, "the demo no longer claims anonymous checks are unavailable");
+  assert.match(
+    demo,
+    /Neither the sample nor the one-page check promises rankings, traffic, indexing, revenue, AI citations/i
+  );
+  assert.doesNotMatch(
+    demo,
+    /not a public anonymous audit/i,
+    "the demo no longer claims anonymous checks are unavailable"
+  );
   assert.match(support, /Delivery expectations/);
-  assert.match(support, /do not send secrets, private keys, passwords, payment card numbers, or production credentials/i);
-  assert.match(support, /We do not log into private CMS accounts, publish changes, merge code, or call provider admin APIs/i);
+  assert.match(
+    support,
+    /do not send secrets, private keys, passwords, payment card numbers, or production credentials/i
+  );
+  assert.match(
+    support,
+    /We do not log into private CMS accounts, publish changes, merge code, or call provider admin APIs/i
+  );
   assert.match(support, /Ownership and deletion/);
   assert.match(support, /sites you own or are authorized to audit/i);
 });
@@ -638,7 +737,9 @@ test("demo brief is verbatim real engine output for the public test page", async
     }
     if (req.url === "/llms.txt") {
       res.writeHead(200, { "content-type": "text/plain; charset=utf-8" });
-      res.end(`# SEO Fix Kit\n\nPublic proof pages:\n- ${fixtureOrigin}/demo\n- ${fixtureOrigin}/methodology\n- ${fixtureOrigin}/packages\n`);
+      res.end(
+        `# SEO Fix Kit\n\nPublic proof pages:\n- ${fixtureOrigin}/demo\n- ${fixtureOrigin}/methodology\n- ${fixtureOrigin}/packages\n`
+      );
       return;
     }
     res.writeHead(404, { "content-type": "text/plain" });
@@ -655,7 +756,10 @@ test("demo brief is verbatim real engine output for the public test page", async
       appOrigin: fixtureOrigin
     });
 
-    assert.ok(report.findings.length >= DEMO_PROOF.guards.length + 1, "the engine must emit guarded findings plus real issues for the test page");
+    assert.ok(
+      report.findings.length >= DEMO_PROOF.guards.length + 1,
+      "the engine must emit guarded findings plus real issues for the test page"
+    );
     for (const guard of DEMO_PROOF.guards) {
       const live = report.findings.find((finding) => finding.type === "guard" && finding.title === guard.title);
       assert.ok(live, `guarded finding missing from live engine output: ${guard.title}`);
@@ -678,7 +782,11 @@ test("demo brief is verbatim real engine output for the public test page", async
       const live = report.repairPlan.find((item) => item.title === entry.title);
       assert.ok(live, `repair plan entry missing from live engine output: ${entry.title}`);
       assert.equal(live.fix, entry.fix, `fix drifted for: ${entry.title}`);
-      assert.equal(live.snippet || "", entry.snippet.replaceAll("{ORIGIN}", fixtureOrigin), `snippet drifted for: ${entry.title}`);
+      assert.equal(
+        live.snippet || "",
+        entry.snippet.replaceAll("{ORIGIN}", fixtureOrigin),
+        `snippet drifted for: ${entry.title}`
+      );
     }
 
     const demo = demoHtml(origin);
@@ -686,8 +794,7 @@ test("demo brief is verbatim real engine output for the public test page", async
     assert.match(demo, /verbatim output from the SEO Fix Kit audit engine/i);
     assert.match(demo, new RegExp(`${origin}${DEMO_FIXTURE_PATH}`));
     for (const guard of DEMO_PROOF.guards) {
-      const renderedEvidence = escapeHtml(guard.evidence)
-        .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const renderedEvidence = escapeHtml(guard.evidence).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       assert.match(demo, new RegExp(renderedEvidence), `demo must render live evidence: ${guard.title}`);
     }
     assert.doesNotMatch(demo, /Sample developer brief/, "the demo must not show the hand-written brief anymore");
@@ -703,11 +810,9 @@ test("demo proof list reflows at 320px and 390px without hiding evidence", async
   const html = demoHtml(origin);
   const expectedProofStrings = [
     ...DEMO_PROOF.guards.flatMap((guard) => [guard.title, guard.evidence, guard.why, guard.fix]),
-    ...DEMO_PROOF.repairPlan.flatMap((item) => [
-      item.title,
-      item.fix,
-      demoProofSnippet(item.snippet, origin)
-    ].filter(Boolean))
+    ...DEMO_PROOF.repairPlan.flatMap((item) =>
+      [item.title, item.fix, demoProofSnippet(item.snippet, origin)].filter(Boolean)
+    )
   ].map((value) => String(value).replace(/\s+/g, " ").trim());
 
   assert.doesNotMatch(html, /overflow-x\s*:\s*hidden/i, "must wrap proof tokens instead of hiding document overflow");
@@ -719,7 +824,10 @@ test("demo proof list reflows at 320px and 390px without hiding evidence", async
       await page.setContent(html, { waitUntil: "domcontentloaded" });
       const measured = await page.evaluate(() => {
         const root = document.documentElement;
-        const compact = (value) => String(value || "").replace(/\s+/g, " ").trim();
+        const compact = (value) =>
+          String(value || "")
+            .replace(/\s+/g, " ")
+            .trim();
         return {
           scrollWidth: root.scrollWidth,
           clientWidth: root.clientWidth,
@@ -748,10 +856,7 @@ test("demo proof list reflows at 320px and 390px without hiding evidence", async
         `proof list items overflow at ${width}px: ${JSON.stringify(measured.overflowingItems)}`
       );
       for (const proof of expectedProofStrings) {
-        assert.ok(
-          measured.text.includes(proof),
-          `proof string missing at ${width}px: ${proof.slice(0, 160)}`
-        );
+        assert.ok(measured.text.includes(proof), `proof string missing at ${width}px: ${proof.slice(0, 160)}`);
       }
       await page.close();
     }
@@ -788,8 +893,9 @@ test("shared public-product shell reflows at narrow viewports without a 320px fl
             htmlOverflowX: getComputedStyle(root).overflowX,
             bodyOverflowX: getComputedStyle(document.body).overflowX,
             bodyMinWidth: getComputedStyle(document.body).minWidth,
-            wideCount: [...document.querySelectorAll("*")]
-              .filter((el) => el.getBoundingClientRect().right > root.clientWidth + 1).length
+            wideCount: [...document.querySelectorAll("*")].filter(
+              (el) => el.getBoundingClientRect().right > root.clientWidth + 1
+            ).length
           };
         });
         assert.notEqual(measured.htmlOverflowX, "hidden", `${name} html overflow-x must stay visible at ${width}px`);
@@ -799,7 +905,11 @@ test("shared public-product shell reflows at narrow viewports without a 320px fl
           measured.scrollWidth <= measured.clientWidth,
           `${name} overflow at ${width}px: scrollWidth=${measured.scrollWidth}/clientWidth=${measured.clientWidth}`
         );
-        assert.equal(measured.wideCount, 0, `${name} has ${measured.wideCount} elements wider than the viewport at ${width}px`);
+        assert.equal(
+          measured.wideCount,
+          0,
+          `${name} has ${measured.wideCount} elements wider than the viewport at ${width}px`
+        );
         await page.close();
       }
     }
@@ -813,7 +923,18 @@ test("static public skill and sitemap files keep buyer-facing boundaries", () =>
   const sitemap = readFileSync(new URL("../../public/sitemap.xml", import.meta.url), "utf8");
 
   assert.deepEqual(parseSitemapUrls(sitemap), expectedSitemapUrls);
-  for (const path of ["/demo", "/methodology", "/packages", "/check", "/proof", "/support", "/terms", "/small-business-seo-audit", "/rendered-vs-static-seo-audit", "/ai-answer-readiness"]) {
+  for (const path of [
+    "/demo",
+    "/methodology",
+    "/packages",
+    "/check",
+    "/proof",
+    "/support",
+    "/terms",
+    "/small-business-seo-audit",
+    "/rendered-vs-static-seo-audit",
+    "/ai-answer-readiness"
+  ]) {
     assert.match(skill, new RegExp(`${origin}${path}`));
     assert.match(sitemap, new RegExp(`${origin}${path}`));
   }
@@ -837,8 +958,14 @@ test("static public skill and sitemap files keep buyer-facing boundaries", () =>
   assert.match(skill, /robots\.txt and sitemap crawl inventory up to 50,000 discovered URLs/);
   assert.match(skill, /staged large rendered crawl jobs for 50,000-page targets \(early access/);
   assert.match(skill, /never sold as completed 50K rendered validation/);
-  assert.match(skill, /Persistent repair queue: proven issues stay tracked across saved reports with approval state, acceptance checks, status, and fixed-rerun proof receipts/);
-  assert.match(skill, /Owner-approved implementation packs: private handoff documents with source proof and approval state/);
+  assert.match(
+    skill,
+    /Persistent repair queue: proven issues stay tracked across saved reports with approval state, acceptance checks, status, and fixed-rerun proof receipts/
+  );
+  assert.match(
+    skill,
+    /Owner-approved implementation packs: private handoff documents with source proof and approval state/
+  );
   assert.match(skill, /Paid Fix Pack fulfillment: one proof-backed repair pass per report plus one rerun after fixes/);
   assert.match(skill, new RegExp(`The plain answer is on the methodology page: ${origin}/methodology`));
   assert.match(skill, /no live AI-engine sampling, no AI citation monitoring, and no ranking guarantees/);
@@ -864,7 +991,19 @@ test("Cloudflare asset routing sends public proof pages through the Worker", () 
   );
   if (Array.isArray(runWorkerFirst)) {
     const covered = new Set(runWorkerFirst);
-    for (const path of ["/demo", "/methodology", "/packages", "/check", "/proof", "/support", "/terms", "/privacy", "/small-business-seo-audit", "/rendered-vs-static-seo-audit", "/ai-answer-readiness"]) {
+    for (const path of [
+      "/demo",
+      "/methodology",
+      "/packages",
+      "/check",
+      "/proof",
+      "/support",
+      "/terms",
+      "/privacy",
+      "/small-business-seo-audit",
+      "/rendered-vs-static-seo-audit",
+      "/ai-answer-readiness"
+    ]) {
       assert.equal(covered.has(path), true, `${path} must be served by the Worker before SPA assets`);
     }
   }

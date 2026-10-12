@@ -12,7 +12,9 @@ const INTERNAL_EMAIL_TAGS = new Set([
 ]);
 
 function emailDomain(value) {
-  const match = String(value || "").toLowerCase().match(/@([a-z0-9.-]+\.[a-z]{2,})\b/i);
+  const match = String(value || "")
+    .toLowerCase()
+    .match(/@([a-z0-9.-]+\.[a-z]{2,})\b/i);
   return match?.[1] || "";
 }
 
@@ -29,9 +31,7 @@ function allRecipientsMatchInternalDomains(env, to, from) {
   const domains = configuredInternalDomains(env, from);
   const recipients = Array.isArray(to) ? to : [to];
   return Boolean(
-    domains.size &&
-    recipients.length &&
-    recipients.every((recipient) => domains.has(emailDomain(recipient)))
+    domains.size && recipients.length && recipients.every((recipient) => domains.has(emailDomain(recipient)))
   );
 }
 
@@ -43,14 +43,11 @@ const SUPPORT_EMAIL = "support@seofixkit.com";
 
 const EMAIL_FOOTER_TEXT = `\n\n--\nSEO Fix Kit · https://seofixkit.com\nQuestions or issues? Email ${SUPPORT_EMAIL}.`;
 
-
 function shouldSkipOwnedInternalEmail(env, { to, tag }) {
   const from = emailSender(env);
   const internalToken = String(env.INTERNAL_EMAIL_TOKEN || "").trim();
   return Boolean(
-    internalToken &&
-    INTERNAL_EMAIL_TAGS.has(String(tag || "")) &&
-    allRecipientsMatchInternalDomains(env, to, from)
+    internalToken && INTERNAL_EMAIL_TAGS.has(String(tag || "")) && allRecipientsMatchInternalDomains(env, to, from)
   );
 }
 
@@ -77,11 +74,4 @@ async function sendWorkerEmail(env, { to, subject, text, html, preheader = "", t
   return { messageId: result?.messageId || "" };
 }
 
-export {
-  EMAIL_FOOTER_TEXT,
-  EMAIL_PROVIDER,
-  SUPPORT_EMAIL,
-  emailSender,
-  shouldSkipOwnedInternalEmail,
-  sendWorkerEmail
-};
+export { EMAIL_FOOTER_TEXT, EMAIL_PROVIDER, SUPPORT_EMAIL, emailSender, shouldSkipOwnedInternalEmail, sendWorkerEmail };

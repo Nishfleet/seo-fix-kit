@@ -54,7 +54,10 @@ test("resource waterfall honors explicit non-blocking browser status", () => {
     waterfall.renderBlockingCandidates.map((resource) => resource.url),
     ["https://public.example/assets/app.css"]
   );
-  assert.equal(resourceWaterfallFindings(waterfall).some((finding) => finding.title.includes("Render-blocking")), false);
+  assert.equal(
+    resourceWaterfallFindings(waterfall).some((finding) => finding.title.includes("Render-blocking")),
+    false
+  );
 });
 
 test("resource waterfall keeps fallback render-blocking detection without browser status", () => {
@@ -84,7 +87,10 @@ test("resource waterfall keeps fallback render-blocking detection without browse
   });
 
   assert.equal(waterfall.summary.renderBlockingCandidates, 2);
-  assert.equal(resourceWaterfallFindings(waterfall).some((finding) => finding.title.includes("Render-blocking")), true);
+  assert.equal(
+    resourceWaterfallFindings(waterfall).some((finding) => finding.title.includes("Render-blocking")),
+    true
+  );
 });
 
 test("resource waterfall applies fallback detection for unknown browser status", () => {
@@ -116,16 +122,23 @@ test("resource waterfall applies fallback detection for unknown browser status",
   });
 
   assert.equal(waterfall.summary.renderBlockingCandidates, 2);
-  assert.equal(resourceWaterfallFindings(waterfall).some((finding) => finding.title.includes("Render-blocking")), true);
+  assert.equal(
+    resourceWaterfallFindings(waterfall).some((finding) => finding.title.includes("Render-blocking")),
+    true
+  );
 });
 
 test("unavailable PageSpeed stays a proof note instead of repair work", async () => {
   const engine = createAuditEngine({
     launchBrowser: async () => fakeBrowser("https://public.example/"),
-    fetchImpl: async () => new Response("<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>", {
-      status: 200,
-      headers: { "content-type": "text/html; charset=utf-8" }
-    })
+    fetchImpl: async () =>
+      new Response(
+        "<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>",
+        {
+          status: 200,
+          headers: { "content-type": "text/html; charset=utf-8" }
+        }
+      )
   });
 
   const report = await engine.auditUrl("https://public.example/", {
@@ -145,8 +158,14 @@ test("unavailable PageSpeed stays a proof note instead of repair work", async ()
   const repairText = report.repairPlan
     .map((item) => `${item.title}\n${item.proof || ""}\n${item.fix || ""}\n${item.acceptance || ""}`)
     .join("\n");
-  assert.deepEqual(report.findings.filter((finding) => finding.type === "performance"), []);
-  assert.deepEqual(report.repairPlan.filter((item) => item.workType === "performance"), []);
+  assert.deepEqual(
+    report.findings.filter((finding) => finding.type === "performance"),
+    []
+  );
+  assert.deepEqual(
+    report.repairPlan.filter((item) => item.workType === "performance"),
+    []
+  );
   assert.doesNotMatch(findingText, /PageSpeed data unavailable|PageSpeed Insights returned HTTP 429/i);
   assert.doesNotMatch(repairText, /PageSpeed data unavailable|PageSpeed Insights returned HTTP 429/i);
 });
@@ -162,10 +181,13 @@ test("audit discovery fetch blocks private-DNS redirect targets before fetch", a
       });
     }
     if (url === "https://public.example/") {
-      return new Response("<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>", {
-        status: 200,
-        headers: { "content-type": "text/html; charset=utf-8" }
-      });
+      return new Response(
+        "<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>",
+        {
+          status: 200,
+          headers: { "content-type": "text/html; charset=utf-8" }
+        }
+      );
     }
     return new Response("", {
       status: 404,
@@ -197,10 +219,13 @@ test("resource validation blocks private-DNS resources and redirect targets befo
       });
     }
     if (url === "https://public.example/") {
-      return new Response("<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>", {
-        status: 200,
-        headers: { "content-type": "text/html; charset=utf-8" }
-      });
+      return new Response(
+        "<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>",
+        {
+          status: 200,
+          headers: { "content-type": "text/html; charset=utf-8" }
+        }
+      );
     }
     return new Response("", {
       status: 404,
@@ -208,19 +233,24 @@ test("resource validation blocks private-DNS resources and redirect targets befo
     });
   };
   const engine = createAuditEngine({
-    launchBrowser: async () => fakeBrowser("https://public.example/", {
-      canonical: "https://private.example/canonical",
-      links: [{
-        text: "redirect",
-        href: "https://redirect.example/resource",
-        rawHref: "https://redirect.example/resource"
-      }],
-      externalLinks: [{
-        text: "redirect",
-        href: "https://redirect.example/resource",
-        rawHref: "https://redirect.example/resource"
-      }]
-    }),
+    launchBrowser: async () =>
+      fakeBrowser("https://public.example/", {
+        canonical: "https://private.example/canonical",
+        links: [
+          {
+            text: "redirect",
+            href: "https://redirect.example/resource",
+            rawHref: "https://redirect.example/resource"
+          }
+        ],
+        externalLinks: [
+          {
+            text: "redirect",
+            href: "https://redirect.example/resource",
+            rawHref: "https://redirect.example/resource"
+          }
+        ]
+      }),
     fetchImpl,
     pagespeedDisabled: true,
     privateAddressResolver: async (hostname) => hostname === "private.example"
@@ -238,7 +268,6 @@ test("resource validation blocks private-DNS resources and redirect targets befo
   assert.equal(fetched.includes("https://private.example/canonical"), false);
 });
 
-
 // Regression: a site can declare og:image/twitter:image while pointing them at a
 // file that does not load as an image. Presence alone was previously treated as
 // a working social preview, and the suggested snippet hard-coded
@@ -252,10 +281,13 @@ test("social images that are declared but not loadable produce a broken-preview 
       }),
     fetchImpl: async (url) => {
       if (url === "https://public.example/") {
-        return new Response("<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>", {
-          status: 200,
-          headers: { "content-type": "text/html; charset=utf-8" }
-        });
+        return new Response(
+          "<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>",
+          {
+            status: 200,
+            headers: { "content-type": "text/html; charset=utf-8" }
+          }
+        );
       }
       if (url === "https://public.example/social/og.png") {
         return new Response("not really an image", { status: 200, headers: { "content-type": "text/html" } });
@@ -270,8 +302,15 @@ test("social images that are declared but not loadable produce a broken-preview 
   assert.ok(broken, "a declared-but-not-image social tag must be reported");
   // og:image and twitter:image point at the same URL, so the check is deduped:
   // the evidence names the single shared image URL and its broken response.
-  assert.match(broken.evidence, /og:image \(https:\/\/public\.example\/social\/og\.png\): returned 200 with content-type text\/html/);
-  assert.doesNotMatch(broken.evidence, /twitter:image \(https:\/\/public\.example\/social\/og\.png\)/, "a shared social image URL is checked once");
+  assert.match(
+    broken.evidence,
+    /og:image \(https:\/\/public\.example\/social\/og\.png\): returned 200 with content-type text\/html/
+  );
+  assert.doesNotMatch(
+    broken.evidence,
+    /twitter:image \(https:\/\/public\.example\/social\/og\.png\)/,
+    "a shared social image URL is checked once"
+  );
 });
 
 test("social images that are declared and loadable are not reported broken", async () => {
@@ -283,10 +322,13 @@ test("social images that are declared and loadable are not reported broken", asy
       }),
     fetchImpl: async (url) => {
       if (url === "https://public.example/") {
-        return new Response("<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>", {
-          status: 200,
-          headers: { "content-type": "text/html; charset=utf-8" }
-        });
+        return new Response(
+          "<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>",
+          {
+            status: 200,
+            headers: { "content-type": "text/html; charset=utf-8" }
+          }
+        );
       }
       if (url === "https://public.example/social/og.png") {
         return new Response("fake png bytes", { status: 200, headers: { "content-type": "image/png" } });
@@ -297,7 +339,9 @@ test("social images that are declared and loadable are not reported broken", asy
   });
 
   const report = await engine.auditUrl("https://public.example/", { maxPages: 1, pageSpeed: false });
-  const broken = report.findings.find((finding) => /Social share image (is not loadable|incomplete)/.test(finding.title));
+  const broken = report.findings.find((finding) =>
+    /Social share image (is not loadable|incomplete)/.test(finding.title)
+  );
   assert.equal(broken, undefined, "a live social image must not be reported as broken");
 });
 
@@ -310,10 +354,13 @@ test("social snippet never guesses an unverified og-image path when the audited 
       }),
     fetchImpl: async (url) => {
       if (url === "https://public.example/") {
-        return new Response("<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>", {
-          status: 200,
-          headers: { "content-type": "text/html; charset=utf-8" }
-        });
+        return new Response(
+          "<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>",
+          {
+            status: 200,
+            headers: { "content-type": "text/html; charset=utf-8" }
+          }
+        );
       }
       return new Response("", { status: 404, headers: { "content-type": "text/plain" } });
     },
@@ -323,8 +370,11 @@ test("social snippet never guesses an unverified og-image path when the audited 
   const report = await engine.auditUrl("https://public.example/", { maxPages: 1, pageSpeed: false });
   const social = report.findings.find((finding) => /Social share image incomplete/.test(finding.title));
   assert.ok(social, "missing social tags must still be reported");
-  assert.match(social.snippet, /Create https:\/\/public\.example\/og-image\.png \(1200x630\)/,
-    "the snippet must tell the customer the og-image.png path is a placeholder they need to create");
+  assert.match(
+    social.snippet,
+    /Create https:\/\/public\.example\/og-image\.png \(1200x630\)/,
+    "the snippet must tell the customer the og-image.png path is a placeholder they need to create"
+  );
 });
 
 test("social snippet uses the verified live og:image URL when one exists", async () => {
@@ -336,10 +386,13 @@ test("social snippet uses the verified live og:image URL when one exists", async
       }),
     fetchImpl: async (url) => {
       if (url === "https://public.example/") {
-        return new Response("<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>", {
-          status: 200,
-          headers: { "content-type": "text/html; charset=utf-8" }
-        });
+        return new Response(
+          "<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>",
+          {
+            status: 200,
+            headers: { "content-type": "text/html; charset=utf-8" }
+          }
+        );
       }
       if (url === "https://public.example/social/og.png") {
         return new Response("fake png bytes", { status: 200, headers: { "content-type": "image/png" } });
@@ -371,10 +424,13 @@ test("a declared apple-touch-icon that does not load as an image is reported", a
       }),
     fetchImpl: async (url) => {
       if (url === "https://public.example/") {
-        return new Response("<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>", {
-          status: 200,
-          headers: { "content-type": "text/html; charset=utf-8" }
-        });
+        return new Response(
+          "<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>",
+          {
+            status: 200,
+            headers: { "content-type": "text/html; charset=utf-8" }
+          }
+        );
       }
       if (url === "https://public.example/icons/apple-touch-icon.png") {
         return new Response("not really an image", { status: 404, headers: { "content-type": "text/html" } });
@@ -407,10 +463,13 @@ test("a declared apple-touch-icon that loads as an image is not reported", async
       }),
     fetchImpl: async (url) => {
       if (url === "https://public.example/") {
-        return new Response("<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>", {
-          status: 200,
-          headers: { "content-type": "text/html; charset=utf-8" }
-        });
+        return new Response(
+          "<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>",
+          {
+            status: 200,
+            headers: { "content-type": "text/html; charset=utf-8" }
+          }
+        );
       }
       if (url === "https://public.example/icons/apple-touch-icon.png") {
         return new Response("fake png bytes", { status: 200, headers: { "content-type": "image/png" } });
@@ -435,10 +494,13 @@ test("apple touch icon snippet flags the placeholder path when no icon file exis
     fetchImpl: async (url) => {
       requested.push(url);
       if (url === "https://public.example/") {
-        return new Response("<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>", {
-          status: 200,
-          headers: { "content-type": "text/html; charset=utf-8" }
-        });
+        return new Response(
+          "<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>",
+          {
+            status: 200,
+            headers: { "content-type": "text/html; charset=utf-8" }
+          }
+        );
       }
       return new Response("", { status: 404, headers: { "content-type": "text/plain" } });
     },
@@ -458,8 +520,16 @@ test("apple touch icon snippet flags the placeholder path when no icon file exis
     /No icon file loaded at https:\/\/public\.example\/apple-touch-icon\.png during this audit\./,
     "the snippet must say the guessed path is a placeholder the customer has to create"
   );
-  assert.doesNotMatch(missing.snippet, /href="\/apple-touch-icon\.png"/, "the snippet must not ship a bare hard-coded path");
-  assert.doesNotMatch(missing.snippet, /sizes=/, "the audit does not measure icon dimensions, so it must not claim them");
+  assert.doesNotMatch(
+    missing.snippet,
+    /href="\/apple-touch-icon\.png"/,
+    "the snippet must not ship a bare hard-coded path"
+  );
+  assert.doesNotMatch(
+    missing.snippet,
+    /sizes=/,
+    "the audit does not measure icon dimensions, so it must not claim them"
+  );
 });
 
 test("apple touch icon snippet uses the conventional path once it is verified to load", async () => {
@@ -467,10 +537,13 @@ test("apple touch icon snippet uses the conventional path once it is verified to
     launchBrowser: async () => fakeBrowser("https://public.example/", { appleTouchIcon: null }),
     fetchImpl: async (url) => {
       if (url === "https://public.example/") {
-        return new Response("<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>", {
-          status: 200,
-          headers: { "content-type": "text/html; charset=utf-8" }
-        });
+        return new Response(
+          "<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>",
+          {
+            status: 200,
+            headers: { "content-type": "text/html; charset=utf-8" }
+          }
+        );
       }
       if (url === "https://public.example/apple-touch-icon.png") {
         return new Response("fake png bytes", { status: 200, headers: { "content-type": "image/png" } });
@@ -494,10 +567,13 @@ test("rendered audit navigation rechecks private DNS before browser goto", async
   const fetchImpl = async (url) => {
     if (url === "https://public.example/") {
       staticPageFetched = true;
-      return new Response("<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>", {
-        status: 200,
-        headers: { "content-type": "text/html; charset=utf-8" }
-      });
+      return new Response(
+        "<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>",
+        {
+          status: 200,
+          headers: { "content-type": "text/html; charset=utf-8" }
+        }
+      );
     }
     return new Response("", {
       status: 404,
@@ -523,10 +599,13 @@ test("rendered browser audit aborts private-DNS subresources before load", async
   const abortedRequests = [];
   const fetchImpl = async (url) => {
     if (url === "https://public.example/") {
-      return new Response("<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><img src=\"https://private.example/pixel.png\"></body></html>", {
-        status: 200,
-        headers: { "content-type": "text/html; charset=utf-8" }
-      });
+      return new Response(
+        '<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><img src="https://private.example/pixel.png"></body></html>',
+        {
+          status: 200,
+          headers: { "content-type": "text/html; charset=utf-8" }
+        }
+      );
     }
     return new Response("", {
       status: 404,
@@ -534,15 +613,16 @@ test("rendered browser audit aborts private-DNS subresources before load", async
     });
   };
   const engine = createAuditEngine({
-    launchBrowser: async () => fakeBrowser("https://public.example/", {}, {
-      allowedRequests,
-      abortedRequests,
-      requestUrls: [
+    launchBrowser: async () =>
+      fakeBrowser(
         "https://public.example/",
-        "https://public.example/app.js",
-        "https://private.example/pixel.png"
-      ]
-    }),
+        {},
+        {
+          allowedRequests,
+          abortedRequests,
+          requestUrls: ["https://public.example/", "https://public.example/app.js", "https://private.example/pixel.png"]
+        }
+      ),
     fetchImpl,
     pagespeedDisabled: true,
     privateAddressResolver: async (hostname) => hostname === "private.example"
@@ -561,10 +641,13 @@ test("rendered browser audit aborts private-DNS subresources through Puppeteer i
   const interceptionEnabled = [];
   const fetchImpl = async (url) => {
     if (url === "https://public.example/") {
-      return new Response("<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><script src=\"https://private.example/app.js\"></script></body></html>", {
-        status: 200,
-        headers: { "content-type": "text/html; charset=utf-8" }
-      });
+      return new Response(
+        '<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><script src="https://private.example/app.js"></script></body></html>',
+        {
+          status: 200,
+          headers: { "content-type": "text/html; charset=utf-8" }
+        }
+      );
     }
     return new Response("", {
       status: 404,
@@ -572,17 +655,18 @@ test("rendered browser audit aborts private-DNS subresources through Puppeteer i
     });
   };
   const engine = createAuditEngine({
-    launchBrowser: async () => fakeBrowser("https://public.example/", {}, {
-      noRoute: true,
-      interceptionEnabled,
-      allowedRequests,
-      abortedRequests,
-      requestUrls: [
+    launchBrowser: async () =>
+      fakeBrowser(
         "https://public.example/",
-        "https://public.example/app.js",
-        "https://private.example/app.js"
-      ]
-    }),
+        {},
+        {
+          noRoute: true,
+          interceptionEnabled,
+          allowedRequests,
+          abortedRequests,
+          requestUrls: ["https://public.example/", "https://public.example/app.js", "https://private.example/app.js"]
+        }
+      ),
     fetchImpl,
     pagespeedDisabled: true,
     privateAddressResolver: async (hostname) => {
@@ -678,7 +762,7 @@ test("backlink audit uses private DNS guard for target helper fetches", async ()
     {
       fetcher: async (url) => {
         fetched.push(String(url));
-        return new Response("<a href=\"https://target.example/\">target</a>", {
+        return new Response('<a href="https://target.example/">target</a>', {
           status: 200,
           headers: { "content-type": "text/html" }
         });
@@ -813,18 +897,13 @@ function fakeBrowser(finalUrl, overrides = {}, hooks = {}) {
   };
 }
 
-
 // Regression: auditing 0509.io produced 8 critical "broken internal links"
 // findings stamped confidence=verified. Every one was this crawler tripping that
 // site's rate limiter; the same URLs returned 200 and 302 when requested politely.
 // A product that sells proof cannot report its own footprint as the customer's bug.
 test("throttle statuses are not treated as broken resources", () => {
   for (const status of [408, 425, 429, 503]) {
-    assert.equal(
-      isThrottledResource({ status, ok: false }),
-      true,
-      `${status} should count as throttled, not broken`
-    );
+    assert.equal(isThrottledResource({ status, ok: false }), true, `${status} should count as throttled, not broken`);
   }
 });
 
@@ -839,7 +918,6 @@ test("genuine failures are still not mistaken for throttling", () => {
   assert.equal(isThrottledResource(null), false);
   assert.equal(isThrottledResource({ ok: false }), false);
 });
-
 
 // Regression: a Cloudflare-hosted site whose origin briefly fails returns
 // 522 (connection timed out) / 523 (origin unreachable) / 524 (origin did not
@@ -901,16 +979,17 @@ test("same-origin 522/523/524 link failures never become critical broken-link fi
           { text: "Contact", href: "https://public.example/contact", rawHref: "/contact" },
           { text: "Pricing", href: "https://public.example/pricing", rawHref: "/pricing" }
         ],
-        externalLinks: [
-          { text: "Reference", href: "https://other.example/ref", rawHref: "https://other.example/ref" }
-        ]
+        externalLinks: [{ text: "Reference", href: "https://other.example/ref", rawHref: "https://other.example/ref" }]
       }),
     fetchImpl: async (url) => {
       if (url === "https://public.example/") {
-        return new Response("<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>", {
-          status: 200,
-          headers: { "content-type": "text/html; charset=utf-8" }
-        });
+        return new Response(
+          "<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>",
+          {
+            status: 200,
+            headers: { "content-type": "text/html; charset=utf-8" }
+          }
+        );
       }
       if (url === "https://public.example/about") {
         return new Response("origin unreachable", { status: 523, headers: { "content-type": "text/html" } });
@@ -931,14 +1010,17 @@ test("same-origin 522/523/524 link failures never become critical broken-link fi
 
   const report = await engine.auditUrl("https://public.example/", { maxPages: 1, pageSpeed: false });
   const brokenInternal = (report.findings || []).filter((finding) => /Broken internal links/.test(finding.title || ""));
-  assert.deepEqual(brokenInternal, [], "same-origin 522/523/524 failures must not be reported as broken internal links");
+  assert.deepEqual(
+    brokenInternal,
+    [],
+    "same-origin 522/523/524 failures must not be reported as broken internal links"
+  );
   assert.equal(report.summary.critical, 0, "a scan-time origin hiccup must not inflate the critical count");
 
   const brokenExternal = (report.findings || []).filter((finding) => /Broken external links/.test(finding.title || ""));
   assert.equal(brokenExternal.length, 1, "an external origin failure is still a real observation");
   assert.match(brokenExternal[0].evidence, /other\.example\/ref returned 523/, "external 523 stays evidenced");
 });
-
 
 // Regression: the free /check engine was reporting "Canonical URL is not
 // reachable" when a same-origin canonical (e.g. self-referential, apex↔www,
@@ -957,10 +1039,13 @@ test("same-origin 522/523/524 canonical failures never become 'Canonical URL is 
         }),
       fetchImpl: async (url) => {
         if (url === "https://public.example/") {
-          return new Response("<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>", {
-            status: 200,
-            headers: { "content-type": "text/html; charset=utf-8" }
-          });
+          return new Response(
+            "<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>",
+            {
+              status: 200,
+              headers: { "content-type": "text/html; charset=utf-8" }
+            }
+          );
         }
         if (url === "https://public.example/canonical") {
           return new Response("origin hiccup", { status, headers: { "content-type": "text/html" } });
@@ -971,13 +1056,20 @@ test("same-origin 522/523/524 canonical failures never become 'Canonical URL is 
     });
 
     const report = await engine.auditUrl("https://public.example/", { maxPages: 1, pageSpeed: false });
-    const canonicalFindings = (report.findings || []).filter((finding) => /Canonical URL is not reachable/i.test(finding.title || ""));
+    const canonicalFindings = (report.findings || []).filter((finding) =>
+      /Canonical URL is not reachable/i.test(finding.title || "")
+    );
     assert.deepEqual(canonicalFindings, [], `same-origin canonical ${status} must not be reported as unreachable`);
-    const canonicalNotice = (report.findings || []).filter((finding) => /Canonical URL redirects/i.test(finding.title || ""));
-    assert.deepEqual(canonicalNotice, [], `same-origin canonical ${status} must not surface as a redirect notice either`);
+    const canonicalNotice = (report.findings || []).filter((finding) =>
+      /Canonical URL redirects/i.test(finding.title || "")
+    );
+    assert.deepEqual(
+      canonicalNotice,
+      [],
+      `same-origin canonical ${status} must not surface as a redirect notice either`
+    );
   }
 });
-
 
 // Regression: a cross-origin canonical (declared on the page but pointing to a
 // different host) must still surface 522/523/524 as a real reachability finding
@@ -994,10 +1086,13 @@ test("cross-origin canonical 522/523/524 is still reported as unreachable", asyn
         }),
       fetchImpl: async (url) => {
         if (url === "https://public.example/") {
-          return new Response("<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>", {
-            status: 200,
-            headers: { "content-type": "text/html; charset=utf-8" }
-          });
+          return new Response(
+            "<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>",
+            {
+              status: 200,
+              headers: { "content-type": "text/html; charset=utf-8" }
+            }
+          );
         }
         if (url === "https://other.example/canonical") {
           return new Response("origin hiccup", { status, headers: { "content-type": "text/html" } });
@@ -1008,14 +1103,21 @@ test("cross-origin canonical 522/523/524 is still reported as unreachable", asyn
     });
 
     const report = await engine.auditUrl("https://public.example/", { maxPages: 1, pageSpeed: false });
-    const canonicalFindings = (report.findings || []).filter((finding) => /Canonical URL is not reachable/i.test(finding.title || ""));
+    const canonicalFindings = (report.findings || []).filter((finding) =>
+      /Canonical URL is not reachable/i.test(finding.title || "")
+    );
     assert.equal(canonicalFindings.length, 1, `cross-origin canonical ${status} stays a real observation`);
-    assert.match(canonicalFindings[0].evidence, new RegExp(`other\\.example/canonical returned ${status}`), `evidence must cite the cross-origin ${status}`);
-    const canonicalNotice = (report.findings || []).filter((finding) => /Canonical URL redirects/i.test(finding.title || ""));
+    assert.match(
+      canonicalFindings[0].evidence,
+      new RegExp(`other\\.example/canonical returned ${status}`),
+      `evidence must cite the cross-origin ${status}`
+    );
+    const canonicalNotice = (report.findings || []).filter((finding) =>
+      /Canonical URL redirects/i.test(finding.title || "")
+    );
     assert.deepEqual(canonicalNotice, [], `a failed cross-origin canonical ${status} is not a redirect notice`);
   }
 });
-
 
 // Regression: a www↔apex canonical lives on the customer's own infrastructure
 // even though the hostname differs from the audited page. The strict origin
@@ -1036,10 +1138,13 @@ test("same-site www and apex canonical transient origin errors are guarded like 
           }),
         fetchImpl: async (url) => {
           if (url === pageUrl) {
-            return new Response("<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>", {
-              status: 200,
-              headers: { "content-type": "text/html; charset=utf-8" }
-            });
+            return new Response(
+              "<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>",
+              {
+                status: 200,
+                headers: { "content-type": "text/html; charset=utf-8" }
+              }
+            );
           }
           if (url === canonical) {
             return new Response("origin hiccup", { status, headers: { "content-type": "text/html" } });
@@ -1050,14 +1155,25 @@ test("same-site www and apex canonical transient origin errors are guarded like 
       });
 
       const report = await engine.auditUrl(pageUrl, { maxPages: 1, pageSpeed: false });
-      const canonicalFindings = (report.findings || []).filter((finding) => /Canonical URL is not reachable/i.test(finding.title || ""));
-      assert.deepEqual(canonicalFindings, [], `www↔apex canonical ${status} on the same site must not be reported as unreachable`);
-      const canonicalNotice = (report.findings || []).filter((finding) => /Canonical URL redirects/i.test(finding.title || ""));
-      assert.deepEqual(canonicalNotice, [], `www↔apex canonical ${status} on the same site must not surface as a redirect notice either`);
+      const canonicalFindings = (report.findings || []).filter((finding) =>
+        /Canonical URL is not reachable/i.test(finding.title || "")
+      );
+      assert.deepEqual(
+        canonicalFindings,
+        [],
+        `www↔apex canonical ${status} on the same site must not be reported as unreachable`
+      );
+      const canonicalNotice = (report.findings || []).filter((finding) =>
+        /Canonical URL redirects/i.test(finding.title || "")
+      );
+      assert.deepEqual(
+        canonicalNotice,
+        [],
+        `www↔apex canonical ${status} on the same site must not surface as a redirect notice either`
+      );
     }
   }
 });
-
 
 // Regression: the canonical probe is a second network request to the customer's
 // own site seconds after the page itself rendered fine. When that probe dies at
@@ -1074,10 +1190,13 @@ test("same-origin canonical probe transport failures are not reported as unreach
       }),
     fetchImpl: async (url) => {
       if (url === "https://public.example/") {
-        return new Response("<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>", {
-          status: 200,
-          headers: { "content-type": "text/html; charset=utf-8" }
-        });
+        return new Response(
+          "<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>",
+          {
+            status: 200,
+            headers: { "content-type": "text/html; charset=utf-8" }
+          }
+        );
       }
       throw new Error("The operation was aborted due to timeout");
     },
@@ -1085,12 +1204,19 @@ test("same-origin canonical probe transport failures are not reported as unreach
   });
 
   const report = await engine.auditUrl("https://public.example/", { maxPages: 1, pageSpeed: false });
-  const canonicalFindings = (report.findings || []).filter((finding) => /Canonical URL is not reachable/i.test(finding.title || ""));
-  assert.deepEqual(canonicalFindings, [], "a timed-out same-origin canonical probe is not proof of an unreachable canonical");
-  const canonicalNotice = (report.findings || []).filter((finding) => /Canonical URL redirects/i.test(finding.title || ""));
+  const canonicalFindings = (report.findings || []).filter((finding) =>
+    /Canonical URL is not reachable/i.test(finding.title || "")
+  );
+  assert.deepEqual(
+    canonicalFindings,
+    [],
+    "a timed-out same-origin canonical probe is not proof of an unreachable canonical"
+  );
+  const canonicalNotice = (report.findings || []).filter((finding) =>
+    /Canonical URL redirects/i.test(finding.title || "")
+  );
   assert.deepEqual(canonicalNotice, [], "a timed-out same-origin canonical probe is not a redirect observation either");
 });
-
 
 // Guard rail for the transport-failure suppression above: when the same-origin
 // canonical probe gets a REAL HTTP answer, the finding must keep firing so the
@@ -1104,10 +1230,13 @@ test("same-origin canonical returning a real error status stays reported as unre
       }),
     fetchImpl: async (url) => {
       if (url === "https://public.example/") {
-        return new Response("<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>", {
-          status: 200,
-          headers: { "content-type": "text/html; charset=utf-8" }
-        });
+        return new Response(
+          "<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>",
+          {
+            status: 200,
+            headers: { "content-type": "text/html; charset=utf-8" }
+          }
+        );
       }
       return new Response("not found", { status: 404, headers: { "content-type": "text/html" } });
     },
@@ -1115,10 +1244,11 @@ test("same-origin canonical returning a real error status stays reported as unre
   });
 
   const report = await engine.auditUrl("https://public.example/", { maxPages: 1, pageSpeed: false });
-  const canonicalFindings = (report.findings || []).filter((finding) => /Canonical URL is not reachable/i.test(finding.title || ""));
+  const canonicalFindings = (report.findings || []).filter((finding) =>
+    /Canonical URL is not reachable/i.test(finding.title || "")
+  );
   assert.equal(canonicalFindings.length, 1, "a same-origin canonical answering 404 is a real defect");
 });
-
 
 // Regression: 0509.io serves HSTS on every route, but /search took 7.6s to
 // settle so no headers were captured, and the audit reported the header as
@@ -1154,7 +1284,6 @@ test("HSTS is still reported when headers were captured without it", async () =>
   const hsts = (report.findings || []).filter((f) => /HSTS/i.test(f.title || ""));
   assert.equal(hsts.length, 1, "a real header capture with no HSTS must still be reported");
 });
-
 
 // Regression: markup that only exists inside <script> or <style> element bodies
 // (JS template strings, CSS content) must not be counted as static headings,
@@ -1275,16 +1404,23 @@ test("rendered-vs-static guards stay truthful for the live script-rendered fixtu
 </html>`;
   const renderedLinks = [
     { text: "Overview", href: "https://public.example/fixture/rendered-page", rawHref: "/fixture/rendered-page" },
-    { text: "Pricing", href: "https://public.example/fixture/rendered-page?tab=pricing", rawHref: "/fixture/rendered-page?tab=pricing" }
+    {
+      text: "Pricing",
+      href: "https://public.example/fixture/rendered-page?tab=pricing",
+      rawHref: "/fixture/rendered-page?tab=pricing"
+    }
   ];
   const engine = createAuditEngine({
-    launchBrowser: async () => fakeBrowser("https://public.example/", {
-      h1s: ["Rendered SaaS page with real content"],
-      headings: [{ level: "h1", text: "Rendered SaaS page with real content" }],
-      links: renderedLinks,
-      internalLinks: renderedLinks,
-      images: [{ src: "https://public.example/fixture/hero-large.jpg", alt: "Large rendered demo hero", hasAlt: true }]
-    }),
+    launchBrowser: async () =>
+      fakeBrowser("https://public.example/", {
+        h1s: ["Rendered SaaS page with real content"],
+        headings: [{ level: "h1", text: "Rendered SaaS page with real content" }],
+        links: renderedLinks,
+        internalLinks: renderedLinks,
+        images: [
+          { src: "https://public.example/fixture/hero-large.jpg", alt: "Large rendered demo hero", hasAlt: true }
+        ]
+      }),
     fetchImpl: async () =>
       new Response(fixture, { status: 200, headers: { "content-type": "text/html; charset=utf-8" } })
   });
@@ -1296,9 +1432,7 @@ test("rendered-vs-static guards stay truthful for the live script-rendered fixtu
   assert.deepEqual(page.static.internalLinks, []);
   assert.deepEqual(page.static.images, []);
 
-  const guardTitles = report.findings
-    .filter((finding) => finding.type === "guard")
-    .map((finding) => finding.title);
+  const guardTitles = report.findings.filter((finding) => finding.type === "guard").map((finding) => finding.title);
   assert.ok(
     guardTitles.some((title) => title.includes("H1 exists after render")),
     `expected an H1 guard, got: ${guardTitles.join(" | ")}`

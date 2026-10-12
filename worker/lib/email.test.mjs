@@ -24,19 +24,25 @@ function fakeEmailEnv(overrides = {}) {
 test("same-domain fix pack admin emails are skipped at the source", async () => {
   const { env } = fakeEmailEnv();
 
-  assert.equal(shouldSkipOwnedInternalEmail(env, {
-    to: "support@seofixkit.com",
-    tag: "fix-pack-payment"
-  }), true);
+  assert.equal(
+    shouldSkipOwnedInternalEmail(env, {
+      to: "support@seofixkit.com",
+      tag: "fix-pack-payment"
+    }),
+    true
+  );
 });
 
 test("same-domain repair sprint admin emails are skipped at the source", async () => {
   const { env } = fakeEmailEnv();
 
-  assert.equal(shouldSkipOwnedInternalEmail(env, {
-    to: "support@seofixkit.com",
-    tag: "repair-sprint-payment"
-  }), true);
+  assert.equal(
+    shouldSkipOwnedInternalEmail(env, {
+      to: "support@seofixkit.com",
+      tag: "repair-sprint-payment"
+    }),
+    true
+  );
 });
 
 test("cross-owned ops emails are skipped at the source", async () => {
@@ -44,10 +50,13 @@ test("cross-owned ops emails are skipped at the source", async () => {
     INTERNAL_EMAIL_DOMAINS: "seofixkit.com,tinystudio.io"
   });
 
-  assert.equal(shouldSkipOwnedInternalEmail(env, {
-    to: "hello@tinystudio.io",
-    tag: "ops-digest"
-  }), true);
+  assert.equal(
+    shouldSkipOwnedInternalEmail(env, {
+      to: "hello@tinystudio.io",
+      tag: "ops-digest"
+    }),
+    true
+  );
 });
 
 test("external fix pack customer emails do not carry the internal inbox marker", async () => {
@@ -64,10 +73,13 @@ test("external fix pack customer emails do not carry the internal inbox marker",
   assert.equal(sent.length, 1);
   assert.equal(sent[0].headers["X-SEOFIXKIT-Tag"], "fix-pack-payment");
   assert.equal(sent[0].headers["X-Nish-Internal-Email"], undefined);
-  assert.equal(shouldSkipOwnedInternalEmail(env, {
-    to: "customer@example.com",
-    tag: "fix-pack-payment"
-  }), false);
+  assert.equal(
+    shouldSkipOwnedInternalEmail(env, {
+      to: "customer@example.com",
+      tag: "fix-pack-payment"
+    }),
+    false
+  );
 });
 
 test("sent HTML is wrapped in the shared layout with preheader, button fallback, and footer", async () => {
@@ -87,7 +99,10 @@ test("sent HTML is wrapped in the shared layout with preheader, button fallback,
   assert.match(html, /max-width:560px/);
   assert.match(html, /Your one-time sign-in link/);
   assert.match(html, /<p>Hello<\/p>/);
-  assert.match(html, /<a href="https:\/\/seofixkit\.com\/beta\/access\?t=a&amp;b=1" style="background:#0f7a56[^"]*">Open SEO Fix Kit<\/a>/);
+  assert.match(
+    html,
+    /<a href="https:\/\/seofixkit\.com\/beta\/access\?t=a&amp;b=1" style="background:#0f7a56[^"]*">Open SEO Fix Kit<\/a>/
+  );
   assert.match(html, /Or paste this link into your browser: https:\/\/seofixkit\.com\/beta\/access\?t=a&amp;b=1/);
   assert.match(html, /support@seofixkit\.com/);
   assert.match(sent[0].text, /Open https:\/\/seofixkit\.com\/x\n\n--\nSEO Fix Kit/, "plain-text part keeps its footer");

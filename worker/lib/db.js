@@ -46,15 +46,17 @@ async function cleanupExpiredRows(env) {
              AND (report_id = audit_jobs.report_id OR final_report_id = audit_jobs.report_id)
          )`
     ).bind(now),
-    env.WAITLIST_DB.prepare(`DELETE FROM access_tokens WHERE expires_at < ? OR (used_at IS NOT NULL AND used_at < ?)`).bind(now, isoSecondsFromNow(-24 * 60 * 60)),
-    env.WAITLIST_DB.prepare(`DELETE FROM beta_sessions WHERE expires_at < ? OR (revoked_at IS NOT NULL AND revoked_at < ?)`).bind(now, isoSecondsFromNow(-24 * 60 * 60)),
-    env.WAITLIST_DB.prepare(`DELETE FROM admin_sessions WHERE expires_at < ? OR (revoked_at IS NOT NULL AND revoked_at < ?)`).bind(now, isoSecondsFromNow(-24 * 60 * 60)),
+    env.WAITLIST_DB.prepare(
+      `DELETE FROM access_tokens WHERE expires_at < ? OR (used_at IS NOT NULL AND used_at < ?)`
+    ).bind(now, isoSecondsFromNow(-24 * 60 * 60)),
+    env.WAITLIST_DB.prepare(
+      `DELETE FROM beta_sessions WHERE expires_at < ? OR (revoked_at IS NOT NULL AND revoked_at < ?)`
+    ).bind(now, isoSecondsFromNow(-24 * 60 * 60)),
+    env.WAITLIST_DB.prepare(
+      `DELETE FROM admin_sessions WHERE expires_at < ? OR (revoked_at IS NOT NULL AND revoked_at < ?)`
+    ).bind(now, isoSecondsFromNow(-24 * 60 * 60)),
     env.WAITLIST_DB.prepare(`DELETE FROM audit_usage WHERE updated_at < ?`).bind(isoSecondsFromNow(-7 * 24 * 60 * 60))
   ]);
 }
 
-export {
-  cleanupExpiredRows,
-  countRows,
-  runD1BatchChunks
-};
+export { cleanupExpiredRows, countRows, runD1BatchChunks };

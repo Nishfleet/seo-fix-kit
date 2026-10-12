@@ -19,22 +19,40 @@ const protectedProposalDeliveries = ["in_progress", "delivered"];
   const insertRow = (table, values) => {
     const row = {};
     for (const column of db.rows(`PRAGMA table_info(${table})`)) {
-      if (column.notnull && column.dflt_value === null && !column.pk) row[column.name] = column.type === "INTEGER" ? 0 : "x";
+      if (column.notnull && column.dflt_value === null && !column.pk)
+        row[column.name] = column.type === "INTEGER" ? 0 : "x";
     }
     db.insert(table, { ...row, ...values });
   };
   insertRow("audit_reports", { id: "report-cascade" });
   insertRow("repair_queue_items", { id: "queue-cascade", report_id: "report-cascade" });
-  insertRow("repair_agent_actions", { id: "action-cascade", report_id: "report-cascade", queue_item_id: "queue-cascade" });
+  insertRow("repair_agent_actions", {
+    id: "action-cascade",
+    report_id: "report-cascade",
+    queue_item_id: "queue-cascade"
+  });
   await db.prepare("DELETE FROM audit_reports WHERE id = ?").bind("report-cascade").run();
-  assert.deepEqual(db.rows("SELECT id FROM repair_queue_items"), [], "deleting a report removes its repair queue items");
+  assert.deepEqual(
+    db.rows("SELECT id FROM repair_queue_items"),
+    [],
+    "deleting a report removes its repair queue items"
+  );
   assert.deepEqual(db.rows("SELECT id FROM repair_agent_actions"), [], "deleting a report removes its repair actions");
 
   const usesIndex = (sql) =>
     db.rows(`EXPLAIN QUERY PLAN ${sql}`).some((step) => /USING (COVERING )?INDEX/.test(step.detail));
-  assert.ok(usesIndex("SELECT id FROM repair_queue_items WHERE last_rerun_report_id = 'r'"), "rerun report lookup on queue items is indexed");
-  assert.ok(usesIndex("SELECT id FROM repair_agent_actions WHERE report_id = 'r'"), "report lookup on repair actions is indexed");
-  assert.ok(usesIndex("SELECT id FROM repair_agent_actions WHERE rerun_report_id = 'r'"), "rerun report lookup on repair actions is indexed");
+  assert.ok(
+    usesIndex("SELECT id FROM repair_queue_items WHERE last_rerun_report_id = 'r'"),
+    "rerun report lookup on queue items is indexed"
+  );
+  assert.ok(
+    usesIndex("SELECT id FROM repair_agent_actions WHERE report_id = 'r'"),
+    "report lookup on repair actions is indexed"
+  );
+  assert.ok(
+    usesIndex("SELECT id FROM repair_agent_actions WHERE rerun_report_id = 'r'"),
+    "rerun report lookup on repair actions is indexed"
+  );
   assert.ok(usesIndex("SELECT id FROM audit_jobs WHERE report_id = 'r'"), "report lookup on audit jobs is indexed");
 }
 
@@ -85,9 +103,13 @@ for (const status of unprotectedStatuses) {
 {
   const finalReportId = "report-final-abc";
   const env = fakeEnv({
-    reports: [{ id: finalReportId, report_json: `r2:reports/${finalReportId}.json`, expires_at: "2026-01-01T00:00:00.000Z" }],
+    reports: [
+      { id: finalReportId, report_json: `r2:reports/${finalReportId}.json`, expires_at: "2026-01-01T00:00:00.000Z" }
+    ],
     jobs: [{ id: "job_final", report_id: finalReportId, expires_at: "2026-01-01T00:00:00.000Z" }],
-    fixRequests: [{ id: "fix_final", status: "delivered", report_id: "report-original-abc", final_report_id: finalReportId }]
+    fixRequests: [
+      { id: "fix_final", status: "delivered", report_id: "report-original-abc", final_report_id: finalReportId }
+    ]
   });
   const protectedFixRequest = await protectedFixRequestForReport(env, finalReportId);
   assert.equal(protectedFixRequest.id, "fix_final");
@@ -102,7 +124,9 @@ for (const status of unprotectedStatuses) {
 {
   const finalReportId = "proposal-final-proof-abc";
   const env = fakeEnv({
-    reports: [{ id: finalReportId, report_json: `r2:reports/${finalReportId}.json`, expires_at: "2026-01-01T00:00:00.000Z" }],
+    reports: [
+      { id: finalReportId, report_json: `r2:reports/${finalReportId}.json`, expires_at: "2026-01-01T00:00:00.000Z" }
+    ],
     jobs: [{ id: "job_proposal_final", report_id: finalReportId, expires_at: "2026-01-01T00:00:00.000Z" }],
     fixRequests: [{ id: "fix_proposal", status: "new", report_id: "report-original-abc", final_report_id: "" }],
     repairProposals: [
@@ -129,8 +153,12 @@ for (const status of unprotectedStatuses) {
 {
   const finalReportId = "proposal-unpaid-approved-abc";
   const env = fakeEnv({
-    reports: [{ id: finalReportId, report_json: `r2:reports/${finalReportId}.json`, expires_at: "2026-01-01T00:00:00.000Z" }],
-    fixRequests: [{ id: "fix_unpaid_proposal", status: "checkout_created", report_id: "report-original-abc", final_report_id: "" }],
+    reports: [
+      { id: finalReportId, report_json: `r2:reports/${finalReportId}.json`, expires_at: "2026-01-01T00:00:00.000Z" }
+    ],
+    fixRequests: [
+      { id: "fix_unpaid_proposal", status: "checkout_created", report_id: "report-original-abc", final_report_id: "" }
+    ],
     repairProposals: [
       {
         id: "proposal_unpaid_approved",
@@ -182,7 +210,10 @@ for (const status of unprotectedStatuses) {
   });
   const deleted = await deleteReportRowsWithBlobs(env, env.reports);
   assert.deepEqual(deleted.deletedIds, [reportId]);
-  assert.deepEqual(deleted.failedBlobDeletes.map((failure) => failure.key), [`reports/${reportId}.json`]);
+  assert.deepEqual(
+    deleted.failedBlobDeletes.map((failure) => failure.key),
+    [`reports/${reportId}.json`]
+  );
   assert.equal(env.deletionFailures.length, 1);
   assert.deepEqual(env.deletionFailures[0], {
     blob_key: `reports/${reportId}.json`,
@@ -196,28 +227,35 @@ for (const status of unprotectedStatuses) {
 {
   const proofReportId = "report-proof-delete-abc";
   const env = fakeEnv({
-    reports: [{ id: proofReportId, report_json: `r2:reports/${proofReportId}.json`, expires_at: "2026-01-01T00:00:00.000Z" }],
-    repairQueueItems: [{
-      id: "queue-survivor",
-      report_id: "report-original-abc",
-      status: "regressed",
-      rerun_status: "regressed",
-      last_rerun_report_id: proofReportId,
-      updated_by_email: "owner@example.com"
-    }],
-    repairActions: [{
-      id: "action-survivor",
-      report_id: "report-original-abc",
-      rerun_state: "regressed",
-      rerun_report_id: proofReportId,
-      updated_by_email: "owner@example.com"
-    }, {
-      id: "action-owned-by-proof",
-      report_id: proofReportId,
-      rerun_state: "not_run",
-      rerun_report_id: "",
-      updated_by_email: "owner@example.com"
-    }]
+    reports: [
+      { id: proofReportId, report_json: `r2:reports/${proofReportId}.json`, expires_at: "2026-01-01T00:00:00.000Z" }
+    ],
+    repairQueueItems: [
+      {
+        id: "queue-survivor",
+        report_id: "report-original-abc",
+        status: "regressed",
+        rerun_status: "regressed",
+        last_rerun_report_id: proofReportId,
+        updated_by_email: "owner@example.com"
+      }
+    ],
+    repairActions: [
+      {
+        id: "action-survivor",
+        report_id: "report-original-abc",
+        rerun_state: "regressed",
+        rerun_report_id: proofReportId,
+        updated_by_email: "owner@example.com"
+      },
+      {
+        id: "action-owned-by-proof",
+        report_id: proofReportId,
+        rerun_state: "not_run",
+        rerun_report_id: "",
+        updated_by_email: "owner@example.com"
+      }
+    ]
   });
   const deleted = await deleteReportRowsWithBlobs(env, env.reports);
   assert.deepEqual(deleted.deletedIds, [proofReportId]);
@@ -234,19 +272,18 @@ for (const status of unprotectedStatuses) {
   const reportId = "report-repair-cleanup-fails-abc";
   const env = fakeEnv({
     reports: [{ id: reportId, report_json: `r2:reports/${reportId}.json`, expires_at: "2026-01-01T00:00:00.000Z" }],
-    repairQueueItems: [{
-      id: "queue-cleanup-fails",
-      report_id: "report-original-abc",
-      status: "fixed",
-      rerun_status: "fixed",
-      last_rerun_report_id: reportId
-    }],
+    repairQueueItems: [
+      {
+        id: "queue-cleanup-fails",
+        report_id: "report-original-abc",
+        status: "fixed",
+        rerun_status: "fixed",
+        last_rerun_report_id: reportId
+      }
+    ],
     repairCleanupFails: true
   });
-  await assert.rejects(
-    () => deleteReportRowsWithBlobs(env, env.reports),
-    /repair cleanup unavailable/
-  );
+  await assert.rejects(() => deleteReportRowsWithBlobs(env, env.reports), /repair cleanup unavailable/);
   assert.equal(env.reports.length, 1);
   assert.equal(env.repairQueueItems[0].status, "fixed");
   assert.equal(env.repairQueueItems[0].last_rerun_report_id, reportId);
@@ -273,8 +310,12 @@ for (const status of unprotectedStatuses) {
   const reportId = "protected-before-repair-migration-abc";
   const env = fakeEnv({
     reports: [{ id: reportId, report_json: `r2:reports/${reportId}.json`, expires_at: "2026-01-01T00:00:00.000Z" }],
-    jobs: [{ id: "job_protected_before_repair_migration", report_id: reportId, expires_at: "2026-01-01T00:00:00.000Z" }],
-    fixRequests: [{ id: "fix_protected_before_repair_migration", status: "paid", report_id: reportId, final_report_id: "" }],
+    jobs: [
+      { id: "job_protected_before_repair_migration", report_id: reportId, expires_at: "2026-01-01T00:00:00.000Z" }
+    ],
+    fixRequests: [
+      { id: "fix_protected_before_repair_migration", status: "paid", report_id: reportId, final_report_id: "" }
+    ],
     repairTablesMissing: true
   });
   const deleted = await deleteReportRowsWithBlobs(env, env.reports);
@@ -356,23 +397,26 @@ function maybeThrowRepairTablesMissing(sql, env) {
 function firstRow(sql, values, env) {
   if (sql.includes("FROM repair_proposals")) {
     const reportIds = [values[0], values[1]];
-    return env.repairProposals.find((row) => {
-      const fixRequest = env.fixRequests.find((request) => request.id === row.fix_request_id);
-      return (
-        reportIds.includes(row.report_id) ||
-        reportIds.includes(row.final_report_id)
-      ) && (
-        (protectedProposalApprovals.includes(row.approval_status) && protectedStatuses.includes(fixRequest?.status)) ||
-        protectedProposalDeliveries.includes(row.delivery_status)
-      );
-    }) || null;
+    return (
+      env.repairProposals.find((row) => {
+        const fixRequest = env.fixRequests.find((request) => request.id === row.fix_request_id);
+        return (
+          (reportIds.includes(row.report_id) || reportIds.includes(row.final_report_id)) &&
+          ((protectedProposalApprovals.includes(row.approval_status) &&
+            protectedStatuses.includes(fixRequest?.status)) ||
+            protectedProposalDeliveries.includes(row.delivery_status))
+        );
+      }) || null
+    );
   }
   if (sql.includes("FROM fix_requests")) {
     const reportId = values.at(-1);
-    return env.fixRequests.find((row) =>
-      protectedStatuses.includes(row.status) &&
-      (row.report_id === reportId || row.final_report_id === reportId)
-    ) || null;
+    return (
+      env.fixRequests.find(
+        (row) =>
+          protectedStatuses.includes(row.status) && (row.report_id === reportId || row.final_report_id === reportId)
+      ) || null
+    );
   }
   throw new Error(`Unexpected first SQL: ${sql}`);
 }
@@ -380,9 +424,9 @@ function firstRow(sql, values, env) {
 function runStatement(sql, values, env) {
   if (sql.includes("DELETE FROM audit_reports")) {
     const reportId = values[0];
-    const protectedReport = env.fixRequests.some((row) =>
-      protectedStatuses.includes(row.status) &&
-      (row.report_id === reportId || row.final_report_id === reportId)
+    const protectedReport = env.fixRequests.some(
+      (row) =>
+        protectedStatuses.includes(row.status) && (row.report_id === reportId || row.final_report_id === reportId)
     );
     if (protectedReport) return { meta: { changes: 0 } };
     const before = env.reports.length;
@@ -525,9 +569,8 @@ function runStatement(sql, values, env) {
 }
 
 function isProtectedReport(env, reportId) {
-  return env.fixRequests.some((row) =>
-    protectedStatuses.includes(row.status) &&
-    (row.report_id === reportId || row.final_report_id === reportId)
+  return env.fixRequests.some(
+    (row) => protectedStatuses.includes(row.status) && (row.report_id === reportId || row.final_report_id === reportId)
   );
 }
 

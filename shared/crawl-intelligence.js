@@ -257,9 +257,7 @@ function duplicateGroups(pages = [], field = "") {
 }
 
 function contentSimilarityPairs(pages = []) {
-  const candidates = pages
-    .filter((page) => page.fingerprint.tokens.length >= 40)
-    .slice(0, MAX_CONTENT_PAIR_CHECKS);
+  const candidates = pages.filter((page) => page.fingerprint.tokens.length >= 40).slice(0, MAX_CONTENT_PAIR_CHECKS);
   const pairs = [];
   for (let leftIndex = 0; leftIndex < candidates.length; leftIndex += 1) {
     for (let rightIndex = leftIndex + 1; rightIndex < candidates.length; rightIndex += 1) {
@@ -274,9 +272,7 @@ function contentSimilarityPairs(pages = []) {
       });
     }
   }
-  return pairs
-    .sort((a, b) => b.similarityPercent - a.similarityPercent)
-    .slice(0, 10);
+  return pairs.sort((a, b) => b.similarityPercent - a.similarityPercent).slice(0, 10);
 }
 
 function keywordCannibalizationGroups(pages = []) {
@@ -494,7 +490,9 @@ function canonicalKey(value = "") {
     url.hostname = url.hostname.toLowerCase().replace(/^www\./, "");
     return url.href;
   } catch {
-    return String(value || "").replace(/#.*$/, "").replace(/\/+$/, "");
+    return String(value || "")
+      .replace(/#.*$/, "")
+      .replace(/\/+$/, "");
   }
 }
 
@@ -517,7 +515,10 @@ function normalizeText(value = "") {
 }
 
 function cleanText(value = "", maxLength = 500) {
-  return String(value || "").replace(/\s+/g, " ").trim().slice(0, maxLength);
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxLength);
 }
 
 function jaccard(left = new Set(), right = new Set()) {

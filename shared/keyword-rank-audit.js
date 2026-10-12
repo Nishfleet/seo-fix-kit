@@ -1,7 +1,4 @@
-import {
-  isPrivateHost,
-  normalizeHttpUrl
-} from "./url-safety.js";
+import { isPrivateHost, normalizeHttpUrl } from "./url-safety.js";
 
 const MAX_KEYWORD_ROWS = 250;
 const LOW_CTR_THRESHOLD = 0.02;
@@ -60,14 +57,7 @@ export function parseKeywordRows(input = {}, targetUrl = "", options = {}) {
     if (!query) continue;
 
     const pageUrl = normalizeHttpUrl(
-      row.pageUrl ||
-        row.page_url ||
-        row.page ||
-        row.url ||
-        row.landingPage ||
-        row.landing_page ||
-        row.destination ||
-        ""
+      row.pageUrl || row.page_url || row.page || row.url || row.landingPage || row.landing_page || row.destination || ""
     );
     if (pageUrl && !options.allowPrivate && isPrivateHost(pageUrl)) {
       return { ok: false, error: "Keyword landing page URLs must be public URLs." };
@@ -80,19 +70,20 @@ export function parseKeywordRows(input = {}, targetUrl = "", options = {}) {
     const impressions = parseMetric(row.impressions || row.currentImpressions || row.current_impressions);
     const ctr = parseCtr(row.ctr || row.currentCtr || row.current_ctr, clicks, impressions, ctrLooksFractional);
     const position = parseMetric(row.position || row.avgPosition || row.averagePosition || row.avg_position);
-    const previousClicks = parseMetric(row.previousClicks || row.previous_clicks || row.clicksPrevious || row.clicks_previous);
-    const previousImpressions = parseMetric(
-      row.previousImpressions ||
-        row.previous_impressions ||
-        row.impressionsPrevious ||
-        row.impressions_previous
+    const previousClicks = parseMetric(
+      row.previousClicks || row.previous_clicks || row.clicksPrevious || row.clicks_previous
     );
-    const previousCtr = parseCtr(row.previousCtr || row.previous_ctr, previousClicks, previousImpressions, ctrLooksFractional);
+    const previousImpressions = parseMetric(
+      row.previousImpressions || row.previous_impressions || row.impressionsPrevious || row.impressions_previous
+    );
+    const previousCtr = parseCtr(
+      row.previousCtr || row.previous_ctr,
+      previousClicks,
+      previousImpressions,
+      ctrLooksFractional
+    );
     const previousPosition = parseMetric(
-      row.previousPosition ||
-        row.previous_position ||
-        row.positionPrevious ||
-        row.position_previous
+      row.previousPosition || row.previous_position || row.positionPrevious || row.position_previous
     );
     const key = `${normalizeQuery(query)}|${pageUrl || ""}`;
     if (seen.has(key)) continue;
@@ -120,16 +111,18 @@ export function parseKeywordRows(input = {}, targetUrl = "", options = {}) {
 
 export function keywordRowsKey(rows = []) {
   return (rows || [])
-    .map((row) => [
-      row.query || "",
-      row.pageUrl || "",
-      metricKey(row.clicks),
-      metricKey(row.impressions),
-      metricKey(row.ctr),
-      metricKey(row.position),
-      metricKey(row.previousClicks),
-      metricKey(row.previousPosition)
-    ].join("|"))
+    .map((row) =>
+      [
+        row.query || "",
+        row.pageUrl || "",
+        metricKey(row.clicks),
+        metricKey(row.impressions),
+        metricKey(row.ctr),
+        metricKey(row.position),
+        metricKey(row.previousClicks),
+        metricKey(row.previousPosition)
+      ].join("|")
+    )
     .sort()
     .join("\n");
 }
@@ -137,7 +130,9 @@ export function keywordRowsKey(rows = []) {
 export function keywordRowsSummary(rows = []) {
   return {
     keyword_rows_count: (rows || []).length,
-    keyword_queries_count: new Set((rows || []).map((row) => row.normalizedQuery || normalizeQuery(row.query || "")).filter(Boolean)).size,
+    keyword_queries_count: new Set(
+      (rows || []).map((row) => row.normalizedQuery || normalizeQuery(row.query || "")).filter(Boolean)
+    ).size,
     keyword_pages_count: new Set((rows || []).map((row) => stripHash(row.pageUrl || "")).filter(Boolean)).size
   };
 }
@@ -268,7 +263,11 @@ function splitDelimitedLine(line = "") {
 }
 
 function normalizeHeader(value = "") {
-  const key = String(value).trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+  const key = String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_|_$/g, "");
   const aliases = {
     query: "query",
     keyword: "query",
@@ -326,19 +325,28 @@ function enrichKeywordRow(row, pageMap) {
 
 function buildKeywordChecks(rows) {
   const lowCtrRows = rows
-    .filter((row) =>
-      row.impressions >= LOW_CTR_MIN_IMPRESSIONS &&
-      row.position > 0 &&
-      row.position <= PAGE_TWO_MIN_POSITION &&
-      row.ctr >= 0 &&
-      row.ctr < LOW_CTR_THRESHOLD
+    .filter(
+      (row) =>
+        row.impressions >= LOW_CTR_MIN_IMPRESSIONS &&
+        row.position > 0 &&
+        row.position <= PAGE_TWO_MIN_POSITION &&
+        row.ctr >= 0 &&
+        row.ctr < LOW_CTR_THRESHOLD
     )
     .sort(opportunitySort);
   const pageTwoRows = rows
-    .filter((row) => row.impressions >= 50 && row.position > PAGE_TWO_MIN_POSITION && row.position <= PAGE_TWO_MAX_POSITION)
+    .filter(
+      (row) => row.impressions >= 50 && row.position > PAGE_TWO_MIN_POSITION && row.position <= PAGE_TWO_MAX_POSITION
+    )
     .sort(opportunitySort);
   const zeroClickRows = rows
-    .filter((row) => row.impressions >= LOW_CTR_MIN_IMPRESSIONS && row.clicks === 0 && row.position > 0 && row.position <= PAGE_TWO_MAX_POSITION)
+    .filter(
+      (row) =>
+        row.impressions >= LOW_CTR_MIN_IMPRESSIONS &&
+        row.clicks === 0 &&
+        row.position > 0 &&
+        row.position <= PAGE_TWO_MAX_POSITION
+    )
     .sort(opportunitySort);
   const decliningRows = rows
     .filter((row) => {
@@ -347,7 +355,12 @@ function buildKeywordChecks(rows) {
       return clickDrop || positionDrop;
     })
     .sort(opportunitySort);
-  const cannibalizationGroups = [...groupBy(rows.filter((row) => row.pageUrl), (row) => row.normalizedQuery).values()]
+  const cannibalizationGroups = [
+    ...groupBy(
+      rows.filter((row) => row.pageUrl),
+      (row) => row.normalizedQuery
+    ).values()
+  ]
     .map((group) => {
       const pages = [...new Map(group.map((row) => [stripHash(row.pageUrl), row])).values()];
       return { keyword: group[0]?.query || "", normalizedKeyword: group[0]?.normalizedQuery || "", rows: group, pages };
@@ -355,19 +368,13 @@ function buildKeywordChecks(rows) {
     .filter((group) => group.pages.length > 1)
     .sort((a, b) => sumImpressions(b.rows) - sumImpressions(a.rows));
   const landingMismatchRows = rows
-    .filter((row) =>
-      row.pageMatched &&
-      row.impressions >= 50 &&
-      row.queryIntentTokens.length >= 2 &&
-      row.titleIntentCoverage < 0.5
+    .filter(
+      (row) =>
+        row.pageMatched && row.impressions >= 50 && row.queryIntentTokens.length >= 2 && row.titleIntentCoverage < 0.5
     )
     .sort(opportunitySort);
-  const missingLandingPageRows = rows
-    .filter((row) => row.pageUrl && !row.pageMatched)
-    .sort(opportunitySort);
-  const queryOnlyRows = rows
-    .filter((row) => !row.pageUrl)
-    .sort(opportunitySort);
+  const missingLandingPageRows = rows.filter((row) => row.pageUrl && !row.pageMatched).sort(opportunitySort);
+  const queryOnlyRows = rows.filter((row) => !row.pageUrl).sort(opportunitySort);
 
   return {
     lowCtrRows: lowCtrRows.slice(0, 12),
@@ -413,7 +420,8 @@ function keywordRepairOpportunities(checks) {
       title: "Page-two keywords are close to traffic",
       proof: `${checks.pageTwoRows.length} keyword rows sit in positions 11-20, led by "${row.query}" at position ${formatPosition(row.position)} with ${formatCount(row.impressions)} impressions.`,
       fix: "Strengthen the matching landing page with missing subtopics, internal links from relevant hubs, and clearer title/H1 language for the query.",
-      acceptance: "Fresh keyword rows show the target queries moving into the top 10 or receiving materially more clicks."
+      acceptance:
+        "Fresh keyword rows show the target queries moving into the top 10 or receiving materially more clicks."
     });
   }
 
@@ -446,7 +454,8 @@ function keywordRepairOpportunities(checks) {
       title: "Multiple landing pages compete for the same query",
       proof: `${checks.cannibalizationGroups.length} query groups map to multiple landing pages, led by "${group.keyword}" across ${group.pages.length} pages.`,
       fix: "Pick one primary URL for each query intent, merge or differentiate overlapping pages, and link secondary pages to the primary page.",
-      acceptance: "Fresh keyword rows show one primary landing page for the query, or the pages target clearly different intents."
+      acceptance:
+        "Fresh keyword rows show one primary landing page for the query, or the pages target clearly different intents."
     });
   }
 
@@ -478,10 +487,18 @@ function keywordRepairOpportunities(checks) {
 
 function keywordSummary(rows, checks, repairOpportunities) {
   const landingPages = new Set(rows.map((row) => stripHash(row.pageUrl || "")).filter(Boolean));
-  const matchedLandingPages = new Set(rows.filter((row) => row.pageMatched).map((row) => stripHash(row.pageUrl || "")).filter(Boolean));
+  const matchedLandingPages = new Set(
+    rows
+      .filter((row) => row.pageMatched)
+      .map((row) => stripHash(row.pageUrl || ""))
+      .filter(Boolean)
+  );
   const totalClicks = rows.reduce((sum, row) => sum + positiveNumber(row.clicks), 0);
   const totalImpressions = rows.reduce((sum, row) => sum + positiveNumber(row.impressions), 0);
-  const weightedPositionNumerator = rows.reduce((sum, row) => sum + positiveNumber(row.position) * Math.max(positiveNumber(row.impressions), 1), 0);
+  const weightedPositionNumerator = rows.reduce(
+    (sum, row) => sum + positiveNumber(row.position) * Math.max(positiveNumber(row.impressions), 1),
+    0
+  );
   const weightedPositionDenominator = rows.reduce((sum, row) => sum + Math.max(positiveNumber(row.impressions), 1), 0);
 
   return {
@@ -517,8 +534,10 @@ function renderedPageMap(pages = []) {
 }
 
 function opportunitySort(left, right) {
-  return positiveNumber(right.impressions) - positiveNumber(left.impressions) ||
-    positiveNumber(left.position) - positiveNumber(right.position);
+  return (
+    positiveNumber(right.impressions) - positiveNumber(left.impressions) ||
+    positiveNumber(left.position) - positiveNumber(right.position)
+  );
 }
 
 function groupBy(items, keyFn) {
@@ -590,10 +609,7 @@ function parseCtr(value, clicks, impressions, looksFractional = false) {
 
 function ctrValuesLookFractional(rows = []) {
   return rows.some((row) => {
-    const values = [
-      row.ctr || row.currentCtr || row.current_ctr,
-      row.previousCtr || row.previous_ctr
-    ];
+    const values = [row.ctr || row.currentCtr || row.current_ctr, row.previousCtr || row.previous_ctr];
     return values.some((value) => {
       if (value === null || value === undefined || value === "") return false;
       const text = String(value).trim();
@@ -640,7 +656,10 @@ function stripHash(value = "") {
 }
 
 function cleanText(value = "", maxLength = 240) {
-  return String(value || "").replace(/\s+/g, " ").trim().slice(0, maxLength);
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxLength);
 }
 
 function formatCount(value) {

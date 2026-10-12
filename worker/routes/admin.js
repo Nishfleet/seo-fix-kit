@@ -1,6 +1,4 @@
-import {
-  dodoCheckoutConfigStatus
-} from "../../shared/dodo.js";
+import { dodoCheckoutConfigStatus } from "../../shared/dodo.js";
 import {
   ADMIN_EDITABLE_FIX_REQUEST_STATUSES,
   FIX_REQUEST_STATUSES,
@@ -9,22 +7,11 @@ import {
   isEmailConfigured,
   repairDeliveryReadiness
 } from "../../shared/fulfillment.js";
-import {
-  escapeHtml
-} from "../../shared/audit-engine.js";
+import { escapeHtml } from "../../shared/audit-engine.js";
 import { emailButton } from "../../shared/email-layout.js";
-import {
-  shouldSkipOwnedInternalEmail,
-  sendWorkerEmail
-} from "../lib/email.js";
-import {
-  json,
-  jsonNoStore
-} from "../lib/http.js";
-import {
-  csvCell,
-  sha256Hex
-} from "../lib/security.js";
+import { shouldSkipOwnedInternalEmail, sendWorkerEmail } from "../lib/email.js";
+import { json, jsonNoStore } from "../lib/http.js";
+import { csvCell, sha256Hex } from "../lib/security.js";
 import {
   cleanInviteCode,
   cleanIsoDateText,
@@ -34,45 +21,15 @@ import {
   isoSecondsFromNow,
   parseJson
 } from "../lib/text.js";
-import {
-  body,
-  isoDateSchema,
-  number,
-  optionalEmail,
-  parseJsonBody,
-  text,
-  z
-} from "../lib/validation.js";
-import {
-  adminAccessStatus,
-  adminDeniedJson,
-  createBetaSession,
-  logAdminAction
-} from "../lib/auth.js";
-import {
-  countRows
-} from "../lib/db.js";
-import {
-  summarizeAccessEvents
-} from "../lib/access-events.js";
-import {
-  PRESERVED_FIX_REQUEST_STATUSES,
-  hydrateReportRow,
-  preserveFixRequestReports
-} from "../lib/report-data.js";
-import {
-  repairProposalSummaryForFixRequest
-} from "../lib/repair-proposal-summary.js";
-import {
-  fixRequestResponse
-} from "../lib/serializers.js";
-import {
-  DEFAULT_INVITE_TTL_DAYS,
-  randomInviteCode
-} from "./access.js";
-import {
-  summarizeIssuePatterns
-} from "./reports.js";
+import { body, isoDateSchema, number, optionalEmail, parseJsonBody, text, z } from "../lib/validation.js";
+import { adminAccessStatus, adminDeniedJson, createBetaSession, logAdminAction } from "../lib/auth.js";
+import { countRows } from "../lib/db.js";
+import { summarizeAccessEvents } from "../lib/access-events.js";
+import { PRESERVED_FIX_REQUEST_STATUSES, hydrateReportRow, preserveFixRequestReports } from "../lib/report-data.js";
+import { repairProposalSummaryForFixRequest } from "../lib/repair-proposal-summary.js";
+import { fixRequestResponse } from "../lib/serializers.js";
+import { DEFAULT_INVITE_TTL_DAYS, randomInviteCode } from "./access.js";
+import { summarizeIssuePatterns } from "./reports.js";
 import {
   FIX_PACK_OFFER,
   dodoConfigMissing,
@@ -462,9 +419,7 @@ async function updateFixRequestAdmin(request, env) {
   const id = decodeURIComponent(new URL(request.url).pathname.slice("/admin/fix-requests/".length));
   if (!isSafeUuid(id)) return jsonNoStore({ error: "Fix request not found." }, 404);
 
-  const existing = await env.WAITLIST_DB.prepare("SELECT * FROM fix_requests WHERE id = ? LIMIT 1")
-    .bind(id)
-    .first();
+  const existing = await env.WAITLIST_DB.prepare("SELECT * FROM fix_requests WHERE id = ? LIMIT 1").bind(id).first();
   if (!existing?.id) return jsonNoStore({ error: "Fix request not found." }, 404);
 
   const parsed = await parseJsonBody(request, FixRequestAdminBody);
@@ -476,7 +431,10 @@ async function updateFixRequestAdmin(request, env) {
     return jsonNoStore({ error: "Choose a valid fulfillment status." }, 400);
   }
   if (!isAllowedAdminStatusTransition(existing.status || "new", requestedStatus)) {
-    return jsonNoStore({ error: "This status change is blocked. Payment and refund states are controlled by Dodo." }, 409);
+    return jsonNoStore(
+      { error: "This status change is blocked. Payment and refund states are controlled by Dodo." },
+      409
+    );
   }
   if (
     ["in_progress", "delivered"].includes(requestedStatus) &&
@@ -505,7 +463,10 @@ async function updateFixRequestAdmin(request, env) {
     deliveryUrl = `${new URL(request.url).origin}/beta/reports/${encodeURIComponent(finalReportId)}`;
   }
   if (requestedStatus === "delivered" && proposalSummary.status === "unavailable") {
-    return jsonNoStore({ error: "Delivery cannot be marked complete until repair proposal state can be verified." }, 503);
+    return jsonNoStore(
+      { error: "Delivery cannot be marked complete until repair proposal state can be verified." },
+      503
+    );
   }
   if (
     requestedStatus === "delivered" &&
@@ -591,9 +552,7 @@ async function updateFixRequestAdmin(request, env) {
   });
   await logAdminAction(request, env, "update-fix-request", true, admin.actorEmail, `${id}:${requestedStatus}`);
 
-  const updated = await env.WAITLIST_DB.prepare("SELECT * FROM fix_requests WHERE id = ? LIMIT 1")
-    .bind(id)
-    .first();
+  const updated = await env.WAITLIST_DB.prepare("SELECT * FROM fix_requests WHERE id = ? LIMIT 1").bind(id).first();
   if (updated && PRESERVED_FIX_REQUEST_STATUSES.includes(updated.status)) {
     await preserveFixRequestReports(env, updated);
   }
@@ -674,7 +633,13 @@ async function syncRepairProposalDeliveryState(env, { fixRequestId, status, deli
   }
 }
 
-function fixRequestAdminResponse(row, notifications = [], events = [], proposalSummary = null, now = new Date().toISOString()) {
+function fixRequestAdminResponse(
+  row,
+  notifications = [],
+  events = [],
+  proposalSummary = null,
+  now = new Date().toISOString()
+) {
   const repairProposalSummary = proposalSummary || {
     status: "unavailable",
     total: 0,
@@ -766,11 +731,17 @@ async function buildOpsSnapshot(env, options = {}) {
     countRows(env, "fix_requests", openWhere),
     countRows(env, "fix_requests", `${fixWhere ? `${fixWhere} AND ` : ""}status = 'in_progress'`),
     countRows(env, "fix_requests", `${openWhere} AND due_at IS NOT NULL AND due_at < ?`, [now]),
-    countRows(env, "fix_requests", `${fixWhere ? `${fixWhere} AND ` : ""}delivered_at >= ?`, [`${today}T00:00:00.000Z`]),
+    countRows(env, "fix_requests", `${fixWhere ? `${fixWhere} AND ` : ""}delivered_at >= ?`, [
+      `${today}T00:00:00.000Z`
+    ]),
     countRows(env, "dodo_webhook_events", "status = 'error'"),
     countRows(env, "fix_request_notifications", "status = 'error'"),
-    env.WAITLIST_DB.prepare(`SELECT created_at FROM fix_requests WHERE ${openWhere} ORDER BY created_at ASC LIMIT 1`).first(),
-    env.WAITLIST_DB.prepare(`SELECT digest_key, status, sent_at, error FROM ops_digest_runs ORDER BY created_at DESC LIMIT 1`).first(),
+    env.WAITLIST_DB.prepare(
+      `SELECT created_at FROM fix_requests WHERE ${openWhere} ORDER BY created_at ASC LIMIT 1`
+    ).first(),
+    env.WAITLIST_DB.prepare(
+      `SELECT digest_key, status, sent_at, error FROM ops_digest_runs ORDER BY created_at DESC LIMIT 1`
+    ).first(),
     countRows(env, "audit_jobs", "status = 'running'"),
     countRows(env, "audit_jobs", "status = 'queued'"),
     countRows(env, "audit_jobs", "status = 'failed' AND completed_at >= ?", [dayAgo]),
@@ -802,18 +773,31 @@ async function sendUrgentOpsAlerts(env) {
   const now = new Date().toISOString();
   const today = now.slice(0, 10);
   const [webhookErrors24h, notificationErrors, failedJobsHour, overduePaid] = await Promise.all([
-    countRows(env, "dodo_webhook_events", "status = 'error' AND last_received_at >= ?", [isoSecondsFromNow(-24 * 60 * 60)]),
+    countRows(env, "dodo_webhook_events", "status = 'error' AND last_received_at >= ?", [
+      isoSecondsFromNow(-24 * 60 * 60)
+    ]),
     countRows(env, "fix_requests", "is_test = 0 AND notification_error != ''"),
     countRows(env, "audit_jobs", "status = 'failed' AND completed_at >= ?", [isoSecondsFromNow(-60 * 60)]),
-    countRows(env, "fix_requests", "is_test = 0 AND status IN ('paid', 'in_progress') AND due_at IS NOT NULL AND due_at < ?", [now])
+    countRows(
+      env,
+      "fix_requests",
+      "is_test = 0 AND status IN ('paid', 'in_progress') AND due_at IS NOT NULL AND due_at < ?",
+      [now]
+    )
   ]);
 
   const conditions = [];
   if (webhookErrors24h > 0) {
-    conditions.push({ key: "webhook-errors", line: `${webhookErrors24h} Dodo webhook event(s) errored in the last 24 hours.` });
+    conditions.push({
+      key: "webhook-errors",
+      line: `${webhookErrors24h} Dodo webhook event(s) errored in the last 24 hours.`
+    });
   }
   if (notificationErrors > 0) {
-    conditions.push({ key: "notification-errors", line: `${notificationErrors} paid request(s) have customer email notification errors.` });
+    conditions.push({
+      key: "notification-errors",
+      line: `${notificationErrors} paid request(s) have customer email notification errors.`
+    });
   }
   if (failedJobsHour >= 5) {
     conditions.push({ key: "audit-failures", line: `${failedJobsHour} audits failed in the last hour.` });
@@ -915,7 +899,12 @@ async function sendDailyOpsDigest(env) {
     await env.WAITLIST_DB.prepare(
       `UPDATE ops_digest_runs SET status = 'error', summary_json = ?, error = ?, updated_at = ? WHERE digest_key = ?`
     )
-      .bind(JSON.stringify(snapshot || {}), String(error?.message || "Digest failed.").slice(0, 1000), new Date().toISOString(), digestKey)
+      .bind(
+        JSON.stringify(snapshot || {}),
+        String(error?.message || "Digest failed.").slice(0, 1000),
+        new Date().toISOString(),
+        digestKey
+      )
       .run();
   }
 }

@@ -40,7 +40,8 @@ function buildGeoReadinessAudit(report = {}) {
       title: "Add answer-ready sections for buyer questions",
       proof: "Rendered headings do not show FAQ, how-it-works, pricing, comparison, or direct question sections.",
       fix: "Add concise sections that answer the buyer's real questions using visible, crawlable HTML. Keep claims specific and support them with proof.",
-      acceptance: "A rerun shows crawlable headings and body copy that answer key buyer questions without hiding content behind scripts.",
+      acceptance:
+        "A rerun shows crawlable headings and body copy that answer key buyer questions without hiding content behind scripts.",
       estimatedEffort: "30-90 min",
       workType: "content",
       source: "geo-readiness"
@@ -116,18 +117,34 @@ function geoReadinessBriefLines(audit = null) {
 }
 
 function hasAnswerReadySections(headings = []) {
-  const joined = headings.map((heading) => heading.text || "").join(" ").toLowerCase();
-  return ["faq", "frequently asked", "how it works", "pricing", "compare", "comparison", "why", "what is", "who is"].some((needle) =>
-    joined.includes(needle)
-  );
+  const joined = headings
+    .map((heading) => heading.text || "")
+    .join(" ")
+    .toLowerCase();
+  return [
+    "faq",
+    "frequently asked",
+    "how it works",
+    "pricing",
+    "compare",
+    "comparison",
+    "why",
+    "what is",
+    "who is"
+  ].some((needle) => joined.includes(needle));
 }
 
 function hasUsefulSchema(schemaTypes = []) {
-  const useful = new Set(["Organization", "WebSite", "Product", "Service", "LocalBusiness", "FAQPage", "SoftwareApplication"]);
+  const useful = new Set([
+    "Organization",
+    "WebSite",
+    "Product",
+    "Service",
+    "LocalBusiness",
+    "FAQPage",
+    "SoftwareApplication"
+  ]);
   return schemaTypes.some((type) => useful.has(type));
 }
 
-export {
-  buildGeoReadinessAudit,
-  geoReadinessBriefLines
-};
+export { buildGeoReadinessAudit, geoReadinessBriefLines };

@@ -95,7 +95,10 @@ assert.deepEqual(payment.productIds, ["pdt_fix_pack"]);
 assert.equal(dodoProductMatches(payment, "pdt_fix_pack"), true);
 assert.equal(dodoProductMatches(payment, "pdt_other"), false);
 assert.equal(dodoProductMatches({ productIds: [] }, "pdt_fix_pack"), false);
-assert.equal(hasDodoCheckoutConfig({ DODO_SEOFIXKIT_API_KEY: "key", DODO_SEOFIXKIT_PRODUCT_FIX_PACK_ID: "pdt" }), false);
+assert.equal(
+  hasDodoCheckoutConfig({ DODO_SEOFIXKIT_API_KEY: "key", DODO_SEOFIXKIT_PRODUCT_FIX_PACK_ID: "pdt" }),
+  false
+);
 assert.equal(
   hasDodoCheckoutConfig({
     DODO_SEOFIXKIT_API_KEY: "key",
@@ -251,13 +254,16 @@ assert.equal(sellableOffers(offers).length, 1);
 assert.equal(monitoringAccessFromEntitlements([], 2).status, "beta_allowance");
 assert.equal(monitoringAccessFromEntitlements([], 2).remaining, 3);
 assert.equal(
-  monitoringAccessFromEntitlements([
-    {
-      offer_key: OFFER_KEYS.MONITORING,
-      status: "active",
-      limits_json: JSON.stringify({ monitoredSites: 10, cadenceDays: 7 })
-    }
-  ], 4).limit,
+  monitoringAccessFromEntitlements(
+    [
+      {
+        offer_key: OFFER_KEYS.MONITORING,
+        status: "active",
+        limits_json: JSON.stringify({ monitoredSites: 10, cadenceDays: 7 })
+      }
+    ],
+    4
+  ).limit,
   10
 );
 assert.equal(
@@ -269,18 +275,20 @@ assert.equal(
   "approval_ready"
 );
 assert.equal(
-  repairSprintEligibilityFromProposals(
-    [{ executionMode: "generated_proposal", approvalStatus: "approved" }],
-    null,
-    { checkoutReady: true }
-  ).checkoutLive,
+  repairSprintEligibilityFromProposals([{ executionMode: "generated_proposal", approvalStatus: "approved" }], null, {
+    checkoutReady: true
+  }).checkoutLive,
   true
 );
 assert.equal(
   repairSprintEligibilityFromProposals([{ executionMode: "unsupported", approvalStatus: "approved" }]).status,
   "unsupported"
 );
-const proposalSummary = await repairProposalSummaryForFixRequest(fakeProposalSummaryEnv(), "fix_123", "buyer@example.com");
+const proposalSummary = await repairProposalSummaryForFixRequest(
+  fakeProposalSummaryEnv(),
+  "fix_123",
+  "buyer@example.com"
+);
 assert.equal(proposalSummary.approved, 2);
 assert.equal(proposalSummary.approvedExecutable, 1);
 assert.equal(proposalSummary.executable, 2);
@@ -290,25 +298,40 @@ assert.equal(repairProposalApprovalWindowStatus("delivered").ok, false);
 assert.equal(repairProposalApprovalWindowStatus("refunded").ok, false);
 assert.equal(repairProposalApprovalWindowStatus("disputed").ok, false);
 assert.equal(
-  repairDeliveryReadiness({ status: "checkout_created" }, { status: "ready", executable: 1, approvedExecutable: 1 }).blockers[0].id,
+  repairDeliveryReadiness({ status: "checkout_created" }, { status: "ready", executable: 1, approvedExecutable: 1 })
+    .blockers[0].id,
   "payment_unconfirmed"
 );
 assert.equal(
   repairDeliveryReadiness(
-    { status: "refunded", paid_at: "2026-06-20T00:00:00.000Z", payment_id: "pay_123", customer_note: "Ready", delivery_url: "https://seofixkit.com/beta/reports/final", final_report_id: "final" },
+    {
+      status: "refunded",
+      paid_at: "2026-06-20T00:00:00.000Z",
+      payment_id: "pay_123",
+      customer_note: "Ready",
+      delivery_url: "https://seofixkit.com/beta/reports/final",
+      final_report_id: "final"
+    },
     { status: "ready", executable: 1, approvedExecutable: 1 }
   ).blockers.some((blocker) => blocker.id === "status_not_deliverable"),
   true
 );
 assert.equal(
-  repairDeliveryReadiness({ status: "paid", paid_at: "2026-06-20T00:00:00.000Z" }, { status: "unavailable" })
-    .blockers
-    .some((blocker) => blocker.id === "proposal_state_unavailable"),
+  repairDeliveryReadiness(
+    { status: "paid", paid_at: "2026-06-20T00:00:00.000Z" },
+    { status: "unavailable" }
+  ).blockers.some((blocker) => blocker.id === "proposal_state_unavailable"),
   true
 );
 assert.equal(
   repairDeliveryReadiness(
-    { status: "paid", paid_at: "2026-06-20T00:00:00.000Z", customer_note: "Ready", delivery_url: "https://seofixkit.com/beta/reports/final", final_report_id: "final" },
+    {
+      status: "paid",
+      paid_at: "2026-06-20T00:00:00.000Z",
+      customer_note: "Ready",
+      delivery_url: "https://seofixkit.com/beta/reports/final",
+      final_report_id: "final"
+    },
     { status: "ready", executable: 2, approvedExecutable: 0 }
   ).blockers.some((blocker) => blocker.id === "approved_proposal_missing"),
   true
@@ -322,7 +345,13 @@ assert.equal(
 );
 assert.equal(
   repairDeliveryReadiness(
-    { status: "in_progress", paid_at: "2026-06-20T00:00:00.000Z", customer_note: "Ready", delivery_url: "https://seofixkit.com/beta/reports/final", final_report_id: "final" },
+    {
+      status: "in_progress",
+      paid_at: "2026-06-20T00:00:00.000Z",
+      customer_note: "Ready",
+      delivery_url: "https://seofixkit.com/beta/reports/final",
+      final_report_id: "final"
+    },
     { status: "ready", executable: 2, approvedExecutable: 1 }
   ).readyForDelivery,
   true
@@ -332,7 +361,8 @@ assert.equal(
   "delivered"
 );
 assert.equal(
-  repairDeliveryReadiness({ status: "delivered" }, { status: "ready", executable: 2, approvedExecutable: 1 }).blockers.length,
+  repairDeliveryReadiness({ status: "delivered" }, { status: "ready", executable: 2, approvedExecutable: 1 }).blockers
+    .length,
   0
 );
 const adminFixRequest = fixRequestAdminResponse(
@@ -357,7 +387,9 @@ assert.equal(
   adminFixRequest.deliveryReadiness.blockers.some((blocker) => blocker.id === "approved_proposal_missing"),
   true
 );
-const storedProposalJson = jsonForStorage({ snippet: "\"".repeat(5000), fix: "Use complete JSON only." }, 4000, { truncated: true });
+const storedProposalJson = jsonForStorage({ snippet: '"'.repeat(5000), fix: "Use complete JSON only." }, 4000, {
+  truncated: true
+});
 assert.equal(storedProposalJson.length <= 4000, true);
 assert.equal(JSON.parse(storedProposalJson).fix, "Use complete JSON only.");
 assert.equal(agencyWorkspaceAccessFromEntitlements([], { teamSeats: 2 }).limits.teamSeats, 10);
@@ -431,23 +463,24 @@ function fakeProposalSummaryEnv() {
         assert.equal(sql.includes("approved_executable"), true);
         return {
           bind(fixRequestId, ownerEmail) {
-            const scoped = rows.filter((row) =>
-              row.fix_request_id === fixRequestId &&
-              (!ownerEmail || row.owner_email === ownerEmail)
+            const scoped = rows.filter(
+              (row) => row.fix_request_id === fixRequestId && (!ownerEmail || row.owner_email === ownerEmail)
             );
             return {
               all: async () => ({
-                results: [{
-                  fix_request_id: fixRequestId,
-                  total: scoped.length,
-                  approved: scoped.filter((row) => row.approval_status === "approved").length,
-                  approved_executable: scoped.filter(
-                    (row) => row.approval_status === "approved" && row.execution_mode !== "unsupported"
-                  ).length,
-                  dismissed: scoped.filter((row) => row.approval_status === "dismissed").length,
-                  executable: scoped.filter((row) => row.execution_mode !== "unsupported").length,
-                  delivered: scoped.filter((row) => row.delivery_status === "delivered").length
-                }]
+                results: [
+                  {
+                    fix_request_id: fixRequestId,
+                    total: scoped.length,
+                    approved: scoped.filter((row) => row.approval_status === "approved").length,
+                    approved_executable: scoped.filter(
+                      (row) => row.approval_status === "approved" && row.execution_mode !== "unsupported"
+                    ).length,
+                    dismissed: scoped.filter((row) => row.approval_status === "dismissed").length,
+                    executable: scoped.filter((row) => row.execution_mode !== "unsupported").length,
+                    delivered: scoped.filter((row) => row.delivery_status === "delivered").length
+                  }
+                ]
               })
             };
           }

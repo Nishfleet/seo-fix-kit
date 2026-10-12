@@ -49,12 +49,15 @@ test("developer webhook UI subscribes to all repair lifecycle events", () => {
 });
 
 test("Fix Pack checkout uses live repair queue targets when available", () => {
-  const target = fixPackRepairTarget({
-    repairPlan: [{ title: "Missing title", issueId: "issue-1", status: "open" }]
-  }, [
-    { id: "queue-1", issueId: "issue-1", title: "Missing title", status: "fixed" },
-    { id: "queue-2", issueId: "issue-2", title: "Missing meta description", status: "open" }
-  ]);
+  const target = fixPackRepairTarget(
+    {
+      repairPlan: [{ title: "Missing title", issueId: "issue-1", status: "open" }]
+    },
+    [
+      { id: "queue-1", issueId: "issue-1", title: "Missing title", status: "fixed" },
+      { id: "queue-2", issueId: "issue-2", title: "Missing meta description", status: "open" }
+    ]
+  );
   const body = fixPackCheckoutBody("report-1", target);
 
   assert.equal(target.source, "repair_queue");
@@ -68,9 +71,12 @@ test("Fix Pack checkout uses live repair queue targets when available", () => {
 });
 
 test("Fix Pack checkout omits immutable report-derived targets", () => {
-  const target = fixPackRepairTarget({
-    repairPlan: [{ title: "Missing title", issueId: "issue-1", status: "open" }]
-  }, []);
+  const target = fixPackRepairTarget(
+    {
+      repairPlan: [{ title: "Missing title", issueId: "issue-1", status: "open" }]
+    },
+    []
+  );
   const body = fixPackCheckoutBody("report-1", target);
 
   assert.equal(target.source, "report");
@@ -181,9 +187,21 @@ test("repair action UI contract uses action endpoint for lifecycle changes", () 
     ["approve", repairActionApprovalPatch(), { approvalState: "approved" }],
     ["ignore", repairActionIgnorePatch(), { approvalState: "ignored" }],
     ["apply", repairActionApplyPatch(), { approvalState: "approved", executionState: "applied" }],
-    ["fixed", repairActionRerunPatch("fixed", "rerun-report-1"), { rerunState: "fixed", rerunReportId: "rerun-report-1" }],
-    ["still open", repairActionRerunPatch("still_open", "rerun-report-1"), { rerunState: "still_open", rerunReportId: "rerun-report-1" }],
-    ["regressed", repairActionRerunPatch("regressed", "rerun-report-1"), { rerunState: "regressed", rerunReportId: "rerun-report-1" }]
+    [
+      "fixed",
+      repairActionRerunPatch("fixed", "rerun-report-1"),
+      { rerunState: "fixed", rerunReportId: "rerun-report-1" }
+    ],
+    [
+      "still open",
+      repairActionRerunPatch("still_open", "rerun-report-1"),
+      { rerunState: "still_open", rerunReportId: "rerun-report-1" }
+    ],
+    [
+      "regressed",
+      repairActionRerunPatch("regressed", "rerun-report-1"),
+      { rerunState: "regressed", rerunReportId: "rerun-report-1" }
+    ]
   ];
 
   for (const [label, patch, expected] of cases) {
@@ -213,10 +231,39 @@ test("repair action UI exposes proof receipt only after fixed rerun proof", () =
     repairActionProofReceiptUrl("report 1", "action/1"),
     "/api/reports/report%201/repair-actions/action%2F1/proof.md"
   );
-  assert.equal(repairActionProofReceiptAvailable({ id: "action-1", approvalState: "approved", executionState: "applied" }), false);
-  assert.equal(repairActionProofReceiptAvailable({ id: "action-1", approvalState: "approved", executionState: "applied", rerunState: "still_open", rerunReportId: "rerun-1" }), false);
-  assert.equal(repairActionProofReceiptAvailable({ id: "action-1", approvalState: "approved", executionState: "applied", rerunState: "fixed" }), false);
-  assert.equal(repairActionProofReceiptAvailable({ id: "action-1", approvalState: "approved", executionState: "applied", rerunState: "fixed", rerunReportId: "rerun-1" }), true);
+  assert.equal(
+    repairActionProofReceiptAvailable({ id: "action-1", approvalState: "approved", executionState: "applied" }),
+    false
+  );
+  assert.equal(
+    repairActionProofReceiptAvailable({
+      id: "action-1",
+      approvalState: "approved",
+      executionState: "applied",
+      rerunState: "still_open",
+      rerunReportId: "rerun-1"
+    }),
+    false
+  );
+  assert.equal(
+    repairActionProofReceiptAvailable({
+      id: "action-1",
+      approvalState: "approved",
+      executionState: "applied",
+      rerunState: "fixed"
+    }),
+    false
+  );
+  assert.equal(
+    repairActionProofReceiptAvailable({
+      id: "action-1",
+      approvalState: "approved",
+      executionState: "applied",
+      rerunState: "fixed",
+      rerunReportId: "rerun-1"
+    }),
+    true
+  );
 });
 
 test("billing delivery readiness copy is customer-facing", () => {
@@ -253,10 +300,7 @@ test("billing delivery readiness copy covers ready delivered and proposal states
     deliveryReadinessText({ status: "ready", readyForDelivery: true }),
     "Delivery note, delivery link, approval, and rerun proof are ready."
   );
-  assert.equal(
-    deliveryReadinessText({ status: "delivered" }),
-    "Delivery and rerun proof are attached."
-  );
+  assert.equal(deliveryReadinessText({ status: "delivered" }), "Delivery and rerun proof are attached.");
   assert.equal(
     deliveryReadinessText({ status: "blocked", blockers: [{ id: "approved_proposal_missing" }] }),
     "A repair proposal still needs your approval."

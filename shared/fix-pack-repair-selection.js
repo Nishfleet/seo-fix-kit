@@ -7,15 +7,20 @@ function selectFixPackRepair(items = [], body = {}) {
     160
   );
   const requestedQueueItemId = cleanText(
-    body.queueItemId || body.queue_item_id || body.selectedRepair?.queueItemId || body.selected_repair?.queue_item_id || "",
+    body.queueItemId ||
+      body.queue_item_id ||
+      body.selectedRepair?.queueItemId ||
+      body.selected_repair?.queue_item_id ||
+      "",
     160
   );
   const hasExplicitSelection = Boolean(requestedQueueItemId || requestedIssueId);
-  const selectedByRequest = activeItems.find((item) => {
-    if (requestedQueueItemId && item.id !== requestedQueueItemId) return false;
-    if (requestedIssueId && item.issueId !== requestedIssueId) return false;
-    return requestedQueueItemId || requestedIssueId;
-  }) || null;
+  const selectedByRequest =
+    activeItems.find((item) => {
+      if (requestedQueueItemId && item.id !== requestedQueueItemId) return false;
+      if (requestedIssueId && item.issueId !== requestedIssueId) return false;
+      return requestedQueueItemId || requestedIssueId;
+    }) || null;
   if (hasExplicitSelection && !selectedByRequest) {
     return { selectedRepair: null, conflict: true };
   }

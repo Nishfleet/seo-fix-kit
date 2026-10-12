@@ -38,7 +38,9 @@ function buildInit({ method, body, headers, signal, credentials = "same-origin",
  * builders that are contract-tested on their own).
  */
 export async function apiRequest(path, options = {}) {
-  const init = options.init ? { ...options.init, ...(options.signal ? { signal: options.signal } : {}) } : buildInit(options);
+  const init = options.init
+    ? { ...options.init, ...(options.signal ? { signal: options.signal } : {}) }
+    : buildInit(options);
   const response = await fetch(path, init);
   const payload = await response.json().catch(() => ({}));
   return { response, payload, ok: response.ok, status: response.status };
@@ -53,11 +55,7 @@ export async function apiRequest(path, options = {}) {
  *   `payload.ok === true`; set false for endpoints that only use HTTP status.
  */
 export async function apiFetch(path, options = {}) {
-  const {
-    fallbackError = "Request failed.",
-    errorKeys = ["error"],
-    requireOkFlag = true
-  } = options;
+  const { fallbackError = "Request failed.", errorKeys = ["error"], requireOkFlag = true } = options;
   const { response, payload } = await apiRequest(path, options);
   if (!response.ok || (requireOkFlag && payload.ok !== true)) {
     throw new ApiError(apiErrorMessage(payload, fallbackError, errorKeys), {

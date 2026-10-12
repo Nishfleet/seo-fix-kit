@@ -58,9 +58,7 @@ export function buildRenderedCrawlScalePlan(report = {}, inventory = {}, options
   const renderedPages = Number(report.summary?.pagesScanned || report.pages?.length || 0);
   const selectedMaxPages = Number(report.summary?.maxPages || report.crawlDepth?.pages || renderedPages || 0);
   const inventoryUrls = Number(inventory.summary?.urlsDiscovered || 0);
-  const requestedTarget = normalizeRenderedCrawlTarget(
-    options.renderedCrawlTarget || options.crawlScaleTarget || 0
-  );
+  const requestedTarget = normalizeRenderedCrawlTarget(options.renderedCrawlTarget || options.crawlScaleTarget || 0);
   const shouldPlan = requestedTarget > selectedMaxPages || inventoryUrls > selectedMaxPages;
 
   if (!shouldPlan) {
@@ -78,7 +76,8 @@ export function buildRenderedCrawlScalePlan(report = {}, inventory = {}, options
     };
   }
 
-  const targetPages = requestedTarget || Math.min(Math.max(inventoryUrls, selectedMaxPages), CRAWLRAVEN_PUBLIC_CRAWL_PAGES);
+  const targetPages =
+    requestedTarget || Math.min(Math.max(inventoryUrls, selectedMaxPages), CRAWLRAVEN_PUBLIC_CRAWL_PAGES);
   const plannedUrlCount = inventoryUrls ? Math.min(inventoryUrls, targetPages) : targetPages;
   const plannedBatches = Math.ceil(plannedUrlCount / RENDERED_CRAWL_BATCH_PAGES);
   const renderedCoveragePercent = plannedUrlCount
@@ -170,13 +169,27 @@ function buildBatchPreview(sampleUrls = [], plannedUrlCount = 0, renderedPages =
       endIndex: end,
       plannedUrlCount: Math.max(end - start, 0),
       status: renderedPages >= end ? "rendered" : "planned",
-      sampleUrls: index === 0 ? sampleUrls.slice(0, 10).map((item) => item.url || item).filter(Boolean) : []
+      sampleUrls:
+        index === 0
+          ? sampleUrls
+              .slice(0, 10)
+              .map((item) => item.url || item)
+              .filter(Boolean)
+          : []
     });
   }
   return batches;
 }
 
-function scaleRepairOpportunities({ renderedPages, selectedMaxPages, requestedTarget, inventoryUrls, plannedUrlCount, plannedBatches, inventory }) {
+function scaleRepairOpportunities({
+  renderedPages,
+  selectedMaxPages,
+  requestedTarget,
+  inventoryUrls,
+  plannedUrlCount,
+  plannedBatches,
+  inventory
+}) {
   const repairs = [];
   const addRepair = (item) => {
     repairs.push({
@@ -196,7 +209,8 @@ function scaleRepairOpportunities({ renderedPages, selectedMaxPages, requestedTa
       title: "Requested crawl scale needs staged rendered batches",
       proof: `This run rendered ${renderedPages} pages from a selected limit of ${selectedMaxPages}, while the staged target is ${requestedTarget} pages.`,
       fix: "Process the crawl target as resumable rendered batches, then merge batch reports only after every batch has page-level proof.",
-      acceptance: "Every planned batch has a completed proof record before the product claims public-scale rendered coverage."
+      acceptance:
+        "Every planned batch has a completed proof record before the product claims public-scale rendered coverage."
     });
   }
 

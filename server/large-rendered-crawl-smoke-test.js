@@ -31,7 +31,10 @@ const normalized = normalizeLargeRenderedCrawlRequest({
 assert.equal(normalized.ok, true);
 assert.equal(normalized.targetPages, 50000);
 assert.equal(normalized.batchSize, 1000);
-assert.deepEqual(normalized.seedUrls.map((row) => row.url), ["https://example.com/manual-seed"]);
+assert.deepEqual(
+  normalized.seedUrls.map((row) => row.url),
+  ["https://example.com/manual-seed"]
+);
 
 const created = createLargeRenderedCrawlJob({
   ownerEmail: "founder@example.com",
@@ -87,7 +90,14 @@ const proofRows = firstBatchFrontier.map((row) =>
 const renderedFrontier = created.frontierRows.map((row) =>
   row.batchId === claimed.batch.id ? { ...row, status: "rendered" } : row
 );
-const completed = completeLargeRenderedCrawlBatch(claimed.job, claimed.batch, created.batches, renderedFrontier, proofRows, now);
+const completed = completeLargeRenderedCrawlBatch(
+  claimed.job,
+  claimed.batch,
+  created.batches,
+  renderedFrontier,
+  proofRows,
+  now
+);
 assert.equal(completed.batch.status, "completed");
 assert.equal(completed.progress.readyToMerge, false);
 
@@ -97,7 +107,7 @@ const failedFrontier = renderedFrontier.map((row) =>
 );
 const retry = retryLargeRenderedCrawlFailures(
   { ...completed.job, status: "retrying" },
-  created.batches.map((batch) => batch.id === failedBatch.id ? { ...batch, status: "failed", retryCount: 1 } : batch),
+  created.batches.map((batch) => (batch.id === failedBatch.id ? { ...batch, status: "failed", retryCount: 1 } : batch)),
   failedFrontier,
   now
 );
@@ -149,11 +159,17 @@ assert.equal(response.progress.readyToMerge, true);
 assert.equal(response.progress.canClaim50kRendered, false);
 assert.equal(readiness.ready, true);
 
-console.log(JSON.stringify({
-  ok: true,
-  targetPages: response.targetPages,
-  frontierUrlCount: response.progress.frontierUrlCount,
-  totalBatches: response.progress.totalBatches,
-  readyToMerge: response.progress.readyToMerge,
-  canClaim50kRendered: response.progress.canClaim50kRendered
-}, null, 2));
+console.log(
+  JSON.stringify(
+    {
+      ok: true,
+      targetPages: response.targetPages,
+      frontierUrlCount: response.progress.frontierUrlCount,
+      totalBatches: response.progress.totalBatches,
+      readyToMerge: response.progress.readyToMerge,
+      canClaim50kRendered: response.progress.canClaim50kRendered
+    },
+    null,
+    2
+  )
+);

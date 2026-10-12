@@ -1,18 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
-import {
-  CRAWL_DEPTH_TIERS,
-  DEFAULT_CRAWL_PAGES,
-  SELF_SERVE_MAX_CRAWL_PAGES
-} from "../../../shared/crawl-depth.js";
+import { CRAWL_DEPTH_TIERS, DEFAULT_CRAWL_PAGES, SELF_SERVE_MAX_CRAWL_PAGES } from "../../../shared/crawl-depth.js";
 import { RENDERED_CRAWL_TARGETS } from "../../../shared/rendered-crawl-scale.js";
 import { apiFetch, isAbortError } from "../../api.js";
 import { storageGet, storageRemove, storageSet } from "../../storage.js";
-import {
-  EmptyAuditState,
-  LoadingAuditState,
-  ErrorAuditState
-} from "../../components/AuditStates.jsx";
+import { EmptyAuditState, LoadingAuditState, ErrorAuditState } from "../../components/AuditStates.jsx";
 import { BetaTop } from "../../components/BetaTop.jsx";
 import { reportIdFromPath, readOrCreateFunnelKey } from "../../lib/browser.js";
 import { BETA_SESSION_KEY, BETA_EMAIL_KEY, FUNNEL_KEY } from "../../lib/constants.js";
@@ -51,14 +43,10 @@ export function BetaApp({ mountKey }) {
   // this BetaApp mounted; see BetaRoute in App.jsx.
   const replaceUrl = (path) => navigate(path, { replace: true, state: { betaMountKey: mountKey } });
   const accessToken = inviteParams.get("access") || "";
-  const [ownerEmail, setOwnerEmail] = useState(
-    () => inviteParams.get("email") || storageGet(BETA_EMAIL_KEY) || ""
-  );
+  const [ownerEmail, setOwnerEmail] = useState(() => inviteParams.get("email") || storageGet(BETA_EMAIL_KEY) || "");
   const [loginEmail, setLoginEmail] = useState(ownerEmail || inviteParams.get("email") || "");
   const [inviteCode, setInviteCode] = useState(inviteParams.get("invite") || "");
-  const [isAuthed, setIsAuthed] = useState(
-    () => storageGet(BETA_SESSION_KEY) === "1"
-  );
+  const [isAuthed, setIsAuthed] = useState(() => storageGet(BETA_SESSION_KEY) === "1");
   const [loginStatus, setLoginStatus] = useState(accessToken ? "submitting" : "idle");
   const [loginMessage, setLoginMessage] = useState("");
   const [targetUrl, setTargetUrl] = useState("");
@@ -226,9 +214,9 @@ export function BetaApp({ mountKey }) {
         payload.accessUrl
           ? "Local access link created."
           : payload.message ||
-            (reportId
-              ? "Check your email — the link will bring you straight back to this report."
-              : "Check your email for a secure access link.")
+              (reportId
+                ? "Check your email — the link will bring you straight back to this report."
+                : "Check your email for a secure access link.")
       );
       if (payload.accessUrl) window.location.assign(payload.accessUrl);
     } catch (error) {
@@ -259,7 +247,11 @@ export function BetaApp({ mountKey }) {
     try {
       const payload = await postSiteVerify(claimId);
       setSiteStatus(payload.verified ? "success" : "error");
-      setSiteMessage(payload.verified ? `${payload.site.host} is verified.` : payload.message || "Verification proof was not found yet.");
+      setSiteMessage(
+        payload.verified
+          ? `${payload.site.host} is verified.`
+          : payload.message || "Verification proof was not found yet."
+      );
       await loadAccountSummary(setAccountData, setAccountStatus, setAccountMessage);
     } catch (error) {
       setSiteStatus("error");
@@ -369,7 +361,10 @@ export function BetaApp({ mountKey }) {
       citations: localCitations
     };
     setAuditMessage(
-      competitorUrls.trim() || backlinkRows.trim() || keywordRows.trim() || Object.values(localSeo).some((value) => String(value || "").trim())
+      competitorUrls.trim() ||
+        backlinkRows.trim() ||
+        keywordRows.trim() ||
+        Object.values(localSeo).some((value) => String(value || "").trim())
         ? "Rendering the site, checking comparison inputs, and collecting proof."
         : "Rendering the site, crawling same-site links, and collecting proof."
     );
@@ -381,7 +376,15 @@ export function BetaApp({ mountKey }) {
     try {
       const payload = await apiFetch("/api/audit", {
         method: "POST",
-        body: { url: targetUrl, maxPages: Number(maxPages), renderedCrawlTarget: Number(renderedCrawlTarget), competitorUrls, backlinkRows, keywordRows, localSeo },
+        body: {
+          url: targetUrl,
+          maxPages: Number(maxPages),
+          renderedCrawlTarget: Number(renderedCrawlTarget),
+          competitorUrls,
+          backlinkRows,
+          keywordRows,
+          localSeo
+        },
         requireOkFlag: false,
         fallbackError: "The audit failed."
       });
@@ -470,8 +473,7 @@ export function BetaApp({ mountKey }) {
           <p className="beta-eyebrow">Private beta</p>
           <h1 id="beta-title">Enter your beta invite</h1>
           <p>
-            Run evidence-backed audits, save private reports, and generate the
-            repair brief a developer can ship from.
+            Run evidence-backed audits, save private reports, and generate the repair brief a developer can ship from.
           </p>
           <form className="gate-form" onSubmit={login}>
             <label htmlFor="beta-email">Invite email</label>
@@ -560,18 +562,16 @@ export function BetaApp({ mountKey }) {
             </button>
           </div>
           <label htmlFor="crawl-depth">Crawl depth</label>
-          <select
-            id="crawl-depth"
-            onChange={(event) => setMaxPages(event.target.value)}
-            value={maxPages}
-          >
+          <select id="crawl-depth" onChange={(event) => setMaxPages(event.target.value)} value={maxPages}>
             {CRAWL_DEPTH_TIERS.map((tier) => (
               <option key={tier.id} value={tier.pages}>
                 {tier.label} - {tier.pages} pages
               </option>
             ))}
           </select>
-          <p className="field-note">Self-serve deep crawls currently run up to {formatCount(SELF_SERVE_MAX_CRAWL_PAGES)} pages.</p>
+          <p className="field-note">
+            Self-serve deep crawls currently run up to {formatCount(SELF_SERVE_MAX_CRAWL_PAGES)} pages.
+          </p>
           <label htmlFor="rendered-crawl-target">Rendered scale target</label>
           <select
             id="rendered-crawl-target"
@@ -585,7 +585,10 @@ export function BetaApp({ mountKey }) {
               </option>
             ))}
           </select>
-          <p className="field-note">Early access: large targets create a staged batch plan that renders gradually in the background over days to weeks. No full-coverage claim is made until every batch completes.</p>
+          <p className="field-note">
+            Early access: large targets create a staged batch plan that renders gradually in the background over days to
+            weeks. No full-coverage claim is made until every batch completes.
+          </p>
           <details className="advanced-inputs">
             <summary>Advanced inputs (optional)</summary>
             <label htmlFor="competitor-urls">Competitors</label>
@@ -700,9 +703,7 @@ export function BetaApp({ mountKey }) {
         {auditStatus === "idle" && <EmptyAuditState />}
         {auditStatus === "loading" && <LoadingAuditState message={auditMessage} />}
         {auditStatus === "error" && <ErrorAuditState message={auditMessage} />}
-        {report && auditStatus === "success" && (
-          <ReportView report={report} />
-        )}
+        {report && auditStatus === "success" && <ReportView report={report} />}
       </section>
     </main>
   );

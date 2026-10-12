@@ -105,7 +105,11 @@ test("public check page validates the URL client-side before any network round t
     /if \(validationError\) \{[\s\S]*?return;[\s\S]*?\}/.test(submit[0]),
     "validation failure returns without fetching"
   );
-  assert.match(html, /id="url-input" name="url" type="text" inputmode="url"/, "scheme-less entries stay allowed client-side");
+  assert.match(
+    html,
+    /id="url-input" name="url" type="text" inputmode="url"/,
+    "scheme-less entries stay allowed client-side"
+  );
 });
 
 test("the page's inline client-side validator actually executes with the server's rules", () => {
@@ -137,13 +141,25 @@ test("the page's inline client-side validator actually executes with the server'
 test("public check quota buckets cover per-network and per-site windows without storing the target host", async () => {
   const checks = await publicCheckQuotaChecks("iphash123", "Example.COM");
   const keys = checks.map((check) => check.bucket);
-  assert.ok(keys.some((key) => key.startsWith("check:ip-hour:") && key.endsWith(":iphash123")), "per-IP hourly bucket");
-  assert.ok(keys.some((key) => key.startsWith("check:ip-day:")), "per-IP daily bucket");
+  assert.ok(
+    keys.some((key) => key.startsWith("check:ip-hour:") && key.endsWith(":iphash123")),
+    "per-IP hourly bucket"
+  );
+  assert.ok(
+    keys.some((key) => key.startsWith("check:ip-day:")),
+    "per-IP daily bucket"
+  );
   const targetHourKey = keys.find((key) => key.startsWith("check:target-hour:"));
   assert.ok(targetHourKey, "per-site hourly bucket");
-  assert.ok(keys.some((key) => key.startsWith("check:target-day:")), "per-site daily bucket");
+  assert.ok(
+    keys.some((key) => key.startsWith("check:target-day:")),
+    "per-site daily bucket"
+  );
   assert.doesNotMatch(targetHourKey, /example\.com/i, "the target host must never be stored in plaintext");
-  assert.ok(/^check:target-hour:[^:]+:[0-9a-f]{32}$/.test(targetHourKey), "the target bucket ends in a 32-hex host hash");
+  assert.ok(
+    /^check:target-hour:[^:]+:[0-9a-f]{32}$/.test(targetHourKey),
+    "the target bucket ends in a 32-hex host hash"
+  );
   const sameHost = await publicCheckQuotaChecks("iphash123", "Example.COM");
   assert.deepEqual(
     sameHost.map((check) => check.bucket),
@@ -156,7 +172,10 @@ test("public check quota buckets cover per-network and per-site windows without 
     keys,
     "a different host hashes to different bucket keys"
   );
-  assert.ok(checks.every((check) => Number(check.limit) > 0), "all limits are positive");
+  assert.ok(
+    checks.every((check) => Number(check.limit) > 0),
+    "all limits are positive"
+  );
 });
 
 // Regression: the anonymous /check quota must be ENFORCED by the route, not
@@ -186,7 +205,12 @@ test("public check route returns 429 from an exhausted audit_usage bucket with z
   };
 
   const engineBindingsRead = [];
-  const engineBindingNames = ["BROWSER", "GOOGLE_PAGESPEED_API_KEY", "PAGESPEED_API_KEY", "SEOFIXKIT_PAGESPEED_DISABLED"];
+  const engineBindingNames = [
+    "BROWSER",
+    "GOOGLE_PAGESPEED_API_KEY",
+    "PAGESPEED_API_KEY",
+    "SEOFIXKIT_PAGESPEED_DISABLED"
+  ];
   const env = new Proxy(
     { WAITLIST_DB: exhaustedDb },
     {
@@ -207,7 +231,10 @@ test("public check route returns 429 from an exhausted audit_usage bucket with z
   assert.equal(response.status, 429, "an exhausted quota bucket must be rejected with HTTP 429");
   const payload = await response.json();
   assert.ok(payload.error, "rate-limit response carries visitor copy");
-  assert.ok(typeof payload.resetAt === "string" && !Number.isNaN(Date.parse(payload.resetAt)), "rate-limit response carries the bucket reset time");
+  assert.ok(
+    typeof payload.resetAt === "string" && !Number.isNaN(Date.parse(payload.resetAt)),
+    "rate-limit response carries the bucket reset time"
+  );
   assert.ok(
     sqlSeen.some((sql) => sql.includes("INSERT INTO audit_usage") && sql.includes("ON CONFLICT(bucket)")),
     "the quota decision really went through the audit_usage table"
@@ -263,7 +290,11 @@ test("public check page is searchable and hands off into private access", () => 
   assert.match(html, /href="https:\/\/seofixkit\.com\/">SEO Fix Kit<\/a>/);
   assert.match(html, /href="https:\/\/seofixkit\.com\/support"/, "the anonymous check links to support");
   assert.match(html, /href="https:\/\/seofixkit\.com\/terms"/, "the anonymous check links to terms");
-  assert.match(html, /href="https:\/\/seofixkit\.com\/privacy"/, "the anonymous check links to the privacy policy that backs its nothing-stored copy");
+  assert.match(
+    html,
+    /href="https:\/\/seofixkit\.com\/privacy"/,
+    "the anonymous check links to the privacy policy that backs its nothing-stored copy"
+  );
   assert.doesNotMatch(html, /noindex/i, "the entry page must stay searchable");
 });
 
@@ -274,10 +305,16 @@ test("public check page is searchable and hands off into private access", () => 
 test("public check meta description and WebPage JSON-LD stay within the 70-165 char range and share the no-ranking promise", () => {
   const html = checkHtml(origin);
   const metaMatch = html.match(/<meta name="description" content="([^"]*)" \/>/);
-  assert.ok(metaMatch, "the page must emit a <meta name=\"description\"> tag");
+  assert.ok(metaMatch, 'the page must emit a <meta name="description"> tag');
   const description = metaMatch[1];
-  assert.ok(description.length >= 70, `meta description is too short (${description.length} chars); risk of thin-snippet penalty`);
-  assert.ok(description.length <= 165, `meta description is too long (${description.length} chars); search snippets will truncate`);
+  assert.ok(
+    description.length >= 70,
+    `meta description is too short (${description.length} chars); risk of thin-snippet penalty`
+  );
+  assert.ok(
+    description.length <= 165,
+    `meta description is too long (${description.length} chars); search snippets will truncate`
+  );
   assert.match(description, /No account, no ranking promises\./, "the no-ranking boundary must survive the trim");
   assert.match(description, /browser-rendered/, "the differentiator must survive the trim");
   assert.match(description, /guarded false positives/, "the guarded false-positives promise must survive the trim");
@@ -294,7 +331,11 @@ test("public check meta description and WebPage JSON-LD stay within the 70-165 c
     description,
     "the WebPage JSON-LD description must match the meta description so the structured surface cannot drift from the visible snippet"
   );
-  assert.match(jsonLdDescription, /No account, no ranking promises\./, "the JSON-LD description also keeps the no-ranking boundary");
+  assert.match(
+    jsonLdDescription,
+    /No account, no ranking promises\./,
+    "the JSON-LD description also keeps the no-ranking boundary"
+  );
 });
 
 // Regression: the /check page must not impose a 320px minimum width on the
@@ -381,19 +422,40 @@ test("public check page carries WebPage and truthful FAQ JSON-LD", () => {
   }
 
   const serialized = JSON.stringify(graph);
-  assert.doesNotMatch(serialized, /guarantees rankings|guarantees traffic|guaranteed rankings/i, "schema must not overclaim");
-  const noPromiseAnswer = faq.mainEntity.find((question) => question.name === "Does this check promise rankings or traffic?");
-  assert.match(noPromiseAnswer.acceptedAnswer.text, /does not guarantee rankings, traffic, indexing, revenue, AI citations/i);
+  assert.doesNotMatch(
+    serialized,
+    /guarantees rankings|guarantees traffic|guaranteed rankings/i,
+    "schema must not overclaim"
+  );
+  const noPromiseAnswer = faq.mainEntity.find(
+    (question) => question.name === "Does this check promise rankings or traffic?"
+  );
+  assert.match(
+    noPromiseAnswer.acceptedAnswer.text,
+    /does not guarantee rankings, traffic, indexing, revenue, AI citations/i
+  );
   const storedAnswer = faq.mainEntity.find((question) => question.name === "Is anything about my check stored?");
   assert.match(storedAnswer.acceptedAnswer.text, /no report or URL from your check is stored/i);
-  assert.doesNotMatch(storedAnswer.acceptedAnswer.text, /nothing about your check is saved/i, "JSON-LD must not resurrect the pre-#88 overpromise");
+  assert.doesNotMatch(
+    storedAnswer.acceptedAnswer.text,
+    /nothing about your check is saved/i,
+    "JSON-LD must not resurrect the pre-#88 overpromise"
+  );
 
   // Every schema answer is a claim a visitor can read in the rendered page.
   const html = checkHtml(origin);
-  assert.doesNotMatch(html, /nothing about your check is saved/i, "visible FAQ must not resurrect the pre-#88 overpromise");
+  assert.doesNotMatch(
+    html,
+    /nothing about your check is saved/i,
+    "visible FAQ must not resurrect the pre-#88 overpromise"
+  );
   for (const question of faq.mainEntity) {
     assert.match(html, new RegExp(escapeRegex(question.name)), `visible page shows the question: ${question.name}`);
-    assert.match(html, new RegExp(escapeRegex(question.acceptedAnswer.text.slice(0, 60))), `visible page backs the answer for: ${question.name}`);
+    assert.match(
+      html,
+      new RegExp(escapeRegex(question.acceptedAnswer.text.slice(0, 60))),
+      `visible page backs the answer for: ${question.name}`
+    );
   }
 
   // The standalone builder must produce the same script the page embeds.
@@ -421,7 +483,9 @@ test("public check output is verbatim engine output for the public test page", a
     }
     if (req.url === "/sitemap.xml") {
       res.writeHead(200, { "content-type": "application/xml; charset=utf-8" });
-      res.end(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${fixtureOrigin}/fixture/rendered-page</loc></url></urlset>`);
+      res.end(
+        `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${fixtureOrigin}/fixture/rendered-page</loc></url></urlset>`
+      );
       return;
     }
     if (req.url === "/llms.txt") {
@@ -489,9 +553,7 @@ test("public check never reports same-origin 522/523/524 link failures as critic
           { text: "Contact", href: "https://public.example/contact", rawHref: "/contact" },
           { text: "Pricing", href: "https://public.example/pricing", rawHref: "/pricing" }
         ],
-        externalLinks: [
-          { text: "Reference", href: "https://other.example/ref", rawHref: "https://other.example/ref" }
-        ],
+        externalLinks: [{ text: "Reference", href: "https://other.example/ref", rawHref: "https://other.example/ref" }],
         images: [],
         imagesMissingAlt: [],
         scripts: [],
@@ -509,10 +571,13 @@ test("public check never reports same-origin 522/523/524 link failures as critic
       }),
     fetchImpl: async (url) => {
       if (url === "https://public.example/") {
-        return new Response("<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>", {
-          status: 200,
-          headers: { "content-type": "text/html; charset=utf-8" }
-        });
+        return new Response(
+          "<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>",
+          {
+            status: 200,
+            headers: { "content-type": "text/html; charset=utf-8" }
+          }
+        );
       }
       const originFailures = {
         "https://public.example/about": 523,
@@ -520,7 +585,10 @@ test("public check never reports same-origin 522/523/524 link failures as critic
         "https://public.example/pricing": 524
       };
       if (originFailures[url]) {
-        return new Response("origin not reachable", { status: originFailures[url], headers: { "content-type": "text/html" } });
+        return new Response("origin not reachable", {
+          status: originFailures[url],
+          headers: { "content-type": "text/html" }
+        });
       }
       if (url === "https://other.example/ref") {
         return new Response("origin unreachable", { status: 523, headers: { "content-type": "text/html" } });
@@ -633,8 +701,9 @@ function visibleWordCount(html) {
 }
 
 function jsonLdBlocks(html) {
-  return [...String(html).matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)]
-    .map((match) => JSON.parse(match[1]));
+  return [...String(html).matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map((match) =>
+    JSON.parse(match[1])
+  );
 }
 
 function escapeRegex(value) {

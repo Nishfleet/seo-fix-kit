@@ -15,13 +15,7 @@ const FACET_PARAM_NAMES = new Set([
   "paged"
 ]);
 
-const WORDPRESS_ARCHIVE_PATTERNS = [
-  /\/category\//i,
-  /\/tag\//i,
-  /\/author\//i,
-  /\/\d{4}\/\d{2}\//i,
-  /[?&]author=/i
-];
+const WORDPRESS_ARCHIVE_PATTERNS = [/\/category\//i, /\/tag\//i, /\/author\//i, /\/\d{4}\/\d{2}\//i, /[?&]author=/i];
 
 const PRODUCT_PATH_PATTERNS = [
   /\/products?\//i,
@@ -33,13 +27,7 @@ const PRODUCT_PATH_PATTERNS = [
   /\/sku\//i
 ];
 
-const CATEGORY_PATH_PATTERNS = [
-  /\/collections?\//i,
-  /\/categories?\//i,
-  /\/category\//i,
-  /\/shop\//i,
-  /\/catalog\//i
-];
+const CATEGORY_PATH_PATTERNS = [/\/collections?\//i, /\/categories?\//i, /\/category\//i, /\/shop\//i, /\/catalog\//i];
 
 const PLATFORM_SIGNATURES = [
   {
@@ -399,9 +387,7 @@ function wordpressArchiveCheck(evidenceRows = []) {
 
 function wordpressPluginCheck(pluginResources) {
   const blockingUrls = new Set(
-    pluginResources.resources
-      .filter((resource) => resource.renderBlocking)
-      .map((resource) => resource.url)
+    pluginResources.resources.filter((resource) => resource.renderBlocking).map((resource) => resource.url)
   );
   const pluginCount = pluginResources.plugins.length;
   const resourceCount = pluginResources.resources.length;
@@ -512,7 +498,8 @@ function platformRepairOpportunities({ checks, wordpressDetected, ecommerceDetec
     add({
       severity: "notice",
       title: "WordPress SEO plugin configuration was not proven",
-      proof: "The rendered page showed WordPress signals but no known SEO plugin signal and no complete canonical plus meta description pair.",
+      proof:
+        "The rendered page showed WordPress signals but no known SEO plugin signal and no complete canonical plus meta description pair.",
       fix: "Configure Yoast, Rank Math, AIOSEO, or equivalent template output for canonical URLs, meta descriptions, robots rules, and sitemaps.",
       workType: "review"
     });
@@ -581,7 +568,10 @@ function cleanEvidence(value = "") {
 }
 
 function cleanText(value = "", maxLength = 500) {
-  return String(value || "").replace(/\s+/g, " ").trim().slice(0, maxLength);
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxLength);
 }
 
 function pathLabel(value = "") {

@@ -24,9 +24,16 @@ function normalizeDnsHost(value) {
 }
 
 function cleanReportDomain(input) {
-  let value = String(input || "").trim().toLowerCase();
+  let value = String(input || "")
+    .trim()
+    .toLowerCase();
   if (!value) return "";
-  value = value.replace(/^https?:\/\//, "").split("/")[0].split("?")[0].split("#")[0].replace(/\.$/, "");
+  value = value
+    .replace(/^https?:\/\//, "")
+    .split("/")[0]
+    .split("?")[0]
+    .split("#")[0]
+    .replace(/\.$/, "");
   value = value.split(":")[0];
   if (value.length < 4 || value.length > 253) return "";
   if (!value.includes(".")) return "";
@@ -41,16 +48,14 @@ function cleanReportDomain(input) {
 function workerAppHost(host = "", env = {}) {
   const clean = cleanReportDomain(host);
   if (!clean) return true;
-  const appHosts = new Set(
-    [
-      "seofixkit.com",
-      "www.seofixkit.com",
-      ...String(env.SEOFIXKIT_APP_HOSTS || "")
-        .split(",")
-        .map((value) => cleanReportDomain(value))
-        .filter(Boolean)
-    ]
-  );
+  const appHosts = new Set([
+    "seofixkit.com",
+    "www.seofixkit.com",
+    ...String(env.SEOFIXKIT_APP_HOSTS || "")
+      .split(",")
+      .map((value) => cleanReportDomain(value))
+      .filter(Boolean)
+  ]);
   return appHosts.has(clean) || clean.endsWith(".workers.dev");
 }
 
@@ -78,7 +83,9 @@ function cleanAccessToken(input) {
 }
 
 function cleanAccessMode(input) {
-  const mode = String(input || "").trim().toLowerCase();
+  const mode = String(input || "")
+    .trim()
+    .toLowerCase();
   if (mode === "invite" || mode === "self-serve" || mode === "founder-override") return mode;
   if (mode === "api") return "api";
   return "invite";

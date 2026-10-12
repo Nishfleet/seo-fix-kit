@@ -488,8 +488,14 @@ test("README weekly monitor promise matches the schedule interval", () => {
 });
 
 test("README public page promise matches Worker routing and copy", async () => {
-  assert.match(liveSection, /Public `\/demo`, `\/methodology`, `\/packages`, and `\/proof` pages showing the proof loop, limits, package ladder, and a real before\/after repair receipt/i);
-  assert.match(liveSection, /Intent-matching public landing pages at `\/small-business-seo-audit`, `\/rendered-vs-static-seo-audit`, and `\/ai-answer-readiness`/i);
+  assert.match(
+    liveSection,
+    /Public `\/demo`, `\/methodology`, `\/packages`, and `\/proof` pages showing the proof loop, limits, package ladder, and a real before\/after repair receipt/i
+  );
+  assert.match(
+    liveSection,
+    /Intent-matching public landing pages at `\/small-business-seo-audit`, `\/rendered-vs-static-seo-audit`, and `\/ai-answer-readiness`/i
+  );
   for (const path of ["/demo", "/methodology", "/packages", "/check", "/proof"]) {
     assert.ok(workerRoutes(path, "GET"), `Worker must route ${path}`);
   }
@@ -628,7 +634,10 @@ async function exerciseAbuseControlledSurfaces() {
 
 test("README abuse-control claim matches D1 buckets for every listed surface", async () => {
   assert.match(liveSection, /D1-backed abuse controls/i);
-  assert.match(liveSection, /across access links, login, waitlist, network, session, daily, and target-site audit buckets/i);
+  assert.match(
+    liveSection,
+    /across access links, login, waitlist, network, session, daily, and target-site audit buckets/i
+  );
   const { buckets } = await exerciseAbuseControlledSurfaces();
   for (const bucket of [
     "waitlist:ip",
@@ -740,7 +749,10 @@ test("README large-crawl daily rate matches the scheduled worker defaults", asyn
   assert.equal(heartbeats[0].concurrency, 10, "default is ten URLs per batch");
   const ticksPerDay = (24 * 60) / 15;
   const pagesPerDay = ticksPerDay * heartbeats.length * heartbeats[0].concurrency;
-  assert.ok(pagesPerDay >= 900 && pagesPerDay <= 1000, `default caps render ${pagesPerDay} pages/day, matching 'roughly 1,000'`);
+  assert.ok(
+    pagesPerDay >= 900 && pagesPerDay <= 1000,
+    `default caps render ${pagesPerDay} pages/day, matching 'roughly 1,000'`
+  );
 });
 
 test("README keyword-volume claim keeps a storage path without a live provider", () => {
@@ -759,7 +771,10 @@ test("README keyword-volume claim keeps a storage path without a live provider",
 });
 
 test("README offer-catalog claim matches config-gated monitoring and paused checkouts", () => {
-  assert.match(liveSection, /Server-owned offer catalog and entitlement scaffolding for Proof Monitoring, Repair Sprint, SEO\/GEO Repair Agent, and Agency Workspace/i);
+  assert.match(
+    liveSection,
+    /Server-owned offer catalog and entitlement scaffolding for Proof Monitoring, Repair Sprint, SEO\/GEO Repair Agent, and Agency Workspace/i
+  );
   assert.match(liveSection, /Proof Monitoring has a config-gated Dodo subscription checkout path/i);
   // Repair Sprint moved from "not live yet" to a config-gated one-time checkout
   // that only opens from a report with an owner-approved executable proposal.
@@ -769,10 +784,7 @@ test("README offer-catalog claim matches config-gated monitoring and paused chec
     liveSection,
     /Repair Sprint has a config-gated Dodo one-time checkout path for approved proposal queues/i
   );
-  assert.match(
-    liveSection,
-    /Repair Agent checkout and paid Agency Workspace checkout are not live yet/i
-  );
+  assert.match(liveSection, /Repair Agent checkout and paid Agency Workspace checkout are not live yet/i);
   assert.doesNotMatch(
     liveSection,
     /Repair Agent checkout .{0,40}(is|are) live/i,
@@ -848,7 +860,10 @@ test("README AI Answer Readiness claim ranks faults by imported Search Console t
 });
 
 test("README AI readiness derivation signals match the checks that compute them", async () => {
-  assert.match(liveSection, /AI Answer Readiness \/ SEO-GEO readiness checks derived from rendered content depth, helpful schema, canonical\/internal-link clarity, question-led structure, sitemap context/i);
+  assert.match(
+    liveSection,
+    /AI Answer Readiness \/ SEO-GEO readiness checks derived from rendered content depth, helpful schema, canonical\/internal-link clarity, question-led structure, sitemap context/i
+  );
   const { checks } = (await fixtureAudit()).aiAnswerReadiness;
   for (const check of ["contentDepth", "structuredData", "sourceClarity", "answerStructure", "discoveryFiles"]) {
     assert.ok(checks[check], `${check} readiness check is computed`);
@@ -1025,7 +1040,10 @@ test("README repair-proof-receipt claim keeps publishing and ranking disclaimers
 // proposals, D1 tables, and dashboard surfaces) to the behaviour that backs them.
 
 test("README rendered-audit claims match the Worker browser runtime and local Playwright adapter", async () => {
-  assert.match(liveSection, /Rendered-page audit powered by Cloudflare Browser Run in the Worker \(emulated by `wrangler dev` locally\); the offline audit smoke tests use Playwright/i);
+  assert.match(
+    liveSection,
+    /Rendered-page audit powered by Cloudflare Browser Run in the Worker \(emulated by `wrangler dev` locally\); the offline audit smoke tests use Playwright/i
+  );
   const browser = recordingBrowserBinding();
   await withStubbedFetch(
     async () => new Response("", { status: 404 }),
@@ -1288,7 +1306,10 @@ test("README resource-waterfall claim matches request, transfer, and slow/heavy/
 
 test("README backlink import claim matches live/lost proof, risk flags, and history tables", async () => {
   assert.match(liveSection, /backlink import audit and import-history tables for supplied rows/i);
-  assert.match(liveSection, /live\/lost link proof, risky source signals, broken target checks, anchor concentration flags, and repair actions/i);
+  assert.match(
+    liveSection,
+    /live\/lost link proof, risky source signals, broken target checks, anchor concentration flags, and repair actions/i
+  );
   const target = "https://target.example/";
   const sources = {
     "https://news.example/story": `<a href="${target}">cheap widgets</a>`,
@@ -1333,7 +1354,10 @@ test("README backlink import claim matches live/lost proof, risk flags, and hist
 });
 
 test("README local SEO claim matches NAP, LocalBusiness schema, and citation checks", async () => {
-  assert.match(liveSection, /local SEO audit for supplied business details, Google Business Profile URL, local keywords, and citation URLs/i);
+  assert.match(
+    liveSection,
+    /local SEO audit for supplied business details, Google Business Profile URL, local keywords, and citation URLs/i
+  );
   assert.match(liveSection, /NAP, LocalBusiness schema, citation consistency, and repair actions/i);
   const report = await fixtureAudit();
   const audit = await buildLocalSeoAudit(
@@ -1417,7 +1441,10 @@ test("README keyword/rank import claim matches listed repair actions and history
 
 test("README platform audit claim matches schema, faceted, archive, and plugin checks", () => {
   assert.match(liveSection, /WordPress and ecommerce platform audit for detected stores\/CMS pages/i);
-  assert.match(liveSection, /Product schema, BreadcrumbList schema, faceted\/variant URLs, WordPress archive links, and plugin resource repair actions/i);
+  assert.match(
+    liveSection,
+    /Product schema, BreadcrumbList schema, faceted\/variant URLs, WordPress archive links, and plugin resource repair actions/i
+  );
   const pluginScript = "https://store.example/wp-content/plugins/woocommerce/assets/js/frontend.js";
   const audit = buildPlatformSeoAudit({
     url: "https://store.example/",
@@ -1496,7 +1523,10 @@ test("README developer brief claim matches priority, effort, proof, acceptance, 
 });
 
 test("README repair queue claim matches persistent records with proof, status, and rerun state", async () => {
-  assert.match(liveSection, /Persistent repair queue records for saved reports, with proof snapshots, acceptance checks, status, action mode, rerun state, and approval-safe agent action records/i);
+  assert.match(
+    liveSection,
+    /Persistent repair queue records for saved reports, with proof snapshots, acceptance checks, status, action mode, rerun state, and approval-safe agent action records/i
+  );
   const beta = await privateBeta();
   const reportId = insertSavedReport(beta.db, savedReportFixture(), { inviteId: beta.inviteId });
   const created = await beta.call(`/api/reports/${reportId}/repair-actions`, {
@@ -1513,7 +1543,10 @@ test("README repair queue claim matches persistent records with proof, status, a
 });
 
 test("README repair agent board claim matches assignment, notes, drafts, and approval controls", async () => {
-  assert.match(liveSection, /Report-level repair agent board with status filters, teammate assignment, notes, safe draft actions, approval\/ignore controls, and no external publishing side effects/i);
+  assert.match(
+    liveSection,
+    /Report-level repair agent board with status filters, teammate assignment, notes, safe draft actions, approval\/ignore controls, and no external publishing side effects/i
+  );
   const beta = await privateBeta();
   const reportId = insertSavedReport(beta.db, savedReportFixture(), { inviteId: beta.inviteId });
   const now = new Date().toISOString();
@@ -1601,7 +1634,10 @@ function implementationPackInput(actionOverrides = {}) {
 }
 
 test("README implementation pack claim matches proof, handoff, acceptance, rollback, and rerun proof", () => {
-  assert.match(liveSection, /Private implementation packs for owner-approved repair actions, with source proof, approved change text, mode-specific handoff steps, acceptance checks, rollback notes, and rerun-proof instructions/i);
+  assert.match(
+    liveSection,
+    /Private implementation packs for owner-approved repair actions, with source proof, approved change text, mode-specific handoff steps, acceptance checks, rollback notes, and rerun-proof instructions/i
+  );
   const pack = buildRepairImplementationPack(implementationPackInput());
   assert.equal(pack.ok, true);
   assert.match(pack.markdown, /## Source Proof\n[\s\S]*Rendered title is missing/, "source proof exists");
@@ -1616,7 +1652,10 @@ test("README implementation pack claim matches proof, handoff, acceptance, rollb
 });
 
 test("README account repair feed claim matches ranked open, drafted, applied, and regression items", () => {
-  assert.match(liveSection, /Account-level repair agent feed that ranks open repairs, drafted actions awaiting approval, applied repairs needing rerun proof, and monitor regressions across recent reports/i);
+  assert.match(
+    liveSection,
+    /Account-level repair agent feed that ranks open repairs, drafted actions awaiting approval, applied repairs needing rerun proof, and monitor regressions across recent reports/i
+  );
   const item = (issueId, status, latestAction = null) => ({
     issueId,
     title: `Repair ${issueId}`,
@@ -1750,7 +1789,10 @@ test("README React interface and Cloudflare Worker target claims match the build
 });
 
 test("README homepage, waitlist, and access claims match the Worker and D1", async () => {
-  assert.match(liveSection, /Locked private-beta homepage with `\/api\/waitlist` and `\/api\/access\/request` backed by D1/i);
+  assert.match(
+    liveSection,
+    /Locked private-beta homepage with `\/api\/waitlist` and `\/api\/access\/request` backed by D1/i
+  );
   assert.ok(workerRoutes("/api/waitlist", "POST"), "waitlist endpoint registered");
   assert.ok(workerRoutes("/api/access/request", "POST"), "access request endpoint registered");
   const beta = await privateBeta({
@@ -1875,7 +1917,10 @@ test("README account summary, developer API, admin ops, and Fix Pack CTA claims 
   // developer-api.test.mjs ("Developer API repair action webhooks deliver
   // lifecycle transitions without private draft payload").
 
-  assert.match(liveSection, /`\/beta\/admin` ops dashboard for waitlist, invites, audits, repeated issue patterns, and fix requests/i);
+  assert.match(
+    liveSection,
+    /`\/beta\/admin` ops dashboard for waitlist, invites, audits, repeated issue patterns, and fix requests/i
+  );
   const adminEnv = { WAITLIST_DB: createTestD1(), ADMIN_EXPORT_TOKEN: "admin-token-123" };
   const repeated = {
     url: "https://a.example/",
@@ -1977,7 +2022,10 @@ test("README sitemap inventory claim keeps rendered repair proof separate", asyn
 });
 
 test("README queued-job claim matches status polling before the private report loads", () => {
-  assert.match(liveSection, /Queued audit jobs backed by D1 `audit_jobs`, with status polling before the private report loads/i);
+  assert.match(
+    liveSection,
+    /Queued audit jobs backed by D1 `audit_jobs`, with status polling before the private report loads/i
+  );
   // The UI polling /api/audit/jobs/:id before loading the report is checked in a browser by test/spa.test.mjs.
 });
 
@@ -2018,10 +2066,7 @@ test("README saved-report claim matches owner email and invite-bound ownership",
 });
 
 test("README public support, terms, and privacy pages keep no-ranking-guarantee copy", async () => {
-  assert.match(
-    liveSection,
-    /Public `\/support`, `\/terms`, and `\/privacy` pages with no ranking guarantees/i
-  );
+  assert.match(liveSection, /Public `\/support`, `\/terms`, and `\/privacy` pages with no ranking guarantees/i);
   assert.match(
     visibleText(await publicPage("/terms")),
     /No ranking, indexing, traffic, revenue, or search-engine outcome is promised/,
@@ -2176,7 +2221,10 @@ test("README proposal claim keeps execution modes, owner approval, and delivery 
 });
 
 test("README schedule claim keeps dashboard add and pause controls", () => {
-  assert.match(liveSection, /Weekly self-serve audit monitors backed by D1 `audit_schedules`, with dashboard controls to add or pause monitors for verified hosts/i);
+  assert.match(
+    liveSection,
+    /Weekly self-serve audit monitors backed by D1 `audit_schedules`, with dashboard controls to add or pause monitors for verified hosts/i
+  );
   // The dashboard add/pause monitor controls are checked in a browser by test/spa.test.mjs.
 });
 
@@ -2395,10 +2443,7 @@ test("README developer API claim keeps project-style verified sites", async () =
 });
 
 test("README repair-proof-receipt claim keeps original-issue, approved/applied-change, and same-host rerun links", () => {
-  assert.match(
-    liveSection,
-    /connecting the original issue, approved\/applied change, and same-host rerun report/i
-  );
+  assert.match(liveSection, /connecting the original issue, approved\/applied change, and same-host rerun report/i);
   const receipt = buildRepairProofReceipt(proofReceiptInput());
   assert.equal(receipt.metadata.issueId, "issue-1", "receipts link the original issue");
   assert.match(receipt.markdown, /Add title copy to the home page/, "receipts carry the approved change");
@@ -2508,7 +2553,10 @@ test("README deep-health claim stays runtime/config/schema scoped and public-saf
 });
 
 test("README packages page claim keeps the config-gated Proof Monitoring price and boundary", async () => {
-  assert.match(liveSection, /Public `\/demo`, `\/methodology`, `\/packages`, and `\/proof` pages showing the proof loop, limits, package ladder, and a real before\/after repair receipt/i);
+  assert.match(
+    liveSection,
+    /Public `\/demo`, `\/methodology`, `\/packages`, and `\/proof` pages showing the proof loop, limits, package ladder, and a real before\/after repair receipt/i
+  );
   const packages = visibleText(await publicPage("/packages"));
   assert.match(packages, /\$49-\$99\/mo target/, "Proof Monitoring shows a target price, not a live price");
   assert.match(packages, /Config-gated subscription/, "Proof Monitoring is labeled config-gated");
@@ -2539,9 +2587,16 @@ test("README anonymous-check claim keeps the deployed copy locked to the live sp
     { path: "/methodology", copy: "Limits we state up front" },
     { path: "/packages", copy: "Package ladder" },
     { path: "/packages", copy: "$99.00 one-time" },
-    { path: "/packages", copy: "Checkout only opens when the Dodo subscription product and webhook entitlement sync are configured" }
+    {
+      path: "/packages",
+      copy: "Checkout only opens when the Dodo subscription product and webhook entitlement sync are configured"
+    }
   ]) {
     assert.match(spotCheck, new RegExp(`path: "${surface.path}"`), `spot-check must still cover ${surface.path}`);
-    assert.match(spotCheck, new RegExp(surface.copy.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), `spot-check must still assert the ${surface.path} copy "${surface.copy}"`);
+    assert.match(
+      spotCheck,
+      new RegExp(surface.copy.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
+      `spot-check must still assert the ${surface.path} copy "${surface.copy}"`
+    );
   }
 });

@@ -111,19 +111,7 @@ async function recordAccessEvent(env, options = {}) {
         (step, funnel_key, owner_email, source, landing_path, referrer, user_agent, country, ip_hash, metadata_json, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
-      .bind(
-        step,
-        funnelKey,
-        ownerEmail,
-        source,
-        landingPath,
-        referrer,
-        userAgent,
-        country,
-        ipHash,
-        metadata,
-        now
-      )
+      .bind(step, funnelKey, ownerEmail, source, landingPath, referrer, userAgent, country, ipHash, metadata, now)
       .run();
   } catch {
     // Instrumentation must never break the request that triggered it.
@@ -141,7 +129,10 @@ async function summarizeAccessEvents(env, options = {}) {
   if (!env?.WAITLIST_DB) return { ok: false, reason: "no_storage", steps: {}, totals: {} };
 
   const nowMs = Date.now();
-  const windowMs = Math.max(60 * 1000, Math.min(Number(options.windowMs || 7 * 24 * 60 * 60 * 1000), 90 * 24 * 60 * 60 * 1000));
+  const windowMs = Math.max(
+    60 * 1000,
+    Math.min(Number(options.windowMs || 7 * 24 * 60 * 60 * 1000), 90 * 24 * 60 * 60 * 1000)
+  );
   const sinceMs = nowMs - windowMs;
   const sinceIso = new Date(sinceMs).toISOString();
 
@@ -212,10 +203,4 @@ async function summarizeAccessEvents(env, options = {}) {
   };
 }
 
-export {
-  FUNNEL_STEPS,
-  isFunnelStep,
-  stepIndex,
-  recordAccessEvent,
-  summarizeAccessEvents
-};
+export { FUNNEL_STEPS, isFunnelStep, stepIndex, recordAccessEvent, summarizeAccessEvents };

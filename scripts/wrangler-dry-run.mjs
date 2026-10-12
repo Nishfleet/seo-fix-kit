@@ -143,9 +143,7 @@ export function pickCleanScratchRoot() {
 export function resolveWranglerBin(projectRoot) {
   const wranglerPackage = path.join(projectRoot, "node_modules", "wrangler");
   try {
-    const pkg = JSON.parse(
-      fs.readFileSync(path.join(wranglerPackage, "package.json"), "utf8")
-    );
+    const pkg = JSON.parse(fs.readFileSync(path.join(wranglerPackage, "package.json"), "utf8"));
     const bin = pkg.bin?.wrangler || "bin/wrangler.js";
     const resolved = path.join(wranglerPackage, bin);
     return fs.existsSync(resolved) ? resolved : null;
@@ -181,9 +179,7 @@ export function buildShieldedScratch(projectRoot) {
     const nodeModulesSrc = path.join(projectRoot, "node_modules");
     const nodeModulesDest = path.join(scratch, "node_modules");
     if (!fs.existsSync(nodeModulesSrc)) {
-      throw new Error(
-        `wrangler-dry-run: ${nodeModulesSrc} does not exist; run npm ci first`
-      );
+      throw new Error(`wrangler-dry-run: ${nodeModulesSrc} does not exist; run npm ci first`);
     }
     const hardlink = spawnSync("cp", ["-al", nodeModulesSrc, nodeModulesDest], {
       encoding: "utf8"
@@ -202,9 +198,7 @@ export function buildShieldedScratch(projectRoot) {
       if (realCopy.status !== 0) {
         throw new Error(
           `wrangler-dry-run: could not copy node_modules into the shielded ` +
-            `scratch (hardlink: ${hardlink.stderr?.trim() || "failed"}; copy: ${
-              realCopy.stderr?.trim() || "failed"
-            })`
+            `scratch (hardlink: ${hardlink.stderr?.trim() || "failed"}; copy: ${realCopy.stderr?.trim() || "failed"})`
         );
       }
     }

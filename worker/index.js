@@ -13,12 +13,7 @@ import {
   updateFixRequestAdmin
 } from "./routes/admin.js";
 import { getAccountSummary } from "./routes/account.js";
-import {
-  json,
-  secureHeaders,
-  withPrivateHeaders,
-  withSecurityHeaders
-} from "./lib/http.js";
+import { json, secureHeaders, withPrivateHeaders, withSecurityHeaders } from "./lib/http.js";
 import { getDeepHealth } from "./routes/health.js";
 import { isSafeUuid } from "./lib/text.js";
 import { createAdminSession, revokeAdminSession } from "./lib/auth.js";
@@ -162,9 +157,7 @@ const API_PREFIXES = ["/api/", "/v1/", "/admin/"];
 
 function canonicalOrigin(url) {
   const hostname = url.hostname.toLowerCase();
-  return hostname === CANONICAL_HOST || hostname === `www.${CANONICAL_HOST}`
-    ? CANONICAL_ORIGIN
-    : url.origin;
+  return hostname === CANONICAL_HOST || hostname === `www.${CANONICAL_HOST}` ? CANONICAL_ORIGIN : url.origin;
 }
 
 function executionContext(c) {
@@ -377,10 +370,7 @@ app.get("/fixture/rendered-page", (c) =>
   })
 );
 app.get("/fixture/robots.txt", (c) =>
-  textResponse(
-    `User-agent: *\nAllow: /\n\nSitemap: ${originOf(c)}/fixture/sitemap.xml\n`,
-    "text/plain; charset=utf-8"
-  )
+  textResponse(`User-agent: *\nAllow: /\n\nSitemap: ${originOf(c)}/fixture/sitemap.xml\n`, "text/plain; charset=utf-8")
 );
 app.get("/fixture/sitemap.xml", (c) =>
   textResponse(
@@ -420,8 +410,7 @@ app.get("/ai-answer-readiness", htmlPage(aiAnswerReadinessHtml));
 
 function proofPage(c) {
   const acceptsMarkdown =
-    new URL(c.req.url).pathname === "/proof.md" ||
-    (c.req.header("accept") || "").includes("text/markdown");
+    new URL(c.req.url).pathname === "/proof.md" || (c.req.header("accept") || "").includes("text/markdown");
   return acceptsMarkdown
     ? textResponse(proofCaseMarkdown(originOf(c)), "text/markdown; charset=utf-8")
     : textResponse(proofCaseHtml(originOf(c)), "text/html; charset=utf-8");
@@ -464,9 +453,7 @@ app.onError((error, c) => {
   // client gets a generic message and the real one stays in the logs.
   return json(
     {
-      error: error?.code && error?.message
-        ? error.message
-        : "Something went wrong on our side. Try again in a moment."
+      error: error?.code && error?.message ? error.message : "Something went wrong on our side. Try again in a moment."
     },
     500
   );

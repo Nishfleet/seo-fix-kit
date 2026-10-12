@@ -12,7 +12,13 @@
 //
 // Exit codes: 0 = accepted by every endpoint, 2 = key file not live yet,
 // 3 = one or more endpoints rejected the submission.
-import { INDEX_NOW_ENDPOINTS, INDEX_NOW_HOST, indexNowKeyFileBody, indexNowKeyFilePaths, buildIndexNowPayload } from "../shared/index-now.js";
+import {
+  INDEX_NOW_ENDPOINTS,
+  INDEX_NOW_HOST,
+  indexNowKeyFileBody,
+  indexNowKeyFilePaths,
+  buildIndexNowPayload
+} from "../shared/index-now.js";
 
 const ORIGIN = `https://${INDEX_NOW_HOST}`;
 

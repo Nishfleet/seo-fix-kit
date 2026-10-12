@@ -1,20 +1,8 @@
 import { serialize as serializeCookie } from "cookie";
 import { cookieValue, jsonNoStore } from "./http.js";
-import {
-  checkQuotaSet,
-  constantTimeEqual,
-  randomToken,
-  requestIpHash,
-  sha256Hex
-} from "./security.js";
+import { checkQuotaSet, constantTimeEqual, randomToken, requestIpHash, sha256Hex } from "./security.js";
 import { siteClaimInstructions, siteClaimResponse } from "./serializers.js";
-import {
-  cleanAccessMode,
-  cleanText,
-  hourWindow,
-  isoSecondsFromNow,
-  safeHostname
-} from "./text.js";
+import { cleanAccessMode, cleanText, hourWindow, isoSecondsFromNow, safeHostname } from "./text.js";
 import { body, optionalEmail, parseJsonBody, text } from "./validation.js";
 
 const AdminSessionBody = body({ token: text(4096), email: optionalEmail() });
@@ -74,9 +62,7 @@ async function createAdminSession(request, env) {
 async function revokeAdminSession(request, env) {
   const token = cookieValue(request, ADMIN_SESSION_COOKIE);
   if (token && env.WAITLIST_DB) {
-    await env.WAITLIST_DB.prepare(
-      `UPDATE admin_sessions SET revoked_at = ?, last_seen_at = ? WHERE token_hash = ?`
-    )
+    await env.WAITLIST_DB.prepare(`UPDATE admin_sessions SET revoked_at = ?, last_seen_at = ? WHERE token_hash = ?`)
       .bind(new Date().toISOString(), new Date().toISOString(), await sha256Hex(token))
       .run();
   }
@@ -161,9 +147,7 @@ async function betaAccessStatus(request, env) {
     };
   }
 
-  await env.WAITLIST_DB.prepare(
-    `UPDATE beta_sessions SET last_seen_at = ? WHERE token_hash = ?`
-  )
+  await env.WAITLIST_DB.prepare(`UPDATE beta_sessions SET last_seen_at = ? WHERE token_hash = ?`)
     .bind(now, tokenHash)
     .run();
 
@@ -243,9 +227,7 @@ async function adminAccessStatus(request, env, action) {
   const session = await adminSessionStatus(request, env);
   if (session.ok) return { ok: true, actorEmail: session.actorEmail };
   const ok = isAdminAuthorized(request, env);
-  const actorEmail =
-    cleanText(request.headers.get("cf-access-authenticated-user-email") || "", 254) ||
-    "bearer-admin";
+  const actorEmail = cleanText(request.headers.get("cf-access-authenticated-user-email") || "", 254) || "bearer-admin";
   if (!ok) {
     const quota = env.WAITLIST_DB ? await adminFailureQuotaStatus(request, env) : { ok: true };
     await logAdminAction(request, env, action, false, actorEmail);

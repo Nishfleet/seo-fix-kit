@@ -17,30 +17,33 @@ function repairAccountSummaryFromItems(contexts = [], schedules = []) {
   const nextItems = [...regressionItems, ...queueItems]
     .sort((a, b) => a.rank - b.rank || severityRank(a.severity) - severityRank(b.severity) || a.priority - b.priority)
     .slice(0, 6);
-  const counts = queueItems.reduce((totals, item) => {
-    totals.total += 1;
-    totals[item.status] = (totals[item.status] || 0) + 1;
-    if (!["fixed", "ignored"].includes(item.status)) totals.active += 1;
-    if (item.latestAction?.approvalState === "drafted" || item.status === "drafted") totals.awaitingApproval += 1;
-    if (accountRepairAwaitingApply(item)) totals.approvedActions += 1;
-    if (accountRepairNeedsRerun(item)) totals.appliedAwaitingRerun += 1;
-    return totals;
-  }, {
-    total: 0,
-    active: 0,
-    open: 0,
-    in_progress: 0,
-    drafted: 0,
-    approved: 0,
-    applied: 0,
-    fixed: 0,
-    ignored: 0,
-    regressed: 0,
-    awaitingApproval: 0,
-    approvedActions: 0,
-    appliedAwaitingRerun: 0,
-    monitorRegressions: regressionItems.length
-  });
+  const counts = queueItems.reduce(
+    (totals, item) => {
+      totals.total += 1;
+      totals[item.status] = (totals[item.status] || 0) + 1;
+      if (!["fixed", "ignored"].includes(item.status)) totals.active += 1;
+      if (item.latestAction?.approvalState === "drafted" || item.status === "drafted") totals.awaitingApproval += 1;
+      if (accountRepairAwaitingApply(item)) totals.approvedActions += 1;
+      if (accountRepairNeedsRerun(item)) totals.appliedAwaitingRerun += 1;
+      return totals;
+    },
+    {
+      total: 0,
+      active: 0,
+      open: 0,
+      in_progress: 0,
+      drafted: 0,
+      approved: 0,
+      applied: 0,
+      fixed: 0,
+      ignored: 0,
+      regressed: 0,
+      awaitingApproval: 0,
+      approvedActions: 0,
+      appliedAwaitingRerun: 0,
+      monitorRegressions: regressionItems.length
+    }
+  );
 
   return {
     counts,
@@ -151,12 +154,15 @@ function monitorRegressionItem(report = {}, response = {}, monitoredReportIds = 
     reportPath: response.reportPath,
     targetHost,
     issueId: "",
-    title: issue.title || `${newIssues || criticalDelta || warningDelta} issue${newIssues === 1 ? "" : "s"} changed since the last run`,
+    title:
+      issue.title ||
+      `${newIssues || criticalDelta || warningDelta} issue${newIssues === 1 ? "" : "s"} changed since the last run`,
     severity,
     status: "regressed",
     actionMode: "self_serve",
     rerunStatus: "regressed",
-    proof: issue.evidence || delta.note || "Latest monitor run found worse issue evidence than the previous saved report.",
+    proof:
+      issue.evidence || delta.note || "Latest monitor run found worse issue evidence than the previous saved report.",
     acceptance: issue.fix || "Open the latest report and review the new or worsened issue.",
     priority: 0,
     latestAction: null,
@@ -183,6 +189,4 @@ function safeHostname(value) {
   }
 }
 
-export {
-  repairAccountSummaryFromItems
-};
+export { repairAccountSummaryFromItems };

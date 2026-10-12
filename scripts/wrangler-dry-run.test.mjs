@@ -47,11 +47,7 @@ function makeFixture({ poisoned }) {
   // a poisoned chain and the "clean" control assertions would fail for the
   // wrong reason. pickCleanScratchRoot() guarantees a manifest-free chain.
   const base = pickCleanScratchRoot();
-  const projectRoot = path.join(
-    base,
-    poisoned ? "poisoned-parent" : "clean-parent",
-    "project"
-  );
+  const projectRoot = path.join(base, poisoned ? "poisoned-parent" : "clean-parent", "project");
   if (poisoned) {
     fs.mkdirSync(path.dirname(projectRoot), { recursive: true });
     fs.writeFileSync(path.join(path.dirname(projectRoot), "package.json"), "");
@@ -65,10 +61,7 @@ function makeFixture({ poisoned }) {
     path.join(projectRoot, "wrangler.jsonc"),
     JSON.stringify({ name: "fixture", main: "worker/index.js" })
   );
-  fs.writeFileSync(
-    path.join(projectRoot, "worker", "index.js"),
-    "export const fixture = true;\n"
-  );
+  fs.writeFileSync(path.join(projectRoot, "worker", "index.js"), "export const fixture = true;\n");
   const wranglerDir = path.join(projectRoot, "node_modules", "wrangler");
   fs.mkdirSync(path.join(wranglerDir, "bin"), { recursive: true });
   fs.writeFileSync(
@@ -157,10 +150,7 @@ test("a real zero-byte ancestor breaks esbuild in place but not from the shielde
 
     // Fix: the shielded scratch must bundle the same entry cleanly.
     scratch = buildShieldedScratch(fixture.projectRoot).scratch;
-    assert.ok(
-      ancestorsAreManifestFree(scratch),
-      `scratch ancestors must be manifest-free: ${scratch}`
-    );
+    assert.ok(ancestorsAreManifestFree(scratch), `scratch ancestors must be manifest-free: ${scratch}`);
 
     // The scratch must hold real copies, not symlinks (symlinks leak the
     // real path back into the poisoned chain).
@@ -169,11 +159,7 @@ test("a real zero-byte ancestor breaks esbuild in place but not from the shielde
     assert.ok(!fs.lstatSync(scratchEntry).isSymbolicLink(), "worker entry must be a real copy");
 
     const fromScratch = esbuildBundle(scratch);
-    assert.equal(
-      fromScratch.status,
-      0,
-      `esbuild must succeed from the shielded scratch: ${fromScratch.stderr}`
-    );
+    assert.equal(fromScratch.status, 0, `esbuild must succeed from the shielded scratch: ${fromScratch.stderr}`);
   } finally {
     if (scratch) fs.rmSync(scratch, { recursive: true, force: true });
     cleanupFixture(fixture);
@@ -215,10 +201,7 @@ test("runGuardedDryRun shields a poisoned chain and runs in place on a clean one
     // poisoned project, and the malformed ancestor must be named loudly.
     const ranFrom = fs.readFileSync(out, "utf8");
     assert.notEqual(ranFrom, fixture.projectRoot);
-    assert.ok(
-      ancestorsAreManifestFree(ranFrom),
-      `shielded run must live under manifest-free ancestors: ${ranFrom}`
-    );
+    assert.ok(ancestorsAreManifestFree(ranFrom), `shielded run must live under manifest-free ancestors: ${ranFrom}`);
     const zeroByte = path.join(path.dirname(fixture.projectRoot), "package.json");
     assert.ok(
       stderrLines.some((l) => l.includes(zeroByte) && l.includes("malformed")),
@@ -276,10 +259,7 @@ test("the real canary guard exits 0 against the real repo and wrangler", () => {
   // When this host is contaminated, the guard must have named the offender.
   const malformed = malformedAncestorManifests(REPO_ROOT);
   for (const finding of malformed) {
-    assert.ok(
-      result.stderr.includes(finding.path),
-      `guard must name ${finding.path} loudly on a contaminated host`
-    );
+    assert.ok(result.stderr.includes(finding.path), `guard must name ${finding.path} loudly on a contaminated host`);
   }
 });
 

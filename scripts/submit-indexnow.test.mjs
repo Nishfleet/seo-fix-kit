@@ -8,13 +8,7 @@ import {
   indexNowKeyFilePaths
 } from "../shared/index-now.js";
 import { ROOT_PUBLIC_PATHS } from "../shared/audit-engine.js";
-import {
-  fetchSitemapUrls,
-  main,
-  parseSitemapLocs,
-  submitUrlList,
-  verifyKeyFileLive
-} from "./submit-indexnow.mjs";
+import { fetchSitemapUrls, main, parseSitemapLocs, submitUrlList, verifyKeyFileLive } from "./submit-indexnow.mjs";
 
 function xmlSitemap(locs) {
   return `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${locs
@@ -25,10 +19,7 @@ function xmlSitemap(locs) {
 test("IndexNow key constants are coherent", () => {
   assert.match(INDEX_NOW_KEY, /^[0-9a-f]{32}$/);
   assert.equal(INDEX_NOW_HOST, "seofixkit.com");
-  assert.deepEqual(indexNowKeyFilePaths(), [
-    `/${INDEX_NOW_KEY}.txt`,
-    `/.well-known/${INDEX_NOW_KEY}.txt`
-  ]);
+  assert.deepEqual(indexNowKeyFilePaths(), [`/${INDEX_NOW_KEY}.txt`, `/.well-known/${INDEX_NOW_KEY}.txt`]);
   assert.ok(INDEX_NOW_ENDPOINTS.includes("https://api.indexnow.org/indexnow"));
   assert.ok(INDEX_NOW_ENDPOINTS.includes("https://www.bing.com/indexnow"));
 });

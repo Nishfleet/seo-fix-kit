@@ -15,7 +15,10 @@ test("deriveRepairQueueItems creates finding and repair-plan-backed queue rows",
   const items = deriveRepairQueueItems(report);
 
   assert.equal(items.length, 2);
-  assert.deepEqual(items.map((item) => item.issueId), ["issue-1", "repair-2-add-faq-schema"]);
+  assert.deepEqual(
+    items.map((item) => item.issueId),
+    ["issue-1", "repair-2-add-faq-schema"]
+  );
   assert.equal(items[0].proof, "Rendered title is missing.");
   assert.equal(items[0].acceptance, "Rendered title exists.");
   assert.equal(items[1].sourceKind, "repair_plan");
@@ -23,30 +26,34 @@ test("deriveRepairQueueItems creates finding and repair-plan-backed queue rows",
 });
 
 test("deriveRepairQueueItems preserves saved queue state and latest action", () => {
-  const savedRows = [{
-    id: "queue-1",
-    report_id: "report-1",
-    issue_id: "issue-1",
-    title: "Old snapshot title",
-    severity: "warning",
-    action_mode: "fix_pack",
-    status: "approved",
-    rerun_status: "not_run",
-    updated_at: "2026-06-18T10:00:00.000Z"
-  }];
-  const actionRows = [{
-    id: "action-1",
-    report_id: "report-1",
-    queue_item_id: "queue-1",
-    issue_id: "issue-1",
-    action_mode: "fix_pack",
-    action_type: "draft_fix",
-    approval_state: "approved",
-    execution_state: "not_started",
-    rerun_state: "not_run",
-    proposed_change: "Use the new title.",
-    updated_at: "2026-06-18T11:00:00.000Z"
-  }];
+  const savedRows = [
+    {
+      id: "queue-1",
+      report_id: "report-1",
+      issue_id: "issue-1",
+      title: "Old snapshot title",
+      severity: "warning",
+      action_mode: "fix_pack",
+      status: "approved",
+      rerun_status: "not_run",
+      updated_at: "2026-06-18T10:00:00.000Z"
+    }
+  ];
+  const actionRows = [
+    {
+      id: "action-1",
+      report_id: "report-1",
+      queue_item_id: "queue-1",
+      issue_id: "issue-1",
+      action_mode: "fix_pack",
+      action_type: "draft_fix",
+      approval_state: "approved",
+      execution_state: "not_started",
+      rerun_state: "not_run",
+      proposed_change: "Use the new title.",
+      updated_at: "2026-06-18T11:00:00.000Z"
+    }
+  ];
 
   const [item] = deriveRepairQueueItems(fixtureReport(), savedRows, actionRows);
 
@@ -117,41 +124,46 @@ test("defaultProposedChangeForItem builds reviewable copy without side effects",
 function fixtureReport() {
   return {
     id: "report-1",
-    findings: [{
-      id: "issue-1",
-      severity: "critical",
-      title: "Missing title",
-      pageUrl: "https://example.com/",
-      pageLabel: "home",
-      evidence: "Rendered title is missing.",
-      fix: "Add a descriptive title.",
-      confidence: "verified",
-      source: "rendered"
-    }],
-    repairPlan: [{
-      priority: 1,
-      severity: "critical",
-      title: "Missing title",
-      pageUrl: "https://example.com/",
-      pageLabel: "home",
-      proof: "Rendered title is missing.",
-      fix: "Add a descriptive title.",
-      acceptance: "Rendered title exists.",
-      confidence: "verified",
-      source: "rendered",
-      estimatedEffort: "5-15 min",
-      workType: "metadata"
-    }, {
-      priority: 2,
-      severity: "notice",
-      title: "Add FAQ schema",
-      pageUrl: "https://example.com/pricing",
-      pageLabel: "/pricing",
-      proof: "Competitor pages answer pricing FAQs with structured copy.",
-      fix: "Draft an FAQ block that matches visible pricing copy.",
-      acceptance: "FAQ content is visible before schema is added.",
-      confidence: "verified",
-      source: "competitor"
-    }]
+    findings: [
+      {
+        id: "issue-1",
+        severity: "critical",
+        title: "Missing title",
+        pageUrl: "https://example.com/",
+        pageLabel: "home",
+        evidence: "Rendered title is missing.",
+        fix: "Add a descriptive title.",
+        confidence: "verified",
+        source: "rendered"
+      }
+    ],
+    repairPlan: [
+      {
+        priority: 1,
+        severity: "critical",
+        title: "Missing title",
+        pageUrl: "https://example.com/",
+        pageLabel: "home",
+        proof: "Rendered title is missing.",
+        fix: "Add a descriptive title.",
+        acceptance: "Rendered title exists.",
+        confidence: "verified",
+        source: "rendered",
+        estimatedEffort: "5-15 min",
+        workType: "metadata"
+      },
+      {
+        priority: 2,
+        severity: "notice",
+        title: "Add FAQ schema",
+        pageUrl: "https://example.com/pricing",
+        pageLabel: "/pricing",
+        proof: "Competitor pages answer pricing FAQs with structured copy.",
+        fix: "Draft an FAQ block that matches visible pricing copy.",
+        acceptance: "FAQ content is visible before schema is added.",
+        confidence: "verified",
+        source: "competitor"
+      }
+    ]
   };
 }

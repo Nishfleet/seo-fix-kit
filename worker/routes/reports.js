@@ -7,11 +7,7 @@ import { buildRemediationBrief } from "../../shared/remediation-brief.js";
 import { betaAccessResponse, betaAccessStatus } from "../lib/auth.js";
 import { json, jsonNoStore } from "../lib/http.js";
 import { agencyWorkspaceAccessForOwner } from "../lib/offers.js";
-import {
-  deleteReportRowsWithBlobs,
-  ownerReportRow,
-  reportJsonForRow
-} from "../lib/report-data.js";
+import { deleteReportRowsWithBlobs, ownerReportRow, reportJsonForRow } from "../lib/report-data.js";
 import { fixRequestResponse, repairProposalResponse } from "../lib/serializers.js";
 import { cleanText, isSafeReportId, isSafeUuid, normalizeEmail, parseJson } from "../lib/text.js";
 import { body, parseJsonBody, text, z } from "../lib/validation.js";
@@ -290,7 +286,10 @@ function repairProposalApprovalWindowStatus(status) {
   };
 }
 
-async function logRepairProposalEvent(env, { proposalId, fixRequestId = "", event, actorEmail, fromStatus, toStatus, detail = {} }) {
+async function logRepairProposalEvent(
+  env,
+  { proposalId, fixRequestId = "", event, actorEmail, fromStatus, toStatus, detail = {} }
+) {
   try {
     await env.WAITLIST_DB.prepare(
       `INSERT INTO repair_proposal_events
@@ -445,9 +444,7 @@ async function saveIssueCollaborations(env, access, reportId, report, items = []
 }
 
 function reportIssuesForCollaboration(report = {}) {
-  return (report.findings || [])
-    .filter((finding) => finding?.id && finding.severity !== "good")
-    .slice(0, 50);
+  return (report.findings || []).filter((finding) => finding?.id && finding.severity !== "good").slice(0, 50);
 }
 
 function reportIdFromSuffixPath(pathname, suffix) {
@@ -455,12 +452,16 @@ function reportIdFromSuffixPath(pathname, suffix) {
 }
 
 function cleanTeamRole(value) {
-  const role = String(value || "").trim().toLowerCase();
+  const role = String(value || "")
+    .trim()
+    .toLowerCase();
   return ["admin", "editor", "viewer"].includes(role) ? role : "editor";
 }
 
 function cleanIssueStatus(value) {
-  const status = String(value || "").trim().toLowerCase();
+  const status = String(value || "")
+    .trim()
+    .toLowerCase();
   return ["open", "in_progress", "fixed", "ignored"].includes(status) ? status : "open";
 }
 
@@ -503,11 +504,7 @@ async function getSavedReport(request, env) {
   if (row.owner_email && row.owner_email !== access.ownerEmail) {
     return json({ error: "Report not found." }, 404);
   }
-  if (
-    row.owner_invite_id &&
-    access.accessMode !== "founder-override" &&
-    row.owner_invite_id !== access.inviteId
-  ) {
+  if (row.owner_invite_id && access.accessMode !== "founder-override" && row.owner_invite_id !== access.inviteId) {
     return json({ error: "Report not found." }, 404);
   }
 

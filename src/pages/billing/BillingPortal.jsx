@@ -88,7 +88,10 @@ export function BillingPortal({ ownerEmail }) {
         <Metric label="Product" value={billing?.product?.name || "Fix Pack"} />
         <Metric label="Requests" value={requests.length} />
         <Metric label="Payments" value={payments.length} />
-        <Metric label="Subscription" value={subscription.status === "not_live" ? "None" : subscription.label || "Active"} />
+        <Metric
+          label="Subscription"
+          value={subscription.status === "not_live" ? "None" : subscription.label || "Active"}
+        />
       </section>
 
       <section className="billing-grid">
@@ -104,7 +107,9 @@ export function BillingPortal({ ownerEmail }) {
             <div className={`price-preview ${pricing.status === "available" ? "available" : "loading"}`}>
               <strong>{priceLabel}</strong>
               <span>
-                {pricing.status === "available" ? "Pulled from Dodo before checkout." : "Checking the live payment source."}
+                {pricing.status === "available"
+                  ? "Pulled from Dodo before checkout."
+                  : "Checking the live payment source."}
               </span>
             </div>
           )}
@@ -121,16 +126,29 @@ export function BillingPortal({ ownerEmail }) {
             <p className="beta-eyebrow">Subscription</p>
             <h2>{subscription.label || "No recurring subscription"}</h2>
           </div>
-          <p>{subscription.message || "SEO Fix Kit currently sells one-time Fix Pack requests. Repair Agent and Growth Add-On subscriptions remain roadmap."}</p>
+          <p>
+            {subscription.message ||
+              "SEO Fix Kit currently sells one-time Fix Pack requests. Repair Agent and Growth Add-On subscriptions remain roadmap."}
+          </p>
           <p className="quiet-note">Provider: {billing?.provider?.name || "Dodo Payments"}</p>
         </div>
 
         <div className="billing-panel">
           <div className="section-heading">
             <p className="beta-eyebrow">Proof Monitoring</p>
-            <h2>{monitoring.status === "active" ? "Monitoring active" : monitoring.checkoutReady ? "Start weekly monitoring" : "Monitoring checkout gated"}</h2>
+            <h2>
+              {monitoring.status === "active"
+                ? "Monitoring active"
+                : monitoring.checkoutReady
+                  ? "Start weekly monitoring"
+                  : "Monitoring checkout gated"}
+            </h2>
           </div>
-          <p>{monitoring.message || monitoringOffer.description || "Weekly proof monitoring watches verified sites and reports deltas."}</p>
+          <p>
+            {monitoring.message ||
+              monitoringOffer.description ||
+              "Weekly proof monitoring watches verified sites and reports deltas."}
+          </p>
           <button
             className="action-link paid-action"
             disabled={monitoringDisabled}
@@ -161,7 +179,9 @@ export function BillingPortal({ ownerEmail }) {
                 <div>
                   <span className="status-pill">{request.statusLabel || statusLabel(request.status)}</span>
                   <h3>{request.targetHost || request.targetUrl}</h3>
-                  <p>{request.issueCount || 0} findings · score {request.score ?? "unknown"}</p>
+                  <p>
+                    {request.issueCount || 0} findings · score {request.score ?? "unknown"}
+                  </p>
                   {readiness.status && (
                     <div className={`delivery-readiness ${readiness.status}`}>
                       <strong>{deliveryReadinessLabel(readiness)}</strong>
@@ -176,17 +196,29 @@ export function BillingPortal({ ownerEmail }) {
                   {request.deliveredAt && <span>Delivered {formatDate(request.deliveredAt)}</span>}
                 </div>
                 <div className="queue-links">
-                  {request.reportPath && <Link discover="none" to={request.reportPath}>Report</Link>}
+                  {request.reportPath && (
+                    <Link discover="none" to={request.reportPath}>
+                      Report
+                    </Link>
+                  )}
                   {request.briefPath && <a href={request.briefPath}>Brief</a>}
-                  {request.deliveryUrl && <a href={request.deliveryUrl} target="_blank" rel="noreferrer">Delivery</a>}
+                  {request.deliveryUrl && (
+                    <a href={request.deliveryUrl} target="_blank" rel="noreferrer">
+                      Delivery
+                    </a>
+                  )}
                 </div>
               </article>
             );
           })}
           {!requests.length && (
             <p className="quiet-note">
-              No Fix Pack requests yet. Run an audit, open a report with proven fixes, then start checkout from that report.
-              <Link discover="none" className="inline-link" to="/beta"> Run an audit</Link>
+              No Fix Pack requests yet. Run an audit, open a report with proven fixes, then start checkout from that
+              report.
+              <Link discover="none" className="inline-link" to="/beta">
+                {" "}
+                Run an audit
+              </Link>
             </p>
           )}
         </div>
@@ -213,7 +245,11 @@ export function BillingPortal({ ownerEmail }) {
                 {payment.disputedAt && <span>Disputed {formatDate(payment.disputedAt)}</span>}
               </div>
               <div className="queue-links">
-                {payment.reportPath && <Link discover="none" to={payment.reportPath}>Report</Link>}
+                {payment.reportPath && (
+                  <Link discover="none" to={payment.reportPath}>
+                    Report
+                  </Link>
+                )}
               </div>
             </article>
           ))}

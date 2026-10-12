@@ -40,12 +40,14 @@ export function normalizeCrawlLimit(value, options = {}) {
 
 export function crawlDepthTierFor(value) {
   const pages = normalizeCrawlLimit(value);
-  return CRAWL_DEPTH_TIERS.find((tier) => tier.pages === pages) || {
-    id: "custom",
-    label: `${pages} pages`,
-    pages,
-    description: "Custom crawl depth."
-  };
+  return (
+    CRAWL_DEPTH_TIERS.find((tier) => tier.pages === pages) || {
+      id: "custom",
+      label: `${pages} pages`,
+      pages,
+      description: "Custom crawl depth."
+    }
+  );
 }
 
 export function crawlDepthSummary(value) {

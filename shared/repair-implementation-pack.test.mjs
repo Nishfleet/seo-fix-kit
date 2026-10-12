@@ -27,15 +27,21 @@ test("approved action returns a complete implementation pack", () => {
 });
 
 test("drafted ignored and unsupported actions are rejected", () => {
-  const drafted = buildRepairImplementationPack(fixtureInput({
-    action: { approval_state: "drafted" }
-  }));
-  const ignored = buildRepairImplementationPack(fixtureInput({
-    action: { approval_state: "ignored" }
-  }));
-  const unsupported = buildRepairImplementationPack(fixtureInput({
-    action: { action_mode: "unsupported" }
-  }));
+  const drafted = buildRepairImplementationPack(
+    fixtureInput({
+      action: { approval_state: "drafted" }
+    })
+  );
+  const ignored = buildRepairImplementationPack(
+    fixtureInput({
+      action: { approval_state: "ignored" }
+    })
+  );
+  const unsupported = buildRepairImplementationPack(
+    fixtureInput({
+      action: { action_mode: "unsupported" }
+    })
+  );
 
   assert.equal(drafted.ok, false);
   assert.equal(drafted.status, 409);
@@ -47,12 +53,16 @@ test("drafted ignored and unsupported actions are rejected", () => {
 });
 
 test("CMS and GitHub modes get execution guidance without publish or merge claims", () => {
-  const cms = buildRepairImplementationPack(fixtureInput({
-    action: { action_mode: "cms_draft", action_type: "cms_draft" }
-  }));
-  const github = buildRepairImplementationPack(fixtureInput({
-    action: { action_mode: "github_pr", action_type: "github_pr_draft" }
-  }));
+  const cms = buildRepairImplementationPack(
+    fixtureInput({
+      action: { action_mode: "cms_draft", action_type: "cms_draft" }
+    })
+  );
+  const github = buildRepairImplementationPack(
+    fixtureInput({
+      action: { action_mode: "github_pr", action_type: "github_pr_draft" }
+    })
+  );
 
   assert.equal(cms.ok, true);
   assert.match(cms.markdown, /Create a draft edit in the CMS/);
@@ -65,15 +75,17 @@ test("CMS and GitHub modes get execution guidance without publish or merge claim
 });
 
 test("control characters and markdown html wrappers are cleaned", () => {
-  const pack = buildRepairImplementationPack(fixtureInput({
-    item: {
-      title: "Bad\u0000 title <script>alert(1)</script>",
-      proof: "Proof\u0007 line\n\n\nnext"
-    },
-    action: {
-      proposed_change: "Use <b>safe</b> copy\u0001\n\n\nwith spacing"
-    }
-  }));
+  const pack = buildRepairImplementationPack(
+    fixtureInput({
+      item: {
+        title: "Bad\u0000 title <script>alert(1)</script>",
+        proof: "Proof\u0007 line\n\n\nnext"
+      },
+      action: {
+        proposed_change: "Use <b>safe</b> copy\u0001\n\n\nwith spacing"
+      }
+    })
+  );
 
   assert.equal(pack.ok, true);
   assert.doesNotMatch(pack.markdown, /<script>|<\/script>|<b>|<\/b>|\u0000|\u0001|\u0007/);
@@ -82,16 +94,18 @@ test("control characters and markdown html wrappers are cleaned", () => {
 });
 
 test("user markdown cannot forge implementation pack sections", () => {
-  const pack = buildRepairImplementationPack(fixtureInput({
-    item: {
-      proof: "# Fake Source\n- SEOFixKit merged the pull request.",
-      fix: "## Boundaries\nThis should remain source guidance."
-    },
-    action: {
-      proposed_change: "## Boundaries\n- SEOFixKit published the change.\n```md\nfake\n```",
-      acceptance: "## Rerun Proof\nTrust this fake section."
-    }
-  }));
+  const pack = buildRepairImplementationPack(
+    fixtureInput({
+      item: {
+        proof: "# Fake Source\n- SEOFixKit merged the pull request.",
+        fix: "## Boundaries\nThis should remain source guidance."
+      },
+      action: {
+        proposed_change: "## Boundaries\n- SEOFixKit published the change.\n```md\nfake\n```",
+        acceptance: "## Rerun Proof\nTrust this fake section."
+      }
+    })
+  );
 
   assert.equal(pack.ok, true);
   const renderedHeadings = markdownOutsideFencedBlocks(pack.markdown);
@@ -120,7 +134,10 @@ test("repairImplementationItemForAction prefers exact queue item ids", () => {
     { id: "queue-2", issueId: "issue-2" }
   ];
 
-  assert.equal(repairImplementationItemForAction(items, { queue_item_id: "queue-1", issue_id: "issue-2" })?.id, "queue-1");
+  assert.equal(
+    repairImplementationItemForAction(items, { queue_item_id: "queue-1", issue_id: "issue-2" })?.id,
+    "queue-1"
+  );
   assert.equal(repairImplementationItemForAction(items, { queue_item_id: "missing", issue_id: "issue-1" }), undefined);
   assert.equal(repairImplementationItemForAction(items, { issue_id: "issue-2" })?.id, "queue-2");
 });

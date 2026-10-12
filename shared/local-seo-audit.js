@@ -1,8 +1,4 @@
-import {
-  fetchPublicUrl,
-  isPrivateHost,
-  normalizeHttpUrl
-} from "./url-safety.js";
+import { fetchPublicUrl, isPrivateHost, normalizeHttpUrl } from "./url-safety.js";
 
 const MAX_CITATION_ROWS = 30;
 const MAX_LOCAL_KEYWORDS = 30;
@@ -31,7 +27,8 @@ export function parseLocalSeoInput(input = {}, targetUrl, options = {}) {
   const source = typeof raw === "object" && raw !== null && !Array.isArray(raw) ? raw : {};
   const merged = {
     ...source,
-    businessName: source.businessName ?? source.name ?? input.businessName ?? input.localBusinessName ?? input.business_name,
+    businessName:
+      source.businessName ?? source.name ?? input.businessName ?? input.localBusinessName ?? input.business_name,
     phone: source.phone ?? source.phoneNumber ?? input.phone ?? input.localPhone ?? input.phone_number,
     address: source.address ?? source.napAddress ?? input.address ?? input.localAddress ?? input.business_address,
     googleBusinessProfileUrl:
@@ -66,7 +63,11 @@ export function parseLocalSeoInput(input = {}, targetUrl, options = {}) {
     citationRows: []
   };
 
-  if (normalized.googleBusinessProfileUrl && !options.allowPrivate && isPrivateHost(normalized.googleBusinessProfileUrl)) {
+  if (
+    normalized.googleBusinessProfileUrl &&
+    !options.allowPrivate &&
+    isPrivateHost(normalized.googleBusinessProfileUrl)
+  ) {
     return { ok: false, error: "Google Business Profile URL must be public." };
   }
 
@@ -75,7 +76,9 @@ export function parseLocalSeoInput(input = {}, targetUrl, options = {}) {
   const seen = new Set();
   for (const row of citationRows) {
     if (normalized.citationRows.length >= MAX_CITATION_ROWS) break;
-    const sourceUrl = normalizeHttpUrl(row.sourceUrl || row.source_url || row.citationUrl || row.citation_url || row.url || row.source || "");
+    const sourceUrl = normalizeHttpUrl(
+      row.sourceUrl || row.source_url || row.citationUrl || row.citation_url || row.url || row.source || ""
+    );
     if (!sourceUrl) continue;
     if (!options.allowPrivate && isPrivateHost(sourceUrl)) {
       return { ok: false, error: "Citation URLs must be public URLs." };
@@ -93,11 +96,11 @@ export function parseLocalSeoInput(input = {}, targetUrl, options = {}) {
 
   normalized.enabled = Boolean(
     normalized.businessName ||
-      normalized.phone ||
-      normalized.address ||
-      normalized.googleBusinessProfileUrl ||
-      normalized.localKeywords.length ||
-      normalized.citationRows.length
+    normalized.phone ||
+    normalized.address ||
+    normalized.googleBusinessProfileUrl ||
+    normalized.localKeywords.length ||
+    normalized.citationRows.length
   );
 
   return { ok: true, input: normalized };
@@ -110,7 +113,12 @@ export function localSeoInputKey(input = {}) {
     input.address || "",
     input.googleBusinessProfileUrl || "",
     ...(input.localKeywords || []).slice().sort(),
-    ...(input.citationRows || []).map((row) => `${row.sourceUrl || ""}|${row.expectedName || ""}|${row.expectedPhone || ""}|${row.expectedAddress || ""}`).sort()
+    ...(input.citationRows || [])
+      .map(
+        (row) =>
+          `${row.sourceUrl || ""}|${row.expectedName || ""}|${row.expectedPhone || ""}|${row.expectedAddress || ""}`
+      )
+      .sort()
   ].join("\n");
 }
 
@@ -325,9 +333,10 @@ async function fetchCitation(url, fetcher, privateAddressResolver) {
       { privateAddressResolver }
     );
     const contentType = response.headers?.get?.("content-type") || "";
-    const body = contentType.includes("text") || contentType.includes("html") || contentType.includes("xhtml")
-      ? (await response.text()).slice(0, MAX_CITATION_TEXT_BYTES)
-      : "";
+    const body =
+      contentType.includes("text") || contentType.includes("html") || contentType.includes("xhtml")
+        ? (await response.text()).slice(0, MAX_CITATION_TEXT_BYTES)
+        : "";
     return {
       ok: response.ok,
       status: response.status,
@@ -357,7 +366,8 @@ function localSeoRepairOpportunities({ localInput, siteChecks, citationRows, key
       title: "Local SEO NAP is missing from audited pages",
       proof: `Supplied ${missingNap.join(", ")} was not found in the rendered pages crawled.`,
       fix: "Add the business name, phone, and address to the visible contact/footer/location content where it matches the real business.",
-      acceptance: "Rerun the local SEO audit and confirm each supplied NAP field is found on at least one rendered page.",
+      acceptance:
+        "Rerun the local SEO audit and confirm each supplied NAP field is found on at least one rendered page.",
       estimatedEffort: "30-90 min",
       workType: "content"
     });
@@ -423,7 +433,8 @@ function localSeoRepairOpportunities({ localInput, siteChecks, citationRows, key
       title: "Local keyword coverage is thin",
       proof: `${missingKeywords.length} supplied local keyword${missingKeywords.length === 1 ? "" : "s"} were not found in rendered page copy. Example: ${missingKeywords[0].keyword}`,
       fix: "Add natural local service/location language to the relevant page. Do not stuff exact-match terms where they do not help customers.",
-      acceptance: "Rerun the audit and confirm important local service/location phrases appear naturally in rendered content.",
+      acceptance:
+        "Rerun the audit and confirm important local service/location phrases appear naturally in rendered content.",
       estimatedEffort: "30-90 min",
       workType: "content"
     });
@@ -440,7 +451,14 @@ function localSeoRepairOpportunities({ localInput, siteChecks, citationRows, key
   }));
 }
 
-function localSeoSummary({ localInput, siteChecks, citationRows, keywordChecks, googleBusinessProfile, repairOpportunities }) {
+function localSeoSummary({
+  localInput,
+  siteChecks,
+  citationRows,
+  keywordChecks,
+  googleBusinessProfile,
+  repairOpportunities
+}) {
   const napChecks = [siteChecks.businessName, siteChecks.phone, siteChecks.address].filter((check) => check.expected);
   return {
     enabled: true,
@@ -484,7 +502,9 @@ function pageSearchText(page = {}) {
       ...(rendered.links || []).map((link) => link.text),
       rendered.bodyText,
       rendered.bodySample
-    ].filter(Boolean).join(" ")
+    ]
+      .filter(Boolean)
+      .join(" ")
   );
 }
 
@@ -539,14 +559,19 @@ function parseKeywordInput(input = "") {
 
 function parseCitationRows(input = "") {
   if (Array.isArray(input)) {
-    return input.map((row) => typeof row === "string" ? { sourceUrl: row } : row).filter(Boolean);
+    return input.map((row) => (typeof row === "string" ? { sourceUrl: row } : row)).filter(Boolean);
   }
   const text = String(input || "").trim();
   if (!text) return [];
-  const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  const lines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
   if (!lines.length) return [];
   const first = splitDelimitedLine(lines[0]);
-  const hasHeader = first.some((cell) => /^(url|source|source_url|citation_url|name|business_name|phone|address)$/i.test(cell));
+  const hasHeader = first.some((cell) =>
+    /^(url|source|source_url|citation_url|name|business_name|phone|address)$/i.test(cell)
+  );
   const headers = hasHeader ? first.map(normalizeHeader) : ["sourceUrl", "businessName", "phone", "address"];
   const dataLines = hasHeader ? lines.slice(1) : lines;
   return dataLines.map((line) => {
@@ -586,7 +611,11 @@ function splitDelimitedLine(line = "") {
 }
 
 function normalizeHeader(value = "") {
-  const key = String(value).trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+  const key = String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_|_$/g, "");
   const aliases = {
     url: "sourceUrl",
     source: "sourceUrl",
@@ -621,7 +650,9 @@ function isGoogleBusinessProfileMatch(linkValue = "", expectedValue = "") {
 
 function isGoogleMapsHost(hostname = "") {
   const host = hostname.toLowerCase();
-  return host.includes("google.") || host === "maps.app.goo.gl" || host.endsWith(".maps.app.goo.gl") || host === "g.page";
+  return (
+    host.includes("google.") || host === "maps.app.goo.gl" || host.endsWith(".maps.app.goo.gl") || host === "g.page"
+  );
 }
 
 function normalizeSearchText(value = "") {

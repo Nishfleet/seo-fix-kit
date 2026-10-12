@@ -42,7 +42,10 @@ function buildRepairProofReceipt({ report = {}, item = {}, action = {}, rerunRep
 
   const itemRerunState = cleanRerunState(item.rerunStatus || item.rerun_status);
   if (itemRerunState !== "fixed") {
-    return receiptError("The repair was reopened after rerun proof; re-run the same-host proof before creating a proof receipt.", 409);
+    return receiptError(
+      "The repair was reopened after rerun proof; re-run the same-host proof before creating a proof receipt.",
+      409
+    );
   }
 
   const rerunReportId = text(action.rerun_report_id || action.rerunReportId, 160);
@@ -76,7 +79,10 @@ function buildRepairProofReceipt({ report = {}, item = {}, action = {}, rerunRep
 
   const proofIssue = repairProofIssueForAction(report, action);
   const queueIssue = issueFromQueueItem(item, action);
-  if (!rerunReportProvesIssue(rerunReport, proofIssue, "fixed") && !rerunReportProvesIssue(rerunReport, queueIssue, "fixed")) {
+  if (
+    !rerunReportProvesIssue(rerunReport, proofIssue, "fixed") &&
+    !rerunReportProvesIssue(rerunReport, queueIssue, "fixed")
+  ) {
     return receiptError("Rerun proof report does not prove this repair fixed.", 409);
   }
 
@@ -86,7 +92,10 @@ function buildRepairProofReceipt({ report = {}, item = {}, action = {}, rerunRep
   const pageUrl = text(item.pageUrl || item.page_url || proofIssue.pageUrl || proofIssue.page_url || report.url, 600);
   const pageLabel = text(item.pageLabel || item.page_label || pageUrl || "target page", 160);
   const severity = text(item.severity || proofIssue.severity || action.severity || "notice", 80);
-  const sourceProof = block(action.source_proof || action.sourceProof || item.proof || item.evidence || proofIssue.evidence, 3000);
+  const sourceProof = block(
+    action.source_proof || action.sourceProof || item.proof || item.evidence || proofIssue.evidence,
+    3000
+  );
   const proposedChange = block(action.proposed_change || action.proposedChange, 7000);
   const acceptance = block(action.acceptance || item.acceptance, 2000);
   const reportUrl = text(report.reportUrl || report.report_url || "", 600);
@@ -125,7 +134,9 @@ function buildRepairProofReceipt({ report = {}, item = {}, action = {}, rerunRep
     "",
     "## Before Proof",
     "",
-    sourceProof ? fencedBlock(sourceProof, 3000) : "The original private report contains the source proof for this repair.",
+    sourceProof
+      ? fencedBlock(sourceProof, 3000)
+      : "The original private report contains the source proof for this repair.",
     "",
     "## Approved Change",
     "",
@@ -133,7 +144,9 @@ function buildRepairProofReceipt({ report = {}, item = {}, action = {}, rerunRep
     "",
     "## Acceptance Check",
     "",
-    acceptance ? fencedBlock(acceptance, 2000) : "The rerun had to show that the original finding was gone for the same host and issue.",
+    acceptance
+      ? fencedBlock(acceptance, 2000)
+      : "The rerun had to show that the original finding was gone for the same host and issue.",
     "",
     "## Rerun Proof",
     "",
@@ -157,7 +170,9 @@ function buildRepairProofReceipt({ report = {}, item = {}, action = {}, rerunRep
     rerunCapturedAt
       ? `- Rerun proof captured at ${rerunCapturedAt}. If the site changed after that capture, rerun the audit before using this receipt as current proof.`
       : "- If the site changes again, rerun the audit before using this receipt as current proof."
-  ].filter((part) => part !== "").join("\n");
+  ]
+    .filter((part) => part !== "")
+    .join("\n");
 
   return {
     ok: true,
@@ -247,24 +262,28 @@ function issueFromQueueItem(item = {}, action = {}) {
 }
 
 function actionModeLabel(mode = "") {
-  return {
-    self_serve: "Self-serve implementation",
-    teammate: "Teammate handoff",
-    fix_pack: "Fix Pack fulfillment",
-    cms_draft: "CMS draft",
-    github_pr: "GitHub PR draft"
-  }[mode] || "Self-serve implementation";
+  return (
+    {
+      self_serve: "Self-serve implementation",
+      teammate: "Teammate handoff",
+      fix_pack: "Fix Pack fulfillment",
+      cms_draft: "CMS draft",
+      github_pr: "GitHub PR draft"
+    }[mode] || "Self-serve implementation"
+  );
 }
 
 function actionTypeLabel(type = "") {
-  return {
-    draft_fix: "Draft fix",
-    metadata_copy: "Metadata copy",
-    schema_snippet: "Schema snippet",
-    fix_pack_handoff: "Fix Pack handoff",
-    cms_draft: "CMS draft",
-    github_pr_draft: "GitHub PR draft"
-  }[type] || "Draft fix";
+  return (
+    {
+      draft_fix: "Draft fix",
+      metadata_copy: "Metadata copy",
+      schema_snippet: "Schema snippet",
+      fix_pack_handoff: "Fix Pack handoff",
+      cms_draft: "CMS draft",
+      github_pr_draft: "GitHub PR draft"
+    }[type] || "Draft fix"
+  );
 }
 
 function receiptError(error, status = 400) {
@@ -301,25 +320,23 @@ function sanitizeMarkdown(value = "", max = 500, options = {}) {
     .replace(/[<>]/g, "");
   const cleaned = options.multiline
     ? source
-      .split("\n")
-      .map((line) => line.replace(/[ \t]+/g, " ").trimEnd())
-      .join("\n")
-      .replace(/\n{3,}/g, "\n\n")
-      .trim()
+        .split("\n")
+        .map((line) => line.replace(/[ \t]+/g, " ").trimEnd())
+        .join("\n")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim()
     : source.replace(/\s+/g, " ").trim();
   return cleaned.slice(0, max);
 }
 
 function slug(value = "", fallback = "item") {
-  return String(value || fallback)
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 70) || fallback;
+  return (
+    String(value || fallback)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 70) || fallback
+  );
 }
 
-export {
-  REPAIR_PROOF_RECEIPT_CONTENT_TYPE,
-  buildRepairProofReceipt,
-  repairProofReceiptFilename
-};
+export { REPAIR_PROOF_RECEIPT_CONTENT_TYPE, buildRepairProofReceipt, repairProofReceiptFilename };

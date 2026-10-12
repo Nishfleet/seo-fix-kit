@@ -45,16 +45,15 @@ function reportTimestampMs(report = {}) {
 
 function rerunProofFreshAfterMs(action = {}, referenceReport = {}) {
   const appliedAtMs = Date.parse(action.applied_at || action.appliedAt || "");
-  return Math.max(
-    reportTimestampMs(referenceReport),
-    Number.isFinite(appliedAtMs) ? appliedAtMs : 0
-  );
+  return Math.max(reportTimestampMs(referenceReport), Number.isFinite(appliedAtMs) ? appliedAtMs : 0);
 }
 
 function rerunProofBlockedByNewApply(action = {}, executionState = "", rerunState = "") {
-  return proofBackedRerunState(rerunState) &&
+  return (
+    proofBackedRerunState(rerunState) &&
     cleanExecutionState(executionState) === "applied" &&
-    cleanExecutionState(action.execution_state || action.executionState) !== "applied";
+    cleanExecutionState(action.execution_state || action.executionState) !== "applied"
+  );
 }
 
 function repairActionTransitionError(state = {}, messages = {}) {
@@ -75,11 +74,7 @@ function repairActionTransitionError(state = {}, messages = {}) {
 }
 
 function normalizeRepairQueuePatchItems(itemInput, existingItems = []) {
-  const items = Array.isArray(itemInput?.items)
-    ? itemInput.items
-    : Array.isArray(itemInput)
-      ? itemInput
-      : [itemInput];
+  const items = Array.isArray(itemInput?.items) ? itemInput.items : Array.isArray(itemInput) ? itemInput : [itemInput];
   if (!items.length) return repairActionInputError("Repair queue update needs a mutable field.", 400);
   if (items.length > 1) return repairActionInputError("Save one repair item at a time.", 400);
 
@@ -99,16 +94,18 @@ function normalizeRepairQueuePatchItems(itemInput, existingItems = []) {
     return repairActionInputError("Repair action mode is not valid.", 400);
   }
   if (hasExplicitStatus && !canPatchRepairQueueStatus(item?.status)) {
-    return repairActionInputError("Use repair actions to move drafted, approved, applied, fixed, or regressed repair states.", 400);
+    return repairActionInputError(
+      "Use repair actions to move drafted, approved, applied, fixed, or regressed repair states.",
+      400
+    );
   }
   const status = hasExplicitStatus ? cleanQueueStatus(item?.status) : cleanQueueStatus(existing.status);
 
   if (hasExplicitRerunStatus && !isRerunState(item?.rerunStatus ?? item?.rerun_status)) {
     return repairActionInputError("Repair rerun status is not valid.", 400);
   }
-  const rerunStatus = cleanRerunState(hasExplicitRerunStatus
-    ? item?.rerunStatus ?? item?.rerun_status
-    : existing.rerunStatus
+  const rerunStatus = cleanRerunState(
+    hasExplicitRerunStatus ? (item?.rerunStatus ?? item?.rerun_status) : existing.rerunStatus
   );
   if (hasExplicitRerunStatus && proofBackedRerunState(rerunStatus)) {
     return repairActionInputError("Use repair actions to attach rerun proof states.", 400);
@@ -247,17 +244,15 @@ function queueStatusFromActionState(state = {}) {
 
 function rerunReportIdFromInput(value = {}, fallback = "") {
   return cleanRerunReportId(
-    value.rerunReportId ??
-    value.rerun_report_id ??
-    value.lastRerunReportId ??
-    value.last_rerun_report_id ??
-    fallback
+    value.rerunReportId ?? value.rerun_report_id ?? value.lastRerunReportId ?? value.last_rerun_report_id ?? fallback
   );
 }
 
 function hasExplicitRerunStatusField(value = {}) {
-  return Object.prototype.hasOwnProperty.call(value, "rerunStatus") ||
-    Object.prototype.hasOwnProperty.call(value, "rerun_status");
+  return (
+    Object.prototype.hasOwnProperty.call(value, "rerunStatus") ||
+    Object.prototype.hasOwnProperty.call(value, "rerun_status")
+  );
 }
 
 function hasExplicitStatusField(value = {}) {
@@ -265,13 +260,17 @@ function hasExplicitStatusField(value = {}) {
 }
 
 function hasExplicitActionModeField(value = {}) {
-  return Object.prototype.hasOwnProperty.call(value, "actionMode") ||
-    Object.prototype.hasOwnProperty.call(value, "action_mode");
+  return (
+    Object.prototype.hasOwnProperty.call(value, "actionMode") ||
+    Object.prototype.hasOwnProperty.call(value, "action_mode")
+  );
 }
 
 function hasExplicitActionTypeField(value = {}) {
-  return Object.prototype.hasOwnProperty.call(value, "actionType") ||
-    Object.prototype.hasOwnProperty.call(value, "action_type");
+  return (
+    Object.prototype.hasOwnProperty.call(value, "actionType") ||
+    Object.prototype.hasOwnProperty.call(value, "action_type")
+  );
 }
 
 function hasValidExplicitActionModeField(value = {}) {
@@ -287,24 +286,30 @@ function hasValidExplicitActionTypeField(value = {}) {
 }
 
 function hasKnownActionPatchField(value = {}) {
-  return hasExplicitApprovalStateField(value) ||
-    hasExplicitExecutionStateField(value) ||
-    hasExplicitRerunStateField(value);
+  return (
+    hasExplicitApprovalStateField(value) || hasExplicitExecutionStateField(value) || hasExplicitRerunStateField(value)
+  );
 }
 
 function hasExplicitApprovalStateField(value = {}) {
-  return Object.prototype.hasOwnProperty.call(value, "approvalState") ||
-    Object.prototype.hasOwnProperty.call(value, "approval_state");
+  return (
+    Object.prototype.hasOwnProperty.call(value, "approvalState") ||
+    Object.prototype.hasOwnProperty.call(value, "approval_state")
+  );
 }
 
 function hasExplicitExecutionStateField(value = {}) {
-  return Object.prototype.hasOwnProperty.call(value, "executionState") ||
-    Object.prototype.hasOwnProperty.call(value, "execution_state");
+  return (
+    Object.prototype.hasOwnProperty.call(value, "executionState") ||
+    Object.prototype.hasOwnProperty.call(value, "execution_state")
+  );
 }
 
 function hasExplicitRerunStateField(value = {}) {
-  return Object.prototype.hasOwnProperty.call(value, "rerunState") ||
-    Object.prototype.hasOwnProperty.call(value, "rerun_state");
+  return (
+    Object.prototype.hasOwnProperty.call(value, "rerunState") ||
+    Object.prototype.hasOwnProperty.call(value, "rerun_state")
+  );
 }
 
 function repairActionInputError(error, status = 400) {
@@ -319,12 +324,14 @@ function cleanRerunReportId(value) {
 function validRerunProofReport(report = null) {
   if (!report || typeof report !== "object" || Array.isArray(report)) return false;
   if (!comparableReportHost(report)) return false;
-  return Number.isFinite(Number(report.score)) ||
+  return (
+    Number.isFinite(Number(report.score)) ||
     Boolean(report.summary && typeof report.summary === "object") ||
     Boolean(report.reportDelta && typeof report.reportDelta === "object") ||
     Boolean(report.report_delta && typeof report.report_delta === "object") ||
     Boolean(Array.isArray(report.pages) && report.pages.length) ||
-    Boolean(Array.isArray(report.pageSummaries) && report.pageSummaries.length);
+    Boolean(Array.isArray(report.pageSummaries) && report.pageSummaries.length)
+  );
 }
 
 function rerunReportProvesIssue(proofReport = {}, issue = {}, rerunState = "") {
@@ -332,8 +339,10 @@ function rerunReportProvesIssue(proofReport = {}, issue = {}, rerunState = "") {
   const cleanState = cleanRerunState(rerunState);
   const currentIssueMatch = reportProofIssues(proofReport).some((candidate) => issueMatches(candidate, issue));
   if (cleanState === "fixed") {
-    return fixedProofIssues(proofReport).some((candidate) => issueMatches(candidate, issue)) ||
-      (!currentIssueMatch && proofReportCoversIssuePage(proofReport, issue));
+    return (
+      fixedProofIssues(proofReport).some((candidate) => issueMatches(candidate, issue)) ||
+      (!currentIssueMatch && proofReportCoversIssuePage(proofReport, issue))
+    );
   }
   return currentIssueMatch;
 }
@@ -348,29 +357,28 @@ function repairProofIssueForAction(report = {}, action = {}) {
 }
 
 function comparableReportHost(report = {}) {
-  const candidates = [
-    report.targetHost,
-    report.target_host,
-    report.url,
-    report.targetUrl,
-    report.target_url
-  ];
+  const candidates = [report.targetHost, report.target_host, report.url, report.targetUrl, report.target_url];
   for (const candidate of candidates) {
     const value = String(candidate || "").trim();
     if (!value) continue;
     const host = safeHostname(value) || safeHostname(`https://${value}`);
-    const normalized = host.toLowerCase().replace(/^www\./, "").replace(/\.$/, "");
+    const normalized = host
+      .toLowerCase()
+      .replace(/^www\./, "")
+      .replace(/\.$/, "");
     if (normalized) return normalized;
   }
   return "";
 }
 
 function reportIssueForAction(report = {}, action = {}) {
-  return (report.findings || []).find((finding) => finding.id === action.issue_id) ||
-    reportRepairPlanItems(report).find((item, index) =>
-      (item.issueId || item.issue_id || fallbackIssueId(item, index, "repair")) === action.issue_id
+  return (
+    (report.findings || []).find((finding) => finding.id === action.issue_id) ||
+    reportRepairPlanItems(report).find(
+      (item, index) => (item.issueId || item.issue_id || fallbackIssueId(item, index, "repair")) === action.issue_id
     ) ||
-    {};
+    {}
+  );
 }
 
 function reportProofIssues(report = {}) {
@@ -434,7 +442,10 @@ function proofReportCoversIssuePage(report = {}, issue = {}) {
 }
 
 function normalizeProofText(value = "") {
-  return String(value || "").toLowerCase().replace(/\s+/g, " ").trim();
+  return String(value || "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function normalizeProofUrl(value = "") {

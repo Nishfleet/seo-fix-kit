@@ -220,30 +220,32 @@ function thinAppShellReport() {
       status: "empty",
       summary: { sitemapsFetched: 1, urlsDiscovered: 0 }
     },
-    pages: [{
-      url: "https://example.com/",
-      finalUrl: "https://example.com/",
-      static: {
-        title: "Example",
-        wordCount: 12,
-        h1s: [],
-        internalLinks: [],
-        schemaTypes: []
-      },
-      rendered: {
+    pages: [
+      {
+        url: "https://example.com/",
         finalUrl: "https://example.com/",
-        title: "Example",
-        description: "A short JavaScript app shell.",
-        h1s: ["Example"],
-        headings: [{ level: "h1", text: "Example" }],
-        wordCount: 42,
-        bodyText: "Example app shell with too little visible page-specific detail.",
-        canonical: "",
-        robots: "",
-        internalLinks: [],
-        schemaTypes: []
+        static: {
+          title: "Example",
+          wordCount: 12,
+          h1s: [],
+          internalLinks: [],
+          schemaTypes: []
+        },
+        rendered: {
+          finalUrl: "https://example.com/",
+          title: "Example",
+          description: "A short JavaScript app shell.",
+          h1s: ["Example"],
+          headings: [{ level: "h1", text: "Example" }],
+          wordCount: 42,
+          bodyText: "Example app shell with too little visible page-specific detail.",
+          canonical: "",
+          robots: "",
+          internalLinks: [],
+          schemaTypes: []
+        }
       }
-    }]
+    ]
   };
 }
 
@@ -340,37 +342,39 @@ function validAnswerReadyReport() {
       status: "ready",
       summary: { sitemapsFetched: 1, urlsDiscovered: 4 }
     },
-    pages: [{
-      url: "https://example.com/",
-      finalUrl: "https://example.com/",
-      static: {
-        title: "SEO Fix Kit",
-        wordCount: 80,
-        h1s: ["SEO Fix Kit"],
-        internalLinks: [{ href: "https://example.com/methodology", text: "Methodology" }],
-        schemaTypes: ["Organization", "FAQPage"]
-      },
-      rendered: {
+    pages: [
+      {
+        url: "https://example.com/",
         finalUrl: "https://example.com/",
-        title: "SEO Fix Kit - Proof-backed SEO repair",
-        description: "Find proven SEO repairs, approve safe drafts, and rerun after fixes.",
-        h1s: ["SEO Fix Kit"],
-        headings: [
-          { level: "h1", text: "SEO Fix Kit" },
-          { level: "h2", text: "What does the audit prove?" },
-          { level: "h2", text: "How should teams use it?" },
-          { level: "h2", text: "What is not included?" }
-        ],
-        wordCount: 280,
-        bodyText,
-        canonical: "https://example.com/",
-        robots: "",
-        internalLinks: [
-          { href: "https://example.com/methodology", text: "Methodology" },
-          { href: "https://example.com/packages", text: "Packages" }
-        ],
-        schemaTypes: ["Organization", "FAQPage", "BreadcrumbList"]
+        static: {
+          title: "SEO Fix Kit",
+          wordCount: 80,
+          h1s: ["SEO Fix Kit"],
+          internalLinks: [{ href: "https://example.com/methodology", text: "Methodology" }],
+          schemaTypes: ["Organization", "FAQPage"]
+        },
+        rendered: {
+          finalUrl: "https://example.com/",
+          title: "SEO Fix Kit - Proof-backed SEO repair",
+          description: "Find proven SEO repairs, approve safe drafts, and rerun after fixes.",
+          h1s: ["SEO Fix Kit"],
+          headings: [
+            { level: "h1", text: "SEO Fix Kit" },
+            { level: "h2", text: "What does the audit prove?" },
+            { level: "h2", text: "How should teams use it?" },
+            { level: "h2", text: "What is not included?" }
+          ],
+          wordCount: 280,
+          bodyText,
+          canonical: "https://example.com/",
+          robots: "",
+          internalLinks: [
+            { href: "https://example.com/methodology", text: "Methodology" },
+            { href: "https://example.com/packages", text: "Packages" }
+          ],
+          schemaTypes: ["Organization", "FAQPage", "BreadcrumbList"]
+        }
       }
-    }]
+    ]
   };
 }

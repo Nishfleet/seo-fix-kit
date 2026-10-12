@@ -21,11 +21,7 @@ async function ownerReportRow(env, reportId, access) {
     row.expires_at = null;
   }
   if (row.owner_email && row.owner_email !== access.ownerEmail) return null;
-  if (
-    row.owner_invite_id &&
-    access.accessMode !== "founder-override" &&
-    row.owner_invite_id !== access.inviteId
-  ) {
+  if (row.owner_invite_id && access.accessMode !== "founder-override" && row.owner_invite_id !== access.inviteId) {
     return null;
   }
   const hydrated = await hydrateReportRow(env, row);
@@ -366,8 +362,7 @@ function guardedReportDeleteStatement(env, reportId, protectedStatusPlaceholders
          WHERE status IN (${protectedStatusPlaceholders})
            AND (report_id = ? OR final_report_id = ?)
        )`
-  )
-    .bind(reportId, ...PRESERVED_FIX_REQUEST_STATUSES, reportId, reportId);
+  ).bind(reportId, ...PRESERVED_FIX_REQUEST_STATUSES, reportId, reportId);
 }
 
 async function runReportDeletionBatch(env, statements = []) {

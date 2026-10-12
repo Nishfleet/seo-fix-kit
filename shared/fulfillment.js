@@ -14,14 +14,12 @@ export const FIX_REQUEST_STATUSES = new Set([
   "disputed"
 ]);
 
-export const ADMIN_EDITABLE_FIX_REQUEST_STATUSES = new Set([
-  "checkout_created",
-  "in_progress",
-  "delivered"
-]);
+export const ADMIN_EDITABLE_FIX_REQUEST_STATUSES = new Set(["checkout_created", "in_progress", "delivered"]);
 
 export function normalizeFixRequestStatus(value, fallback = "new") {
-  const status = String(value || "").trim().toLowerCase();
+  const status = String(value || "")
+    .trim()
+    .toLowerCase();
   return FIX_REQUEST_STATUSES.has(status) ? status : fallback;
 }
 
@@ -52,11 +50,7 @@ export function repairDeliveryReadiness(fixRequest = {}, proposalSummary = {}) {
   const proposalState = proposalSummary?.status || "skipped";
   const proposalStateAvailable = proposalState !== "unavailable";
   const executable = Number(proposalSummary?.executable || 0);
-  const approvedExecutable = Number(
-    proposalSummary?.approvedExecutable ||
-    proposalSummary?.approved_executable ||
-    0
-  );
+  const approvedExecutable = Number(proposalSummary?.approvedExecutable || proposalSummary?.approved_executable || 0);
   const requiresApprovedProposal = proposalStateAvailable && executable > 0;
   const hasApprovedExecutable = !requiresApprovedProposal || approvedExecutable > 0;
   const hasCustomerNote = Boolean(fixRequest.customer_note || fixRequest.customerNote);
@@ -96,7 +90,9 @@ export function repairDeliveryReadiness(fixRequest = {}, proposalSummary = {}) {
     blockers.push(readinessBlocker("proposal_state_unavailable", "Repair proposal state could not be verified."));
   }
   if (!hasApprovedExecutable) {
-    blockers.push(readinessBlocker("approved_proposal_missing", "At least one executable repair proposal needs owner approval."));
+    blockers.push(
+      readinessBlocker("approved_proposal_missing", "At least one executable repair proposal needs owner approval.")
+    );
   }
   if (!hasCustomerNote) {
     blockers.push(readinessBlocker("customer_note_missing", "Add a customer-facing delivery note."));
@@ -136,9 +132,7 @@ export function buildPaymentNotificationEmail({ appOrigin, fixRequest, report, p
   const reportUrl = `${appOrigin}/beta/reports/${encodeURIComponent(fixRequest.report_id)}`;
   const target = fixRequest.target_host || safeHost(fixRequest.target_url);
   const subject =
-    recipientType === "admin"
-      ? `${offer.name} paid: ${target}`
-      : `${offer.name} payment confirmed for ${target}`;
+    recipientType === "admin" ? `${offer.name} paid: ${target}` : `${offer.name} payment confirmed for ${target}`;
   const amount = payment?.amount && payment?.currency ? formatMoneyMinorUnits(payment.currency, payment.amount) : "";
   const intro = recipientType === "admin" ? offer.adminIntro : offer.ownerIntro;
   const text = [
@@ -161,7 +155,9 @@ export function buildPaymentNotificationEmail({ appOrigin, fixRequest, report, p
     '<ul style="margin:0 0 4px;padding-left:20px">',
     `<li style="margin:0 0 6px"><strong>Site:</strong> ${escapeHtml(fixRequest.target_url)}</li>`,
     amount ? `<li style="margin:0 0 6px"><strong>Amount:</strong> ${escapeHtml(amount)}</li>` : "",
-    payment?.paymentId ? `<li style="margin:0 0 6px"><strong>Payment ID:</strong> ${escapeHtml(payment.paymentId)}</li>` : "",
+    payment?.paymentId
+      ? `<li style="margin:0 0 6px"><strong>Payment ID:</strong> ${escapeHtml(payment.paymentId)}</li>`
+      : "",
     "</ul>",
     emailButton(reportUrl, "Open report"),
     '<p style="margin:0 0 8px">Next status: repair in progress.</p>',
@@ -216,13 +212,8 @@ export function buildStatusNotificationEmail({
   const target = fixRequest.target_host || safeHost(fixRequest.target_url);
   const customerNote = cleanEmailLine(fixRequest.customer_note || "");
   const subjectPrefix =
-    normalizedStatus === "delivered"
-      ? "SEO Fix Pack delivery ready"
-      : "SEO Fix Pack repair started";
-  const subject =
-    recipientType === "admin"
-      ? `${subjectPrefix}: ${target}`
-      : `${subjectPrefix} for ${target}`;
+    normalizedStatus === "delivered" ? "SEO Fix Pack delivery ready" : "SEO Fix Pack repair started";
+  const subject = recipientType === "admin" ? `${subjectPrefix}: ${target}` : `${subjectPrefix} for ${target}`;
   const intro =
     normalizedStatus === "delivered"
       ? recipientType === "admin"
@@ -260,17 +251,26 @@ export function buildStatusNotificationEmail({
     : finalReportUrl
       ? { href: finalReportUrl, label: "Open final rerun report" }
       : { href: reportUrl, label: "Open report" };
-  const labeledLink = (href, label) => `<a href="${escapeHtml(href)}" style="color:#0f7a56;font-weight:600;text-decoration:none">${label}</a>`;
+  const labeledLink = (href, label) =>
+    `<a href="${escapeHtml(href)}" style="color:#0f7a56;font-weight:600;text-decoration:none">${label}</a>`;
   const html = [
     `<p style="font-size:18px;font-weight:600;margin:0 0 12px">${escapeHtml(intro)}</p>`,
     '<ul style="margin:0 0 4px;padding-left:20px">',
     `<li style="margin:0 0 6px"><strong>Site:</strong> ${escapeHtml(fixRequest.target_url)}</li>`,
     `<li style="margin:0 0 6px"><strong>Original report:</strong> ${labeledLink(reportUrl, "Open report")}</li>`,
-    deliveryUrl ? `<li style="margin:0 0 6px"><strong>Delivery:</strong> ${labeledLink(deliveryUrl, "Open delivery notes")}</li>` : "",
-    finalReportUrl ? `<li style="margin:0 0 6px"><strong>Final rerun:</strong> ${labeledLink(finalReportUrl, "Open final rerun report")}</li>` : "",
+    deliveryUrl
+      ? `<li style="margin:0 0 6px"><strong>Delivery:</strong> ${labeledLink(deliveryUrl, "Open delivery notes")}</li>`
+      : "",
+    finalReportUrl
+      ? `<li style="margin:0 0 6px"><strong>Final rerun:</strong> ${labeledLink(finalReportUrl, "Open final rerun report")}</li>`
+      : "",
     customerNote ? `<li style="margin:0 0 6px"><strong>Note:</strong> ${escapeHtml(customerNote)}</li>` : "",
-    fixRequest.due_at ? `<li style="margin:0 0 6px"><strong>Expected by:</strong> ${escapeHtml(formatEmailDate(fixRequest.due_at))}</li>` : "",
-    fixRequest.next_update_at ? `<li style="margin:0 0 6px"><strong>Next update by:</strong> ${escapeHtml(formatEmailDate(fixRequest.next_update_at))}</li>` : "",
+    fixRequest.due_at
+      ? `<li style="margin:0 0 6px"><strong>Expected by:</strong> ${escapeHtml(formatEmailDate(fixRequest.due_at))}</li>`
+      : "",
+    fixRequest.next_update_at
+      ? `<li style="margin:0 0 6px"><strong>Next update by:</strong> ${escapeHtml(formatEmailDate(fixRequest.next_update_at))}</li>`
+      : "",
     ...proof.map((line) => `<li style="margin:0 0 6px">${escapeHtml(line)}</li>`),
     "</ul>",
     emailButton(primary.href, primary.label),
@@ -280,7 +280,14 @@ export function buildStatusNotificationEmail({
     .filter(Boolean)
     .join("");
 
-  return { subject, text, html, preheader: `${intro} Site: ${target}.`, reportUrl, reportTitle: report?.title || target };
+  return {
+    subject,
+    text,
+    html,
+    preheader: `${intro} Site: ${target}.`,
+    reportUrl,
+    reportTitle: report?.title || target
+  };
 }
 
 export function buildOpsDigestEmail({ appOrigin, snapshot }) {
@@ -313,7 +320,9 @@ export function buildOpsDigestEmail({ appOrigin, snapshot }) {
     `<li><strong>Email errors:</strong> ${snapshot.emailErrors}</li>`,
     `<li><strong>Audits:</strong> ${snapshot.runningJobs ?? 0} running, ${snapshot.queuedJobs ?? 0} queued, ${snapshot.failedJobs24h ?? 0} failed in 24h</li>`,
     `<li><strong>Monitors overdue:</strong> ${snapshot.overdueSchedules ?? 0}</li>`,
-    snapshot.oldestOpenCreatedAt ? `<li><strong>Oldest open request:</strong> ${escapeHtml(snapshot.oldestOpenCreatedAt)}</li>` : "",
+    snapshot.oldestOpenCreatedAt
+      ? `<li><strong>Oldest open request:</strong> ${escapeHtml(snapshot.oldestOpenCreatedAt)}</li>`
+      : "",
     "</ul>",
     emailButton(`${appOrigin}/beta/admin`, "Open admin queue")
   ]
@@ -323,7 +332,9 @@ export function buildOpsDigestEmail({ appOrigin, snapshot }) {
 }
 
 export function normalizeEmail(input) {
-  const email = String(input || "").trim().toLowerCase();
+  const email = String(input || "")
+    .trim()
+    .toLowerCase();
   if (email.length > 254) return "";
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "";
   return email;
@@ -350,7 +361,9 @@ export function formatEmailDate(value) {
 }
 
 function cleanEmailLine(value) {
-  return String(value || "").replace(/\s+/g, " ").trim();
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function beforeAfterSummaryLines(summary) {
@@ -371,8 +384,24 @@ function formatMoneyMinorUnits(currency, amount) {
   const code = String(currency || "").toUpperCase();
   const value = Number(amount || 0);
   if (!code || !Number.isFinite(value)) return "";
-  const zeroDecimalCurrencies = new Set(["BIF", "CLP", "DJF", "GNF", "JPY", "KMF", "KRW", "MGA", "PYG", "RWF", "UGX", "VND", "VUV", "XAF", "XOF", "XPF"]);
+  const zeroDecimalCurrencies = new Set([
+    "BIF",
+    "CLP",
+    "DJF",
+    "GNF",
+    "JPY",
+    "KMF",
+    "KRW",
+    "MGA",
+    "PYG",
+    "RWF",
+    "UGX",
+    "VND",
+    "VUV",
+    "XAF",
+    "XOF",
+    "XPF"
+  ]);
   const divisor = zeroDecimalCurrencies.has(code) ? 1 : 100;
   return `${code} ${(value / divisor).toFixed(divisor === 1 ? 0 : 2)}`;
 }
-

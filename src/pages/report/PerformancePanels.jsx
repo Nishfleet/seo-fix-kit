@@ -1,16 +1,12 @@
 import { Metric } from "../../components/Metric.jsx";
-import {
-  metricDisplay,
-  performanceOpportunityLabel,
-  formatBytes,
-  formatMs
-} from "../../lib/format.js";
+import { metricDisplay, performanceOpportunityLabel, formatBytes, formatMs } from "../../lib/format.js";
 
 export function PerformancePanel({ performance }) {
   const metrics = performance.labMetrics || {};
   const opportunities = performance.opportunities || [];
-  const score =
-    Number.isFinite(Number(performance.performanceScore)) ? `${performance.performanceScore}/100` : "local proof";
+  const score = Number.isFinite(Number(performance.performanceScore))
+    ? `${performance.performanceScore}/100`
+    : "local proof";
   return (
     <section className="performance-panel">
       <div className="section-heading">
@@ -86,9 +82,7 @@ export function ResourceWaterfallPanel({ waterfall }) {
       <div className="section-heading">
         <p className="beta-eyebrow">Resource waterfall</p>
         <h2>Browser-loaded resources with repair proof.</h2>
-        <p>
-          Request timing, transfer size, and early render-blocking candidates from the rendered browser pass.
-        </p>
+        <p>Request timing, transfer size, and early render-blocking candidates from the rendered browser pass.</p>
       </div>
       <div className="resource-waterfall-metrics">
         {rows.map((row) => (
@@ -120,7 +114,9 @@ export function ResourceWaterfallPanel({ waterfall }) {
             thirdPartyHosts.slice(0, 5).map((host) => (
               <div className="resource-row" key={host.host}>
                 <span>{host.host}</span>
-                <small>{host.requests} requests · {formatBytes(host.transferBytes || 0)}</small>
+                <small>
+                  {host.requests} requests · {formatBytes(host.transferBytes || 0)}
+                </small>
               </div>
             ))
           ) : (
@@ -140,7 +136,9 @@ export function ResourceTimingList({ title, empty, resources, value }) {
         resources.slice(0, 5).map((resource) => (
           <div className="resource-row" key={`${title}-${resource.url}`}>
             <span>{resource.label || resource.host || resource.url}</span>
-            <small>{resource.type || "resource"} · {value(resource)}</small>
+            <small>
+              {resource.type || "resource"} · {value(resource)}
+            </small>
           </div>
         ))
       ) : (

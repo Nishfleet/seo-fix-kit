@@ -10,17 +10,19 @@ export function FixPackQueue({ adminToken, emailConfigured, requests, opsHealth,
   const [message, setMessage] = useState("");
 
   function draftFor(request) {
-    return drafts[request.id] || {
-      status: request.status || "checkout_created",
-      assignedTo: request.assignedTo || "",
-      deliveryUrl: request.deliveryUrl || "",
-      finalReportId: request.finalReportId || "",
-      dueAt: request.dueAt || "",
-      nextUpdateAt: request.nextUpdateAt || "",
-      statusReason: request.statusReason || "",
-      customerNote: request.customerNote || "",
-      adminNote: request.adminNote || ""
-    };
+    return (
+      drafts[request.id] || {
+        status: request.status || "checkout_created",
+        assignedTo: request.assignedTo || "",
+        deliveryUrl: request.deliveryUrl || "",
+        finalReportId: request.finalReportId || "",
+        dueAt: request.dueAt || "",
+        nextUpdateAt: request.nextUpdateAt || "",
+        statusReason: request.statusReason || "",
+        customerNote: request.customerNote || "",
+        adminNote: request.adminNote || ""
+      }
+    );
   }
 
   function updateDraft(id, patch) {
@@ -75,7 +77,9 @@ export function FixPackQueue({ adminToken, emailConfigured, requests, opsHealth,
                   {request.isTest && <span className="status-pill test-pill">Test</span>}
                   <h3>{request.targetHost || request.targetUrl}</h3>
                   <p>{request.ownerEmail}</p>
-                  <p>{request.issueCount || 0} findings · score {request.score ?? "unknown"}</p>
+                  <p>
+                    {request.issueCount || 0} findings · score {request.score ?? "unknown"}
+                  </p>
                   {proposalSummary.status === "ready" && (
                     <p>
                       {proposalSummary.approved || 0}/{proposalSummary.executable || 0} executable proposals approved
@@ -86,7 +90,11 @@ export function FixPackQueue({ adminToken, emailConfigured, requests, opsHealth,
                 <div className="queue-links">
                   <a href={request.reportPath}>Report</a>
                   <a href={request.briefPath}>Brief</a>
-                  {request.checkoutUrl && <a href={request.checkoutUrl} target="_blank" rel="noreferrer">Checkout</a>}
+                  {request.checkoutUrl && (
+                    <a href={request.checkoutUrl} target="_blank" rel="noreferrer">
+                      Checkout
+                    </a>
+                  )}
                 </div>
               </div>
               <div className="fulfillment-grid">
@@ -97,7 +105,11 @@ export function FixPackQueue({ adminToken, emailConfigured, requests, opsHealth,
                     value={draft.status}
                   >
                     <option value="checkout_created">Checkout opened</option>
-                    {request.status === "paid" && <option value="paid" disabled>Dodo paid</option>}
+                    {request.status === "paid" && (
+                      <option value="paid" disabled>
+                        Dodo paid
+                      </option>
+                    )}
                     <option value="in_progress">In progress</option>
                     <option value="delivered">Delivered</option>
                   </select>

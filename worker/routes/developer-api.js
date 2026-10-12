@@ -7,21 +7,13 @@ import {
 import { parseBacklinkRows } from "../../shared/backlink-audit.js";
 import { parseKeywordRows } from "../../shared/keyword-rank-audit.js";
 import { parseLocalSeoInput } from "../../shared/local-seo-audit.js";
-import {
-  deriveRepairQueueItems,
-  apiRepairQueueSummary
-} from "../../shared/repair-queue.js";
+import { deriveRepairQueueItems, apiRepairQueueSummary } from "../../shared/repair-queue.js";
 import {
   buildRepairImplementationPack,
   repairImplementationItemForAction
 } from "../../shared/repair-implementation-pack.js";
-import {
-  buildRepairProofReceipt
-} from "../../shared/repair-proof-receipt.js";
-import {
-  repairActionDetailResponse,
-  repairQueueItemDetailResponse
-} from "../../shared/repair-api-serializers.js";
+import { buildRepairProofReceipt } from "../../shared/repair-proof-receipt.js";
+import { repairActionDetailResponse, repairQueueItemDetailResponse } from "../../shared/repair-api-serializers.js";
 import { normalizeRenderedCrawlTarget } from "../../shared/rendered-crawl-scale.js";
 import {
   apiAccessResponse,
@@ -32,18 +24,9 @@ import {
 } from "../lib/auth.js";
 import { json, jsonNoStore, secureHeaders } from "../lib/http.js";
 import { repairTableAll, requireRepairTables } from "../lib/repair-tables.js";
-import {
-  deleteReportRowsWithBlobs,
-  protectedFixRequestForReport,
-  reportJsonForRow
-} from "../lib/report-data.js";
+import { deleteReportRowsWithBlobs, protectedFixRequestForReport, reportJsonForRow } from "../lib/report-data.js";
 import { sha256Hex } from "../lib/security.js";
-import {
-  apiAuditResponse,
-  apiIssueResponse,
-  apiProjectResponse,
-  apiReportResponse
-} from "../lib/serializers.js";
+import { apiAuditResponse, apiIssueResponse, apiProjectResponse, apiReportResponse } from "../lib/serializers.js";
 import {
   claimHostFromInput,
   isSafeReportId,
@@ -52,10 +35,7 @@ import {
   parseJson,
   randomHex
 } from "../lib/text.js";
-import {
-  reportWithAuditRow,
-  repairActionWebhookPayload
-} from "../../shared/repair-action-rules.js";
+import { reportWithAuditRow, repairActionWebhookPayload } from "../../shared/repair-action-rules.js";
 import {
   RepairActionCreateBody,
   RepairActionPatchBody,
@@ -152,10 +132,12 @@ async function getDeveloperApiSummary(request, env) {
       startLargeCrawl: "POST /v1/large-crawls",
       getLargeCrawl: "GET /v1/large-crawls/{large_crawl_id}",
       projects: "GET /v1/projects",
-      webhookEvents: "audit.completed, audit.failed, repair_action.drafted, repair_action.approved, repair_action.applied, repair_action.fixed, repair_action.regressed"
+      webhookEvents:
+        "audit.completed, audit.failed, repair_action.drafted, repair_action.approved, repair_action.applied, repair_action.fixed, repair_action.regressed"
     },
     issueFields: {
-      repair_queue: "Safe per-issue queue status. Draft text is only returned from repair-action endpoints and private markdown artifacts for the authenticated owner."
+      repair_queue:
+        "Safe per-issue queue status. Draft text is only returned from repair-action endpoints and private markdown artifacts for the authenticated owner."
     },
     workerOnlyDocs: {
       authHeader: "x-seofixkit-worker-token: WORKER_TOKEN",
@@ -195,7 +177,14 @@ async function createDeveloperApiToken(request, env) {
     token_hash: await sha256Hex(tokenSecret),
     token_prefix: `${tokenSecret.slice(0, 12)}...${tokenSecret.slice(-4)}`,
     label: body.label || "API key",
-    scopes_json: JSON.stringify(["audits:read", "audits:write", "large_crawls:read", "large_crawls:write", "projects:read", "projects:write"]),
+    scopes_json: JSON.stringify([
+      "audits:read",
+      "audits:write",
+      "large_crawls:read",
+      "large_crawls:write",
+      "projects:read",
+      "projects:write"
+    ]),
     status: "active",
     created_at: now,
     updated_at: now,
@@ -391,7 +380,19 @@ async function apiCreateProject(request, env) {
       (id, owner_email, host, verification_token, status, verification_method, created_at, updated_at, verified_at, last_checked_at, revoked_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   )
-    .bind(row.id, row.owner_email, row.host, row.verification_token, row.status, null, row.created_at, row.updated_at, null, null, null)
+    .bind(
+      row.id,
+      row.owner_email,
+      row.host,
+      row.verification_token,
+      row.status,
+      null,
+      row.created_at,
+      row.updated_at,
+      null,
+      null,
+      null
+    )
     .run();
   return jsonNoStore({ ok: true, project: apiProjectResponse(row) }, 201);
 }
@@ -446,7 +447,17 @@ async function apiCreateAudit(request, env, ctx) {
   );
   const maxPages = clampPageLimit(body.max_pages || body.maxPages || 10);
   await failStaleRunningAuditJobs(env, access.ownerEmail);
-  const existingJob = await activeAuditJobForTarget(env, access, targetUrl, competitorUrls, backlinkRows, localSeo, keywordRows, renderedCrawlTarget, maxPages);
+  const existingJob = await activeAuditJobForTarget(
+    env,
+    access,
+    targetUrl,
+    competitorUrls,
+    backlinkRows,
+    localSeo,
+    keywordRows,
+    renderedCrawlTarget,
+    maxPages
+  );
   if (existingJob) {
     return jsonNoStore(
       {
@@ -541,9 +552,11 @@ async function apiGetAuditIssues(request, env) {
     ok: true,
     auditId: resolved.job?.id || "",
     reportId: resolved.report.id,
-    issues: findings.map((finding) => apiIssueResponse(finding, queue.byIssue.get(finding.id), {
-      repairQueueUnavailable: queue.unavailable
-    })),
+    issues: findings.map((finding) =>
+      apiIssueResponse(finding, queue.byIssue.get(finding.id), {
+        repairQueueUnavailable: queue.unavailable
+      })
+    ),
     total: findings.length
   });
 }
@@ -619,14 +632,17 @@ async function apiCreateRepairAction(request, env, ctx = null) {
   }
 
   const queue = await apiRepairQueueOverlay(env, access, reportId, resolved.report);
-  return jsonNoStore({
-    ok: true,
-    action: repairActionDetailResponse(created.action),
-    queue: {
-      items: queue.items.map(repairQueueItemDetailResponse),
-      summary: apiRepairQueueSummary(queue.items)
-    }
-  }, created.status || 201);
+  return jsonNoStore(
+    {
+      ok: true,
+      action: repairActionDetailResponse(created.action),
+      queue: {
+        items: queue.items.map(repairQueueItemDetailResponse),
+        summary: apiRepairQueueSummary(queue.items)
+      }
+    },
+    created.status || 201
+  );
 }
 
 async function apiUpdateRepairAction(request, env, ctx = null) {
@@ -774,7 +790,9 @@ async function apiDeleteAudit(request, env) {
   if (row.report_id) {
     const reportRow = await env.WAITLIST_DB.prepare(
       `SELECT id, report_json FROM audit_reports WHERE id = ? AND owner_email = ? LIMIT 1`
-    ).bind(row.report_id, access.ownerEmail).first();
+    )
+      .bind(row.report_id, access.ownerEmail)
+      .first();
     if (reportRow?.id) {
       const deleted = await deleteReportRowsWithBlobs(env, [reportRow]);
       if (deleted.protectedIds.includes(row.report_id)) {
@@ -795,7 +813,9 @@ async function apiDeleteAudit(request, env) {
     }
   }
   if (!jobDeletedWithReport) {
-    await env.WAITLIST_DB.prepare(`DELETE FROM audit_jobs WHERE id = ? AND owner_email = ?`).bind(id, access.ownerEmail).run();
+    await env.WAITLIST_DB.prepare(`DELETE FROM audit_jobs WHERE id = ? AND owner_email = ?`)
+      .bind(id, access.ownerEmail)
+      .run();
   }
   return jsonNoStore({ ok: true, deleted: true, auditId: id });
 }
@@ -831,9 +851,7 @@ function apiWebhookResponse(row = {}) {
 function apiAuditIdFromPath(rawUrl, prefix, suffix = "") {
   const pathname = new URL(rawUrl).pathname;
   const withoutPrefix = pathname.slice(prefix.length);
-  const value = suffix && withoutPrefix.endsWith(suffix)
-    ? withoutPrefix.slice(0, -suffix.length)
-    : withoutPrefix;
+  const value = suffix && withoutPrefix.endsWith(suffix) ? withoutPrefix.slice(0, -suffix.length) : withoutPrefix;
   return decodeURIComponent(value.replace(/^\/|\/$/g, ""));
 }
 
@@ -867,7 +885,8 @@ async function resolveApiAuditReport(env, access, id) {
     .bind(reportId, access.ownerEmail)
     .first();
   if (!row?.report_json) {
-    if (job?.status === "queued" || job?.status === "running") return { ok: false, status: 409, error: "Audit is still running." };
+    if (job?.status === "queued" || job?.status === "running")
+      return { ok: false, status: 409, error: "Audit is still running." };
     return { ok: false, status: 404, error: "Report not found." };
   }
   if (row.expires_at && row.expires_at <= new Date().toISOString()) {
@@ -892,23 +911,23 @@ async function resolveApiAuditReport(env, access, id) {
 async function apiRepairQueueOverlay(env, access, reportId, report = {}) {
   if (!env.WAITLIST_DB || !isSafeReportId(reportId)) return { items: [], byIssue: new Map() };
   const [queueRows, actionRows] = await Promise.all([
-    repairTableAll(env.WAITLIST_DB.prepare(
-      `SELECT *
+    repairTableAll(
+      env.WAITLIST_DB.prepare(
+        `SELECT *
        FROM repair_queue_items
        WHERE report_id = ?
          AND owner_email = ?`
-    )
-      .bind(reportId, access.ownerEmail)
+      ).bind(reportId, access.ownerEmail)
     ),
-    repairTableAll(env.WAITLIST_DB.prepare(
-      `SELECT *
+    repairTableAll(
+      env.WAITLIST_DB.prepare(
+        `SELECT *
        FROM repair_agent_actions
        WHERE report_id = ?
          AND owner_email = ?
        ORDER BY updated_at DESC
        LIMIT 200`
-    )
-      .bind(reportId, access.ownerEmail)
+      ).bind(reportId, access.ownerEmail)
     )
   ]);
   const items = deriveRepairQueueItems(report, queueRows.results || [], actionRows.results || []);

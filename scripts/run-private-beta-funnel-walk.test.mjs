@@ -56,7 +56,12 @@ function passingStopEvidence(stop, viewport = "desktop") {
     copyChecks,
     expectedLinks,
     brokenLinks: { checked: [], broken: [] },
-    horizontalOverflow: { scrollWidth: viewport === "mobile" ? 390 : 1280, clientWidth: viewport === "mobile" ? 390 : 1280, innerWidth: viewport === "mobile" ? 390 : 1280, overflow: false },
+    horizontalOverflow: {
+      scrollWidth: viewport === "mobile" ? 390 : 1280,
+      clientWidth: viewport === "mobile" ? 390 : 1280,
+      innerWidth: viewport === "mobile" ? 390 : 1280,
+      overflow: false
+    },
     accessForm,
     walkerError: null,
     // anchors as collected from the DOM, absolute on Worker pages
@@ -123,14 +128,20 @@ test("walk fails when a stop returns a non-200 HTTP status", () => {
   const evidence = passingStopEvidence(FUNNEL_STOPS[0]);
   evidence.httpStatus = 503;
   const failures = evaluateStopEvidence(evidence);
-  assert.ok(failures.some((reason) => reason.includes("HTTP 503")), failures.join("; "));
+  assert.ok(
+    failures.some((reason) => reason.includes("HTTP 503")),
+    failures.join("; ")
+  );
 });
 
 test("walk fails when the stop title does not match the funnel copy", () => {
   const evidence = passingStopEvidence(FUNNEL_STOPS[1]);
   evidence.title = "Some other page - SEO Fix Kit";
   const failures = evaluateStopEvidence(evidence);
-  assert.ok(failures.some((reason) => reason.includes("title")), failures.join("; "));
+  assert.ok(
+    failures.some((reason) => reason.includes("title")),
+    failures.join("; ")
+  );
 });
 
 test("walk fails when /demo or /packages canonical drifts", () => {
@@ -138,7 +149,10 @@ test("walk fails when /demo or /packages canonical drifts", () => {
     const evidence = passingStopEvidence(stop);
     evidence.canonical = `${origin}/wrong`;
     const failures = evaluateStopEvidence(evidence);
-    assert.ok(failures.some((reason) => reason.includes("canonical")), `${stop.path}: ${failures.join("; ")}`);
+    assert.ok(
+      failures.some((reason) => reason.includes("canonical")),
+      `${stop.path}: ${failures.join("; ")}`
+    );
   }
 });
 
@@ -147,7 +161,10 @@ test("walk fails when load-bearing funnel copy is missing", () => {
   evidence.copyChecks = evidence.copyChecks.map((check) => ({ ...check, present: false }));
   const failures = evaluateStopEvidence(evidence);
   assert.ok(failures.length > 0, "missing private-beta copy must fail the walk");
-  assert.ok(failures.some((reason) => reason.includes("locked private-beta copy")), failures.join("; "));
+  assert.ok(
+    failures.some((reason) => reason.includes("locked private-beta copy")),
+    failures.join("; ")
+  );
 });
 
 test("home stop names the intended buyer in its first-viewport copy", () => {
@@ -171,14 +188,20 @@ test("walk fails when the intended-buyer copy is missing from home", () => {
     .filter((check) => check.match !== audienceCheck.match)
     .map((check) => ({ ...check, present: true }));
   const failures = evaluateStopEvidence(evidence);
-  assert.ok(failures.some((reason) => reason === audienceCheck.reason), failures.join("; "));
+  assert.ok(
+    failures.some((reason) => reason === audienceCheck.reason),
+    failures.join("; ")
+  );
 });
 
 test("walk fails when an expected public proof link is missing", () => {
   const evidence = passingStopEvidence(FUNNEL_STOPS[0]);
   evidence.expectedLinks = evidence.expectedLinks.filter((link) => link.href !== "/demo");
   const failures = evaluateStopEvidence(evidence);
-  assert.ok(failures.some((reason) => reason.includes("missing expected link /demo")), failures.join("; "));
+  assert.ok(
+    failures.some((reason) => reason.includes("missing expected link /demo")),
+    failures.join("; ")
+  );
 });
 
 test("walk fails when an internal link is broken", () => {
@@ -188,14 +211,20 @@ test("walk fails when an internal link is broken", () => {
     broken: [{ href: "/support", status: 500 }]
   };
   const failures = evaluateStopEvidence(evidence);
-  assert.ok(failures.some((reason) => reason.includes("broken internal link /support")), failures.join("; "));
+  assert.ok(
+    failures.some((reason) => reason.includes("broken internal link /support")),
+    failures.join("; ")
+  );
 });
 
 test("walk fails on mobile when the page scrolls horizontally", () => {
   const evidence = passingStopEvidence(FUNNEL_STOPS[1], "mobile");
   evidence.horizontalOverflow = { scrollWidth: 420, clientWidth: 390, innerWidth: 420, overflow: true };
   const failures = evaluateStopEvidence(evidence);
-  assert.ok(failures.some((reason) => reason.includes("horizontal scroll")), failures.join("; "));
+  assert.ok(
+    failures.some((reason) => reason.includes("horizontal scroll")),
+    failures.join("; ")
+  );
 });
 
 test("walk flags horizontal overflow even when innerWidth inflates to the overflowing width", () => {
@@ -206,42 +235,60 @@ test("walk flags horizontal overflow even when innerWidth inflates to the overfl
   const evidence = passingStopEvidence(FUNNEL_STOPS[1], "mobile");
   evidence.horizontalOverflow = { scrollWidth: 451, clientWidth: 390, innerWidth: 451, overflow: true };
   const failures = evaluateStopEvidence(evidence);
-  assert.ok(failures.some((reason) => reason.includes("horizontal scroll")), failures.join("; "));
+  assert.ok(
+    failures.some((reason) => reason.includes("horizontal scroll")),
+    failures.join("; ")
+  );
 });
 
 test("walk fails when the access request form is missing on home", () => {
   const evidence = passingStopEvidence(FUNNEL_STOPS[0]);
   evidence.accessForm = null;
   const failures = evaluateStopEvidence(evidence);
-  assert.ok(failures.some((reason) => reason.includes("access request form not found")), failures.join("; "));
+  assert.ok(
+    failures.some((reason) => reason.includes("access request form not found")),
+    failures.join("; ")
+  );
 });
 
 test("walk fails when the access email input stops being a required email field", () => {
   const evidence = passingStopEvidence(FUNNEL_STOPS[0]);
   evidence.accessForm.emailRequired = false;
   const failures = evaluateStopEvidence(evidence);
-  assert.ok(failures.some((reason) => reason.includes("email input")), failures.join("; "));
+  assert.ok(
+    failures.some((reason) => reason.includes("email input")),
+    failures.join("; ")
+  );
 });
 
 test("walk fails when the company honeypot stops being hidden", () => {
   const evidence = passingStopEvidence(FUNNEL_STOPS[0]);
   evidence.accessForm.companyTabIndex = "0";
   const failures = evaluateStopEvidence(evidence);
-  assert.ok(failures.some((reason) => reason.includes("honeypot")), failures.join("; "));
+  assert.ok(
+    failures.some((reason) => reason.includes("honeypot")),
+    failures.join("; ")
+  );
 });
 
 test("walk fails when the submit CTA stops being labeled 'Email access link'", () => {
   const evidence = passingStopEvidence(FUNNEL_STOPS[0]);
   evidence.accessForm.submitLabel = "Join now";
   const failures = evaluateStopEvidence(evidence);
-  assert.ok(failures.some((reason) => reason.includes("submit CTA")), failures.join("; "));
+  assert.ok(
+    failures.some((reason) => reason.includes("submit CTA")),
+    failures.join("; ")
+  );
 });
 
 test("walk fails when page state could not be collected", () => {
   const evidence = passingStopEvidence(FUNNEL_STOPS[2]);
   evidence.walkerError = "timeout evaluating page state";
   const failures = evaluateStopEvidence(evidence);
-  assert.ok(failures.some((reason) => reason.includes("page state unavailable")), failures.join("; "));
+  assert.ok(
+    failures.some((reason) => reason.includes("page state unavailable")),
+    failures.join("; ")
+  );
 });
 
 test("walk-level result fails on console/page errors", () => {
@@ -257,7 +304,10 @@ test("walk-level result fails on console/page errors", () => {
     failures: []
   };
   const failures = evaluateWalkLevelFailures(record);
-  assert.ok(failures.some((reason) => reason.includes("console/page errors")), failures.join("; "));
+  assert.ok(
+    failures.some((reason) => reason.includes("console/page errors")),
+    failures.join("; ")
+  );
 });
 
 // Same walk-level assertion the live runner applies after all stops: console
