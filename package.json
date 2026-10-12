@@ -57,19 +57,18 @@
     "test:funnel-walk": "node --test scripts/run-private-beta-funnel-walk.test.mjs"
   },
   "dependencies": {
-    "@vitejs/plugin-react": "^5.1.0",
-    "cheerio": "^1.1.2",
-    "concurrently": "10.0.3",
+    "@cloudflare/puppeteer": "^1.1.0",
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "playwright": "^1.57.0",
     "react": "^19.2.3",
-    "react-dom": "^19.2.3",
-    "vite": "8.0.16"
+    "react-dom": "^19.2.3"
   },
   "devDependencies": {
-    "@cloudflare/puppeteer": "^1.1.0",
+    "@vitejs/plugin-react": "^5.1.0",
+    "concurrently": "10.0.3",
     "esbuild": "0.28.1",
+    "vite": "8.0.16",
     "wrangler": "^4.102.0"
   },
   "overrides": {
