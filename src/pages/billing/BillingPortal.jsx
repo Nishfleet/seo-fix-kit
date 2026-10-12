@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router";
 import { apiErrorMessage, apiRequest } from "../../api.js";
 import StatusMessage from "../../StatusMessage.jsx";
 import { deliveryReadinessLabel, deliveryReadinessText } from "../../delivery-readiness-copy.js";
@@ -174,7 +175,7 @@ export function BillingPortal({ ownerEmail }) {
                   {request.deliveredAt && <span>Delivered {formatDate(request.deliveredAt)}</span>}
                 </div>
                 <div className="queue-links">
-                  {request.reportPath && <a href={request.reportPath}>Report</a>}
+                  {request.reportPath && <Link to={request.reportPath}>Report</Link>}
                   {request.briefPath && <a href={request.briefPath}>Brief</a>}
                   {request.deliveryUrl && <a href={request.deliveryUrl} target="_blank" rel="noreferrer">Delivery</a>}
                 </div>
@@ -184,7 +185,7 @@ export function BillingPortal({ ownerEmail }) {
           {!requests.length && (
             <p className="quiet-note">
               No Fix Pack requests yet. Run an audit, open a report with proven fixes, then start checkout from that report.
-              <a className="inline-link" href="/beta"> Run an audit</a>
+              <Link className="inline-link" to="/beta"> Run an audit</Link>
             </p>
           )}
         </div>
@@ -211,7 +212,7 @@ export function BillingPortal({ ownerEmail }) {
                 {payment.disputedAt && <span>Disputed {formatDate(payment.disputedAt)}</span>}
               </div>
               <div className="queue-links">
-                {payment.reportPath && <a href={payment.reportPath}>Report</a>}
+                {payment.reportPath && <Link to={payment.reportPath}>Report</Link>}
               </div>
             </article>
           ))}

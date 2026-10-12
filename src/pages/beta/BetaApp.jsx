@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router";
 import {
   CRAWL_DEPTH_TIERS,
   DEFAULT_CRAWL_PAGES,
@@ -39,11 +40,16 @@ import { CustomerDashboard } from "./CustomerDashboard.jsx";
 import { BillingPortal } from "../billing/BillingPortal.jsx";
 import { ReportView } from "../report/ReportView.jsx";
 
-export function BetaApp() {
-  const reportId = reportIdFromPath();
-  const isAdminRoute = window.location.pathname === "/beta/admin";
-  const isBillingRoute = window.location.pathname.startsWith("/beta/billing");
-  const inviteParams = new URLSearchParams(window.location.search);
+export function BetaApp({ mountKey }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const reportId = reportIdFromPath(location.pathname);
+  const isAdminRoute = location.pathname === "/beta/admin";
+  const isBillingRoute = location.pathname.startsWith("/beta/billing");
+  const inviteParams = new URLSearchParams(location.search);
+  // Rewrite the address bar in place (no new history entry) while keeping
+  // this BetaApp mounted; see BetaRoute in App.jsx.
+  const replaceUrl = (path) => navigate(path, { replace: true, state: { betaMountKey: mountKey } });
   const accessToken = inviteParams.get("access") || "";
   const [ownerEmail, setOwnerEmail] = useState(
     () => inviteParams.get("email") || storageGet(BETA_EMAIL_KEY) || ""
@@ -116,7 +122,7 @@ export function BetaApp() {
     if (!inviteParams.get("invite")) return;
     const cleanUrl = new URL(window.location.href);
     cleanUrl.searchParams.delete("invite");
-    window.history.replaceState({}, "", `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`);
+    replaceUrl(`${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`);
   }, []);
 
   useEffect(() => {
@@ -137,7 +143,7 @@ export function BetaApp() {
         const cleanUrl = new URL(window.location.href);
         cleanUrl.searchParams.delete("access");
         cleanUrl.searchParams.delete("email");
-        window.history.replaceState({}, "", `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`);
+        replaceUrl(`${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`);
       })
       .catch((error) => {
         if (cancelled) return;
@@ -387,7 +393,7 @@ export function BetaApp() {
           throw new Error("Audit finished without a saved report.");
         }
         if (job.reportPath) {
-          window.history.replaceState(null, "", job.reportPath);
+          replaceUrl(job.reportPath);
         }
         await loadReport(job.reportId, setReport, setAuditStatus, setAuditMessage, () => {
           setIsAuthed(false);
@@ -403,7 +409,7 @@ export function BetaApp() {
       setAuditMessage("Audit saved. Private report URL is ready.");
       loadAccountSummary(setAccountData, setAccountStatus, setAccountMessage);
       if (payload.reportPath) {
-        window.history.replaceState(null, "", payload.reportPath);
+        replaceUrl(payload.reportPath);
       }
       window.requestAnimationFrame(() => window.scrollTo(0, 0));
     } catch (error) {
@@ -432,7 +438,7 @@ export function BetaApp() {
     setIsAuthed(false);
     setReport(null);
     setAccountData(null);
-    window.history.replaceState(null, "", "/beta");
+    replaceUrl("/beta");
   }
 
   const showingReport = Boolean(report && auditStatus === "success");

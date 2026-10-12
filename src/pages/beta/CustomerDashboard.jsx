@@ -1,3 +1,4 @@
+import { Link } from "react-router";
 import StatusMessage from "../../StatusMessage.jsx";
 import { Metric } from "../../components/Metric.jsx";
 import { copyText } from "../../lib/browser.js";
@@ -201,7 +202,7 @@ export function CustomerDashboard({
                 <p>{auditJobDetail(job)}</p>
               </div>
               {job.reportPath ? (
-                <a className="action-link" href={job.reportPath}>Open report</a>
+                <Link className="action-link" to={job.reportPath}>Open report</Link>
               ) : (
                 <span className="quiet-note">{job.status === "failed" ? "Needs rerun" : "Working"}</span>
               )}
@@ -225,10 +226,10 @@ export function CustomerDashboard({
           </div>
           <div className="account-list">
             {reports.slice(0, 4).map((item) => (
-              <a href={item.reportPath} key={item.id}>
+              <Link to={item.reportPath} key={item.id}>
                 <span>{item.targetHost || safeHostnameLabel(item.url)}</span>
                 <strong>{item.score}/100</strong>
-              </a>
+              </Link>
             ))}
             {!reports.length && <p className="quiet-note">Your saved reports will appear here after the first audit.</p>}
           </div>
@@ -240,10 +241,10 @@ export function CustomerDashboard({
           </div>
           <div className="account-list">
             {fixRequests.slice(0, 3).map((request) => (
-              <a href={request.reportPath || "/beta/billing"} key={request.id}>
+              <Link to={request.reportPath || "/beta/billing"} key={request.id}>
                 <span>{request.targetHost || request.targetUrl || "Fix Pack"}</span>
                 <strong>{request.statusLabel || statusLabel(request.status)}</strong>
-              </a>
+              </Link>
             ))}
             {!fixRequests.length && (
               <p className="quiet-note">

@@ -1,7 +1,7 @@
 import { FUNNEL_KEY } from "./constants.js";
 
-export function reportIdFromPath() {
-  const match = window.location.pathname.match(/^\/beta\/reports\/([^/]+)/);
+export function reportIdFromPath(pathname = window.location.pathname) {
+  const match = pathname.match(/^\/beta\/reports\/([^/]+)/);
   return match ? decodeURIComponent(match[1]) : "";
 }
 

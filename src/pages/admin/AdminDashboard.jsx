@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router";
 import StatusMessage from "../../StatusMessage.jsx";
 import { Metric } from "../../components/Metric.jsx";
 import { copyText } from "../../lib/browser.js";
@@ -83,12 +84,12 @@ export function AdminDashboard({
           </div>
           <div className="ops-table">
             {(adminData?.recentAudits || []).map((audit) => (
-              <a className="ops-row" href={audit.reportPath} key={audit.id}>
+              <Link className="ops-row" to={audit.reportPath} key={audit.id}>
                 <span>{audit.targetHost || new URL(audit.url).hostname}</span>
                 <span>{audit.ownerEmail || "unknown"}</span>
                 <strong>{audit.score}</strong>
                 <span>{audit.totalFindings} findings</span>
-              </a>
+              </Link>
             ))}
             {!adminData?.recentAudits?.length && <p className="quiet-note">Load ops to see recent audits.</p>}
           </div>

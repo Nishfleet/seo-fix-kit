@@ -1,16 +1,17 @@
+import { Link } from "react-router";
 import { LogoMark } from "./LogoMark.jsx";
 
 export function BetaTop({ onLock, showBilling = false, showOps = false }) {
   return (
     <header className="beta-top">
-      <a className="brand-lockup" href="/" aria-label="SEO Fix Kit home">
+      <Link className="brand-lockup" to="/" aria-label="SEO Fix Kit home">
         <LogoMark />
         <span>SEO Fix Kit</span>
-      </a>
+      </Link>
       <nav>
-        <a href="/">Public page</a>
-        {showBilling && <a href="/beta/billing">Billing</a>}
-        {showOps && <a href="/beta/admin">Ops</a>}
+        <Link to="/">Public page</Link>
+        {showBilling && <Link to="/beta/billing">Billing</Link>}
+        {showOps && <Link to="/beta/admin">Ops</Link>}
         {onLock && (
           <button className="text-button" onClick={onLock} type="button">
             Lock
