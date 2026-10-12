@@ -652,7 +652,7 @@ test("public demo and support pages carry enough buyer-facing detail", () => {
   assert.match(demo, /What this sample proves/);
   assert.match(demo, /What this sample does not claim/);
   assert.match(demo, new RegExp(`Anonymous one-page checks are live at ${origin}/check`));
-  assert.match(demo, /Check one page now/);
+  assert.match(demo, new RegExp(`href="${origin}/check">Check a page free`));
   assert.match(
     demo,
     /Neither the sample nor the one-page check promises rankings, traffic, indexing, revenue, AI citations/i
@@ -772,7 +772,7 @@ test("demo brief is verbatim real engine output for the public test page", async
     }
     assert.doesNotMatch(demo, /Sample developer brief/, "the demo must not show the hand-written brief anymore");
     assert.doesNotMatch(demo, /Rendered H1 is visible in the final DOM/, "the fabricated H1 evidence must be gone");
-    assert.match(demo, /Check one page now/, "the demo must keep the low-friction entry into the live anonymous check");
+    assert.match(demo, /Check a page free/, "the demo must keep the low-friction entry into the live anonymous check");
   } finally {
     server.close();
   }
@@ -986,7 +986,7 @@ test("real before/after proof receipt pins the same measurement path before and 
   const html = proofCaseHtml(origin);
   const markdown = proofCaseMarkdown(origin);
 
-  assert.match(html, /One real repair, with the same measurement path before and after\./);
+  assert.match(html, /85 to 100, with a receipt for every step\./);
   assert.match(html, /Score <strong>85<\/strong>\/100 &middot; 7 findings/);
   assert.match(html, /Score <strong>99<\/strong>\/100 &middot; 2 findings/);
   assert.match(html, /Score <strong>100<\/strong>\/100 &middot; 0 findings/);

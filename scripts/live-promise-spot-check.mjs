@@ -288,7 +288,7 @@ export function publicPageSpotChecks(baseUrl) {
       expectations: [
         {
           reason: "real before/after headline",
-          match: "One real repair, with the same measurement path before and after."
+          match: "85 to 100, with a receipt for every step."
         },
         { reason: "before score 85", match: "Score <strong>85</strong>/100" },
         { reason: "intermediate score 99", match: "Score <strong>99</strong>/100" },
