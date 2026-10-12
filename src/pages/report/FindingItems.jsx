@@ -125,6 +125,7 @@ export function PageProof({ page }) {
 }
 
 export function PageSummaryTable({ pages }) {
+  if (!pages?.length) return <p className="quiet-note">No page details were saved for this crawl.</p>;
   return (
     <>
       <div className="page-table" role="table" aria-label="Crawled pages">

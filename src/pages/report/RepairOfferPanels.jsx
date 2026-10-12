@@ -10,7 +10,6 @@ import {
   fixPackRepairTarget
 } from "../../fix-pack-checkout.js";
 import { monitoringCheckoutErrorOutcome, monitoringCheckoutOutcome } from "../../monitoring-checkout.js";
-import { CopyButton } from "../../components/CopyButton.jsx";
 import { usePricingPreview } from "../../hooks/usePricingPreview.js";
 import { beforeAfterText, formatDate } from "../../lib/format.js";
 import { proposalStatusLabel, checkoutMessage, statusLabel } from "../../lib/labels.js";
@@ -371,9 +370,7 @@ export function FixQuotePanel({ report, hasPriorityFixes }) {
             </small>
           )}
         </span>
-      ) : (
-        <CopyButton label="Copy report URL" value={report.reportUrl || ""} />
-      )}
+      ) : null}
     </aside>
   );
 }

@@ -3,7 +3,7 @@
 export const APP_SECTIONS = [
   { key: "overview", label: "Overview", path: "/beta" },
   { key: "reports", label: "Reports", path: "/beta/reports" },
-  { key: "sites", label: "Sites & monitoring", path: "/beta/sites" },
+  { key: "sites", label: "Sites", path: "/beta/sites" },
   { key: "developers", label: "Developers", path: "/beta/developers" },
   { key: "billing", label: "Billing", path: "/beta/billing" }
 ];
