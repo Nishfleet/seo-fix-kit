@@ -116,14 +116,8 @@ assert.equal(duplicateTitleBrief.priorityQueue[0].id, "missing-meta-home");
 assert.equal(duplicateTitleBrief.priorityQueue[1].id, "missing-meta-pricing");
 assert.equal(duplicateTitleBrief.priorityQueue[1].pageUrl, "https://example.com/pricing");
 
-const routeSource = readFileSync(new URL("../worker/routes/reports.js", import.meta.url), "utf8");
-assert.match(routeSource, /remediation-brief\.json/);
-assert.match(routeSource, /buildRemediationBrief\(report\)/);
-
-assert.match(routeSource, /report\.remediationBrief = buildRemediationBrief\(report\)/);
-
-const workerSource = readFileSync(new URL("../worker/index.js", import.meta.url), "utf8");
-assert.match(workerSource, /api\/reports\/:id\/remediation-brief\.json/);
+// The report and remediation-brief routes are covered end to end in
+// test/core-api-flow.test.mjs.
 
 const appSource = readFileSync(new URL("../src/App.jsx", import.meta.url), "utf8");
 assert.match(appSource, /RemediationBriefPanel/);
