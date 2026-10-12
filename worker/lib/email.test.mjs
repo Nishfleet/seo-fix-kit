@@ -101,7 +101,7 @@ test("sent HTML is wrapped in the shared layout with preheader, button fallback,
   assert.match(html, /<p>Hello<\/p>/);
   assert.match(
     html,
-    /<a href="https:\/\/seofixkit\.com\/beta\/access\?t=a&amp;b=1" style="background:#0f7a56[^"]*">Open SEO Fix Kit<\/a>/
+    /<a href="https:\/\/seofixkit\.com\/beta\/access\?t=a&amp;b=1" style="background:#0b0f0d[^"]*">Open SEO Fix Kit<\/a>/
   );
   assert.match(html, /Or paste this link into your browser: https:\/\/seofixkit\.com\/beta\/access\?t=a&amp;b=1/);
   assert.match(html, /support@seofixkit\.com/);

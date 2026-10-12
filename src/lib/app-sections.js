@@ -1,11 +1,11 @@
 // Sections of the signed-in app. Each maps to a /beta path so every screen
 // has its own URL, back-button step, and shareable link.
 export const APP_SECTIONS = [
-  { key: "overview", label: "Overview", path: "/beta" },
-  { key: "reports", label: "Reports", path: "/beta/reports" },
-  { key: "sites", label: "Sites", path: "/beta/sites" },
-  { key: "developers", label: "Developers", path: "/beta/developers" },
-  { key: "billing", label: "Billing", path: "/beta/billing" }
+  { key: "overview", icon: "home", label: "Overview", path: "/beta" },
+  { key: "reports", icon: "file", label: "Reports", path: "/beta/reports" },
+  { key: "sites", icon: "browser", label: "Sites", path: "/beta/sites" },
+  { key: "developers", icon: "code", label: "Developers", path: "/beta/developers" },
+  { key: "billing", icon: "card", label: "Billing", path: "/beta/billing" }
 ];
 
 export function sectionFromPath(pathname = "") {

@@ -118,7 +118,7 @@ Limits of local mode:
 
 ```bash
 npm run lint    # ESLint (flat config, eslint.config.js); CI fails on errors only
-npm run check   # all test suites + build: the protected CI gate
+npm run check   # all test suites + build + performance budget: the protected CI gate
 npm run test:e2e  # Playwright, desktop + phone, against the real Worker and database
 ```
 
@@ -129,6 +129,11 @@ the homepage without JavaScript, sign-up by emailed link, every app section,
 sign-out, pricing, the free check and the 404 page. CI runs it after
 `npm run check`; on failure the trace and screenshots are kept as the
 `playwright-report` artifact.
+
+`npm run test:budget` (the last step of `npm run check`) fails when a built
+file passes its gzip budget in `scripts/check-budget.mjs`: the prerendered
+homepage, `/tokens.css`, the entry JS and CSS, the signed-in app bundle and
+the 404 page. Raise a budget deliberately in review, never to get CI green.
 
 Design tokens (colour, type, spacing, radius, elevation, motion) live in
 `src/design/tokens.css`; shared marketing components in `src/design/site.css`.

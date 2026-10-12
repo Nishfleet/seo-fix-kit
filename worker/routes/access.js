@@ -356,22 +356,21 @@ function safeBetaReturnPath(value) {
 }
 
 async function sendAccessLinkEmail(env, { ownerEmail, accessUrl }) {
-  const subject = "Your SEO Fix Kit access link";
+  const subject = "Your SEO Fix Kit sign-in link";
   const expiresMinutes = Math.max(1, Math.round(ACCESS_LINK_TTL_SECONDS / 60));
   const text = [
-    "Use this secure link to open SEO Fix Kit:",
+    "Sign in to SEO Fix Kit with this secure link:",
     "",
     accessUrl,
     "",
-    `This link expires in ${expiresMinutes} minutes and can be used once. If it expires, just request a new one.`,
-    "SEO Fix Kit audits produce proof-backed repair briefs. No ranking promises are made."
+    `It works once and expires in ${expiresMinutes} minutes. If it expires, request a new one from the sign-in page.`,
+    "Didn't ask for this? You can ignore this email; nobody can sign in without the link."
   ].join("\n");
   const html = [
-    '<p style="font-size:18px;font-weight:600;margin:0 0 8px">Your access link</p>',
-    '<p style="margin:0">Use this secure link to open SEO Fix Kit:</p>',
-    emailButton(accessUrl, "Open SEO Fix Kit"),
-    `<p style="margin:0 0 12px">This link expires in ${expiresMinutes} minutes and can be used once. If it expires, just request a new one.</p>`,
-    '<p style="color:#6b6f6c;font-size:13px;margin:0">SEO Fix Kit audits produce proof-backed repair briefs. No ranking promises are made.</p>'
+    '<p style="font-size:20px;font-weight:650;letter-spacing:-0.015em;line-height:28px;margin:0 0 8px">Sign in to SEO Fix Kit</p>',
+    `<p style="margin:0">Click the button below to sign in. It works once and expires in ${expiresMinutes} minutes.</p>`,
+    emailButton(accessUrl, "Sign in to SEO Fix Kit"),
+    '<p style="color:#6b6f6c;font-size:13px;line-height:20px;margin:0">Didn&rsquo;t ask for this? You can ignore this email; nobody can sign in without the link.</p>'
   ].join("");
 
   return sendWorkerEmail(env, {

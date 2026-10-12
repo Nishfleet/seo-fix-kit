@@ -255,7 +255,9 @@ function demoHtml(origin) {
 ${pageSocialHead({ origin, title: "Proof-Backed SEO Repair Demo - SEO Fix Kit", description: "A public sample showing how SEO Fix Kit refuses static crawler false positives and turns verified issues into repair briefs.", path: "/demo" })}
     <style>
       body { margin: 0; min-width: 0; }
-      main { margin: 0 auto; max-width: 980px; padding: clamp(40px, 6vw, 72px) 22px 64px; min-width: 0; }
+      main { margin: 0 auto; max-width: 1120px; padding: clamp(40px, 6vw, 72px) 22px 64px; min-width: 0; }
+      .enter > p { max-width: 720px; }
+      .panel p, .panel li { font-size: 16px; }
       h1 { font-size: var(--text-display); line-height: var(--leading-display); margin: 0 0 20px; max-width: 780px; overflow-wrap: break-word; }
       h2 { font-size: clamp(22px, 3vw, 28px); line-height: 1.2; margin: 0 0 12px; overflow-wrap: break-word; }
       p, li { color: var(--ink-soft); font-size: 18px; line-height: 1.6; overflow-wrap: anywhere; word-break: break-word; }
@@ -1073,7 +1075,9 @@ ${ldBlock({
     <style>
       * { box-sizing: border-box; }
       body { margin: 0; min-width: 0; }
-      main { margin: 0 auto; max-width: 980px; padding: clamp(40px, 6vw, 72px) 22px 64px; min-width: 0; }
+      main { margin: 0 auto; max-width: 1120px; padding: clamp(40px, 6vw, 72px) 22px 64px; min-width: 0; }
+      .enter > p { max-width: 720px; }
+      .panel p, .panel li { font-size: 16px; }
       h1 { font-size: var(--text-display); line-height: var(--leading-display); margin: 0 0 20px; max-width: 820px; overflow-wrap: break-word; }
       h2 { font-size: clamp(22px, 3vw, 28px); line-height: 1.2; margin: 0 0 12px; overflow-wrap: break-word; }
       p, li { color: var(--ink-soft); font-size: 17px; line-height: 1.62; overflow-wrap: anywhere; word-break: break-word; }

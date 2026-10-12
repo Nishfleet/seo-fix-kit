@@ -327,7 +327,7 @@ export function checkHtml(origin) {
     <style>
       * { box-sizing: border-box; }
       body { margin: 0; }
-      main { margin: 0 auto; max-width: 980px; padding: clamp(40px, 6vw, 72px) 22px 72px; }
+      main { margin: 0 auto; max-width: 1120px; padding: clamp(40px, 6vw, 72px) 22px 72px; }
       h1 { font-size: var(--text-display); line-height: var(--leading-display); margin: 0 0 20px; max-width: 820px; overflow-wrap: break-word; }
       h2 { font-size: clamp(22px, 3vw, 28px); line-height: 1.2; margin: 0 0 12px; }
       h3 { font-size: 17px; line-height: 1.4; margin: 24px 0 6px; }

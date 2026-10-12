@@ -4,26 +4,31 @@
 // emailLayout(), so builders only produce the inner body markup and use
 // emailButton() for their primary link. Email clients ignore <style> blocks
 // and external CSS unevenly, so everything here is table-based with inline
-// styles: a 560px white card with 24px padding on a light grey canvas, a
-// text logo, and a footer with the support address.
+// styles: a 560px white card with 32px padding on a warm off-white canvas,
+// the mint brand tile and wordmark, and a footer with the support address.
+// The palette matches src/design/tokens.css: near-black ink for the button
+// (Linear/Vercel-style) and the deep brand green for links.
 import { escapeHtml } from "./html.js";
 
 const SUPPORT_EMAIL = "support@seofixkit.com";
-const FONT_STACK = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif";
+const FONT_STACK = "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+const INK = "#0b0f0d";
+const LINK = "#0f7a56";
+const MUTED = "#6b6f6c";
 
-// Solid-colour call-to-action link. The raw URL is repeated underneath as a
+// Solid near-black call-to-action link. The raw URL is repeated underneath as a
 // plain-text fallback for clients that strip or block styled links.
 export function emailButton(href, label) {
   const url = escapeHtml(href);
   return [
-    '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:20px 0 8px">',
+    '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0 12px">',
     "<tr>",
-    `<td style="background:#0f7a56;border-radius:8px">`,
-    `<a href="${url}" style="background:#0f7a56;border-radius:8px;color:#ffffff;display:inline-block;font-family:${FONT_STACK};font-size:15px;font-weight:600;line-height:20px;padding:12px 20px;text-decoration:none">${escapeHtml(label)}</a>`,
+    `<td style="background:${INK};border-radius:10px">`,
+    `<a href="${url}" style="background:${INK};border:1px solid ${INK};border-radius:10px;color:#ffffff;display:inline-block;font-family:${FONT_STACK};font-size:15px;font-weight:600;letter-spacing:-0.01em;line-height:20px;padding:12px 22px;text-decoration:none">${escapeHtml(label)}</a>`,
     "</td>",
     "</tr>",
     "</table>",
-    `<p style="color:#6b6f6c;font-size:12px;line-height:18px;margin:0 0 16px;word-break:break-all">Or paste this link into your browser: ${url}</p>`
+    `<p style="color:${MUTED};font-size:12px;line-height:18px;margin:0 0 16px;word-break:break-all">Or paste this link into your browser: ${url}</p>`
   ].join("");
 }
 
@@ -40,28 +45,28 @@ export function emailLayout({ preheader = "", body = "" } = {}) {
     '<meta name="color-scheme" content="light" />',
     "<title>SEO Fix Kit</title>",
     "</head>",
-    `<body style="background:#f3f2ee;margin:0;padding:0;-webkit-text-size-adjust:100%">`,
+    `<body style="background:#f5f4ef;margin:0;padding:0;-webkit-text-size-adjust:100%">`,
     preview
       ? `<div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all">${escapeHtml(preview)}</div>`
       : "",
-    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f3f2ee">',
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f5f4ef">',
     "<tr>",
-    '<td align="center" style="padding:32px 12px">',
+    '<td align="center" style="padding:40px 12px">',
     '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px">',
     "<tr>",
-    `<td style="padding:0 4px 16px;font-family:${FONT_STACK};font-size:16px;font-weight:700;color:#171714;letter-spacing:-0.01em">`,
-    '<span style="background:#0f7a56;border-radius:5px;color:#ffffff;display:inline-block;font-size:11px;font-weight:700;line-height:20px;margin-right:8px;text-align:center;vertical-align:1px;width:20px">&#10003;</span>SEO Fix Kit',
+    `<td style="padding:0 4px 20px;font-family:${FONT_STACK};font-size:16px;font-weight:650;color:${INK};letter-spacing:-0.015em">`,
+    `<span style="background:#67d8aa;background-image:linear-gradient(135deg,#c4f8e2,#67d8aa);border-radius:7px;color:${INK};display:inline-block;font-size:13px;font-weight:800;line-height:24px;margin-right:10px;text-align:center;vertical-align:-1px;width:24px">&#10003;</span>SEO Fix Kit`,
     "</td>",
     "</tr>",
     "<tr>",
-    `<td style="background:#ffffff;border:1px solid #e3e1da;border-radius:8px;padding:24px;font-family:${FONT_STACK};font-size:15px;line-height:24px;color:#1f2220">`,
+    `<td style="background:#ffffff;border:1px solid #e6e4dc;border-radius:14px;padding:32px;font-family:${FONT_STACK};font-size:15px;line-height:24px;color:#1f2220">`,
     body,
     "</td>",
     "</tr>",
     "<tr>",
-    `<td style="padding:16px 4px 0;font-family:${FONT_STACK};font-size:12px;line-height:18px;color:#6b6f6c">`,
-    `SEO Fix Kit · <a href="https://seofixkit.com" style="color:#0f7a56;text-decoration:none">seofixkit.com</a><br />`,
-    `Questions or issues? Email <a href="mailto:${SUPPORT_EMAIL}" style="color:#0f7a56;text-decoration:none">${SUPPORT_EMAIL}</a> or reply to this email.`,
+    `<td style="padding:20px 4px 0;font-family:${FONT_STACK};font-size:12px;line-height:18px;color:${MUTED}">`,
+    `SEO fixes you can prove. <a href="https://seofixkit.com" style="color:${LINK};text-decoration:none">seofixkit.com</a><br />`,
+    `Questions? Reply to this email or write to <a href="mailto:${SUPPORT_EMAIL}" style="color:${LINK};text-decoration:none">${SUPPORT_EMAIL}</a>.`,
     "</td>",
     "</tr>",
     "</table>",

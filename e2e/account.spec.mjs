@@ -34,6 +34,7 @@ test("a returning user signs in, visits every section and signs out", async ({ p
 
   await page.goto(await signInLinkFor(request, email));
   await expect(page.getByRole("heading", { level: 1, name: "Overview" })).toBeVisible();
+  if (!isMobile) await expect(page.locator(".app-account-email")).toHaveText(email);
 
   for (const section of SECTIONS) {
     const nav = await openAppNav(page, isMobile);

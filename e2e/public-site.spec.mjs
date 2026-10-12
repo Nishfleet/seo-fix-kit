@@ -59,6 +59,16 @@ test.describe("homepage", () => {
   });
 });
 
+test("share previews and icons resolve to real images", async ({ page, request }) => {
+  await page.goto("/pricing");
+  const shareImage = await page.locator('meta[property="og:image"]').getAttribute("content");
+  for (const path of [new URL(shareImage).pathname, "/apple-touch-icon.png", "/favicon.svg", "/favicon.ico"]) {
+    const response = await request.get(path);
+    expect(response.status(), path).toBe(200);
+    expect(response.headers()["content-type"], path).toMatch(/^image\//);
+  }
+});
+
 test.describe("site header", () => {
   for (const path of ["/", "/pricing"]) {
     test(`navigation works at every size on ${path}`, async ({ page, isMobile }) => {
