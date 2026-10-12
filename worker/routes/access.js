@@ -298,13 +298,13 @@ async function verifyAccessLink(request, env) {
 function safeBetaReturnPath(value) {
   const path = String(value || "").trim();
   if (path.length > 200) return "/beta";
-  if (!/^\/beta(\/[A-Za-z0-9._\/-]*)?$/.test(path) || path.includes("..") || path.includes("//")) {
+  if (!/^\/beta(\/[A-Za-z0-9._/-]*)?$/.test(path) || path.includes("..") || path.includes("//")) {
     return "/beta";
   }
   return path;
 }
 
-async function sendAccessLinkEmail(env, { ownerEmail, accessUrl, expiresAt, tokenHash }) {
+async function sendAccessLinkEmail(env, { ownerEmail, accessUrl }) {
   const subject = "Your SEO Fix Kit access link";
   const expiresMinutes = Math.max(1, Math.round(ACCESS_LINK_TTL_SECONDS / 60));
   const text = [
@@ -781,7 +781,7 @@ async function inviteAccessStatus(request, env, ownerEmail, inviteCode, inviteCo
 // funnel. Rate-limited per network so it cannot be abused as a free
 // analytics sink. Always returns 204 so the SPA beacon never throws.
 async function recordAccessBeacon(request, env) {
-  let body = {};
+  let body;
   try {
     body = await request.json();
   } catch {

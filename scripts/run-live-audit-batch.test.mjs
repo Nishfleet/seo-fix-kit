@@ -432,7 +432,7 @@ test("Fix Pack webhook drill skips non-test checkout proof", async () => {
       productId: "pdt_fix_pack",
       brandId: "brand-1"
     },
-    fetcher: async (rawUrl, options = {}) => {
+    fetcher: async (rawUrl) => {
       const url = new URL(rawUrl);
       calls.push(url.pathname);
       if (url.pathname === "/api/beta/fix-request") {

@@ -43,7 +43,7 @@ function normalizeOwnerEmail(value) {
 }
 
 function normalizeFunnelKey(value) {
-  return cleanText(value || "", 64).replace(/[^A-Za-z0-9._\-]/g, "");
+  return cleanText(value || "", 64).replace(/[^A-Za-z0-9._-]/g, "");
 }
 
 function normalizeSource(value) {

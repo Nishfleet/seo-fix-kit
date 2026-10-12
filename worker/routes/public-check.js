@@ -77,7 +77,7 @@ export function friendlyCheckError(raw) {
 }
 
 export function validatePublicCheckUrl(input) {
-  let url = "";
+  let url;
   try {
     url = normalizeUrl(input);
   } catch {

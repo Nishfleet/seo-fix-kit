@@ -51,7 +51,7 @@ test("parseSitemapLocs extracts every loc", () => {
 
 test("fetchSitemapUrls reads the live-style sitemap and rejects empty sets", async () => {
   const locs = ROOT_PUBLIC_PATHS.map((p) => `https://${INDEX_NOW_HOST}${p}`);
-  const fetchImpl = async (url) =>
+  const fetchImpl = async () =>
     new Response(xmlSitemap(locs), { status: 200, headers: { "content-type": "application/xml" } });
   const got = await fetchSitemapUrls({ fetchImpl });
   assert.deepEqual(got, locs);

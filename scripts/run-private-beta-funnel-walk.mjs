@@ -66,7 +66,7 @@ export const WALK_VIEWPORTS = [
 // while still reporting the stop as the "mobile" viewport. The size must be
 // nested under `viewport`, and this builder plus the runtime applied-size
 // guard keep the walk honest.
-export function buildContextOptions({ name, width, height, isMobile = false, hasTouch = false, userAgent = "" } = {}) {
+export function buildContextOptions({ width, height, isMobile = false, hasTouch = false, userAgent = "" } = {}) {
   const options = {
     viewport: { width, height },
     isMobile,
@@ -177,7 +177,7 @@ export async function runPrivateBetaFunnelWalk({
   let accessRequest = null;
 
   try {
-    for (const [viewportIndex, viewport] of WALK_VIEWPORTS.entries()) {
+    for (const viewport of WALK_VIEWPORTS) {
       const context = await launched.newContext(buildContextOptions(viewport));
       const page = await context.newPage();
       // Fail loud if the requested size did not apply: Playwright silently

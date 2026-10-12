@@ -64,7 +64,7 @@ const surfaces = {
 };
 
 function pageFetcher(overrides = {}) {
-  return async (rawUrl, options = {}) => {
+  return async (rawUrl) => {
     const url = new URL(rawUrl);
     if (url.hostname.startsWith("www.")) {
       const apexUrl = new URL(rawUrl);

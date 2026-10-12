@@ -38,7 +38,7 @@ export async function verifyKeyFileLive({ fetchImpl = globalThis.fetch } = {}) {
   for (const path of indexNowKeyFilePaths()) {
     const url = `${ORIGIN}${path}`;
     let ok = false;
-    let detail = "";
+    let detail;
     try {
       const res = await fetchImpl(url);
       const body = (await res.text()).trim();

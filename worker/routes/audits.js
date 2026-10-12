@@ -53,7 +53,7 @@ async function runPrivateAudit(request, env, ctx) {
     return json({ error: "Report storage is not configured." }, 503);
   }
 
-  let targetUrl = "";
+  let targetUrl;
   try {
     targetUrl = normalizeUrl(body.url || "");
   } catch {
@@ -207,7 +207,7 @@ async function createAuditSchedule(request, env) {
   if (!access.ok) return betaAccessResponse(access);
   if (!env.WAITLIST_DB) return json({ error: "Schedule storage is not configured." }, 503);
 
-  let targetUrl = "";
+  let targetUrl;
   try {
     targetUrl = normalizeUrl(body.url || body.targetUrl || "");
   } catch {

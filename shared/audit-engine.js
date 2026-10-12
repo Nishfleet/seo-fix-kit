@@ -603,7 +603,7 @@ export function createAuditEngine({
           (check) => check.key === "apple-touch-icon" && check.ok && check.url === rendered.appleTouchIcon
         );
       if (iconAlreadyOk) continue;
-      let pageOrigin = "";
+      let pageOrigin;
       try {
         pageOrigin = new URL(page.url).origin;
       } catch {
@@ -817,7 +817,7 @@ function discoveryFileSummary(file = {}) {
 // Dev/test-only guard: literal localhost targets are allowed; everything else
 // still goes through the production public-URL guard.
 function localAuditUrlStatus(value) {
-  let parsed = null;
+  let parsed;
   try {
     parsed = new URL(value);
   } catch {
@@ -3016,7 +3016,7 @@ export function parseAuditCompetitorUrls(body = {}, targetUrl = "", urlGuard = p
   for (const value of raw) {
     if (!value) continue;
     if (urls.length >= 5) break;
-    let normalized = "";
+    let normalized;
     try {
       normalized = normalizeUrl(value);
     } catch {
@@ -3064,7 +3064,7 @@ export function issuePatternKey(title) {
 }
 
 export function publicAuditUrlStatus(value) {
-  let parsed = null;
+  let parsed;
   try {
     parsed = new URL(value);
   } catch {

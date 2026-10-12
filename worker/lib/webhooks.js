@@ -191,7 +191,7 @@ async function fetchWithTimeout(fetcher, url, options, timeoutMs) {
     return await fetcher(url, { ...options, signal: controller.signal });
   } catch (error) {
     if (error?.name === "AbortError") {
-      throw new Error(`Webhook delivery timed out after ${timeoutMs}ms.`);
+      throw new Error(`Webhook delivery timed out after ${timeoutMs}ms.`, { cause: error });
     }
     throw error;
   } finally {
@@ -224,7 +224,7 @@ function sleep(ms) {
 }
 
 function publicWebhookUrlStatus(value) {
-  let parsed = null;
+  let parsed;
   try {
     parsed = new URL(String(value || ""));
   } catch {
