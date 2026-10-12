@@ -130,7 +130,7 @@ export function buildPlatformSeoAudit(report = {}) {
   return {
     status: "ready",
     source: "rendered-platform-proof",
-    note: "Platform SEO audit uses rendered page proof and public resources. It does not log into CMS, Google Business Profile, Shopify admin, or private plugin settings.",
+    note: "The platform audit checks only your public pages and files. It does not log into your CMS, Google Business Profile, Shopify admin, or private plugin settings.",
     detectedPlatforms,
     summary,
     checks,
@@ -162,14 +162,14 @@ export function platformSeoAuditBriefLines(audit = {}) {
     }
     lines.push("");
   } else {
-    lines.push("No platform-specific repair actions were created from the rendered proof.", "");
+    lines.push("No platform-specific problems found.", "");
   }
 
   return lines;
 }
 
 export function platformSeoSummaryCopy(audit = {}) {
-  if (audit.status !== "ready") return "No WordPress or ecommerce platform signals were detected.";
+  if (audit.status !== "ready") return "No WordPress or ecommerce platform detected.";
   const names = audit.summary?.detectedPlatformNames?.join(", ") || "platform";
   return `${names} proof was detected from rendered pages. The audit checked product schema, breadcrumbs, faceted links, WordPress archives, and plugin resource impact.`;
 }
@@ -418,7 +418,7 @@ function platformRepairOpportunities({ checks, wordpressDetected, ecommerceDetec
       confidence: item.confidence || "needs-review",
       estimatedEffort: item.estimatedEffort || "30-90 min",
       workType: item.workType || "technical",
-      acceptance: item.acceptance || "Rerun the audit and confirm this platform-specific proof no longer appears.",
+      acceptance: item.acceptance || "Rerun the audit. This problem no longer shows.",
       ...item
     });
   };
@@ -428,9 +428,9 @@ function platformRepairOpportunities({ checks, wordpressDetected, ecommerceDetec
       severity: "warning",
       title: "Ecommerce product pages are missing Product schema",
       proof: `${checks.productSchema.missingPages.length} product-like page${checks.productSchema.missingPages.length === 1 ? "" : "s"} lacked rendered Product schema, including ${checks.productSchema.missingPages[0]?.url || "a product page"}.`,
-      fix: "Add truthful Product schema with name, image, price, availability, and offer data that matches the visible product page.",
+      fix: "Add Product schema with the name, image, price, stock status and offer details shown on the product page.",
       workType: "code",
-      acceptance: "Rendered product pages include valid Product JSON-LD matching visible price and availability."
+      acceptance: "Product pages have valid Product JSON-LD that matches the price and stock status shown."
     });
   }
 
@@ -439,7 +439,7 @@ function platformRepairOpportunities({ checks, wordpressDetected, ecommerceDetec
       severity: "notice",
       title: "Ecommerce pages lack BreadcrumbList schema",
       proof: `${checks.breadcrumbSchema.missingPages.length} product or category page${checks.breadcrumbSchema.missingPages.length === 1 ? "" : "s"} lacked rendered BreadcrumbList schema.`,
-      fix: "Add visible breadcrumbs and BreadcrumbList schema that matches the page hierarchy.",
+      fix: "Add visible breadcrumbs (Home > Category > Product) and BreadcrumbList schema that matches them.",
       workType: "code"
     });
   }
@@ -449,7 +449,7 @@ function platformRepairOpportunities({ checks, wordpressDetected, ecommerceDetec
       severity: "warning",
       title: "Faceted or variant URLs are crawlable",
       proof: `${checks.facetedNavigation.links.length} filter, sort, pagination, or variant URL${checks.facetedNavigation.links.length === 1 ? "" : "s"} appeared in rendered links, including ${checks.facetedNavigation.links[0].href}.`,
-      fix: "Decide which filtered URLs deserve indexation, canonical duplicate combinations to the clean category/product URL, and block or noindex crawl-waste parameters.",
+      fix: "Decide which filtered URLs should be in search. Point the rest at the plain category or product URL with a canonical tag, and block or noindex filter parameters that only waste crawling.",
       estimatedEffort: "1-3 hours"
     });
   }
@@ -459,7 +459,7 @@ function platformRepairOpportunities({ checks, wordpressDetected, ecommerceDetec
       severity: "notice",
       title: "Thin ecommerce category content",
       proof: `${checks.categoryContent.thinPages.length} category-like page${checks.categoryContent.thinPages.length === 1 ? "" : "s"} had very little rendered text.`,
-      fix: "Add useful category copy, buying guidance, FAQs, and internal links that help users choose products.",
+      fix: "Add category text that helps shoppers choose: buying tips, common questions (FAQs) and internal links to related products.",
       workType: "content"
     });
   }
@@ -469,7 +469,7 @@ function platformRepairOpportunities({ checks, wordpressDetected, ecommerceDetec
       severity: "notice",
       title: "Out-of-stock product handling needs review",
       proof: `${checks.outOfStock.pages.length} product-like page${checks.outOfStock.pages.length === 1 ? "" : "s"} contained sold-out or unavailable language.`,
-      fix: "For temporary stockouts, keep the URL indexable and show alternatives. For discontinued products, redirect or canonicalize to the best replacement.",
+      fix: "If an item is only out of stock for now, keep the page in search and show alternatives. If it's discontinued, redirect it or set a canonical to the closest replacement.",
       workType: "review"
     });
   }
@@ -479,7 +479,7 @@ function platformRepairOpportunities({ checks, wordpressDetected, ecommerceDetec
       severity: "notice",
       title: "WordPress archive URLs are crawlable",
       proof: `${checks.wordpressArchives.links.length} category, tag, author, or date archive URL${checks.wordpressArchives.links.length === 1 ? "" : "s"} appeared in rendered links, including ${checks.wordpressArchives.links[0].href}.`,
-      fix: "Noindex thin archives, add unique archive copy where they should rank, and keep important categories linked from navigation.",
+      fix: "Noindex thin tag, date and author archives. Add unique text to archives you want in search, and keep important categories in your navigation.",
       estimatedEffort: "30-90 min"
     });
   }
@@ -489,7 +489,7 @@ function platformRepairOpportunities({ checks, wordpressDetected, ecommerceDetec
       severity: "warning",
       title: "WordPress plugin resources may be slowing the page",
       proof: `${checks.wordpressPlugins.resourceCount} plugin resource${checks.wordpressPlugins.resourceCount === 1 ? "" : "s"} from ${checks.wordpressPlugins.pluginCount} plugin${checks.wordpressPlugins.pluginCount === 1 ? "" : "s"} loaded in the rendered browser.`,
-      fix: "Disable unused plugins, conditionally load plugin assets only where needed, and defer non-critical plugin scripts.",
+      fix: "Turn off plugins you don't use, load plugin files only on pages that need them, and defer plugin scripts the first view doesn't need.",
       estimatedEffort: "1-3 hours"
     });
   }
@@ -499,8 +499,8 @@ function platformRepairOpportunities({ checks, wordpressDetected, ecommerceDetec
       severity: "notice",
       title: "WordPress SEO plugin configuration was not proven",
       proof:
-        "The rendered page showed WordPress signals but no known SEO plugin signal and no complete canonical plus meta description pair.",
-      fix: "Configure Yoast, Rank Math, AIOSEO, or equivalent template output for canonical URLs, meta descriptions, robots rules, and sitemaps.",
+        "The page runs on WordPress, but we found no known SEO plugin and no canonical tag plus meta description pair.",
+      fix: "Set up Yoast, Rank Math, AIOSEO or a similar plugin to output canonical tags, meta descriptions, robots rules and sitemaps.",
       workType: "review"
     });
   }

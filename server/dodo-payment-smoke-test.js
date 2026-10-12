@@ -159,9 +159,9 @@ const notification = buildPaymentNotificationEmail({
   recipientType: "owner"
 });
 assert.equal(notification.subject.includes("example.com"), true);
-assert.equal(notification.subject.includes("SEO Fix Pack"), true);
-assert.equal(notification.text.includes("No ranking promises"), true);
-assert.equal(notification.text.includes("proven repair queue and one rerun after fixes"), true);
+assert.equal(notification.subject === "Payment received: Fix Pack for example.com", true);
+assert.equal(notification.text.includes("We don't promise rankings"), true);
+assert.equal(notification.text.includes("one guided repair pass on the problems in this report, plus one rerun"), true);
 assert.equal(notification.text.includes("USD 99.00"), true);
 
 const sprintNotification = buildPaymentNotificationEmail({
@@ -178,10 +178,10 @@ const sprintNotification = buildPaymentNotificationEmail({
 });
 assert.equal(sprintNotification.subject.includes("Repair Sprint"), true);
 assert.equal(sprintNotification.subject.includes("Fix Pack"), false);
-assert.equal(sprintNotification.text.includes("Your Repair Sprint payment is confirmed."), true);
+assert.equal(sprintNotification.text.includes("We received your Repair Sprint payment."), true);
 assert.equal(sprintNotification.text.includes("Fix Pack"), false);
 assert.equal(sprintNotification.html.includes("Fix Pack"), false);
-assert.equal(sprintNotification.text.includes("approved repair proposals executed"), true);
+assert.equal(sprintNotification.text.includes("repairs you approved"), true);
 assert.equal(sprintNotification.text.includes("delivery proof"), true);
 
 const delivery = buildStatusNotificationEmail({
@@ -204,7 +204,7 @@ const delivery = buildStatusNotificationEmail({
     afterFindings: 2
   }
 });
-assert.equal(delivery.subject.includes("delivery ready"), true);
+assert.equal(delivery.subject === "Fix Pack delivered: example.com", true);
 assert.equal(delivery.text.includes("Score: 72 -> 91 (+19)"), true);
 
 const digest = buildOpsDigestEmail({

@@ -103,7 +103,7 @@ async function saveRepairQueueItems(env, access, reportId, report, body = {}) {
   );
   const mutation = await runRepairMutationStatements(env.WAITLIST_DB, [statement]);
   if (mutationChangeCount(mutation, 0) !== 1) {
-    return repairActionError("Repair item no longer exists in this report.", 409);
+    return repairActionError("That repair item is no longer in this report. Refresh the report.", 409);
   }
 
   return { ok: true };
@@ -113,13 +113,13 @@ async function createRepairActionRecord(env, access, reportId, report, body = {}
   const ensured = await ensureRepairQueueRows(env, access, reportId, report);
   const issueId = cleanText(body.issueId || body.issue_id || "", 160);
   const item = ensured.items.find((candidate) => candidate.issueId === issueId);
-  if (!item?.id) return repairActionError("Repair item no longer exists in this report.", 400);
+  if (!item?.id) return repairActionError("That repair item is no longer in this report. Refresh the report.", 400);
 
   const proposedChange = cleanText(
     body.proposedChange || body.proposed_change || defaultProposedChangeForItem(item),
     4000
   );
-  if (!proposedChange) return repairActionError("Draft action needs a proposed change.", 400);
+  if (!proposedChange) return repairActionError("Add the proposed change before saving this draft.", 400);
   const normalized = normalizeRepairActionCreateInput(body, item);
   if (!normalized.ok) return repairActionError(normalized.error, normalized.status || 400);
 
@@ -195,7 +195,7 @@ async function createRepairActionRecord(env, access, reportId, report, body = {}
   ).bind(action.action_mode, now, access.ownerEmail, item.id, reportId, access.ownerEmail);
   const mutation = await runRepairMutationStatements(env.WAITLIST_DB, [insertAction, updateQueue]);
   if (mutationChangeCount(mutation, 0) !== 1 || mutationChangeCount(mutation, 1) !== 1) {
-    return repairActionError("Repair item no longer exists in this report.", 409);
+    return repairActionError("That repair item is no longer in this report. Refresh the report.", 409);
   }
 
   return { ok: true, status: 201, action, events: ["repair_action.drafted"] };
@@ -219,7 +219,7 @@ async function updateRepairActionRecord(env, access, reportId, report, actionId,
   const { approvalState, executionState, rerunState, rerunReportId } = normalized;
   const now = new Date().toISOString();
   if (rerunProofBlockedByNewApply(action, executionState, rerunState)) {
-    return repairActionError("Rerun repair states require a later rerun after the action is applied.", 400);
+    return repairActionError("Apply this change and run a new audit before you set the rerun result.", 400);
   }
   const proofFreshAfterMs = proofBackedRerunState(rerunState) ? rerunProofFreshAfterMs(action, report) : 0;
   if (
@@ -295,7 +295,7 @@ async function updateRepairActionRecord(env, access, reportId, report, actionId,
   });
   const mutation = await runRepairMutationStatements(env.WAITLIST_DB, [updateAction, updateQueue]);
   if (mutationChangeCount(mutation, 0) !== 1 || mutationChangeCount(mutation, 1) !== 1) {
-    return repairActionError("Repair action could not be updated.", 409);
+    return repairActionError("This repair action changed while you were editing it. Refresh and try again.", 409);
   }
 
   return {

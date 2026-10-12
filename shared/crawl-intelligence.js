@@ -125,7 +125,7 @@ export function buildCrawlIntelligence(report = {}, crawlInventory = {}) {
   return {
     status: "ready",
     source: "rendered-crawl-graph",
-    note: "Crawl intelligence uses rendered internal links, sitemap inventory samples, and crawled page content. Keyword cannibalization is a proof heuristic, not rank-tracking data.",
+    note: "Based on the internal links and text of the pages loaded, plus a sample of your sitemap. Keyword overlap is a rule of thumb, not rank-tracking data.",
     summary,
     checks,
     repairOpportunities
@@ -159,16 +159,16 @@ export function crawlIntelligenceBriefLines(audit = {}) {
     }
     lines.push("");
   } else {
-    lines.push("No crawl-intelligence repair actions were created from this crawl.", "");
+    lines.push("No link structure problems found in this crawl.", "");
   }
 
   return lines;
 }
 
 export function crawlIntelligenceSummaryCopy(audit = {}) {
-  if (audit.status !== "ready") return "Rendered crawl intelligence was not available.";
+  if (audit.status !== "ready") return "Link structure analysis is not available for this report.";
   const summary = audit.summary || {};
-  return `Rendered crawl graph found ${summary.linkedEdges || 0} internal link edges across ${summary.crawledPages || 0} pages, with ${summary.orphanInventoryCandidates || 0} sitemap orphan candidates, ${summary.duplicateContentPairs || 0} duplicate-content pairs, and ${summary.cannibalizationGroups || 0} cannibalization groups.`;
+  return `${summary.linkedEdges || 0} internal links across ${summary.crawledPages || 0} pages. ${summary.orphanInventoryCandidates || 0} sitemap pages with no links to them, ${summary.duplicateContentPairs || 0} near-duplicate page pairs, ${summary.cannibalizationGroups || 0} groups of pages competing for the same search.`;
 }
 
 function pageRow(page = {}, startUrl = "") {
@@ -328,7 +328,7 @@ function crawlIntelligenceRepairs(checks = {}, crawlInventory = {}) {
       confidence: item.confidence || "needs-review",
       estimatedEffort: item.estimatedEffort || "30-90 min",
       workType: item.workType || "technical",
-      acceptance: item.acceptance || "Rerun the audit and confirm this crawl-intelligence proof no longer appears.",
+      acceptance: item.acceptance || "Rerun the audit. This problem no longer shows.",
       ...item
     });
   };
@@ -338,16 +338,16 @@ function crawlIntelligenceRepairs(checks = {}, crawlInventory = {}) {
       severity: "warning",
       title: "Sitemap URLs are not linked in the rendered crawl sample",
       proof: `${checks.orphanInventoryCandidates.length} sitemap URL${checks.orphanInventoryCandidates.length === 1 ? "" : "s"} from the inventory sample did not appear in rendered internal links, including ${checks.orphanInventoryCandidates[0].url}.`,
-      fix: "Add crawlable internal links to important sitemap URLs, or remove low-value orphan URLs from the sitemap.",
+      fix: "Link to important sitemap pages from your other pages with normal internal links, or remove unimportant orphan pages from the sitemap.",
       estimatedEffort: "30-90 min",
-      acceptance: "Important sitemap URLs appear in rendered internal links from relevant hub pages."
+      acceptance: "Important sitemap pages are linked from related pages."
     });
   } else if ((crawlInventory.summary?.uncrawledInventoryUrls || 0) > 0) {
     add({
       severity: "notice",
       title: "Sitemap inventory exceeds rendered proof depth",
       proof: `${crawlInventory.summary.uncrawledInventoryUrls} sitemap URL${crawlInventory.summary.uncrawledInventoryUrls === 1 ? "" : "s"} were discovered beyond the selected rendered crawl depth.`,
-      fix: "Increase crawl depth for this host or prioritize the highest-value sitemap sections for rendered proof.",
+      fix: "Raise the page limit for this site, or audit your most important sitemap sections first.",
       confidence: "needs-review",
       estimatedEffort: "5-15 min"
     });
@@ -358,7 +358,7 @@ function crawlIntelligenceRepairs(checks = {}, crawlInventory = {}) {
       severity: "notice",
       title: "Important pages are too deep in the rendered link graph",
       proof: `${checks.deepPages.length} crawled page${checks.deepPages.length === 1 ? "" : "s"} appeared deeper than ${DEEP_PAGE_THRESHOLD} clicks, including ${checks.deepPages[0].label} at depth ${checks.deepPages[0].depth}.`,
-      fix: "Add links from relevant hub, category, footer, or navigation pages so important URLs are reachable within three clicks."
+      fix: "Link to these pages from hub, category, footer or menu pages so each is within three clicks of the home page."
     });
   }
 
@@ -367,9 +367,9 @@ function crawlIntelligenceRepairs(checks = {}, crawlInventory = {}) {
       severity: "warning",
       title: "Duplicate title tags across crawled pages",
       proof: `${checks.duplicateTitles.length} duplicate title group${checks.duplicateTitles.length === 1 ? "" : "s"} found, including "${checks.duplicateTitles[0].value}" on ${checks.duplicateTitles[0].pages.length} pages.`,
-      fix: "Rewrite each duplicated title so it reflects the page's unique intent and target query.",
+      fix: "Give each page its own title that says what that page is about.",
       workType: "content",
-      acceptance: "Each crawled indexable page has a unique rendered title."
+      acceptance: "Every page you want in search has its own title."
     });
   }
 
@@ -378,7 +378,7 @@ function crawlIntelligenceRepairs(checks = {}, crawlInventory = {}) {
       severity: "notice",
       title: "Duplicate meta descriptions across crawled pages",
       proof: `${checks.duplicateDescriptions.length} duplicate description group${checks.duplicateDescriptions.length === 1 ? "" : "s"} found.`,
-      fix: "Write unique descriptions for pages that should rank, or noindex/consolidate pages that are duplicates.",
+      fix: "Write a different description for each page you want in search. Noindex or merge pages that are duplicates.",
       workType: "content"
     });
   }
@@ -388,7 +388,7 @@ function crawlIntelligenceRepairs(checks = {}, crawlInventory = {}) {
       severity: "warning",
       title: "Near-duplicate rendered content",
       proof: `${checks.duplicateContentPairs.length} near-duplicate page pair${checks.duplicateContentPairs.length === 1 ? "" : "s"} found, led by ${checks.duplicateContentPairs[0].left.label} and ${checks.duplicateContentPairs[0].right.label} at ${checks.duplicateContentPairs[0].similarityPercent}% similarity.`,
-      fix: "Consolidate duplicates with canonicals or redirects, or rewrite the pages so each has distinct intent and useful content.",
+      fix: "Merge duplicates with a canonical tag or a redirect, or rewrite the pages so each covers its own topic with useful content.",
       workType: "content",
       estimatedEffort: "1-3 hours"
     });
@@ -399,7 +399,7 @@ function crawlIntelligenceRepairs(checks = {}, crawlInventory = {}) {
       severity: "notice",
       title: "Keyword cannibalization candidates",
       proof: `${checks.cannibalizationGroups.length} query-intent group${checks.cannibalizationGroups.length === 1 ? "" : "s"} had multiple crawled pages, including "${checks.cannibalizationGroups[0].keyword}" across ${checks.cannibalizationGroups[0].pages.length} pages.`,
-      fix: "Pick one primary page for each query intent, merge overlapping pages, and use internal links from secondary pages to reinforce the primary page.",
+      fix: "Pick one main page per search topic, merge overlapping pages, and add internal links from the others to the main page.",
       confidence: "needs-review",
       workType: "content"
     });
@@ -410,7 +410,7 @@ function crawlIntelligenceRepairs(checks = {}, crawlInventory = {}) {
       severity: "notice",
       title: "Parameterized internal URLs may waste crawl budget",
       proof: `${checks.parameterizedLinks.length} rendered internal URL${checks.parameterizedLinks.length === 1 ? "" : "s"} used filter, sort, search, pagination, or variant parameters, including ${checks.parameterizedLinks[0].href}.`,
-      fix: "Canonical duplicate parameter URLs, noindex low-value variants, and link to clean canonical URLs where possible."
+      fix: "Set a canonical tag on duplicate URLs with ?parameters, noindex low-value variants, and link to the plain canonical URL where you can."
     });
   }
 
@@ -419,7 +419,7 @@ function crawlIntelligenceRepairs(checks = {}, crawlInventory = {}) {
       severity: "notice",
       title: "Low-inbound pages need stronger internal links",
       proof: `${checks.lowInboundPages.length} crawled page${checks.lowInboundPages.length === 1 ? "" : "s"} had ${LOW_INBOUND_THRESHOLD} or fewer rendered inbound links.`,
-      fix: "Link important pages from relevant hubs, navigation, related-content blocks, or conversion paths.",
+      fix: "Add internal links to these pages from hub pages, the menu, related-content blocks or checkout and contact paths.",
       confidence: "needs-review"
     });
   }

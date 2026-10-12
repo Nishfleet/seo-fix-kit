@@ -11,7 +11,7 @@ test("Worker dispatch routes public pages and repair APIs", async () => {
 
   const methodology = await worker.fetch(new Request("https://seofixkit.test/methodology"), env, fakeCtx());
   assert.equal(methodology.status, 200);
-  assert.match(await methodology.text(), /Proof first\. Repairs second\. Claims last\./);
+  assert.match(await methodology.text(), /How SEO Fix Kit works/);
 
   const sessionQueue = await worker.fetch(
     new Request(`https://seofixkit.test/api/reports/${env.reportId}/repair-queue`, {
@@ -292,10 +292,10 @@ test("Worker dispatch serves the real before/after repair proof receipt", async 
   assert.equal(proof.status, 200);
   assert.match(proof.headers.get("content-type"), /text\/html; charset=utf-8/);
   const proofBody = await proof.text();
-  assert.match(proofBody, /85 to 100, with a receipt for every step\./);
-  assert.match(proofBody, /Score <strong>85<\/strong>\/100 &middot; 7 findings/);
-  assert.match(proofBody, /Score <strong>99<\/strong>\/100 &middot; 2 findings/);
-  assert.match(proofBody, /Score <strong>100<\/strong>\/100 &middot; 0 findings/);
+  assert.match(proofBody, /85 to 100 in two fixes\./);
+  assert.match(proofBody, /Score <strong>85<\/strong>\/100 &middot; 7 problems/);
+  assert.match(proofBody, /Score <strong>99<\/strong>\/100 &middot; 2 problems/);
+  assert.match(proofBody, /Score <strong>100<\/strong>\/100 &middot; 0 problems/);
   assert.match(proofBody, /tinystudio-in-96b716c9-22f3-4ffb-bb92-b912a421a44b/);
   assert.match(proofBody, /tinystudio-in-75ffee26-02ae-41d3-b2ef-5beb40722e50/);
   assert.match(proofBody, /tinystudio-in-0a45637f-1354-4d26-ace3-d3b594162961/);
@@ -310,14 +310,14 @@ test("Worker dispatch serves the real before/after repair proof receipt", async 
   assert.equal(proofMarkdown.status, 200);
   assert.match(proofMarkdown.headers.get("content-type"), /text\/markdown; charset=utf-8/);
   const proofMarkdownBody = await proofMarkdown.text();
-  assert.match(proofMarkdownBody, /^# SEO Fix Kit .* Repair proof receipt/m);
-  assert.match(proofMarkdownBody, /85\/100 with 7 findings/);
-  assert.match(proofMarkdownBody, /100\/100 with 0 findings/);
+  assert.match(proofMarkdownBody, /^# SEO Fix Kit case study: 85 to 100 in two fixes/m);
+  assert.match(proofMarkdownBody, /85\/100 with 7 problems/);
+  assert.match(proofMarkdownBody, /100\/100 with 0 problems/);
 
   const proofDotMd = await worker.fetch(new Request("https://seofixkit.com/proof.md"), env, fakeCtx());
   assert.equal(proofDotMd.status, 200);
   assert.match(proofDotMd.headers.get("content-type"), /text\/markdown; charset=utf-8/);
-  assert.match(await proofDotMd.text(), /^# SEO Fix Kit .* Repair proof receipt/m);
+  assert.match(await proofDotMd.text(), /^# SEO Fix Kit case study: 85 to 100 in two fixes/m);
 });
 
 test("Worker dispatch serves the IndexNow key file at root and .well-known, apex-only", async () => {
@@ -1066,7 +1066,7 @@ test("Worker rejects malformed JSON bodies with a clear 400 but allows empty one
     fakeCtx()
   );
   assert.equal(malformed.status, 400);
-  assert.deepEqual(await malformed.json(), { error: "Request body is not valid JSON." });
+  assert.deepEqual(await malformed.json(), { error: "The request body is not valid JSON. Send a JSON object." });
 
   const empty = await worker.fetch(
     new Request("https://seofixkit.test/api/waitlist", {
@@ -1077,5 +1077,5 @@ test("Worker rejects malformed JSON bodies with a clear 400 but allows empty one
     env,
     fakeCtx()
   );
-  assert.notEqual((await empty.json()).error, "Request body is not valid JSON.");
+  assert.notEqual((await empty.json()).error, "The request body is not valid JSON. Send a JSON object.");
 });

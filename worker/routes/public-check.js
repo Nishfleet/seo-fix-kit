@@ -115,28 +115,28 @@ export async function publicCheckQuotaChecks(ipHash, targetHost) {
       limit: PUBLIC_CHECK_LIMITS.ipHour,
       windowStart: hour.key,
       resetAt: hour.resetAt,
-      error: "You have checked the limit of pages from this network this hour. Try again later."
+      error: "You have reached this hour's page check limit for your network. Try again in an hour."
     },
     {
       bucket: `check:ip-day:${day.key}:${ipHash}`,
       limit: PUBLIC_CHECK_LIMITS.ipDay,
       windowStart: day.key,
       resetAt: day.resetAt,
-      error: "Daily one-page check limit reached from this network. Try again tomorrow."
+      error: "Daily one-page check limit reached for your network. Try again tomorrow."
     },
     {
       bucket: `check:target-hour:${hour.key}:${targetKey}`,
       limit: PUBLIC_CHECK_LIMITS.targetHour,
       windowStart: hour.key,
       resetAt: hour.resetAt,
-      error: "That site has been checked several times this hour. Try again later."
+      error: "That site has already been checked several times this hour. Try again in an hour."
     },
     {
       bucket: `check:target-day:${day.key}:${targetKey}`,
       limit: PUBLIC_CHECK_LIMITS.targetDay,
       windowStart: day.key,
       resetAt: day.resetAt,
-      error: "That site has been checked its daily limit. Try again tomorrow."
+      error: "That site has reached its daily check limit. Try again tomorrow."
     }
   ];
 }
@@ -217,7 +217,10 @@ export async function runPublicCheck(request, env) {
   }
 
   if (!env.WAITLIST_DB) {
-    return jsonNoStore({ error: "Check storage is not configured." }, 503);
+    return jsonNoStore(
+      { error: "Check storage is not set up on this server. Email support@seofixkit.com for help." },
+      503
+    );
   }
 
   const ipHash = await requestIpHash(request);
@@ -234,7 +237,7 @@ export async function runPublicCheck(request, env) {
     return jsonNoStore(buildPublicCheckResponse(report));
   } catch (error) {
     if (error?.code === "BROWSER_BUSY") {
-      return jsonNoStore({ error: "Check capacity is busy right now. Wait a moment and try again." }, 503);
+      return jsonNoStore({ error: "All check browsers are busy right now. Wait a minute and try again." }, 503);
     }
     const message = friendlyCheckError(error?.message);
     return jsonNoStore({ error: message }, 422);
@@ -253,7 +256,7 @@ export function checkJsonLd(origin) {
       {
         "@type": "WebPage",
         "@id": `${url}#webpage`,
-        name: "Check One Page for SEO Proof - SEO Fix Kit",
+        name: "Free SEO Page Check - SEO Fix Kit",
         description:
           "Check any public page in a real browser. See real SEO problems with fixes, plus the false alarms ruled out. No account needed, and no ranking promises.",
         url,
@@ -310,18 +313,18 @@ export function checkHtml(origin) {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Check One Page for SEO Proof - SEO Fix Kit</title>
+    <title>Free SEO Page Check - SEO Fix Kit</title>
     <meta name="description" content="Check any public page in a real browser. See real SEO problems with fixes, plus the false alarms ruled out. No account needed, and no ranking promises." />
     <link rel="canonical" href="${origin}/check" />${publicAssetHead(origin)}
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="SEO Fix Kit" />
-    <meta property="og:title" content="Check One Page for SEO Proof - SEO Fix Kit" />
-    <meta property="og:description" content="Paste any public page URL and see what a browser-rendered, proof-backed audit finds. No account, no ranking promises." />
+    <meta property="og:title" content="Free SEO Page Check - SEO Fix Kit" />
+    <meta property="og:description" content="Paste a public URL and see what a real browser finds: real SEO problems with fixes, and the false alarms ruled out. No account needed." />
     <meta property="og:url" content="${origin}/check" />
     <meta property="og:image" content="${origin}${SOCIAL_IMAGE_PATH}" />${socialImageMeta()}
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Check One Page for SEO Proof - SEO Fix Kit" />
-    <meta name="twitter:description" content="Paste any public page URL and see browser-rendered SEO proof. No account, no ranking promises." />
+    <meta name="twitter:title" content="Free SEO Page Check - SEO Fix Kit" />
+    <meta name="twitter:description" content="Paste a public URL and see what a real browser finds: real SEO problems with fixes, and the false alarms ruled out. No account needed." />
     <meta name="twitter:image" content="${origin}${SOCIAL_IMAGE_PATH}" />
     ${checkJsonLd(origin)}
     <style>
@@ -399,7 +402,7 @@ export function checkHtml(origin) {
           <p>Only issues backed by evidence are reported, each with a concrete fix and a proposed markup change when we can generate one.</p>
         </article>
         <article class="panel proof">
-          <strong>Your whole site, next</strong>
+          <strong>Audit your whole site</strong>
           <p>Create a free account to audit up to 1,000 pages, save reports, and track every fix.</p>
         </article>
       </section>
@@ -420,7 +423,7 @@ export function checkHtml(origin) {
       </section>
       <section class="band next-step">
         <h2>After the check</h2>
-        <p>To fix what you found, create a free account. You get saved reports, audits of up to 1,000 pages, and a repair checklist with one rerun to confirm the fixes worked.</p>
+        <p>To fix what you found, create a free account. You get saved reports, audits of up to 1,000 pages, and a repair checklist. Rerun the audit to confirm each fix worked.</p>
         <p><a class="cta" href="${origin}/beta">Create a free account</a></p>
       </section>
     </main>
@@ -485,7 +488,7 @@ export function checkHtml(origin) {
           if (finding.why) box.appendChild(el("p", finding.why));
           if (finding.fix) box.appendChild(el("p", "Fix: " + finding.fix));
           if (finding.proposedMarkup) {
-            box.appendChild(el("p", "Proposed change — generated repair markup, not a quote from the page", "snippet-label"));
+            box.appendChild(el("p", "Suggested markup. Generated for this page, not copied from it", "snippet-label"));
             box.appendChild(el("code", finding.proposedMarkup, "snippet box-min"));
           }
           return box;
@@ -563,7 +566,7 @@ export function checkHtml(origin) {
             cta.href = "${origin}/beta";
             result.appendChild(cta);
           } catch (error) {
-            result.replaceChildren(el("div", "Could not reach the check service. Try again in a moment.", "error-box"));
+            result.replaceChildren(el("div", "Could not reach the check service. Check your connection and try again.", "error-box"));
           } finally {
             button.disabled = false;
             button.textContent = "Check this page";

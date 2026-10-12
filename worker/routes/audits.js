@@ -125,7 +125,7 @@ async function runPrivateAudit(request, env, ctx) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
   if (!env.WAITLIST_DB) {
-    return json({ error: "Report storage is not configured." }, 503);
+    return json({ error: "Report storage is not set up on this server. Email support@seofixkit.com for help." }, 503);
   }
   const parsed = await parseJsonBody(request, AuditRunBody);
   if (parsed.error) return json(parsed.error, 400);
@@ -269,7 +269,8 @@ async function runPrivateAudit(request, env, ctx) {
 async function listAuditSchedules(request, env) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
-  if (!env.WAITLIST_DB) return json({ error: "Schedule storage is not configured." }, 503);
+  if (!env.WAITLIST_DB)
+    return json({ error: "Schedule storage is not set up on this server. Email support@seofixkit.com for help." }, 503);
 
   const rows = await env.WAITLIST_DB.prepare(
     `SELECT *
@@ -292,7 +293,8 @@ async function listAuditSchedules(request, env) {
 async function createAuditSchedule(request, env) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
-  if (!env.WAITLIST_DB) return json({ error: "Schedule storage is not configured." }, 503);
+  if (!env.WAITLIST_DB)
+    return json({ error: "Schedule storage is not set up on this server. Email support@seofixkit.com for help." }, 503);
   const parsed = await parseJsonBody(request, AuditScheduleBody);
   if (parsed.error) return json(parsed.error, 400);
   const body = parsed.data;
@@ -429,11 +431,13 @@ async function createAuditSchedule(request, env) {
 async function deleteAuditSchedule(request, env) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
-  if (!env.WAITLIST_DB) return json({ error: "Schedule storage is not configured." }, 503);
+  if (!env.WAITLIST_DB)
+    return json({ error: "Schedule storage is not set up on this server. Email support@seofixkit.com for help." }, 503);
 
   const url = new URL(request.url);
   const id = decodeURIComponent(url.pathname.slice("/api/audit/schedules/".length));
-  if (!isSafeUuid(id)) return json({ error: "Monitor not found." }, 404);
+  if (!isSafeUuid(id))
+    return json({ error: "That monitor was not found. Refresh the page to see your current monitors." }, 404);
   const now = new Date().toISOString();
   const updated = await env.WAITLIST_DB.prepare(
     `UPDATE audit_schedules
@@ -445,7 +449,7 @@ async function deleteAuditSchedule(request, env) {
     .bind(now, now, id, access.ownerEmail)
     .run();
   if (Number(updated?.meta?.changes || 0) !== 1) {
-    return json({ error: "Monitor not found." }, 404);
+    return json({ error: "That monitor was not found. Refresh the page to see your current monitors." }, 404);
   }
   return jsonNoStore({ ok: true, status: "paused", id });
 }
@@ -935,11 +939,15 @@ async function processAuditJob(env, jobId, context = {}) {
 async function getAuditJob(request, env) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
-  if (!env.WAITLIST_DB) return json({ error: "Audit job storage is not configured." }, 503);
+  if (!env.WAITLIST_DB)
+    return json(
+      { error: "Audit job storage is not set up on this server. Email support@seofixkit.com for help." },
+      503
+    );
 
   const url = new URL(request.url);
   const id = decodeURIComponent(url.pathname.slice("/api/audit/jobs/".length));
-  if (!isSafeUuid(id)) return json({ error: "Audit job not found." }, 404);
+  if (!isSafeUuid(id)) return json({ error: "That audit was not found. It may have expired. Start a new audit." }, 404);
 
   let row = await env.WAITLIST_DB.prepare(
     `SELECT *
@@ -949,7 +957,7 @@ async function getAuditJob(request, env) {
   )
     .bind(id, access.ownerEmail)
     .first();
-  if (!row?.id) return json({ error: "Audit job not found." }, 404);
+  if (!row?.id) return json({ error: "That audit was not found. It may have expired. Start a new audit." }, 404);
 
   if (
     row.status === "running" &&
@@ -960,7 +968,7 @@ async function getAuditJob(request, env) {
     row = await env.WAITLIST_DB.prepare(`SELECT * FROM audit_jobs WHERE id = ? AND owner_email = ? LIMIT 1`)
       .bind(id, access.ownerEmail)
       .first();
-    if (!row?.id) return json({ error: "Audit job not found." }, 404);
+    if (!row?.id) return json({ error: "That audit was not found. It may have expired. Start a new audit." }, 404);
   }
 
   return jsonNoStore({
@@ -973,7 +981,7 @@ async function runPrivateDemoAudit(request, env) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
   if (!env.WAITLIST_DB) {
-    return json({ error: "Report storage is not configured." }, 503);
+    return json({ error: "Report storage is not set up on this server. Email support@seofixkit.com for help." }, 503);
   }
 
   const origin = new URL(request.url).origin;
@@ -997,7 +1005,7 @@ async function auditUrl(inputUrl, env, options = {}) {
 
 async function auditQuotaStatus(request, env, access, targetUrl) {
   if (!env.WAITLIST_DB) {
-    return { ok: false, error: "Report storage is not configured." };
+    return { ok: false, error: "Report storage is not set up on this server. Email support@seofixkit.com for help." };
   }
 
   const now = new Date();
@@ -1018,28 +1026,28 @@ async function auditQuotaStatus(request, env, access, targetUrl) {
       limit: 12,
       windowStart: hour.key,
       resetAt: hour.resetAt,
-      error: "Audit limit reached for this network this hour. Try again later."
+      error: "You have reached this hour's audit limit for your network. Try again in an hour."
     },
     {
       bucket: `audit:session-hour:${hour.key}:${sessionKey}`,
       limit: 8,
       windowStart: hour.key,
       resetAt: hour.resetAt,
-      error: "Audit limit reached for this beta session this hour. Try again later."
+      error: "You have reached this hour's audit limit for your account. Try again in an hour."
     },
     {
       bucket: `audit:session-day:${day.key}:${sessionKey}`,
       limit: 30,
       windowStart: day.key,
       resetAt: day.resetAt,
-      error: "Daily beta audit limit reached. Try again tomorrow."
+      error: "You have reached today's audit limit. Try again tomorrow."
     },
     {
       bucket: `audit:target:${hour.key}:${targetKey}`,
       limit: 4,
       windowStart: hour.key,
       resetAt: hour.resetAt,
-      error: "That site has been audited several times this hour. Try again later."
+      error: "That site has already been audited several times this hour. Try again in an hour."
     }
   ]);
 }
@@ -1052,7 +1060,7 @@ async function liteAuditQuotaStatus(env, access) {
       limit: 3,
       windowStart: day.key,
       resetAt: day.resetAt,
-      error: "Daily Lite check limit reached. Verify your site for full self-serve audits, or try again tomorrow."
+      error: "Daily Lite check limit reached. Verify your site to run full audits, or try again tomorrow."
     }
   ]);
 }

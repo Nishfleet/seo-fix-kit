@@ -4,8 +4,8 @@ export function LoadingAuditState({ message }) {
       <div className="scan-orbit" aria-hidden="true" />
       <div>
         <p className="beta-eyebrow">Running audit</p>
-        <h2>{message || "Rendering and collecting proof."}</h2>
-        <p>Most runs take a short moment. JavaScript-heavy sites can take longer.</p>
+        <h2>{message || "Loading your pages in a browser…"}</h2>
+        <p>Small sites finish quickly. Large or JavaScript-heavy sites take longer.</p>
       </div>
     </div>
   );
@@ -13,8 +13,8 @@ export function LoadingAuditState({ message }) {
 
 export function ErrorAuditState({
   message,
-  title = "Needs another try",
-  hint = "Check the URL and run again. Some sites block automated browsers.",
+  title = "Audit didn’t finish",
+  hint = "Check the URL and run it again. Some sites block automated browsers.",
   children
 }) {
   return (

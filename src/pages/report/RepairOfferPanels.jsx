@@ -24,7 +24,7 @@ export function FixRequestStatusPanel({ fixRequest, checkoutReturned }) {
   return (
     <section className={`fix-status-panel ${status}`}>
       <div>
-        <p className="beta-eyebrow">SEO Fix Pack</p>
+        <p className="beta-eyebrow">Fix Pack</p>
         <h2>{label}</h2>
         <p>{message}</p>
       </div>
@@ -86,7 +86,7 @@ export function FixRequestStatusPanel({ fixRequest, checkoutReturned }) {
           )}
           {fixRequest.beforeAfterSummary && (
             <div>
-              <dt>Rerun proof</dt>
+              <dt>Before and after</dt>
               <dd>{beforeAfterText(fixRequest.beforeAfterSummary)}</dd>
             </div>
           )}
@@ -117,7 +117,7 @@ export function RepairProposalPanel({ reportId, initialProposals = [], repairSpr
     const result = await patchRepairProposalApproval(reportId, proposal.id, { action });
     setSavingId("");
     if (!result.ok) {
-      showMessage(result.error || "Could not update repair proposal.", true);
+      showMessage(result.error || "That change didn’t save. Try again.", true);
       return;
     }
     setUpdatedById((current) => ({ ...current, [proposal.id]: result.proposal }));
@@ -169,12 +169,12 @@ export function RepairProposalPanel({ reportId, initialProposals = [], repairSpr
     <section className="repair-proposal-panel">
       <div className="section-heading">
         <div>
-          <p className="beta-eyebrow">Repair execution</p>
-          <h2>Approve the scoped fixes.</h2>
+          <p className="beta-eyebrow">Proposed fixes</p>
+          <h2>Approve the fixes you want made</h2>
         </div>
         <div className="proposal-summary">
           <span>{approvedCount} approved</span>
-          <span>{executableCount} executable</span>
+          <span>{executableCount} supported</span>
           <span>{proposals.length} total</span>
         </div>
       </div>
@@ -192,7 +192,7 @@ export function RepairProposalPanel({ reportId, initialProposals = [], repairSpr
               onClick={startRepairSprintCheckout}
               type="button"
             >
-              {sprintCheckoutStatus === "submitting" ? "Opening checkout" : "Start Repair Sprint"}
+              {sprintCheckoutStatus === "submitting" ? "Opening checkout…" : "Start Repair Sprint"}
             </button>
           )}
         </div>
@@ -222,7 +222,7 @@ export function RepairProposalPanel({ reportId, initialProposals = [], repairSpr
                   onClick={() => updateProposal(proposal, "approve")}
                   type="button"
                 >
-                  {savingId === proposal.id ? "Saving" : "Approve"}
+                  {savingId === proposal.id ? "Saving…" : "Approve"}
                 </button>
                 <button
                   className="action-link"
@@ -237,13 +237,13 @@ export function RepairProposalPanel({ reportId, initialProposals = [], repairSpr
             <dl className="proposal-proof">
               {proposal.proof?.evidence && (
                 <div>
-                  <dt>Proof</dt>
+                  <dt>Evidence</dt>
                   <dd>{proposal.proof.evidence}</dd>
                 </div>
               )}
               {proposal.acceptance?.length > 0 && (
                 <div>
-                  <dt>Acceptance</dt>
+                  <dt>Done when</dt>
                   <dd>{proposal.acceptance[0]}</dd>
                 </div>
               )}
@@ -287,41 +287,41 @@ export function FixQuotePanel({ report, hasPriorityFixes }) {
     pricing.status === "available"
       ? pricing.displayPrice
       : pricing.status === "loading"
-        ? "Loading Dodo price"
-        : "Checkout price not ready";
+        ? "Loading price…"
+        : "Price unavailable";
 
   return (
     <aside className="paid-panel">
       <div>
-        <p className="beta-eyebrow">{hasPriorityFixes ? "SEO Fix Pack" : "Monitoring"}</p>
-        <h3>{hasPriorityFixes ? "Open checkout for the paid repair pass." : "No paid fix needed from this scan."}</h3>
+        <p className="beta-eyebrow">{hasPriorityFixes ? "Fix Pack" : "Next step"}</p>
+        <h3>{hasPriorityFixes ? "Get a guided repair pass for this report" : "Nothing here needs a Fix Pack"}</h3>
         {hasPriorityFixes && (
           <div className={`price-preview ${pricing.status}`}>
             <strong>{priceLabel}</strong>
             <span>
               {pricing.status === "available"
-                ? "Pulled from Dodo before checkout."
+                ? "One-time payment through Dodo Payments."
                 : pricing.status === "loading"
-                  ? "Checking the live payment source."
-                  : "Checkout opens once live pricing is ready."}
+                  ? "Checking the current price."
+                  : "Checkout opens once the price loads."}
             </span>
           </div>
         )}
         <p>
           {hasPriorityFixes
-            ? "One proof-backed repair pass for this report, then one rerun after fixes. No ranking promises, just the proven repair queue."
-            : "Keep the private report and rerun after meaningful content or template changes."}
+            ? "One guided repair pass on this report’s problems, then one rerun to check the fixes. We don’t guarantee rankings or traffic."
+            : "Rerun the audit after you change content or templates."}
         </p>
         {hasPriorityFixes && selectedRepair?.title && (
           <p className="quiet-note">
-            {selectedRepairIsLive ? "Checkout repair target" : "Top report repair"}: {selectedRepair.title}
+            {selectedRepairIsLive ? "Starts with" : "Top problem"}: {selectedRepair.title}
           </p>
         )}
         {hasPriorityFixes && repairQueue.status === "loading" && (
-          <p className="quiet-note">Checking the live repair queue before checkout.</p>
+          <p className="quiet-note">Checking your repair queue…</p>
         )}
         {hasPriorityFixes && repairQueue.status === "error" && (
-          <p className="quiet-note">Checkout will ask the server for the first active repair target.</p>
+          <p className="quiet-note">Your repair queue didn’t load. Checkout will start with the first open problem.</p>
         )}
       </div>
       {hasPriorityFixes ? (
@@ -348,11 +348,7 @@ export function FixQuotePanel({ report, hasPriorityFixes }) {
             }}
             type="button"
           >
-            {status === "success"
-              ? "Checkout ready"
-              : status === "submitting"
-                ? "Opening checkout"
-                : "Start paid Fix Pack"}
+            {status === "success" ? "Request sent" : status === "submitting" ? "Opening checkout…" : "Buy Fix Pack"}
           </button>
           {(message || pricing.status === "error") && (
             <small
@@ -364,7 +360,7 @@ export function FixQuotePanel({ report, hasPriorityFixes }) {
           {pricing.status === "error" && (
             <small className="checkout-message">
               <button className="action-link" onClick={() => pricing.reload()} type="button">
-                Retry price
+                Reload price
               </button>{" "}
               or email <a href="mailto:support@seofixkit.com">support@seofixkit.com</a>
             </small>

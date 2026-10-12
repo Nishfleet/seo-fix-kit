@@ -14,7 +14,7 @@ export function buildGrowthOpportunities(report = {}) {
       confidence: item.confidence || "needs-review",
       estimatedEffort: item.estimatedEffort || "30-90 min",
       workType: item.workType || "content",
-      acceptance: item.acceptance || "Review the draft, publish only after approval, then rerun with fresh proof.",
+      acceptance: item.acceptance || "Review the draft, publish it once approved, then rerun the audit.",
       source: "proof-derived-growth",
       ...item
     });
@@ -33,7 +33,7 @@ export function buildGrowthOpportunities(report = {}) {
   return {
     status: trimmed.length ? "ready" : "skipped",
     source: "proof-derived-growth",
-    note: "Growth opportunities are draft-only briefs from verified gaps. They do not publish content, create CMS drafts, open pull requests, or promise rankings, traffic, citations, or revenue.",
+    note: "Growth briefs are drafts based on gaps the audit found. They do not publish content, create CMS drafts or open pull requests, and they do not promise rankings, traffic, citations or revenue.",
     summary: {
       opportunityCount: trimmed.length,
       draftOnly: true,
@@ -51,7 +51,7 @@ export function growthOpportunitiesBriefLines(growth = {}) {
   const lines = [
     "## Draft-only growth opportunities",
     "",
-    "These briefs come from verified gaps. They do not publish content or promise rankings, traffic, citations, or revenue.",
+    "These briefs come from gaps the audit found. They do not publish content or promise rankings, traffic, citations or revenue.",
     ""
   ];
 
@@ -59,12 +59,12 @@ export function growthOpportunitiesBriefLines(growth = {}) {
     lines.push(`${item.priority}. ${item.title}`);
     lines.push(`   Proof: ${item.proof}`);
     lines.push(
-      `   Draft: ${item.draftBrief?.summary || item.suggestedAction || item.fix || "Create a reviewed draft from the proof."}`
+      `   Draft: ${item.draftBrief?.summary || item.suggestedAction || item.fix || "Write a draft from this data and review it."}`
     );
     if (item.draftBrief?.sections?.length) {
       lines.push(`   Sections: ${item.draftBrief.sections.join(" | ")}`);
     }
-    lines.push(`   Guardrail: ${item.guardrail || "Keep the output draft-only until reviewed and approved."}`);
+    lines.push(`   Guardrail: ${item.guardrail || "Keep it a draft until someone reviews and approves it."}`);
     lines.push(`   Acceptance check: ${item.acceptance}`);
   }
   lines.push("");
@@ -73,7 +73,7 @@ export function growthOpportunitiesBriefLines(growth = {}) {
 
 export function growthOpportunitiesSummaryCopy(growth = {}) {
   if (growth.status !== "ready" || !growth.opportunities?.length) {
-    return "No proof-backed growth briefs were created from this report.";
+    return "No growth briefs from this report.";
   }
   const summary = growth.summary || {};
   return `${summary.opportunityCount || growth.opportunities.length} draft-only growth ${summary.opportunityCount === 1 ? "brief" : "briefs"} were created from verified keyword, competitor, AI-readiness, or crawl gaps.`;
@@ -92,19 +92,19 @@ function addKeywordRefresh(audit = {}, add) {
       pageLabel: lowCtr.pageLabel || "",
       proof: `"${lowCtr.query}" has ${formatCount(lowCtr.impressions)} impressions, position ${formatPosition(lowCtr.position)}, and ${formatPercent(lowCtr.ctr)} CTR on ${lowCtr.pageLabel || "the supplied landing page"}.`,
       suggestedAction:
-        "Draft a tighter title, meta description, opening answer, and two supporting sections for the query intent.",
+        "Draft a sharper title and meta description, an opening that answers the search, and two supporting sections.",
       draftBrief: {
         summary: `Refresh ${lowCtr.pageLabel || "the landing page"} around the proven query "${lowCtr.query}".`,
         sections: [
           `Direct answer for "${lowCtr.query}"`,
-          "Proof, examples, or screenshots that support the answer",
+          "Examples or screenshots that back up the answer",
           "Next step and internal links to related pages"
         ],
-        audience: "Searchers already seeing the page but not clicking often enough"
+        audience: "People who see the page in search but rarely click"
       },
-      guardrail: "Use the supplied query proof as direction only; keep the draft human-reviewed before publishing.",
+      guardrail: "Treat the query data as a pointer only. Have a person review the draft before publishing.",
       acceptance:
-        "Fresh Search Console rows show CTR reviewed against the prior baseline, or the query is explicitly deprioritized with a note."
+        "Fresh Search Console data shows the click rate compared with before, or a note explains why this query was dropped."
     });
   }
 
@@ -118,8 +118,7 @@ function addKeywordRefresh(audit = {}, add) {
       pageUrl: pageTwo.pageUrl || "",
       pageLabel: pageTwo.pageLabel || "",
       proof: `"${pageTwo.query}" has ${formatCount(pageTwo.impressions)} impressions at position ${formatPosition(pageTwo.position)} with ${formatCount(pageTwo.clicks)} clicks.`,
-      suggestedAction:
-        "Draft a lightweight checklist, calculator, template, or comparison helper that directly answers the query intent.",
+      suggestedAction: "Draft a simple checklist, calculator, template or comparison that answers the search directly.",
       draftBrief: {
         summary: `Create a small useful asset for "${pageTwo.query}" and link it from the matched page.`,
         sections: [
@@ -127,11 +126,10 @@ function addKeywordRefresh(audit = {}, add) {
           "One interactive or downloadable asset",
           "How to use the result and where to go next"
         ],
-        audience: "Searchers close to discovering the product"
+        audience: "People who search for this and almost find your site"
       },
-      guardrail: "Keep the idea as a reviewed brief; do not auto-generate or mass-publish pages.",
-      acceptance:
-        "A reviewed asset brief exists, is linked to the source proof, and is tested before any public launch.",
+      guardrail: "Keep this as a brief for review. Don't auto-generate or mass-publish pages.",
+      acceptance: "A reviewed brief exists, links to the data behind it, and the tool is tested before launch.",
       estimatedEffort: "1-3 hours"
     });
   }
@@ -148,20 +146,21 @@ function addCompetitorGapBrief(benchmark = {}, add) {
     title: "Draft a comparison outline from a competitor-backed gap",
     pageUrl: repair.pageUrl || "",
     pageLabel: repair.pageLabel || "",
-    proof: repair.proof || "A competitor-backed gap was found in the homepage benchmark.",
-    suggestedAction: "Draft a comparison or proof section that shows how the fixed page now handles this topic better.",
+    proof: repair.proof || "The homepage comparison found a gap against a competitor.",
+    suggestedAction: "Draft a comparison section that shows how the fixed page now covers this topic.",
     draftBrief: {
       summary: `Turn the ${cleanLabel(repair.title)} gap into a reviewed comparison outline.`,
       sections: [
         "What the buyer is comparing",
-        "What the current page proves after the repair",
-        "Where competitors are cleaner in the snapshot",
-        "What evidence the page should show next"
+        "What the page shows after the fix",
+        "Where competitors do better on their homepage",
+        "What the page should show next"
       ],
       audience: "Buyers comparing alternatives"
     },
-    guardrail: "Use public observed proof only; do not make unsupported claims about competitor private data.",
-    acceptance: "The outline cites the benchmark proof and remains a draft until reviewed for accuracy."
+    guardrail:
+      "Use only what is public on the competitor's site, based on public observed proof. Make no claims about their private data.",
+    acceptance: "The outline cites the comparison data and stays a draft until checked for accuracy."
   });
 }
 
@@ -178,20 +177,22 @@ function addAiReadinessBrief(audit = {}, add) {
     title: "Draft a visible FAQ block from answer-readiness proof",
     pageUrl: needsFaq.pageUrl || "",
     pageLabel: needsFaq.pageLabel || "",
-    proof: needsFaq.proof || "AI Answer Readiness found missing answer structure.",
-    suggestedAction: "Draft visible question-and-answer sections before adding any matching FAQ schema.",
+    proof: needsFaq.proof || "AI Answer Readiness found no question-and-answer sections.",
+    suggestedAction:
+      "Draft visible question-and-answer sections first. Add FAQ schema only after they are on the page.",
     draftBrief: {
-      summary: "Add concise, visible answers for common buyer questions and objections.",
+      summary: "Add short, visible answers to the questions and doubts buyers raise most.",
       sections: [
         "What problem does this solve?",
         "Who is it for?",
-        "What proof is available today?",
+        "What can you show to back it up?",
         "What is not included?"
       ],
-      audience: "Buyers and machine readers looking for direct answers"
+      audience: "Buyers, search engines and AI tools looking for direct answers"
     },
-    guardrail: "Schema can only mirror visible, approved FAQ content; this is not an AI citation claim.",
-    acceptance: "Rerun the audit and confirm visible question-led sections are present before schema is added.",
+    guardrail:
+      "Schema may only repeat FAQ text that is on the page and approved. This does not mean AI tools will cite you.",
+    acceptance: "Rerun the audit. The question-and-answer sections show on the page before you add schema.",
     estimatedEffort: "30-90 min"
   });
 }
@@ -210,14 +211,19 @@ function addCrawlProofBrief(audit = {}, add) {
     pageUrl: orphanRepair.pageUrl || "",
     pageLabel: orphanRepair.pageLabel || "",
     proof: orphanRepair.proof,
-    suggestedAction: "Draft a hub or resource section that links important sitemap URLs from relevant rendered pages.",
+    suggestedAction: "Draft a hub or resources section that links to important sitemap pages from related pages.",
     draftBrief: {
-      summary: "Create a reviewed hub section that helps users and crawlers discover important pages.",
-      sections: ["Top pages that need discovery", "Why each page matters", "Suggested anchor text and source page"],
-      audience: "Users who need a guided path to related pages"
+      summary:
+        "Create a hub section, reviewed before publishing, that helps visitors and search engines find important pages.",
+      sections: [
+        "Important pages that are hard to find",
+        "Why each page matters",
+        "Suggested anchor text and source page"
+      ],
+      audience: "Visitors looking for related pages"
     },
-    guardrail: "Only suggest links to verified public URLs; do not fabricate pages or anchors.",
-    acceptance: "Rerun the crawl and confirm important URLs appear in rendered internal links.",
+    guardrail: "Only link to public URLs that load. Don't invent pages or link text.",
+    acceptance: "Rerun the audit. The important pages now have internal links pointing to them.",
     estimatedEffort: "30-90 min"
   });
 }

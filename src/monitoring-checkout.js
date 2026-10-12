@@ -11,14 +11,15 @@ function monitoringCheckoutOutcome(payload = {}, { offerName = "Proof Monitoring
   if (checkoutUrl) {
     return {
       status: "redirecting",
-      message: payload.message || "Opening Dodo checkout.",
+      message: payload.message || "Opening checkout…",
       checkoutUrl
     };
   }
   if (payload.checkoutUrl) {
     return {
       status: "error",
-      message: "Checkout returned an invalid provider URL.",
+      message:
+        "Checkout sent back a link we couldn’t verify, so we didn’t open it. Try again or email support@seofixkit.com.",
       checkoutUrl: ""
     };
   }

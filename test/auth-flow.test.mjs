@@ -211,7 +211,7 @@ test("an access link cannot be used twice", async () => {
 
   const replay = await call(env, "/api/access/verify", { method: "POST", body: { token } });
   assert.equal(replay.status, 401);
-  assert.match(replay.json.error, /expired or already used/i);
+  assert.match(replay.json.error, /expired or was already used/i);
   assert.equal(sessionCookieFrom(replay), null);
 
   assert.equal(db.rows("SELECT * FROM beta_sessions").length, 1);
@@ -229,7 +229,7 @@ test("an expired access link is rejected and creates no session", async () => {
 
   const verified = await call(env, "/api/access/verify", { method: "POST", body: { token } });
   assert.equal(verified.status, 401);
-  assert.match(verified.json.error, /expired or already used/i);
+  assert.match(verified.json.error, /expired or was already used/i);
   assert.equal(sessionCookieFrom(verified), null);
   assert.deepEqual(db.rows("SELECT * FROM beta_sessions"), []);
 });
@@ -490,7 +490,7 @@ test("/api/beta/session without any session is a 401", async () => {
   const { env } = makeEnv();
   const session = await call(env, "/api/beta/session");
   assert.equal(session.status, 401);
-  assert.match(session.json.error, /session required/i);
+  assert.match(session.json.error, /no active session/i);
 });
 
 // --- Protected routes --------------------------------------------------------------

@@ -226,7 +226,7 @@ app.use("*", async (c, next) => {
       try {
         JSON.parse(text);
       } catch {
-        return json({ error: "Request body is not valid JSON." }, 400);
+        return json({ error: "The request body is not valid JSON. Send a JSON object." }, 400);
       }
     }
   }
@@ -476,7 +476,7 @@ app.notFound(async (c) => {
 app.onError((error, c) => {
   // A malformed percent-escape in a path segment is a client error.
   if (error instanceof URIError) {
-    return json({ error: "Malformed URL." }, 400);
+    return json({ error: "This URL is malformed. Check the address and try again." }, 400);
   }
   console.error(`Unhandled error on ${c.req.method} ${new URL(c.req.url).pathname}`, error);
   // Errors tagged with a `code` are deliberate, user-facing failures (for
@@ -484,7 +484,10 @@ app.onError((error, c) => {
   // client gets a generic message and the real one stays in the logs.
   return json(
     {
-      error: error?.code && error?.message ? error.message : "Something went wrong on our side. Try again in a moment."
+      error:
+        error?.code && error?.message
+          ? error.message
+          : "The server hit an error. Try again in a minute. If it keeps happening, email support@seofixkit.com."
     },
     500
   );

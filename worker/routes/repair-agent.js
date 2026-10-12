@@ -211,7 +211,14 @@ async function repairContext(request, env, suffix, ctx = null) {
 async function repairContextForReportId(request, env, reportId, ctx = null) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return { ok: false, response: betaAccessResponse(access) };
-  if (!env.WAITLIST_DB) return { ok: false, response: json({ error: "Repair queue storage is not configured." }, 503) };
+  if (!env.WAITLIST_DB)
+    return {
+      ok: false,
+      response: json(
+        { error: "Repair queue storage is not set up on this server. Email support@seofixkit.com for help." },
+        503
+      )
+    };
   const row = await ownerReportRow(env, reportId, access);
   if (!row) return { ok: false, response: json({ error: "Report not found." }, 404) };
   const parsedReport = parseJson(row.report_json, null);

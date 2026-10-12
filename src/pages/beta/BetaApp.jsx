@@ -138,7 +138,7 @@ export function BetaApp({ mountKey }) {
     loginStatus === "idle" && accessToken && accessQuery.isPending
       ? "Signing you in…"
       : loginStatus === "idle" && accessQuery.isError
-        ? accessQuery.error?.message || "This sign-in link has expired or was already used. Request a new one below."
+        ? accessQuery.error?.message || "This sign-in link expired or was already used. Send yourself a new one below."
         : loginMessage;
   const [targetUrl, setTargetUrl] = useState("");
   const [maxPages, setMaxPages] = useState(String(DEFAULT_CRAWL_PAGES));
@@ -194,7 +194,9 @@ export function BetaApp({ mountKey }) {
   });
   const accountData = accountQuery.data || null;
   const accountStatus = accountQuery.isError ? "error" : accountQuery.isLoading ? "loading" : "success";
-  const accountMessage = accountQuery.isError ? accountQuery.error?.message || "We couldn’t load your workspace." : "";
+  const accountMessage = accountQuery.isError
+    ? accountQuery.error?.message || "Your dashboard didn’t load. Try again."
+    : "";
   const retryAccount = () => accountQuery.refetch();
   const refreshAccount = () =>
     Promise.all([
@@ -254,14 +256,14 @@ export function BetaApp({ mountKey }) {
         method: "POST",
         body: { email: loginEmail, inviteCode },
         requireOkFlag: false,
-        fallbackError: "That invite code didn’t work."
+        fallbackError: "That invite code isn’t valid. Check it and try again."
       });
       setSignedIn(payload.ownerEmail || loginEmail);
       setLoginStatus("success");
       setInviteCode("");
     } catch (error) {
       setLoginStatus("error");
-      setLoginMessage(error.message || "We couldn’t sign you in. Please try again.");
+      setLoginMessage(error.message || "Sign-in didn’t work. Try again.");
     }
   }
 
@@ -283,7 +285,7 @@ export function BetaApp({ mountKey }) {
       return true;
     } catch (error) {
       setLoginStatus("error");
-      setLoginMessage(error.message || "We couldn’t send the link. Please try again.");
+      setLoginMessage(error.message || "The sign-in link didn’t send. Check your email address and try again.");
       return false;
     }
   }
@@ -291,40 +293,41 @@ export function BetaApp({ mountKey }) {
   async function claimSite(event) {
     event.preventDefault();
     setSiteStatus("loading");
-    setSiteMessage("Creating verification challenge.");
+    setSiteMessage("Adding site…");
     try {
       const payload = await postSiteClaim(siteHost);
       setSiteStatus("success");
-      setSiteMessage(`Verification challenge ready for ${payload.site?.host || siteHost}.`);
+      setSiteMessage(`${payload.site?.host || siteHost} added. Add the DNS record or file below, then click Verify.`);
       setSiteHost("");
       await refreshAccount();
     } catch (error) {
       setSiteStatus("error");
-      setSiteMessage(error.message || "Could not create site verification.");
+      setSiteMessage(error.message || "Couldn’t add this site. Check the domain and try again.");
     }
   }
 
   async function verifySite(claimId) {
     setSiteStatus("loading");
-    setSiteMessage("Checking DNS and HTTPS proof.");
+    setSiteMessage("Looking for your DNS record or file…");
     try {
       const payload = await postSiteVerify(claimId);
       setSiteStatus(payload.verified ? "success" : "error");
       setSiteMessage(
         payload.verified
           ? `${payload.site.host} is verified.`
-          : payload.message || "Verification proof was not found yet."
+          : payload.message ||
+              "We didn’t find the DNS record or file yet. DNS changes can take a few minutes, so try again shortly."
       );
       await refreshAccount();
     } catch (error) {
       setSiteStatus("error");
-      setSiteMessage(error.message || "Could not verify site.");
+      setSiteMessage(error.message || "The verification check didn’t run. Try again.");
     }
   }
 
   async function createSchedule(url) {
     setScheduleStatus("loading");
-    setScheduleMessage("Adding weekly monitor.");
+    setScheduleMessage("Turning on weekly checks…");
     try {
       const payload = await postAuditSchedule(url, { intervalDays: 7, maxPages: DEFAULT_CRAWL_PAGES });
       setScheduleStatus("success");
@@ -332,27 +335,27 @@ export function BetaApp({ mountKey }) {
       await refreshAccount();
     } catch (error) {
       setScheduleStatus("error");
-      setScheduleMessage(error.message || "Could not add monitor.");
+      setScheduleMessage(error.message || "Weekly checks didn’t turn on. Try again.");
     }
   }
 
   async function deleteSchedule(scheduleId) {
     setScheduleStatus("loading");
-    setScheduleMessage("Pausing monitor.");
+    setScheduleMessage("Pausing weekly checks…");
     try {
       await pauseAuditSchedule(scheduleId);
       setScheduleStatus("success");
-      setScheduleMessage("Monitor paused.");
+      setScheduleMessage("Weekly checks paused.");
       await refreshAccount();
     } catch (error) {
       setScheduleStatus("error");
-      setScheduleMessage(error.message || "Could not pause monitor.");
+      setScheduleMessage(error.message || "Weekly checks didn’t pause. Try again.");
     }
   }
 
   async function createApiToken() {
     setDeveloperStatus("loading");
-    setDeveloperMessage("Creating API key.");
+    setDeveloperMessage("Creating API key…");
     setApiTokenSecret("");
     try {
       const payload = await postDeveloperToken();
@@ -362,13 +365,13 @@ export function BetaApp({ mountKey }) {
       await refreshDeveloper();
     } catch (error) {
       setDeveloperStatus("error");
-      setDeveloperMessage(error.message || "Could not create API key.");
+      setDeveloperMessage(error.message || "The API key wasn’t created. Try again.");
     }
   }
 
   async function revokeApiToken(tokenId) {
     setDeveloperStatus("loading");
-    setDeveloperMessage("Revoking API key.");
+    setDeveloperMessage("Revoking API key…");
     try {
       await deleteDeveloperToken(tokenId);
       setDeveloperStatus("success");
@@ -376,39 +379,39 @@ export function BetaApp({ mountKey }) {
       await refreshDeveloper();
     } catch (error) {
       setDeveloperStatus("error");
-      setDeveloperMessage(error.message || "Could not revoke API key.");
+      setDeveloperMessage(error.message || "The API key wasn’t revoked. Try again.");
     }
   }
 
   async function createWebhook(event) {
     event.preventDefault();
     setDeveloperStatus("loading");
-    setDeveloperMessage("Adding webhook.");
+    setDeveloperMessage("Adding endpoint…");
     setWebhookSecret("");
     try {
       const payload = await postDeveloperWebhook(webhookUrl);
       setWebhookUrl("");
       setWebhookSecret(payload.signingSecret || "");
       setDeveloperStatus("success");
-      setDeveloperMessage("Webhook added.");
+      setDeveloperMessage("Endpoint added.");
       await refreshDeveloper();
     } catch (error) {
       setDeveloperStatus("error");
-      setDeveloperMessage(error.message || "Could not add webhook.");
+      setDeveloperMessage(error.message || "The endpoint wasn’t added. Check the URL and try again.");
     }
   }
 
   async function revokeWebhook(webhookId) {
     setDeveloperStatus("loading");
-    setDeveloperMessage("Revoking webhook.");
+    setDeveloperMessage("Removing endpoint…");
     try {
       await deleteDeveloperWebhook(webhookId);
       setDeveloperStatus("success");
-      setDeveloperMessage("Webhook revoked.");
+      setDeveloperMessage("Endpoint removed.");
       await refreshDeveloper();
     } catch (error) {
       setDeveloperStatus("error");
-      setDeveloperMessage(error.message || "Could not revoke webhook.");
+      setDeveloperMessage(error.message || "The endpoint wasn’t removed. Try again.");
     }
   }
 
@@ -428,8 +431,8 @@ export function BetaApp({ mountKey }) {
         backlinkRows.trim() ||
         keywordRows.trim() ||
         Object.values(localSeo).some((value) => String(value || "").trim())
-        ? "Rendering the site, checking comparison inputs, and collecting proof."
-        : "Rendering the site, crawling same-site links, and collecting proof."
+        ? "Loading your pages in a browser and checking the extra data you added…"
+        : "Loading your pages in a browser and following links on your site…"
     );
     auditPollRef.current?.abort();
     const auditPoll = new AbortController();
@@ -448,14 +451,14 @@ export function BetaApp({ mountKey }) {
           localSeo
         },
         requireOkFlag: false,
-        fallbackError: "The audit failed."
+        fallbackError: "The audit didn’t finish. Try again."
       });
       if (payload.mode === "queued" && (payload.jobId || payload.job?.id)) {
         const jobId = payload.jobId || payload.job.id;
-        setAuditMessage("Audit queued. Waiting for proof collection to start.");
+        setAuditMessage("Audit queued. Waiting to start…");
         const job = await pollAuditJob(jobId, setAuditMessage, { signal: auditPoll.signal });
         if (!job.reportId) {
-          throw new Error("Audit finished without a saved report.");
+          throw new Error("The audit finished but the report didn’t save. Run it again.");
         }
         setAuditStatus("idle");
         setAuditMessage("");
@@ -482,7 +485,7 @@ export function BetaApp({ mountKey }) {
         markSignedOut();
       }
       setAuditStatus("error");
-      setAuditMessage(error.message || "The audit failed. Try another URL.");
+      setAuditMessage(error.message || "The audit didn’t finish. Check the URL and run it again.");
     }
   }
 
@@ -561,11 +564,11 @@ export function BetaApp({ mountKey }) {
           <span>{report?.url ? safeHostnameLabel(report.url) : "Report"}</span>
         </nav>
         <section className="audit-stage" aria-live="polite">
-          {reportQuery.isPending && <LoadingAuditState message="Loading saved report." />}
+          {reportQuery.isPending && <LoadingAuditState message="Loading report…" />}
           {reportQuery.isError && (
             <ErrorAuditState
-              hint="It may have expired, or it belongs to a different account."
-              message={reportQuery.error?.message || "Could not load report."}
+              hint="It may have expired, or it belongs to another account."
+              message={reportQuery.error?.message || "This report didn’t load."}
               title="Report unavailable"
             >
               <Link className="app-button-secondary" discover="none" to="/beta/reports">
@@ -611,14 +614,16 @@ export function BetaApp({ mountKey }) {
       <div className="app-page">
         <PageHeader
           title="Developers"
-          description="Start audits and read results from your own tools with API keys, and get notified with webhooks."
+          description="Use an API key to run audits and read reports from your own code. Add a webhook to hear when audits finish."
         />
         <DeveloperApiPanel
           apiTokenSecret={apiTokenSecret}
           developerData={developerData}
           developerMessage={developerMessage}
           developerStatus={developerStatus}
-          loadError={developerQuery.isError ? developerQuery.error?.message || "We couldn’t load your API keys." : ""}
+          loadError={
+            developerQuery.isError ? developerQuery.error?.message || "Your API keys didn’t load. Try again." : ""
+          }
           loading={developerQuery.isLoading}
           onApiTokenCreate={createApiToken}
           onApiTokenRevoke={revokeApiToken}
@@ -657,7 +662,7 @@ export function BetaApp({ mountKey }) {
             <select id="crawl-depth" onChange={(event) => setMaxPages(event.target.value)} value={maxPages}>
               {CRAWL_DEPTH_TIERS.map((tier) => (
                 <option key={tier.id} value={tier.pages}>
-                  {tier.label} - {tier.pages} pages
+                  {tier.label} ({tier.pages} pages)
                 </option>
               ))}
             </select>
@@ -675,15 +680,15 @@ export function BetaApp({ mountKey }) {
             <option value="0">Off</option>
             {RENDERED_CRAWL_TARGETS.slice(1).map((tier) => (
               <option key={tier.id} value={tier.pages}>
-                {tier.label} - {formatCount(tier.pages)} pages
+                {tier.label} ({formatCount(tier.pages)} pages)
               </option>
             ))}
           </select>
           <p className="field-note">
-            Large sites are audited in batches in the background over days to weeks. Results say clearly how much has
-            been covered so far.
+            Big crawls run in batches in the background and can take days to weeks. The report shows how many pages are
+            done so far.
           </p>
-          <label htmlFor="competitor-urls">Competitors</label>
+          <label htmlFor="competitor-urls">Competitor URLs (one per line)</label>
           <textarea
             id="competitor-urls"
             onChange={(event) => setCompetitorUrls(event.target.value)}
@@ -691,7 +696,7 @@ export function BetaApp({ mountKey }) {
             rows="3"
             value={competitorUrls}
           />
-          <label htmlFor="backlink-rows">Backlinks</label>
+          <label htmlFor="backlink-rows">Backlinks (CSV rows)</label>
           <textarea
             id="backlink-rows"
             onChange={(event) => setBacklinkRows(event.target.value)}
@@ -699,7 +704,7 @@ export function BetaApp({ mountKey }) {
             rows="4"
             value={backlinkRows}
           />
-          <label htmlFor="keyword-rows">Keyword rows</label>
+          <label htmlFor="keyword-rows">Keywords (CSV rows)</label>
           <textarea
             id="keyword-rows"
             onChange={(event) => setKeywordRows(event.target.value)}
@@ -708,7 +713,7 @@ export function BetaApp({ mountKey }) {
             value={keywordRows}
           />
           <div className="local-seo-fields">
-            <label htmlFor="local-business-name">Local business</label>
+            <label htmlFor="local-business-name">Business name</label>
             <input
               id="local-business-name"
               onChange={(event) => setLocalBusinessName(event.target.value)}
@@ -749,7 +754,7 @@ export function BetaApp({ mountKey }) {
               rows="3"
               value={localKeywords}
             />
-            <label htmlFor="local-citations">Citations</label>
+            <label htmlFor="local-citations">Directory listings (CSV rows)</label>
             <textarea
               id="local-citations"
               onChange={(event) => setLocalCitations(event.target.value)}

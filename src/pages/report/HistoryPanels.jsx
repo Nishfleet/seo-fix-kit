@@ -12,26 +12,26 @@ export function ReportDeltaPanel({ delta }) {
   return (
     <section className="report-delta-panel">
       <div className="section-heading">
-        <p className="beta-eyebrow">Audit history</p>
+        <p className="beta-eyebrow">Since your last audit</p>
         <h2>
           {firstRun
-            ? "First saved audit for this host."
+            ? "First audit of this site"
             : scoreDelta > 0
-              ? `Score improved by ${scoreDelta} points.`
+              ? `Score up ${scoreDelta} points`
               : scoreDelta < 0
-                ? `Score dropped by ${Math.abs(scoreDelta)} points.`
-                : "Score held steady since the last audit."}
+                ? `Score down ${Math.abs(scoreDelta)} points`
+                : "Score unchanged since the last audit"}
         </h2>
         <p>
           {firstRun
-            ? "Future reruns will show fixed, new, and still-open issues here."
-            : "Compares this report with the previous saved audit for the same owner and host."}
+            ? "Rerun the audit to see what’s fixed, still open or new."
+            : "Compared with your previous audit of this site."}
         </p>
       </div>
 
-      <div className="report-delta-metrics" aria-label="Audit history delta">
+      <div className="report-delta-metrics" aria-label="Changes since last audit">
         <Metric label="Score change" value={firstRun ? "New" : signedNumber(scoreDelta)} />
-        <Metric label="Issue change" value={firstRun ? summary.issuesNow || 0 : signedNumber(issueDelta)} />
+        <Metric label="Problem change" value={firstRun ? summary.issuesNow || 0 : signedNumber(issueDelta)} />
         <Metric label="Fixed" value={summary.fixedIssuesCount || 0} />
         <Metric label="New" value={summary.newIssuesCount || 0} />
         <Metric label="Still open" value={summary.persistentIssuesCount || 0} />
@@ -41,16 +41,11 @@ export function ReportDeltaPanel({ delta }) {
         <div className="report-delta-grid">
           <DeltaIssueColumn
             title="Fixed since last audit"
-            empty="No proven issues disappeared yet."
+            empty="Nothing fixed yet."
             issues={fixedIssues}
             tone="fixed"
           />
-          <DeltaIssueColumn
-            title="New since last audit"
-            empty="No new proven issues appeared."
-            issues={newIssues}
-            tone="new"
-          />
+          <DeltaIssueColumn title="New since last audit" empty="No new problems." issues={newIssues} tone="new" />
         </div>
       )}
     </section>
@@ -61,15 +56,15 @@ export function RemediationBriefPanel({ brief, reportId }) {
   const queue = brief.priorityQueue || [];
   const history = brief.proofHistory || {};
   return (
-    <section className="remediation-brief-panel" aria-label="Agent remediation brief">
+    <section className="remediation-brief-panel" aria-label="Repair brief">
       <div className="section-heading">
-        <p className="beta-eyebrow">Agent repair brief</p>
-        <h2>{queue.length ? "Turn proven issues into a repair queue" : "No priority repair queue"}</h2>
-        <p>{brief.support?.safeHandoff || "Use the report proof and acceptance checks before closing repairs."}</p>
+        <p className="beta-eyebrow">Repair brief</p>
+        <h2>{queue.length ? "What to fix, in order" : "No priority fixes"}</h2>
+        <p>{brief.support?.safeHandoff || "Check each fix against its evidence before you close it."}</p>
       </div>
       <div className="remediation-brief-grid">
         <div className="remediation-next-actions">
-          <strong>Next actions</strong>
+          <strong>Next steps</strong>
           <ol>
             {(brief.nextActions || []).map((action) => (
               <li key={action}>{action}</li>
@@ -79,7 +74,7 @@ export function RemediationBriefPanel({ brief, reportId }) {
         <div className="remediation-proof-history">
           <Metric label="Fixed" value={history.fixedIssues || 0} />
           <Metric label="New" value={history.newIssues || 0} />
-          <Metric label="Persistent" value={history.persistentIssues || 0} />
+          <Metric label="Still open" value={history.persistentIssues || 0} />
         </div>
       </div>
       {queue.length ? (
@@ -98,11 +93,11 @@ export function RemediationBriefPanel({ brief, reportId }) {
           ))}
         </div>
       ) : (
-        <p className="quiet-note">Keep monitoring and rerun after meaningful site changes.</p>
+        <p className="quiet-note">Nothing queued. Rerun the audit after you change the site.</p>
       )}
       {reportId && (
         <a className="action-link" href={`/api/reports/${encodeURIComponent(reportId)}/remediation-brief.json`}>
-          Download remediation JSON
+          Download brief (JSON)
         </a>
       )}
     </section>

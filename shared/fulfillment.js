@@ -127,12 +127,15 @@ export function adminNotificationEmail(env) {
   return normalizeEmail(env?.SEOFIXKIT_ADMIN_EMAIL || "");
 }
 
+const FIX_PACK_SCOPE =
+  "This covers one guided repair pass on the problems in this report, plus one rerun to check the fixes. We don't promise rankings.";
+
 export function buildPaymentNotificationEmail({ appOrigin, fixRequest, report, payment, offerKey, recipientType }) {
   const offer = paymentNotificationOffer(offerKey);
   const reportUrl = `${appOrigin}/beta/reports/${encodeURIComponent(fixRequest.report_id)}`;
   const target = fixRequest.target_host || safeHost(fixRequest.target_url);
   const subject =
-    recipientType === "admin" ? `${offer.name} paid: ${target}` : `${offer.name} payment confirmed for ${target}`;
+    recipientType === "admin" ? `Paid: ${offer.name} for ${target}` : `Payment received: ${offer.name} for ${target}`;
   const amount = payment?.amount && payment?.currency ? formatMoneyMinorUnits(payment.currency, payment.amount) : "";
   const intro = recipientType === "admin" ? offer.adminIntro : offer.ownerIntro;
   const text = [
@@ -143,8 +146,8 @@ export function buildPaymentNotificationEmail({ appOrigin, fixRequest, report, p
     amount ? `Amount: ${amount}` : "",
     payment?.paymentId ? `Payment ID: ${payment.paymentId}` : "",
     "",
-    "Next status: repair in progress.",
-    "Your paid report stays available in your workspace and does not expire.",
+    "Next: we start the repair and email you when work begins.",
+    "Your report stays in your workspace. It does not expire.",
     offer.scope
   ]
     .filter((line) => line !== "")
@@ -160,8 +163,8 @@ export function buildPaymentNotificationEmail({ appOrigin, fixRequest, report, p
       : "",
     "</ul>",
     emailButton(reportUrl, "Open report"),
-    '<p style="margin:0 0 8px">Next status: repair in progress.</p>',
-    '<p style="margin:0 0 8px">Your paid report stays available in your workspace and does not expire.</p>',
+    '<p style="margin:0 0 8px">Next: we start the repair and email you when work begins.</p>',
+    '<p style="margin:0 0 8px">Your report stays in your workspace. It does not expire.</p>',
     `<p style="color:#6b6f6c;font-size:13px;margin:0">${offer.scope}</p>`
   ]
     .filter(Boolean)
@@ -181,17 +184,17 @@ function paymentNotificationOffer(offerKey) {
   if (offerKey === OFFER_KEYS.REPAIR_SPRINT) {
     return {
       name: "Repair Sprint",
-      adminIntro: "A Repair Sprint payment was confirmed.",
-      ownerIntro: "Your Repair Sprint payment is confirmed.",
+      adminIntro: "Repair Sprint payment received.",
+      ownerIntro: "We received your Repair Sprint payment.",
       scope:
-        "No ranking promises are made; this covers the approved repair proposals executed for this report and the delivery proof for each one."
+        "This covers carrying out the repairs you approved for this report, with delivery proof for each one. We don't promise rankings."
     };
   }
   return {
-    name: "SEO Fix Pack",
-    adminIntro: "A SEO Fix Pack payment was confirmed.",
-    ownerIntro: "Your SEO Fix Pack payment is confirmed.",
-    scope: "No ranking promises are made; this covers the proven repair queue and one rerun after fixes."
+    name: "Fix Pack",
+    adminIntro: "Fix Pack payment received.",
+    ownerIntro: "We received your Fix Pack payment.",
+    scope: FIX_PACK_SCOPE
   };
 }
 
@@ -211,17 +214,22 @@ export function buildStatusNotificationEmail({
     : "";
   const target = fixRequest.target_host || safeHost(fixRequest.target_url);
   const customerNote = cleanEmailLine(fixRequest.customer_note || "");
-  const subjectPrefix =
-    normalizedStatus === "delivered" ? "SEO Fix Pack delivery ready" : "SEO Fix Pack repair started";
-  const subject = recipientType === "admin" ? `${subjectPrefix}: ${target}` : `${subjectPrefix} for ${target}`;
+  const subject =
+    normalizedStatus === "delivered"
+      ? recipientType === "admin"
+        ? `Fix Pack marked delivered: ${target}`
+        : `Fix Pack delivered: ${target}`
+      : recipientType === "admin"
+        ? `Fix Pack marked in progress: ${target}`
+        : `Fix Pack started: ${target}`;
   const intro =
     normalizedStatus === "delivered"
       ? recipientType === "admin"
-        ? "A SEO Fix Pack delivery was marked ready."
-        : "Your SEO Fix Pack delivery is ready."
+        ? "Fix Pack marked delivered."
+        : "Your Fix Pack is done."
       : recipientType === "admin"
-        ? "A SEO Fix Pack repair was marked in progress."
-        : "Your SEO Fix Pack repair is in progress.";
+        ? "Fix Pack marked in progress."
+        : "We've started work on your Fix Pack.";
   const timeline = [
     fixRequest.due_at ? `Expected by: ${formatEmailDate(fixRequest.due_at)}` : "",
     fixRequest.next_update_at ? `Next update by: ${formatEmailDate(fixRequest.next_update_at)}` : ""
@@ -238,8 +246,8 @@ export function buildStatusNotificationEmail({
     ...timeline,
     ...proof,
     "",
-    "Your paid reports stay available in your workspace and do not expire.",
-    "No ranking promises are made; this covers the proven repair queue and one rerun after fixes."
+    "Your reports stay in your workspace. They do not expire.",
+    FIX_PACK_SCOPE
   ]
     .filter((line) => line !== "")
     .join("\n");
@@ -249,7 +257,7 @@ export function buildStatusNotificationEmail({
   const primary = deliveryUrl
     ? { href: deliveryUrl, label: "Open delivery notes" }
     : finalReportUrl
-      ? { href: finalReportUrl, label: "Open final rerun report" }
+      ? { href: finalReportUrl, label: "Open final rerun" }
       : { href: reportUrl, label: "Open report" };
   const labeledLink = (href, label) =>
     `<a href="${escapeHtml(href)}" style="color:#0f7a56;font-weight:600;text-decoration:none">${label}</a>`;
@@ -262,7 +270,7 @@ export function buildStatusNotificationEmail({
       ? `<li style="margin:0 0 6px"><strong>Delivery:</strong> ${labeledLink(deliveryUrl, "Open delivery notes")}</li>`
       : "",
     finalReportUrl
-      ? `<li style="margin:0 0 6px"><strong>Final rerun:</strong> ${labeledLink(finalReportUrl, "Open final rerun report")}</li>`
+      ? `<li style="margin:0 0 6px"><strong>Final rerun:</strong> ${labeledLink(finalReportUrl, "Open final rerun")}</li>`
       : "",
     customerNote ? `<li style="margin:0 0 6px"><strong>Note:</strong> ${escapeHtml(customerNote)}</li>` : "",
     fixRequest.due_at
@@ -274,8 +282,8 @@ export function buildStatusNotificationEmail({
     ...proof.map((line) => `<li style="margin:0 0 6px">${escapeHtml(line)}</li>`),
     "</ul>",
     emailButton(primary.href, primary.label),
-    '<p style="margin:0 0 8px">Your paid reports stay available in your workspace and do not expire.</p>',
-    '<p style="color:#6b6f6c;font-size:13px;margin:0">No ranking promises are made; this covers the proven repair queue and one rerun after fixes.</p>'
+    '<p style="margin:0 0 8px">Your reports stay in your workspace. They do not expire.</p>',
+    `<p style="color:#6b6f6c;font-size:13px;margin:0">${FIX_PACK_SCOPE}</p>`
   ]
     .filter(Boolean)
     .join("");
@@ -375,7 +383,7 @@ function beforeAfterSummaryLines(summary) {
   }
   if (Number.isFinite(Number(summary.beforeFindings)) && Number.isFinite(Number(summary.afterFindings))) {
     const fixed = Math.max(0, Number(summary.beforeFindings) - Number(summary.afterFindings));
-    lines.push(`Findings: ${summary.beforeFindings} -> ${summary.afterFindings} (${fixed} reduced)`);
+    lines.push(`Problems: ${summary.beforeFindings} -> ${summary.afterFindings} (${fixed} fewer)`);
   }
   return lines;
 }

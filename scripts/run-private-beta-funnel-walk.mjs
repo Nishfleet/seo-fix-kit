@@ -89,10 +89,10 @@ export const FUNNEL_STOPS = [
     path: "/",
     name: "home",
     acceptStatuses: [200],
-    titlePattern: /SEO Fix Kit - SEO fixes you can prove/,
+    titlePattern: /SEO Fix Kit - The SEO audit that checks its own work/,
     copyChecks: [
       { match: "Now in private beta", reason: "home keeps the locked private-beta copy" },
-      { match: "Get started free", reason: "home keeps the one-use email link CTA" },
+      { match: "Start free", reason: "home keeps the one-use email link CTA" },
       { match: "for site owners and founders", reason: "home names the intended buyer", ignoreCase: true }
     ],
     expectedLinks: ["/demo", "/methodology", "/pricing", "/check"],
@@ -102,7 +102,7 @@ export const FUNNEL_STOPS = [
     path: "/demo",
     name: "demo",
     acceptStatuses: [200],
-    titlePattern: /Proof-Backed SEO Repair Demo - SEO Fix Kit/,
+    titlePattern: /Sample Report - SEO Fix Kit/,
     canonical: "/demo",
     copyChecks: [
       { match: "false positive", reason: "demo shows the guarded-false-positive proof boundary", ignoreCase: true },
@@ -133,7 +133,7 @@ export const ACCESS_FORM_EXPECTATIONS = {
   companySelector: "#company",
   companyTabIndex: "-1",
   companyAutocomplete: "off",
-  submitLabel: "Get started free"
+  submitLabel: "Start free"
 };
 
 // Network request failures that are expected in a headless walk and are not

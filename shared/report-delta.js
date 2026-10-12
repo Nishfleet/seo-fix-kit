@@ -3,7 +3,7 @@ export function buildReportDelta(currentReport = {}, previousReport = null) {
     return {
       status: "first_run",
       source: "saved-report-history",
-      note: "No earlier saved report was available for this owner and host.",
+      note: "No earlier report of this site to compare with.",
       previous: null,
       summary: {
         scoreNow: numberOrZero(currentReport.score),
@@ -43,7 +43,7 @@ export function buildReportDelta(currentReport = {}, previousReport = null) {
   return {
     status: "ready",
     source: "saved-report-history",
-    note: "Compares this saved report with the most recent earlier report for the same owner and host.",
+    note: "Compared with your last saved report of this site.",
     previous: {
       id: previousReport.id || "",
       url: previousReport.url || "",
@@ -83,7 +83,7 @@ export function reportDeltaBriefLines(delta = {}) {
     return [
       "## Audit history delta",
       "",
-      "This is the first saved report for this owner and host, so there is no previous run to compare yet.",
+      "This is the first saved report of this site. Rerun the audit later to see what changed.",
       ""
     ];
   }

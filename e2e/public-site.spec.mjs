@@ -13,7 +13,7 @@ for (const path of ROOT_PUBLIC_PATHS) {
     await expect(page.locator("h1")).toBeVisible();
     await expect(page).toHaveTitle(/SEO Fix Kit/);
     await expect(page.locator('meta[name="description"]')).toHaveAttribute("content", /^.{50,}$/);
-    await expect(page.getByRole("banner").getByRole("link", { name: "Check a page free" })).toHaveAttribute(
+    await expect(page.getByRole("banner").getByRole("link", { name: "Check a page" })).toHaveAttribute(
       "href",
       /\/check$/
     );
@@ -27,14 +27,14 @@ for (const path of ROOT_PUBLIC_PATHS) {
 test.describe("homepage", () => {
   test("ships its content in the HTML, so it reads without JavaScript", async ({ request, browser }) => {
     const html = await (await request.get("/")).text();
-    expect(html).toContain("SEO fixes you can prove.");
-    expect(html).toContain("What does the paid Fix Pack include?");
+    expect(html).toContain("An SEO audit that checks its own work.");
+    expect(html).toContain("What does the Fix Pack include?");
 
     const context = await browser.newContext({ javaScriptEnabled: false });
     const page = await context.newPage();
     await page.goto("/");
-    await expect(page.getByRole("heading", { level: 1, name: "SEO fixes you can prove." })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Check a page free" }).first()).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "An SEO audit that checks its own work." })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Check a page" }).first()).toBeVisible();
     await context.close();
   });
 
@@ -63,8 +63,8 @@ test.describe("homepage", () => {
     const tabs = page.getByRole("tablist", { name: "Product screens" });
     const panel = page.getByRole("tabpanel");
     await expect(panel.getByRole("img", { name: /report/ })).toBeVisible();
-    await tabs.getByRole("tab", { name: /Every page/ }).click();
-    await expect(tabs.getByRole("tab", { name: /Every page/ })).toHaveAttribute("aria-selected", "true");
+    await tabs.getByRole("tab", { name: /Pages/ }).click();
+    await expect(tabs.getByRole("tab", { name: /Pages/ })).toHaveAttribute("aria-selected", "true");
     const screen = panel.getByRole("img", { name: /pages table/ });
     await screen.scrollIntoViewIfNeeded();
     await expect(screen).toBeVisible();
@@ -154,15 +154,15 @@ test.describe("pricing", () => {
     await page.goto("/pricing");
     const plans = page.getByRole("region", { name: "Plans" }).getByRole("article");
     await expect(plans).toHaveCount(3);
-    await expect(plans.nth(1)).toContainText("Most popular");
+    await expect(plans.nth(1)).toContainText("Start here");
     await expect(plans.nth(1)).toContainText("Everything in Page check, plus:");
     await expect(plans.nth(2)).toContainText("Everything in Site audit, plus:");
     await expect(plans.nth(2)).toContainText("$99");
-    await expect(page.getByRole("table")).toContainText("Rerun with a before/after proof receipt");
+    await expect(page.getByRole("table")).toContainText("Rerun that confirms each fix");
 
-    await plans.nth(1).getByRole("link", { name: "Get started" }).click();
+    await plans.nth(1).getByRole("link", { name: "Create an account" }).click();
     await expect(page).toHaveURL(/\/#get-started$/);
-    await expect(page.getByLabel("Work email")).toBeVisible();
+    await expect(page.getByLabel("Email")).toBeVisible();
   });
 });
 
@@ -239,6 +239,6 @@ test.describe("404", () => {
     await expect(page.getByRole("heading", { level: 1, name: "Nothing to fix here." })).toBeVisible();
     await expect(page.getByText("/this-page-does-not-exist")).toBeVisible();
     await page.getByRole("link", { name: "Go to homepage" }).click();
-    await expect(page.getByRole("heading", { level: 1, name: "SEO fixes you can prove." })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "An SEO audit that checks its own work." })).toBeVisible();
   });
 });

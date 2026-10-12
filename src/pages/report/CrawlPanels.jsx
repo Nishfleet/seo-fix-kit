@@ -9,34 +9,33 @@ export function CrawlInventoryPanel({ inventory }) {
   return (
     <section className="crawl-inventory-panel">
       <div className="section-heading">
-        <p className="beta-eyebrow">Crawl inventory</p>
+        <p className="beta-eyebrow">Sitemap URLs</p>
         <h2>
           {summary.urlsDiscovered
-            ? `${formatCount(summary.urlsDiscovered)} ${summary.urlsDiscovered === 1 ? "URL" : "URLs"} found in your sitemaps.`
-            : "We didn’t find any URLs in a sitemap."}
+            ? `${formatCount(summary.urlsDiscovered)} ${summary.urlsDiscovered === 1 ? "URL" : "URLs"} in your sitemaps`
+            : "No sitemap URLs found"}
         </h2>
         <p>
-          Every URL your sitemaps list, up to 50,000. Fixes are still based on the pages this audit checked in a real
-          browser.
+          Every URL your sitemaps list, up to 50,000. Problems come only from the pages this audit loaded in a browser.
         </p>
       </div>
 
-      <div className="crawl-inventory-metrics" aria-label="Crawl inventory summary">
-        <Metric label="Inventory URLs" value={formatCount(summary.urlsDiscovered || 0)} />
+      <div className="crawl-inventory-metrics" aria-label="Sitemap URL summary">
+        <Metric label="Sitemap URLs" value={formatCount(summary.urlsDiscovered || 0)} />
         <Metric
-          label="Rendered proof"
+          label="Loaded in browser"
           value={`${formatCount(summary.renderedPagesCovered || 0)}/${formatCount(summary.renderedPagesScanned || 0)}`}
         />
         <Metric label="Coverage" value={`${summary.coveragePercent || 0}%`} />
         <Metric label="Sitemaps" value={formatCount(summary.sitemapsFetched || 0)} />
-        <Metric label="Inventory cap" value={formatCount(summary.inventoryLimit || 50000)} />
+        <Metric label="Limit" value={formatCount(summary.inventoryLimit || 50000)} />
       </div>
 
       {sampleUrls.length > 0 && (
         <div className="crawl-inventory-grid">
           {sampleUrls.slice(0, 8).map((item) => (
             <article className="crawl-inventory-row" key={item.url}>
-              <span>Discovered</span>
+              <span>In sitemap</span>
               <strong>{safeHostnameLabel(item.url)}</strong>
               <small>{item.url}</small>
               {item.lastmod && <p>Last updated {item.lastmod}</p>}
@@ -65,21 +64,17 @@ export function RenderedCrawlScalePanel({ plan }) {
   return (
     <section className="rendered-crawl-scale-panel">
       <div className="section-heading">
-        <p className="beta-eyebrow">Rendered crawl scale</p>
+        <p className="beta-eyebrow">Large-site crawl plan</p>
         <h2>
-          {formatCount(summary.plannedUrlCount || summary.requestedTargetPages || 0)} URLs staged for rendered crawl
-          proof.
+          {formatCount(summary.plannedUrlCount || summary.requestedTargetPages || 0)} URLs queued for browser checks
         </h2>
-        <p>
-          How a full-site browser check would be split into batches. This is a plan: not every page here has been
-          checked yet.
-        </p>
+        <p>How a full-site check is split into batches. This is a plan. Not every page here has been checked yet.</p>
       </div>
 
-      <div className="rendered-crawl-scale-metrics" aria-label="Rendered crawl scale summary">
-        <Metric label="Rendered now" value={formatCount(summary.renderedPages || 0)} />
+      <div className="rendered-crawl-scale-metrics" aria-label="Large-site crawl plan summary">
+        <Metric label="Checked so far" value={formatCount(summary.renderedPages || 0)} />
         <Metric label="Target" value={formatCount(summary.requestedTargetPages || 0)} />
-        <Metric label="Inventory" value={formatCount(summary.inventoryUrlsAvailable || 0)} />
+        <Metric label="Sitemap URLs" value={formatCount(summary.inventoryUrlsAvailable || 0)} />
         <Metric label="Batches" value={formatCount(summary.plannedBatches || 0)} />
         <Metric label="Coverage" value={`${summary.renderedCoveragePercent || 0}%`} />
         <Metric label="Batch size" value={formatCount(summary.batchSize || 1000)} />
@@ -91,7 +86,7 @@ export function RenderedCrawlScalePanel({ plan }) {
           <strong>{highestPriority.title}</strong>
           <p>{highestPriority.proof}</p>
           <small>
-            {highestPriority.estimatedEffort || "30-90 min"} - {highestPriority.workType || "technical"}
+            {highestPriority.estimatedEffort || "30-90 min"} · {highestPriority.workType || "technical"}
           </small>
         </article>
       )}
@@ -106,13 +101,13 @@ export function RenderedCrawlScalePanel({ plan }) {
               <span>{batch.status}</span>
               <strong>Batch {batch.batch}</strong>
               <small>
-                {formatCount(batch.startIndex)}-{formatCount(batch.endIndex)} of staged URLs
+                {formatCount(batch.startIndex)}-{formatCount(batch.endIndex)} of queued URLs
               </small>
             </div>
             <p>
               {batch.sampleUrls?.length
                 ? batch.sampleUrls.slice(0, 3).join(", ")
-                : `${formatCount(batch.plannedUrlCount)} planned rendered URLs.`}
+                : `${formatCount(batch.plannedUrlCount)} URLs planned.`}
             </p>
           </article>
         ))}
@@ -130,20 +125,21 @@ export function CrawlIntelligencePanel({ audit }) {
   return (
     <section className="crawl-intelligence-panel">
       <div className="section-heading">
-        <p className="beta-eyebrow">Crawl intelligence</p>
-        <h2>Rendered link graph with duplicate and orphan proof.</h2>
+        <p className="beta-eyebrow">Site structure</p>
+        <h2>Internal links, duplicates and orphan pages</h2>
         <p>
-          Self-serve crawl-budget, orphan, duplicate-content, parameter, and cannibalization checks from rendered pages.
+          Built from the links on each loaded page. An orphan is a sitemap page nothing links to. Cannibalization means
+          two pages compete for the same keyword.
         </p>
       </div>
 
-      <div className="crawl-intelligence-metrics" aria-label="Crawl intelligence summary">
-        <Metric label="Edges" value={summary.linkedEdges || 0} />
-        <Metric label="Max depth" value={summary.maxDepth || 0} />
+      <div className="crawl-intelligence-metrics" aria-label="Site structure summary">
+        <Metric label="Internal links" value={summary.linkedEdges || 0} />
+        <Metric label="Deepest click depth" value={summary.maxDepth || 0} />
         <Metric label="Orphans" value={summary.orphanInventoryCandidates || 0} />
         <Metric label="Duplicate pairs" value={summary.duplicateContentPairs || 0} />
         <Metric label="Cannibalization" value={summary.cannibalizationGroups || 0} />
-        <Metric label="URL params" value={summary.parameterizedLinks || 0} />
+        <Metric label="Links with parameters" value={summary.parameterizedLinks || 0} />
       </div>
 
       {highestPriority && (
@@ -152,7 +148,7 @@ export function CrawlIntelligencePanel({ audit }) {
           <strong>{highestPriority.title}</strong>
           <p>{highestPriority.proof}</p>
           <small>
-            {highestPriority.estimatedEffort || "30-90 min"} - {highestPriority.workType || "technical"}
+            {highestPriority.estimatedEffort || "30-90 min"} · {highestPriority.workType || "technical"}
           </small>
         </article>
       )}
@@ -161,7 +157,7 @@ export function CrawlIntelligencePanel({ audit }) {
         {(checks.orphanInventoryCandidates || []).slice(0, 3).map((item) => (
           <article className="crawl-intelligence-row is-lost" key={`orphan-${item.url}`}>
             <div>
-              <span>Orphan candidate</span>
+              <span>Possible orphan</span>
               <strong>{item.label || item.url}</strong>
               <small>{item.lastmod || "Sitemap URL"}</small>
             </div>
@@ -187,7 +183,7 @@ export function CrawlIntelligencePanel({ audit }) {
                 {pair.left.label} and {pair.right.label}
               </small>
             </div>
-            <p>{pair.left.title || pair.right.title || "Rendered content overlap"}</p>
+            <p>{pair.left.title || pair.right.title || "Similar text"}</p>
           </article>
         ))}
         {(checks.cannibalizationGroups || []).slice(0, 3).map((group) => (
@@ -205,7 +201,7 @@ export function CrawlIntelligencePanel({ audit }) {
             <div>
               <span>URL parameter</span>
               <strong>{link.pageLabel || "page"}</strong>
-              <small>{link.text || "Rendered internal link"}</small>
+              <small>{link.text || "Internal link"}</small>
             </div>
             <p>{link.href}</p>
           </article>

@@ -134,7 +134,11 @@ const UNATTRIBUTABLE_PAYMENT_IDENTITY_REASONS = new Set([
 async function requestFixPack(request, env) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
-  if (!env.WAITLIST_DB) return json({ error: "Fix request storage is not configured." }, 503);
+  if (!env.WAITLIST_DB)
+    return json(
+      { error: "Fix request storage is not set up on this server. Email support@seofixkit.com for help." },
+      503
+    );
 
   const parsed = await parseJsonBody(request, ReportCheckoutBody);
   if (parsed.error) return json(parsed.error, 400);
@@ -154,7 +158,8 @@ async function requestFixPack(request, env) {
   if (row.owner_invite_id && access.accessMode !== "founder-override" && row.owner_invite_id !== access.inviteId) {
     return json({ error: "Report not found." }, 404);
   }
-  if (row.expires_at && row.expires_at <= new Date().toISOString()) return json({ error: "Report expired." }, 404);
+  if (row.expires_at && row.expires_at <= new Date().toISOString())
+    return json({ error: "This report expired. Run a new audit to get a fresh report." }, 404);
 
   const summary = parseJson(row.summary_json, {});
   const report = parseJson(await reportJsonForRow(env, row), {});
@@ -180,7 +185,7 @@ async function requestFixPack(request, env) {
       mode: existingFixRequest.status,
       checkoutAvailable: false,
       message:
-        "This Fix Pack was refunded or disputed, so checkout is closed for this report. Email support@seofixkit.com to restart a repair.",
+        "This Fix Pack was refunded or disputed, so checkout is closed for this report. Email support@seofixkit.com to start a new repair.",
       request: fixRequestWithProposalSummary(existingFixRequest, skippedProposalSeed, now),
       offer: FIX_PACK_OFFER,
       selectedRepair: null
@@ -203,7 +208,7 @@ async function requestFixPack(request, env) {
   if (repairContext.unavailable) {
     return jsonNoStore(
       {
-        error: "Repair queue storage is not ready. Retry after the repair queue migration is applied.",
+        error: "Repair queue storage is being updated. Try again in a few minutes.",
         code: "REPAIR_QUEUE_MIGRATION_MISSING",
         checkoutAvailable: false,
         offer: FIX_PACK_OFFER,
@@ -216,7 +221,7 @@ async function requestFixPack(request, env) {
   if (repairContext.selectionConflict) {
     return jsonNoStore(
       {
-        error: "Selected repair is no longer available for checkout. Refresh the report and choose an active repair.",
+        error: "That repair is no longer open for checkout. Refresh the report and pick an open repair.",
         code: "FIX_PACK_REPAIR_SELECTION_UNAVAILABLE",
         checkoutAvailable: false,
         offer: FIX_PACK_OFFER,
@@ -229,7 +234,7 @@ async function requestFixPack(request, env) {
   if (!repairContext.selectedRepair) {
     return jsonNoStore(
       {
-        error: "No active proof-backed repair is available for checkout.",
+        error: "This report has no open repairs to buy.",
         checkoutAvailable: false,
         offer: FIX_PACK_OFFER,
         selectedRepair: null
@@ -268,7 +273,7 @@ async function requestFixPack(request, env) {
       ok: true,
       mode: "request",
       checkoutAvailable: false,
-      message: "Fix request saved. Checkout is paused until payment and webhook config pass.",
+      message: "Fix request saved. Checkout is not open yet, so you have not been charged.",
       request: fixRequestWithProposalSummary(fixRequest, skippedProposalSeed, now),
       offer: FIX_PACK_OFFER,
       selectedRepair: repairContext.selectedRepair
@@ -279,7 +284,7 @@ async function requestFixPack(request, env) {
   if (!checkoutSchema.ok) {
     return jsonNoStore(
       {
-        error: "Fix Pack checkout storage is not ready. Retry after the checkout metadata migration is applied.",
+        error: "Fix Pack checkout storage is being updated. Try again in a few minutes.",
         code: "FIX_PACK_CHECKOUT_SCHEMA_MISSING",
         checkoutAvailable: false,
         request: fixRequestResponse(fixRequest, now),
@@ -347,7 +352,11 @@ async function requestFixPack(request, env) {
 async function requestRepairSprintCheckout(request, env) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
-  if (!env.WAITLIST_DB) return json({ error: "Repair Sprint storage is not configured." }, 503);
+  if (!env.WAITLIST_DB)
+    return json(
+      { error: "Repair Sprint storage is not set up on this server. Email support@seofixkit.com for help." },
+      503
+    );
 
   const parsed = await parseJsonBody(request, ReportCheckoutBody);
   if (parsed.error) return json(parsed.error, 400);
@@ -367,7 +376,8 @@ async function requestRepairSprintCheckout(request, env) {
   if (row.owner_invite_id && access.accessMode !== "founder-override" && row.owner_invite_id !== access.inviteId) {
     return json({ error: "Report not found." }, 404);
   }
-  if (row.expires_at && row.expires_at <= new Date().toISOString()) return json({ error: "Report expired." }, 404);
+  if (row.expires_at && row.expires_at <= new Date().toISOString())
+    return json({ error: "This report expired. Run a new audit to get a fresh report." }, 404);
 
   const now = new Date().toISOString();
   const existingFixRequest = await latestFixRequestForReport(env, row.id, access.ownerEmail);
@@ -379,12 +389,12 @@ async function requestRepairSprintCheckout(request, env) {
       status: 409,
       code: "REPAIR_SPRINT_REBUY_BLOCKED",
       error:
-        "This report has a refunded or disputed payment state. Email support@seofixkit.com to restart a Repair Sprint.",
+        "A payment for this report was refunded or disputed. Email support@seofixkit.com to start a new Repair Sprint.",
       repairSprint: {
         ...blockedEligibility,
         status: "blocked",
         message:
-          "This report has a refunded or disputed payment state. Email support@seofixkit.com to restart a Repair Sprint."
+          "A payment for this report was refunded or disputed. Email support@seofixkit.com to start a new Repair Sprint."
       },
       proposalSummary: repairSprintProposalSummary([]),
       request: fixRequestWithProposalSummary(existingFixRequest, repairSprintProposalSummary([]), now)
@@ -397,7 +407,7 @@ async function requestRepairSprintCheckout(request, env) {
     return repairSprintCheckoutErrorResponse({
       status: 503,
       code: "REPAIR_SPRINT_PROPOSAL_STORAGE_UNAVAILABLE",
-      error: "Repair Sprint proposal storage is not ready. Retry after the repair proposal migration is applied.",
+      error: "Repair Sprint proposal storage is being updated. Try again in a few minutes.",
       repairSprint: repairSprintEligibilityFromProposals([], existingFixRequest, { checkoutReady: false }),
       proposalSummary: {
         status: "unavailable",
@@ -431,7 +441,7 @@ async function requestRepairSprintCheckout(request, env) {
     return repairSprintCheckoutErrorResponse({
       status: 503,
       code: "REPAIR_SPRINT_CHECKOUT_NOT_CONFIGURED",
-      error: "Repair Sprint checkout is paused until the Dodo product and webhook config are ready.",
+      error: "Repair Sprint checkout is not open yet. You have not been charged.",
       missing: dodoConfigMissing(config),
       repairSprint: eligibility,
       proposalSummary,
@@ -444,7 +454,7 @@ async function requestRepairSprintCheckout(request, env) {
     return repairSprintCheckoutErrorResponse({
       status: 503,
       code: "REPAIR_SPRINT_CHECKOUT_SCHEMA_MISSING",
-      error: "Repair Sprint checkout storage is not ready. Retry after the checkout metadata migration is applied.",
+      error: "Repair Sprint checkout storage is being updated. Try again in a few minutes.",
       repairSprint: eligibility,
       proposalSummary,
       request: existingFixRequest ? fixRequestWithProposalSummary(existingFixRequest, proposalSummary, now) : null
@@ -547,7 +557,11 @@ async function requestRepairSprintCheckout(request, env) {
 async function requestMonitoringCheckout(request, env) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
-  if (!env.WAITLIST_DB) return json({ error: "Monitoring storage is not configured." }, 503);
+  if (!env.WAITLIST_DB)
+    return json(
+      { error: "Monitoring storage is not set up on this server. Email support@seofixkit.com for help." },
+      503
+    );
 
   const parsed = await parseJsonBody(request, MonitoringCheckoutBody);
   if (parsed.error) return json(parsed.error, 400);
@@ -558,7 +572,7 @@ async function requestMonitoringCheckout(request, env) {
     return monitoringCheckoutErrorResponse({
       status: 503,
       code: "MONITORING_CHECKOUT_NOT_CONFIGURED",
-      error: "Proof Monitoring checkout is paused until the Dodo subscription product and webhook config are ready.",
+      error: "Monitoring checkout is not open yet. You have not been charged.",
       missing: dodoConfigMissing(config),
       monitoring,
       target: monitoringCheckoutTargetResponse()
@@ -571,7 +585,7 @@ async function requestMonitoringCheckout(request, env) {
     return monitoringCheckoutErrorResponse({
       status: 503,
       code: "MONITORING_ENTITLEMENT_SCHEMA_MISSING",
-      error: "Monitoring entitlement storage is not ready. Retry after the offer entitlement migration is applied.",
+      error: "Monitoring entitlement storage is being updated. Try again in a few minutes.",
       monitoring,
       target: monitoringCheckoutTargetResponse()
     });
@@ -597,7 +611,7 @@ async function requestMonitoringCheckout(request, env) {
       ok: true,
       mode: "active",
       checkoutAvailable: false,
-      message: "Proof Monitoring is already active for this workspace.",
+      message: "Monitoring is already on for this workspace.",
       monitoring,
       offer: MONITORING_OFFER
     });
@@ -607,7 +621,7 @@ async function requestMonitoringCheckout(request, env) {
     return monitoringCheckoutErrorResponse({
       status: 409,
       code: "MONITORING_SITE_REQUIRED",
-      error: "Verify a site or create an active monitor before starting Proof Monitoring checkout.",
+      error: "Verify a site or add a monitor first, then start monitoring checkout.",
       monitoring,
       eligibleSites: context.eligibleSites,
       target: monitoringCheckoutTargetResponse(context)
@@ -632,7 +646,7 @@ async function requestMonitoringCheckout(request, env) {
     mode: "checkout",
     checkoutUrl: checkout.checkoutUrl,
     checkoutAvailable: true,
-    message: "Checkout opens at Dodo. Monitoring access activates after the subscription webhook is received.",
+    message: "Checkout opens on Dodo Payments. Monitoring starts once Dodo confirms your payment.",
     monitoring,
     offer: MONITORING_OFFER,
     target: monitoringCheckoutTargetResponse(context)
@@ -675,7 +689,7 @@ async function getFixPackPricingPreview(request, env) {
       {
         ok: false,
         code: "PRICING_UNAVAILABLE",
-        message: "Pricing is unavailable because checkout or webhook config is incomplete.",
+        message: "Pricing is not available because checkout is not set up yet. Try again later.",
         pricing: {
           status: "unavailable",
           source: "dodo",
@@ -695,7 +709,7 @@ async function getFixPackPricingPreview(request, env) {
       {
         ok: false,
         code: error?.code || "PRICING_UNAVAILABLE",
-        message: error?.message || "Dodo pricing preview is unavailable.",
+        message: error?.message || "Dodo Payments did not return a price. Try again in a minute.",
         pricing: {
           status: "unavailable",
           source: "dodo"
@@ -709,7 +723,8 @@ async function getFixPackPricingPreview(request, env) {
 async function getBillingSummary(request, env) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
-  if (!env.WAITLIST_DB) return json({ error: "Billing storage is not configured." }, 503);
+  if (!env.WAITLIST_DB)
+    return json({ error: "Billing storage is not set up on this server. Email support@seofixkit.com for help." }, 503);
 
   const now = new Date().toISOString();
   const dodoConfig = dodoCheckoutConfigStatus(env);
@@ -821,7 +836,7 @@ async function billingPricingState(request, env, access, config) {
       source: "dodo",
       environment: config.environment || "",
       missing: dodoConfigMissing(config),
-      message: "Pricing is unavailable because checkout or webhook config is incomplete."
+      message: "Pricing is not available because checkout is not set up yet. Try again later."
     };
   }
 
@@ -833,7 +848,7 @@ async function billingPricingState(request, env, access, config) {
       source: "dodo",
       environment: config.environment || "",
       missing: [],
-      message: error?.message || "Dodo pricing preview is unavailable."
+      message: error?.message || "Dodo Payments did not return a price. Try again in a minute."
     };
   }
 }
@@ -875,7 +890,7 @@ function billingSubscriptionState(monitoring = {}, config = {}) {
     return {
       status: "active",
       label: "Proof Monitoring active",
-      message: "Weekly proof monitoring is active for this workspace."
+      message: "Weekly monitoring is on for this workspace."
     };
   }
   if (config.checkoutReady) {
@@ -883,14 +898,13 @@ function billingSubscriptionState(monitoring = {}, config = {}) {
       status: "available",
       label: "Proof Monitoring available",
       message:
-        "Paid monitoring checkout is available for verified sites. Access activates after the Dodo subscription webhook."
+        "Paid monitoring is available for verified sites. It starts once Dodo Payments confirms your subscription."
     };
   }
   return {
     status: "not_live",
     label: "No recurring subscription",
-    message:
-      "SEO Fix Kit sells the one-time Fix Pack today. Proof Monitoring checkout is config-gated; Repair Agent and Agency Workspace subscriptions remain roadmap."
+    message: "You have no subscription. Paid monitoring is not on sale. The Fix Pack is a one-time payment."
   };
 }
 
@@ -1502,7 +1516,7 @@ async function validateFinalReportForFixRequest(env, fixRequest, finalReportId) 
     .first();
   if (!row?.id) return { ok: false, error: "Final rerun report was not found." };
   if (row.expires_at && row.expires_at <= new Date().toISOString()) {
-    return { ok: false, error: "Final rerun report is expired. Run the audit again first." };
+    return { ok: false, error: "The final rerun report expired. Run the audit again first." };
   }
   if (row.owner_email !== fixRequest.owner_email) {
     return { ok: false, error: "Final rerun report belongs to another customer." };

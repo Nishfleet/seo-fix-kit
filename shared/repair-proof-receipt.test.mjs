@@ -127,9 +127,9 @@ test("receipt fails closed for weak stale wrong-host and mismatched rerun proof"
   assert.equal(weak.ok, false);
   assert.match(weak.error, /missing or invalid/);
   assert.equal(stale.ok, false);
-  assert.match(stale.error, /newer/);
+  assert.match(stale.error, /older than the repair/);
   assert.equal(wrongHost.ok, false);
-  assert.match(wrongHost.error, /same host/);
+  assert.match(wrongHost.error, /different site.*same host/);
   assert.equal(mismatchedReport.ok, false);
   assert.match(mismatchedReport.error, /does not match/);
   assert.equal(missingFixedIssue.ok, false);
@@ -167,7 +167,7 @@ test("receipt names before capture, rerun capture, and an anchored currentness w
   assert.match(receipt.markdown, /Rerun proof captured: 2026-06-20T12:00:00\.000Z/);
   assert.match(
     receipt.markdown,
-    /Rerun proof captured at 2026-06-20T12:00:00\.000Z\. If the site changed after that capture, rerun the audit before using this receipt as current proof\./
+    /Rerun captured at 2026-06-20T12:00:00\.000Z\. If the site has changed since, rerun the audit before relying on this receipt\./
   );
 });
 
@@ -191,7 +191,7 @@ test("receipt fails closed when the rerun proof lacks a capture timestamp", () =
   );
 
   assert.equal(receipt.ok, false);
-  assert.match(receipt.error, /capture timestamp/);
+  assert.match(receipt.error, /no capture time/);
 });
 
 test("repairProofReceiptFilename returns a bounded markdown filename", () => {
@@ -237,7 +237,7 @@ test("real before/after receipt: Tiny Studio render-blocking repair (PR #4) gene
 
   // Boundary language: no ranking or traffic guarantee.
   assert.match(receipt.markdown, /SEOFixKit did not publish to a CMS, open or merge a GitHub pull request/);
-  assert.match(receipt.markdown, /Rankings, traffic, indexing, AI citations, and revenue are not guaranteed/);
+  assert.match(receipt.markdown, /No guarantee of rankings, traffic, indexing, AI citations or revenue/);
   assert.doesNotMatch(receipt.markdown, /guaranteed rankings|guarantees traffic|guarantees revenue/i);
 });
 

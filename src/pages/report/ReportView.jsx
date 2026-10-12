@@ -109,10 +109,10 @@ export function ReportView({ report }) {
             {report.url}
           </a>
           <p className="report-header-meta">
-            <span>Scanned {scannedAt}</span>
+            <span>Audited {scannedAt}</span>
             <span>
               {formatCount(pagesScanned)} of {formatCount(maxPages)} pages
-              {report.summary?.crawlLimitHit ? " (limit reached)" : ""}
+              {report.summary?.crawlLimitHit ? " (page limit reached)" : ""}
             </span>
             {expiresAt && <span>Kept until {expiresAt}</span>}
             {report.storageNote && <span>{report.storageNote}</span>}
@@ -153,7 +153,7 @@ export function ReportView({ report }) {
         <Metric label="Critical" tone="critical" value={report.summary?.critical || 0} />
         <Metric label="Warnings" tone="warning" value={report.summary?.warnings || 0} />
         <Metric label="Notices" tone="notice" value={report.summary?.notices || 0} />
-        <Metric label="False alarms blocked" tone="good" value={report.summary?.guardedFalsePositives || 0} />
+        <Metric label="False alarms filtered" tone="good" value={report.summary?.guardedFalsePositives || 0} />
       </section>
 
       <ReportTabs tabs={tabs}>
@@ -190,11 +190,11 @@ export function ReportView({ report }) {
                     })}
                   </ol>
                 ) : (
-                  <p className="app-card-text">Nothing urgent. Rerun after content or template changes.</p>
+                  <p className="app-card-text">Nothing to fix. Rerun after you change content or templates.</p>
                 )}
                 <p className="app-footnote">
-                  Every problem here was checked in a real browser and comes with proof, so you only see issues that are
-                  actually there.
+                  We load each page in Chromium and compare it with the raw HTML. Problems that go away once the page
+                  loads are filtered out as false alarms.
                 </p>
               </section>
 
@@ -230,7 +230,9 @@ export function ReportView({ report }) {
                       plan={topFixes.find((fix) => fix.title === finding.title)}
                     />
                   ))}
-                  {!issues.length && <p className="quiet-note">No critical or warning issues found in this crawl.</p>}
+                  {!issues.length && (
+                    <p className="quiet-note">No critical problems or warnings on the pages checked.</p>
+                  )}
                 </div>
               </section>
 
@@ -264,7 +266,7 @@ export function ReportView({ report }) {
                   {topFixes.slice(0, 8).map((fix) => (
                     <FixItem key={`${fix.priority}-${fix.title}`} fix={fix} />
                   ))}
-                  {!topFixes.length && <p className="quiet-note">Nothing needs a repair snippet right now.</p>}
+                  {!topFixes.length && <p className="quiet-note">No snippets to copy for this report.</p>}
                 </div>
               </section>
             </div>
@@ -287,8 +289,8 @@ export function ReportView({ report }) {
               )}
               <section className="guard-section" aria-labelledby="guards-title">
                 <div className="section-heading">
-                  <h2 id="guards-title">False alarms we blocked</h2>
-                  <p>Problems a basic crawler would report that turned out fine once the page fully loaded.</p>
+                  <h2 id="guards-title">False alarms filtered out</h2>
+                  <p>These show up in the raw HTML but are fine once the page loads in a browser.</p>
                 </div>
                 {guarded.length ? (
                   <div className="guard-list">
@@ -297,11 +299,11 @@ export function ReportView({ report }) {
                     ))}
                   </div>
                 ) : (
-                  <p className="quiet-note">None in this crawl.</p>
+                  <p className="quiet-note">None on the pages checked.</p>
                 )}
               </section>
               {(report.pages || []).length > 0 && (
-                <section className="proof-grid" aria-label="Page proof">
+                <section className="proof-grid" aria-label="Page evidence">
                   {(report.pages || []).map((page) => (
                     <PageProof key={page.url} page={page} />
                   ))}

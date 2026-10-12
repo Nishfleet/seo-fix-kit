@@ -17,7 +17,7 @@ function FindingDetails({ finding, plan, compact }) {
           <dd>{finding.confidence || "verified"}</dd>
         </div>
         <div>
-          <dt>Proof</dt>
+          <dt>Evidence</dt>
           <dd>{finding.evidence}</dd>
         </div>
         <div>
@@ -26,14 +26,14 @@ function FindingDetails({ finding, plan, compact }) {
         </div>
         {plan?.acceptance && (
           <div>
-            <dt>Acceptance</dt>
+            <dt>Done when</dt>
             <dd>{plan.acceptance}</dd>
           </div>
         )}
       </dl>
       {finding.source && (
         <a className="source-link" href={finding.source} target="_blank" rel="noreferrer">
-          Google source
+          Google’s guidance
         </a>
       )}
       {finding.snippet && <CodeBlock code={finding.snippet} />}
@@ -55,7 +55,7 @@ export function FindingItem({ finding, plan, compact = false, collapsible = fals
         <summary>
           <span>{finding.severity}</span>
           <h3>{finding.title}</h3>
-          {finding.snippet && <small className="finding-row-tag">Fix ready</small>}
+          {finding.snippet && <small className="finding-row-tag">Snippet ready</small>}
         </summary>
         <div className="finding-row-body">
           <FindingDetails finding={finding} plan={plan} compact={compact} />
@@ -88,8 +88,8 @@ export function FixItem({ fix }) {
       </div>
       <p>{fix.fix}</p>
       {fix.pageLabel && <p className="proof-line">Page: {fix.pageLabel}</p>}
-      <p className="proof-line">Proof: {fix.proof}</p>
-      <p className="proof-line">Acceptance: {fix.acceptance}</p>
+      <p className="proof-line">Evidence: {fix.proof}</p>
+      <p className="proof-line">Done when: {fix.acceptance}</p>
       {fix.snippet && <CodeBlock code={fix.snippet} />}
     </article>
   );
@@ -100,13 +100,13 @@ export function PageProof({ page }) {
   const staticFacts = page.static || {};
   return (
     <article className="page-proof">
-      <p className="beta-eyebrow">Static vs rendered proof</p>
+      <p className="beta-eyebrow">Raw HTML vs loaded page</p>
       <h3>{page.url}</h3>
       <dl>
         <div>
           <dt>Status</dt>
           <dd>
-            {page.status || "unknown"} {page.redirected ? `· final ${facts.finalUrl || page.finalUrl}` : ""}
+            {page.status || "unknown"} {page.redirected ? `· redirects to ${facts.finalUrl || page.finalUrl}` : ""}
           </dd>
         </div>
         <div>
@@ -120,13 +120,13 @@ export function PageProof({ page }) {
         <div>
           <dt>Words</dt>
           <dd>
-            {staticFacts.wordCount ?? "unknown"} static → {facts.wordCount ?? "unknown"} rendered
+            {staticFacts.wordCount ?? "unknown"} in HTML → {facts.wordCount ?? "unknown"} after load
           </dd>
         </div>
         <div>
           <dt>Internal links</dt>
           <dd>
-            {staticFacts.internalLinks?.length ?? 0} static → {facts.internalLinks?.length ?? 0} rendered
+            {staticFacts.internalLinks?.length ?? 0} in HTML → {facts.internalLinks?.length ?? 0} after load
           </dd>
         </div>
         <div>
@@ -138,10 +138,10 @@ export function PageProof({ page }) {
           <dd>{page.imageChecks?.filter((check) => !check.ok || !check.status || check.status >= 400).length ?? 0}</dd>
         </div>
         <div>
-          <dt>Rendered load</dt>
+          <dt>Load time</dt>
           <dd>
             {formatLoadMs(facts.loadDurationMs)}
-            {facts.loadSettled === false ? " · network idle not reached" : ""}
+            {facts.loadSettled === false ? " · still loading when measured" : ""}
           </dd>
         </div>
         <div>
@@ -154,7 +154,7 @@ export function PageProof({ page }) {
 }
 
 export function PageSummaryTable({ pages }) {
-  if (!pages?.length) return <p className="quiet-note">No page details were saved for this crawl.</p>;
+  if (!pages?.length) return <p className="quiet-note">No page details were saved for this audit.</p>;
   return (
     <>
       <div className="page-table" role="table" aria-label="Crawled pages">
@@ -180,7 +180,7 @@ export function PageSummaryTable({ pages }) {
             <span>{(page.brokenLinks || 0) + (page.brokenImages || 0)}</span>
             <span>
               {formatLoadMs(page.loadDurationMs)}
-              {page.loadSettled === false ? " · wait timed out" : ""}
+              {page.loadSettled === false ? " · timed out" : ""}
             </span>
             <span>{page.schemaTypes?.join(", ") || "none"}</span>
           </div>
@@ -218,7 +218,7 @@ export function PageSummaryTable({ pages }) {
                 <dt>Load</dt>
                 <dd>
                   {formatLoadMs(page.loadDurationMs)}
-                  {page.loadSettled === false ? " · wait timed out" : ""}
+                  {page.loadSettled === false ? " · timed out" : ""}
                 </dd>
               </div>
               <div>

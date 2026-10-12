@@ -90,7 +90,11 @@ async function apiCreateLargeRenderedCrawl(request, env, ctx) {
 }
 
 async function createLargeRenderedCrawlForAccess(request, env, access, body = {}, options = {}) {
-  if (!env.WAITLIST_DB) return jsonNoStore({ error: "Large crawl storage is not configured." }, 503);
+  if (!env.WAITLIST_DB)
+    return jsonNoStore(
+      { error: "Large crawl storage is not set up on this server. Email support@seofixkit.com for help." },
+      503
+    );
   const normalized = normalizeLargeRenderedCrawlRequest(body);
   if (!normalized.ok) return jsonNoStore({ error: normalized.error || "Enter a valid public website URL." }, 400);
   const publicUrlCheck = publicAuditUrlStatus(normalized.targetUrl);
@@ -133,8 +137,7 @@ async function createLargeRenderedCrawlForAccess(request, env, access, body = {}
   if (activeCount >= 1) {
     return jsonNoStore(
       {
-        error:
-          "You already have a large rendered crawl running. Wait for it to finish, retry, or cancel it before starting another.",
+        error: "You already have a large crawl running. Wait for it to finish, or cancel it, before you start another.",
         code: "LARGE_CRAWL_ACTIVE_LIMIT"
       },
       429
@@ -1208,14 +1211,14 @@ async function largeCrawlQuotaStatus(request, env, access, targetUrl) {
       limit: 2,
       windowStart: day.key,
       resetAt: day.resetAt,
-      error: "Daily large-crawl limit reached. Try again tomorrow."
+      error: "You have reached today's large crawl limit. Try again tomorrow."
     },
     {
       bucket: `large-crawl:target-day:${day.key}:${targetKey}`,
       limit: 1,
       windowStart: day.key,
       resetAt: day.resetAt,
-      error: "That site already has a large crawl queued today."
+      error: "That site already has a large crawl queued today. Check its status instead of starting another."
     }
   ]);
 }
@@ -1227,7 +1230,7 @@ function largeCrawlBillingStatus(env, access = {}) {
     ok: false,
     status: 402,
     code: "LARGE_CRAWL_PLAN_REQUIRED",
-    error: "Large rendered crawls require an enabled large-crawl plan before browser workers run."
+    error: "Large crawls are not turned on for your account. Email support@seofixkit.com to request access."
   };
 }
 

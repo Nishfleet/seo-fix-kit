@@ -37,8 +37,8 @@ export function SignIn({
           <div className="signin-sent">
             <h1 id="beta-title">Check your inbox</h1>
             <p>
-              We sent a secure sign-in link to <strong>{email}</strong>.
-              {returningToReport ? " It will bring you straight back to this report." : ""} The link works once.
+              We sent a sign-in link to <strong>{email}</strong>.{returningToReport ? " It opens this report." : ""} The
+              link works once.
             </p>
             {message && (
               <p className={`form-message ${status}`} role="status">
@@ -55,7 +55,7 @@ export function SignIn({
             <p className="signin-lead">
               {returningToReport
                 ? "Sign in to open this report."
-                : "New here? Enter your email and we’ll create your free account."}
+                : "Enter your email. If you’re new, we’ll create a free account."}
             </p>
             <form className="signin-form" onSubmit={submit}>
               <label htmlFor="beta-email">Email</label>
@@ -83,15 +83,15 @@ export function SignIn({
                 </>
               )}
               <button className="signin-submit" disabled={busy} type="submit">
-                {busy ? "One moment…" : useCode ? "Sign in" : "Email me a sign-in link"}
+                {busy ? (useCode ? "Signing in…" : "Sending link…") : useCode ? "Sign in" : "Email me a sign-in link"}
               </button>
               <p className={`form-message ${status}`} aria-live="polite">
-                {message || (useCode ? "" : "No password needed. We’ll email you a link that signs you in.")}
+                {message || (useCode ? "" : "No password needed. The link in the email signs you in.")}
               </p>
             </form>
             <div className="signin-alt">
               <button className="text-button accent-text" onClick={() => setUseCode((value) => !value)} type="button">
-                {useCode ? "Email me a link instead" : "Have an invite code?"}
+                {useCode ? "Email me a link instead" : "Use an invite code"}
               </button>
             </div>
           </>

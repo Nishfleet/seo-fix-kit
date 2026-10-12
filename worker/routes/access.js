@@ -7,6 +7,7 @@ import {
   createBetaSession
 } from "../lib/auth.js";
 import { emailButton } from "../../shared/email-layout.js";
+import { escapeHtml } from "../../shared/html.js";
 import { sendWorkerEmail } from "../lib/email.js";
 import { json, jsonNoStore } from "../lib/http.js";
 import { checkQuotaSet, constantTimeEqual, randomToken, requestIpHash, sha256Hex } from "../lib/security.js";
@@ -98,7 +99,7 @@ const DEFAULT_INVITE_TTL_DAYS = 14;
 
 async function joinWaitlist(request, env) {
   if (!env.WAITLIST_DB) {
-    return json({ error: "Waitlist storage is not configured." }, 503);
+    return json({ error: "Waitlist storage is not set up on this server. Email support@seofixkit.com for help." }, 503);
   }
 
   const parsed = await parseJsonBody(request, WaitlistBody);
@@ -182,7 +183,10 @@ async function joinWaitlist(request, env) {
 
 async function requestAccessLink(request, env) {
   if (!env.WAITLIST_DB) {
-    return jsonNoStore({ error: "Access link storage is not configured." }, 503);
+    return jsonNoStore(
+      { error: "Access link storage is not set up on this server. Email support@seofixkit.com for help." },
+      503
+    );
   }
 
   const parsed = await parseJsonBody(request, AccessLinkRequestBody);
@@ -202,7 +206,7 @@ async function requestAccessLink(request, env) {
   if (!quota.ok) return jsonNoStore({ error: quota.error, resetAt: quota.resetAt }, 429);
 
   if (!isEmailConfigured(env)) {
-    return jsonNoStore({ error: "Access email is not configured yet. Use an invite code for now." }, 503);
+    return jsonNoStore({ error: "Email sign-in is not set up yet. Sign in with an invite code instead." }, 503);
   }
 
   const now = new Date().toISOString();
@@ -266,21 +270,25 @@ async function requestAccessLink(request, env) {
   return jsonNoStore({
     ok: true,
     status: "sent",
-    message: "Check your email for a secure access link.",
+    message: "Check your email. We sent you a sign-in link.",
     expiresAt
   });
 }
 
 async function verifyAccessLink(request, env) {
   if (!env.WAITLIST_DB) {
-    return jsonNoStore({ error: "Access link storage is not configured." }, 503);
+    return jsonNoStore(
+      { error: "Access link storage is not set up on this server. Email support@seofixkit.com for help." },
+      503
+    );
   }
 
   const parsed = await parseJsonBody(request, AccessLinkVerifyBody);
   if (parsed.error) return jsonNoStore(parsed.error, 400);
   const body = parsed.data;
   const token = cleanAccessToken(body.token);
-  if (!token) return jsonNoStore({ error: "Access link is invalid." }, 400);
+  if (!token)
+    return jsonNoStore({ error: "This sign-in link is not valid. Request a new one on the sign-in page." }, 400);
 
   const tokenHash = await sha256Hex(token);
   const now = new Date().toISOString();
@@ -294,7 +302,10 @@ async function verifyAccessLink(request, env) {
     .first();
 
   if (!row?.token_hash || row.used_at || row.expires_at <= now) {
-    return jsonNoStore({ error: "Access link is expired or already used." }, 401);
+    return jsonNoStore(
+      { error: "This sign-in link expired or was already used. Request a new one on the sign-in page." },
+      401
+    );
   }
 
   const update = await env.WAITLIST_DB.prepare(
@@ -306,7 +317,10 @@ async function verifyAccessLink(request, env) {
     .run();
 
   if (Number(update?.meta?.changes || 0) !== 1) {
-    return jsonNoStore({ error: "Access link is expired or already used." }, 401);
+    return jsonNoStore(
+      { error: "This sign-in link expired or was already used. Request a new one on the sign-in page." },
+      401
+    );
   }
 
   await recordAccessEvent(env, {
@@ -356,21 +370,21 @@ function safeBetaReturnPath(value) {
 }
 
 async function sendAccessLinkEmail(env, { ownerEmail, accessUrl }) {
-  const subject = "Your SEO Fix Kit sign-in link";
+  const subject = "Your sign-in link for SEO Fix Kit";
   const expiresMinutes = Math.max(1, Math.round(ACCESS_LINK_TTL_SECONDS / 60));
   const text = [
-    "Sign in to SEO Fix Kit with this secure link:",
+    `You asked to sign in to SEO Fix Kit as ${ownerEmail}. Open this link to sign in:`,
     "",
     accessUrl,
     "",
-    `It works once and expires in ${expiresMinutes} minutes. If it expires, request a new one from the sign-in page.`,
-    "Didn't ask for this? You can ignore this email; nobody can sign in without the link."
+    `The link works once and expires in ${expiresMinutes} minutes. If it expires, request a new one on the sign-in page.`,
+    "If you didn't ask for this, ignore this email. No one can sign in without the link."
   ].join("\n");
   const html = [
     '<p style="font-size:20px;font-weight:650;letter-spacing:-0.015em;line-height:28px;margin:0 0 8px">Sign in to SEO Fix Kit</p>',
-    `<p style="margin:0">Click the button below to sign in. It works once and expires in ${expiresMinutes} minutes.</p>`,
-    emailButton(accessUrl, "Sign in to SEO Fix Kit"),
-    '<p style="color:#6b6f6c;font-size:13px;line-height:20px;margin:0">Didn&rsquo;t ask for this? You can ignore this email; nobody can sign in without the link.</p>'
+    `<p style="margin:0">You asked to sign in as ${escapeHtml(ownerEmail)}. The link works once and expires in ${expiresMinutes} minutes.</p>`,
+    emailButton(accessUrl, "Sign in"),
+    '<p style="color:#6b6f6c;font-size:13px;line-height:20px;margin:0">If you didn&rsquo;t ask for this, ignore this email. No one can sign in without the link.</p>'
   ].join("");
 
   return sendWorkerEmail(env, {
@@ -378,7 +392,7 @@ async function sendAccessLinkEmail(env, { ownerEmail, accessUrl }) {
     subject,
     text,
     html,
-    preheader: `Your one-time sign-in link expires in ${expiresMinutes} minutes.`,
+    preheader: `This link works once and expires in ${expiresMinutes} minutes.`,
     tag: "access-link"
   });
 }
@@ -431,7 +445,7 @@ async function recordWaitlistLead(
 
 async function betaLogin(request, env) {
   if (!env.WAITLIST_DB) {
-    return json({ error: "Private beta sessions are not configured." }, 503);
+    return json({ error: "Sign-in is not set up on this server yet. Email support@seofixkit.com for access." }, 503);
   }
 
   const parsed = await parseJsonBody(request, BetaLoginBody);
@@ -509,7 +523,11 @@ async function betaLogout(request, env) {
 async function listSiteClaims(request, env) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
-  if (!env.WAITLIST_DB) return json({ error: "Site claim storage is not configured." }, 503);
+  if (!env.WAITLIST_DB)
+    return json(
+      { error: "Site claim storage is not set up on this server. Email support@seofixkit.com for help." },
+      503
+    );
 
   const rows = await env.WAITLIST_DB.prepare(
     `SELECT *
@@ -531,12 +549,16 @@ async function listSiteClaims(request, env) {
 async function createSiteClaim(request, env) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
-  if (!env.WAITLIST_DB) return json({ error: "Site claim storage is not configured." }, 503);
+  if (!env.WAITLIST_DB)
+    return json(
+      { error: "Site claim storage is not set up on this server. Email support@seofixkit.com for help." },
+      503
+    );
 
   const parsed = await parseJsonBody(request, SiteClaimBody);
   if (parsed.error) return jsonNoStore(parsed.error, 400);
   const host = claimHostFromInput(parsed.data.host);
-  if (!host) return jsonNoStore({ error: "Enter a public website host to verify." }, 400);
+  if (!host) return jsonNoStore({ error: "Enter the domain you want to verify, like example.com." }, 400);
 
   const existing = await env.WAITLIST_DB.prepare(
     `SELECT *
@@ -571,7 +593,11 @@ async function createSiteClaim(request, env) {
 async function verifySiteClaim(request, env) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
-  if (!env.WAITLIST_DB) return json({ error: "Site claim storage is not configured." }, 503);
+  if (!env.WAITLIST_DB)
+    return json(
+      { error: "Site claim storage is not set up on this server. Email support@seofixkit.com for help." },
+      503
+    );
 
   const parsed = await parseJsonBody(request, SiteClaimBody);
   if (parsed.error) return jsonNoStore(parsed.error, 400);
@@ -602,7 +628,11 @@ async function verifySiteClaim(request, env) {
           .first()
       : null;
 
-  if (!row?.id) return jsonNoStore({ error: "Site claim not found." }, 404);
+  if (!row?.id)
+    return jsonNoStore(
+      { error: "That site verification was not found. Start verification again from your account." },
+      404
+    );
 
   const [dnsVerified, fileVerified] = await Promise.all([
     verifySiteClaimDns(row.host, row.verification_token),
@@ -652,13 +682,19 @@ async function verifySiteClaimDns(host, token) {
     const response = await fetch(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(dnsName)}&type=TXT`, {
       headers: { accept: "application/dns-json" }
     });
-    if (!response.ok) return { ok: false, error: "DNS verification lookup failed." };
+    if (!response.ok) return { ok: false, error: "The DNS lookup failed. Wait a minute and check again." };
     const payload = await response.json().catch(() => ({}));
     const answers = Array.isArray(payload.Answer) ? payload.Answer : [];
     const matched = answers.some((answer) => normalizeDnsTxt(answer.data).includes(expected));
-    return matched ? { ok: true } : { ok: false, error: "DNS TXT record was not found yet." };
+    return matched
+      ? { ok: true }
+      : {
+          ok: false,
+          error:
+            "The DNS TXT record is not visible yet. DNS changes can take a while to spread, so check again in a few minutes."
+        };
   } catch {
-    return { ok: false, error: "DNS verification lookup failed." };
+    return { ok: false, error: "The DNS lookup failed. Wait a minute and check again." };
   }
 }
 
@@ -668,13 +704,25 @@ async function verifySiteClaimHttpsFile(host, token) {
     const response = await fetch(`https://${host}/.well-known/seofixkit.txt`, {
       headers: { accept: "text/plain" }
     });
-    if (!response.ok) return { ok: false, error: "Verification file was not found yet." };
+    if (!response.ok)
+      return {
+        ok: false,
+        error: "The verification file was not found. Upload it to the path shown, then check again."
+      };
     const text = await readSmallText(response, 8192);
     return text.includes(expected)
       ? { ok: true }
-      : { ok: false, error: "Verification file does not contain the expected token yet." };
+      : {
+          ok: false,
+          error:
+            "The verification file is there, but its contents do not match. Copy the exact token shown, then check again."
+        };
   } catch {
-    return { ok: false, error: "Verification file was not reachable." };
+    return {
+      ok: false,
+      error:
+        "We could not reach your site to read the verification file. Make sure the site is online, then check again."
+    };
   }
 }
 
@@ -716,7 +764,7 @@ async function waitlistQuotaStatus(request, env) {
       limit: 20,
       windowStart: hour.key,
       resetAt: hour.resetAt,
-      error: "Too many waitlist attempts from this network. Try again later."
+      error: "Too many waitlist sign-ups from this network. Try again in an hour."
     }
   ]);
 }
@@ -730,7 +778,7 @@ async function loginQuotaStatus(request, env, ownerEmail = "", inviteCodeHash = 
       limit: 20,
       windowStart: hour.key,
       resetAt: hour.resetAt,
-      error: "Too many login attempts from this network. Try again later."
+      error: "Too many sign-in attempts from this network. Try again in an hour."
     }
   ];
   if (ownerEmail) {
@@ -739,7 +787,7 @@ async function loginQuotaStatus(request, env, ownerEmail = "", inviteCodeHash = 
       limit: 10,
       windowStart: hour.key,
       resetAt: hour.resetAt,
-      error: "Too many login attempts for this email. Try again later."
+      error: "Too many sign-in attempts for this email. Try again in an hour."
     });
   }
   if (inviteCodeHash) {
@@ -748,7 +796,7 @@ async function loginQuotaStatus(request, env, ownerEmail = "", inviteCodeHash = 
       limit: 10,
       windowStart: hour.key,
       resetAt: hour.resetAt,
-      error: "Too many login attempts for this invite. Try again later."
+      error: "Too many sign-in attempts with this invite code. Try again in an hour."
     });
   }
   return checkQuotaSet(env, checks);
@@ -763,7 +811,7 @@ async function accessLinkQuotaStatus(request, env, ownerEmail = "") {
       limit: 8,
       windowStart: hour.key,
       resetAt: hour.resetAt,
-      error: "Too many access link requests from this network. Try again later."
+      error: "Too many sign-in links requested from this network. Try again in an hour."
     }
   ];
   if (ownerEmail) {
@@ -772,7 +820,7 @@ async function accessLinkQuotaStatus(request, env, ownerEmail = "") {
       limit: 3,
       windowStart: hour.key,
       resetAt: hour.resetAt,
-      error: "Too many access links requested for this email. Try again later."
+      error: "Too many sign-in links requested for this email. Use the latest link we sent, or try again in an hour."
     });
   }
   return checkQuotaSet(env, checks);
@@ -783,7 +831,7 @@ async function inviteAccessStatus(request, env, ownerEmail, inviteCode, inviteCo
     return {
       ok: false,
       status: 401,
-      error: "Private beta invite code required."
+      error: "Enter your invite code, or sign in with an email link instead."
     };
   }
 
@@ -803,16 +851,24 @@ async function inviteAccessStatus(request, env, ownerEmail, inviteCode, inviteCo
     .first();
 
   if (!row?.id || row.status !== "active") {
-    return { ok: false, status: 401, error: "Private beta invite not found." };
+    return {
+      ok: false,
+      status: 401,
+      error: "That invite code was not found. Check it for typos, or sign in with an email link."
+    };
   }
   if (row.owner_email !== ownerEmail) {
-    return { ok: false, status: 401, error: "This invite is tied to another email." };
+    return {
+      ok: false,
+      status: 401,
+      error: "This invite code belongs to a different email address. Sign in with that address."
+    };
   }
   if (row.expires_at && row.expires_at <= now) {
-    return { ok: false, status: 401, error: "Private beta invite expired." };
+    return { ok: false, status: 401, error: "This invite code expired. Sign in with an email link instead." };
   }
   if (Number(row.used_count || 0) >= Number(row.max_uses || 1)) {
-    return { ok: false, status: 401, error: "Private beta invite has already been used." };
+    return { ok: false, status: 401, error: "This invite code was already used. Sign in with an email link instead." };
   }
 
   const ipHash = await requestIpHash(request);
@@ -831,7 +887,7 @@ async function inviteAccessStatus(request, env, ownerEmail, inviteCode, inviteCo
     .run();
 
   if (Number(update?.meta?.changes || 0) !== 1) {
-    return { ok: false, status: 401, error: "Private beta invite has already been used." };
+    return { ok: false, status: 401, error: "This invite code was already used. Sign in with an email link instead." };
   }
 
   return { ok: true, inviteId: row.id, accessMode: "invite" };

@@ -73,12 +73,12 @@ export function BillingPortal() {
     <div className="app-page">
       <PageHeader
         title="Billing"
-        description="Your plan, Fix Packs, and payment history. Payments are processed securely by Dodo Payments."
+        description="Your plan, Fix Packs and payments. Dodo Payments handles checkout as the merchant of record."
       />
 
       {billingQuery.isError && (
         <LoadError
-          message={billingQuery.error?.message || "We couldn’t load your billing details."}
+          message={billingQuery.error?.message || "Billing details didn’t load. Try again."}
           onRetry={() => billingQuery.refetch()}
         />
       )}
@@ -98,8 +98,8 @@ export function BillingPortal() {
             </div>
             <p className="app-card-text">
               {monitoringActive
-                ? "Proof Monitoring is active: verified sites are rerun every week and changes are reported."
-                : "Audits and weekly monitoring for verified sites are free while SEO Fix Kit is in beta. You only pay for a Fix Pack when a report finds real problems."}
+                ? "Proof Monitoring is on. Your verified sites are rerun every week."
+                : "Audits and weekly checks for verified sites are free during the beta. You pay only if you buy a Fix Pack."}
             </p>
             {monitoring.checkoutReady && !monitoringActive && (
               <div>
@@ -123,11 +123,11 @@ export function BillingPortal() {
               {!pricingUnavailable && <strong className="billing-price">{priceLabel}</strong>}
             </div>
             <p className="app-card-text">
-              One proof-backed repair pass for a report, plus one rerun to confirm the fixes worked.
+              One guided repair pass on a report’s problems, plus one rerun to check the fixes.
             </p>
             <p className="app-footnote">
-              One-time payment per report. Start a Fix Pack from any report that finds real problems; the final price is
-              shown at checkout.
+              One-time payment per report. Buy it from the Problems tab of any report. You see the final price before
+              you pay.
             </p>
           </section>
 
@@ -167,17 +167,17 @@ export function BillingPortal() {
                       <div className="site-row-actions">
                         {request.reportPath && (
                           <Link discover="none" className="app-button-secondary" to={request.reportPath}>
-                            Report
+                            Open report
                           </Link>
                         )}
                         {request.briefPath && (
                           <a className="app-button-secondary" href={request.briefPath}>
-                            Brief
+                            Download brief
                           </a>
                         )}
                         {request.deliveryUrl && (
                           <a className="app-button" href={request.deliveryUrl} target="_blank" rel="noreferrer">
-                            Delivery
+                            Open delivery
                           </a>
                         )}
                       </div>
@@ -190,8 +190,8 @@ export function BillingPortal() {
                 No Fix Packs yet.{" "}
                 <Link discover="none" className="inline-link" to="/beta#new-audit">
                   Run an audit
-                </Link>{" "}
-                and start one from a report with real problems.
+                </Link>
+                , then buy one from the report if you want help with the fixes.
               </EmptyState>
             )}
           </section>

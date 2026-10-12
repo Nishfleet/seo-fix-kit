@@ -40,7 +40,7 @@ export async function postAccessRequest({ email, company = "", source, formStart
       ...trackingPayload(formStartedAt)
     },
     requireOkFlag: false,
-    fallbackError: "Could not send the access link."
+    fallbackError: "The sign-in link didn’t send. Check your email address and try again."
   });
 }
 
@@ -49,33 +49,37 @@ export async function verifyAccessToken(token, funnelKey = "") {
     method: "POST",
     headers: funnelKey ? { "x-seofixkit-funnel-key": funnelKey } : {},
     body: { token, ...(funnelKey ? { funnelKey } : {}) },
-    fallbackError: "Access link is expired or already used."
+    fallbackError: "This sign-in link expired or was already used. Send yourself a new one."
   });
 }
 
 export async function fetchAccountSummary() {
-  return apiFetch("/api/account/summary", { fallbackError: "Could not load your workspace." });
+  return apiFetch("/api/account/summary", { fallbackError: "Your dashboard didn’t load. Try again." });
 }
 
 export async function fetchReportsPage(cursor = "") {
   const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : "";
-  return apiFetch(`/api/reports${query}`, { fallbackError: "Could not load your reports." });
+  return apiFetch(`/api/reports${query}`, { fallbackError: "Your reports didn’t load. Try again." });
 }
 
 export async function fetchDeveloperSummary() {
-  return apiFetch("/api/developer", { fallbackError: "Could not load developer API." });
+  return apiFetch("/api/developer", { fallbackError: "Your API keys and webhooks didn’t load. Try again." });
 }
 
 export async function postSiteClaim(host) {
   return apiFetch("/api/sites/claim", {
     method: "POST",
     body: { host },
-    fallbackError: "Could not create site verification."
+    fallbackError: "Couldn’t add this site. Check the domain and try again."
   });
 }
 
 export async function postSiteVerify(claimId) {
-  return apiFetch("/api/sites/verify", { method: "POST", body: { claimId }, fallbackError: "Could not verify site." });
+  return apiFetch("/api/sites/verify", {
+    method: "POST",
+    body: { claimId },
+    fallbackError: "The verification check didn’t run. Try again."
+  });
 }
 
 export async function postAuditSchedule(url, options = {}) {
@@ -86,14 +90,14 @@ export async function postAuditSchedule(url, options = {}) {
       intervalDays: options.intervalDays || 7,
       maxPages: options.maxPages || DEFAULT_CRAWL_PAGES
     },
-    fallbackError: "Could not add monitor."
+    fallbackError: "Weekly checks didn’t turn on. Try again."
   });
 }
 
 export async function pauseAuditSchedule(scheduleId) {
   return apiFetch(`/api/audit/schedules/${encodeURIComponent(scheduleId)}`, {
     method: "DELETE",
-    fallbackError: "Could not pause monitor."
+    fallbackError: "Weekly checks didn’t pause. Try again."
   });
 }
 
@@ -101,50 +105,53 @@ export async function postDeveloperToken() {
   return apiFetch("/api/developer/tokens", {
     method: "POST",
     body: { label: "Default API key" },
-    fallbackError: "Could not create API key."
+    fallbackError: "The API key wasn’t created. Try again."
   });
 }
 
 export async function deleteDeveloperToken(tokenId) {
   return apiFetch(`/api/developer/tokens/${encodeURIComponent(tokenId)}`, {
     method: "DELETE",
-    fallbackError: "Could not revoke API key."
+    fallbackError: "The API key wasn’t revoked. Try again."
   });
 }
 
 export async function postDeveloperWebhook(url) {
   const request = developerWebhookRequest(url);
-  return apiFetch(request.endpoint, { init: request.init, fallbackError: "Could not add webhook." });
+  return apiFetch(request.endpoint, {
+    init: request.init,
+    fallbackError: "The endpoint wasn’t added. Check the URL and try again."
+  });
 }
 
 export async function deleteDeveloperWebhook(webhookId) {
   return apiFetch(`/api/developer/webhooks/${encodeURIComponent(webhookId)}`, {
     method: "DELETE",
-    fallbackError: "Could not revoke webhook."
+    fallbackError: "The endpoint wasn’t removed. Try again."
   });
 }
 
 export async function loadReportBranding() {
-  return apiFetch("/api/branding", { fallbackError: "Could not load report branding." });
+  return apiFetch("/api/branding", { fallbackError: "Report branding didn’t load. Try again." });
 }
 
 export async function saveReportBranding(branding) {
   return apiFetch("/api/branding", {
     method: "POST",
     body: branding,
-    fallbackError: "Could not save report branding."
+    fallbackError: "Branding didn’t save. Try again."
   });
 }
 
 export async function loadReportDomains() {
-  return apiFetch("/api/report-domains", { fallbackError: "Could not load report domains." });
+  return apiFetch("/api/report-domains", { fallbackError: "Custom domains didn’t load. Try again." });
 }
 
 export async function createReportDomain(domain) {
   return apiFetch("/api/report-domains", {
     method: "POST",
     body: { domain },
-    fallbackError: "Could not create report domain."
+    fallbackError: "The domain wasn’t added. Check it and try again."
   });
 }
 
@@ -152,20 +159,20 @@ export async function verifyReportDomain(domainId) {
   return apiFetch(`/api/report-domains/${encodeURIComponent(domainId)}/verify`, {
     method: "POST",
     body: {},
-    fallbackError: "Could not verify report domain."
+    fallbackError: "Domain not verified yet. DNS changes can take a few minutes. Try again shortly."
   });
 }
 
 export async function revokeReportDomain(domainId) {
   return apiFetch(`/api/report-domains/${encodeURIComponent(domainId)}`, {
     method: "DELETE",
-    fallbackError: "Could not remove report domain."
+    fallbackError: "The domain wasn’t removed. Try again."
   });
 }
 
 export async function loadReportShares(reportId) {
   return apiFetch(`/api/reports/${encodeURIComponent(reportId)}/shares`, {
-    fallbackError: "Could not load client links."
+    fallbackError: "Client links didn’t load. Try again."
   });
 }
 
@@ -173,20 +180,20 @@ export async function createReportShare(reportId, body) {
   return apiFetch(`/api/reports/${encodeURIComponent(reportId)}/share`, {
     method: "POST",
     body,
-    fallbackError: "Could not create client link."
+    fallbackError: "The client link wasn’t created. Try again."
   });
 }
 
 export async function revokeReportShare(shareId) {
   return apiFetch(`/api/report-shares/${encodeURIComponent(shareId)}`, {
     method: "DELETE",
-    fallbackError: "Could not revoke client link."
+    fallbackError: "The client link wasn’t revoked. Try again."
   });
 }
 
 export async function loadReportCollaboration(reportId) {
   return apiFetch(`/api/reports/${encodeURIComponent(reportId)}/collaboration`, {
-    fallbackError: "Could not load repair board."
+    fallbackError: "The repair queue didn’t load. Try again."
   });
 }
 
@@ -194,13 +201,13 @@ export async function saveReportCollaboration(reportId, body) {
   return apiFetch(`/api/reports/${encodeURIComponent(reportId)}/collaboration`, {
     method: "PATCH",
     body,
-    fallbackError: "Could not save repair board."
+    fallbackError: "Your changes didn’t save. Try again."
   });
 }
 
 export async function loadRepairQueue(reportId) {
   return apiFetch(`/api/reports/${encodeURIComponent(reportId)}/repair-queue`, {
-    fallbackError: "Could not load repair queue."
+    fallbackError: "The repair queue didn’t load. Try again."
   });
 }
 
@@ -208,7 +215,7 @@ export async function saveRepairQueue(reportId, body) {
   return apiFetch(`/api/reports/${encodeURIComponent(reportId)}/repair-queue`, {
     method: "PATCH",
     body,
-    fallbackError: "Could not save repair queue."
+    fallbackError: "Your changes didn’t save. Try again."
   });
 }
 
@@ -216,30 +223,34 @@ export async function createRepairAction(reportId, body) {
   return apiFetch(`/api/reports/${encodeURIComponent(reportId)}/repair-actions`, {
     method: "POST",
     body,
-    fallbackError: "Could not draft agent action."
+    fallbackError: "The draft wasn’t created. Try again."
   });
 }
 
 export async function updateRepairAction(reportId, actionId, body) {
   const request = repairActionUpdateRequest(reportId, actionId, body);
-  return apiFetch(request.endpoint, { init: request.init, fallbackError: "Could not update agent action." });
+  return apiFetch(request.endpoint, { init: request.init, fallbackError: "The draft wasn’t updated. Try again." });
 }
 
 export async function createTeamMember(member) {
-  return apiFetch("/api/team/members", { method: "POST", body: member, fallbackError: "Could not add teammate." });
+  return apiFetch("/api/team/members", {
+    method: "POST",
+    body: member,
+    fallbackError: "The teammate wasn’t added. Check the email and try again."
+  });
 }
 
 export async function revokeTeamMember(memberId) {
   return apiFetch(`/api/team/members/${encodeURIComponent(memberId)}`, {
     method: "DELETE",
-    fallbackError: "Could not remove teammate."
+    fallbackError: "The teammate wasn’t removed. Try again."
   });
 }
 
 export async function fetchReport(id) {
   return apiFetch(`/api/reports/${encodeURIComponent(id)}`, {
     requireOkFlag: false,
-    fallbackError: "Could not load report."
+    fallbackError: "This report didn’t load."
   });
 }
 
@@ -249,28 +260,28 @@ export async function pollAuditJob(jobId, setMessage, { signal } = {}) {
     signal?.throwIfAborted();
     const payload = await apiFetch(`/api/audit/jobs/${encodeURIComponent(jobId)}`, {
       signal,
-      fallbackError: "Could not check audit progress."
+      fallbackError: "We lost track of the audit’s progress. Check Reports in a minute."
     });
     signal?.throwIfAborted();
 
     const job = payload.job || {};
     if (job.status === "completed") {
-      setMessage("Audit complete. Loading private report.");
+      setMessage("Audit done. Opening your report…");
       return job;
     }
     if (job.status === "failed") {
-      throw new Error(job.error || "The audit failed. Try another URL.");
+      throw new Error(job.error || "The audit didn’t finish. Check the URL and run it again.");
     }
 
     setMessage(
       job.status === "queued"
-        ? "Audit queued. Waiting for proof collection to start."
-        : "Rendering the site, crawling same-site links, and collecting proof."
+        ? "Audit queued. Waiting to start…"
+        : "Loading your pages in a browser and following links on your site…"
     );
     await delay(Math.min(1500 + attempt * 100, 3500), signal);
   }
 
-  throw new Error("The audit is still running. Refresh this page in a moment.");
+  throw new Error("The audit is still running. Check Reports in a few minutes.");
 }
 
 export function delay(milliseconds, signal) {
@@ -322,7 +333,7 @@ export async function requestFixQuote(reportId, selectedRepair = null) {
       selectedRepair: payload.selectedRepair || null
     };
   } catch (error) {
-    return { ok: false, error: error.message || "Checkout could not open." };
+    return { ok: false, error: error.message || "Checkout didn’t open. Try again or email support@seofixkit.com." };
   }
 }
 
@@ -330,15 +341,15 @@ export async function patchRepairProposalApproval(reportId, proposalId, body) {
   try {
     return await apiFetch(
       `/api/reports/${encodeURIComponent(reportId)}/repair-proposals/${encodeURIComponent(proposalId)}`,
-      { method: "PATCH", body, fallbackError: "Could not update repair proposal." }
+      { method: "PATCH", body, fallbackError: "That change didn’t save. Try again." }
     );
   } catch (error) {
-    return { ok: false, error: error.message || "Could not update repair proposal." };
+    return { ok: false, error: error.message || "That change didn’t save. Try again." };
   }
 }
 
 export async function fetchBillingSummary() {
-  return apiFetch("/api/billing/summary", { fallbackError: "Could not load billing." });
+  return apiFetch("/api/billing/summary", { fallbackError: "Billing details didn’t load. Try again." });
 }
 
 export async function fetchPricingPreview() {
@@ -346,7 +357,7 @@ export async function fetchPricingPreview() {
     credentials: "include",
     requireOkFlag: false,
     errorKeys: ["message"],
-    fallbackError: "Pricing unavailable."
+    fallbackError: "The price didn’t load. Try again."
   });
   return payload.pricing || {};
 }

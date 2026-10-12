@@ -3,25 +3,25 @@ export const CRAWL_DEPTH_TIERS = [
     id: "lite",
     label: "Lite check",
     pages: 1,
-    description: "Homepage-only proof. Runs without site verification."
+    description: "Your homepage only. No site verification needed."
   },
   {
     id: "quick",
-    label: "Quick proof",
+    label: "Quick check",
     pages: 10,
-    description: "Homepage plus the first discovered pages."
+    description: "Your homepage and up to 9 more pages."
   },
   {
     id: "site",
     label: "Site crawl",
     pages: 100,
-    description: "A broader self-serve crawl for small sites."
+    description: "Up to 100 pages. Fits most small sites."
   },
   {
     id: "deep",
     label: "Deep crawl",
     pages: 1000,
-    description: "A queued deep crawl for larger verified sites."
+    description: "Up to 1,000 pages for larger sites. Takes longer to run."
   }
 ];
 

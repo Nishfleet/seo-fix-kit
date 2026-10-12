@@ -849,7 +849,7 @@ test("README AI Answer Readiness claim ranks faults by imported Search Console t
     keywordRows: [{ query: "shop example", pageUrl: `${SHOP}/about`, clicks: 50, impressions: 900 }]
   });
   assert.equal(ranked.summary.prioritization, "imported-search-console-traffic");
-  assert.match(aiAnswerReadinessBriefLines(ranked).join("\n"), /Prioritization: imported Search Console traffic/);
+  assert.match(aiAnswerReadinessBriefLines(ranked).join("\n"), /Order: by imported Search Console traffic/);
   assert.equal(buildAiAnswerReadiness(report).summary.prioritization, "proof-order");
   const page = visibleText(await publicPage("/ai-answer-readiness"));
   assert.match(page, /Compared with CrawlRaven/);
@@ -881,7 +881,7 @@ test("README growth-opportunity claim stays draft-only", async () => {
   );
   assert.match(
     growth.note,
-    /do not publish content, create CMS drafts, open pull requests, or promise rankings/,
+    /do not publish content, create CMS drafts or open pull requests, and they do not promise rankings/,
     "no auto-publishing or ranking promises"
   );
 });
@@ -1022,15 +1022,15 @@ test("README repair-proof-receipt claim keeps publishing and ranking disclaimers
   assert.equal(receipt.ok, true);
   assert.match(
     receipt.markdown,
-    /connects one owner-approved repair action to the same-host rerun proof/,
+    /links one repair you approved to the same-host rerun proof/,
     "receipts connect the approved action to same-host rerun proof"
   );
   assert.match(liveSection, /without claiming SEOFixKit published or guaranteed the repair/i);
   assert.match(
     receipt.markdown,
-    /does not mean SEOFixKit published, merged, indexed, ranked, or guaranteed the change/
+    /SEOFixKit did not publish or merge the change, and makes no promise about indexing or rankings/
   );
-  assert.match(receipt.markdown, /Rankings, traffic, indexing, AI citations, and revenue are not guaranteed/);
+  assert.match(receipt.markdown, /No guarantee of rankings, traffic, indexing, AI citations or revenue/);
 });
 
 // Functional claim pins. The numeric caps, routes, and state-truthfulness
@@ -1418,7 +1418,11 @@ test("README keyword/rank import claim matches listed repair actions and history
     { query: "widget care guide", pageUrl: `${SHOP}/guides/care`, clicks: 3, impressions: 120, position: 9 }
   ]);
   assert.equal(audit.status, "ready", "Search Console rows accepted");
-  assert.match(audit.note, /supplied Search Console or rank-tracker rows/, "the audit names the supplied-row boundary");
+  assert.match(
+    audit.note,
+    /Search Console or rank-tracker data you import/,
+    "the audit names the supplied-row boundary"
+  );
   assert.ok(audit.checks.lowCtrRows.length, "low-CTR opportunities exist");
   assert.ok(audit.checks.pageTwoRows.length, "page-two opportunities exist");
   assert.ok(audit.checks.zeroClickRows.length, "zero-click rows exist");
@@ -2190,7 +2194,7 @@ test("README implementation pack claim keeps approved change text", () => {
   assert.equal(empty.ok, false);
   assert.match(
     empty.error,
-    /Implementation pack needs an approved proposed change\./,
+    /This action has no approved change text\. Draft and approve a change first\./,
     "pack requires an approved change"
   );
   const drafted = buildRepairImplementationPack(implementationPackInput({ approval_state: "drafted" }));
@@ -2455,7 +2459,7 @@ test("README repair-proof-receipt claim keeps original-issue, approved/applied-c
   );
   assert.match(
     buildRepairProofReceipt(proofReceiptInput({ rerunReport: { url: "https://other.example/" } })).error,
-    /Rerun proof report must cover the same host\./,
+    /The rerun report is for a different site\. Rerun the audit on the same host\./,
     "receipts require the same-host rerun report"
   );
 });
@@ -2562,12 +2566,12 @@ test("README pricing page claim keeps Proof Monitoring off sale and the no-ranki
 test("README anonymous-check claim keeps the deployed copy locked to the live spot-check", () => {
   const spotCheck = readFileSync(new URL("../scripts/live-promise-spot-check.mjs", import.meta.url), "utf8");
   for (const surface of [
-    { path: "/check", copy: "Check One Page for SEO Proof" },
+    { path: "/check", copy: "Free SEO Page Check" },
     { path: "/check", copy: "No account, no email, no stored report" },
-    { path: "/demo", copy: "Fix only what is actually broken." },
+    { path: "/demo", copy: "See which warnings a real browser rules out." },
     { path: "/demo", copy: "an exact snippet when the engine can generate one" },
-    { path: "/methodology", copy: "Limits we state up front" },
-    { path: "/pricing", copy: "Free to find it. Pay only to fix it." },
+    { path: "/methodology", copy: "What it does not do" },
+    { path: "/pricing", copy: "Audits are free. Fixes are $99, once." },
     { path: "/pricing", copy: "$99.00 one-time" },
     { path: "/pricing", copy: "a paid plan is not on sale yet" }
   ]) {

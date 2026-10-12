@@ -14,9 +14,9 @@ async function openAppNav(page, isMobile) {
 test("a new visitor signs up from the homepage and lands in their workspace", async ({ page, request }, testInfo) => {
   const email = uniqueEmail(testInfo, "signup");
   await page.goto("/");
-  await page.getByLabel("Work email").fill(email);
+  await page.getByLabel("Email").fill(email);
   await typeLikeAPerson(page);
-  await page.getByRole("button", { name: "Get started free" }).click();
+  await page.getByRole("button", { name: "Start free" }).click();
   await expect(page.getByText(/check your (email|inbox)/i)).toBeVisible();
 
   await page.goto(await signInLinkFor(request, email));
@@ -88,7 +88,7 @@ test("a report lists every problem and jumps from the top fixes to the proof", a
   const rows = page.locator(".finding-list > details");
   await expect(rows).toHaveCount(6);
   await expect(rows.first()).toHaveAttribute("open", "");
-  await expect(rows.nth(1).getByText("Proof", { exact: true })).toBeHidden();
+  await expect(rows.nth(1).getByText("Evidence", { exact: true })).toBeHidden();
 
   // The severity filter narrows the list; a top fix still jumps to its proof
   // when the filter hides it.
@@ -108,5 +108,5 @@ test("a report lists every problem and jumps from the top fixes to the proof", a
   await expect(rows).toHaveCount(6);
   const target = page.locator("details", { has: page.getByRole("heading", { name: "Missing H1 on /pricing" }) });
   await expect(target).toHaveAttribute("open", "");
-  await expect(target.getByText("Proof", { exact: true })).toBeInViewport();
+  await expect(target.getByText("Evidence", { exact: true })).toBeInViewport();
 });

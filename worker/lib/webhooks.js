@@ -240,11 +240,11 @@ function publicWebhookUrlStatus(value) {
   try {
     parsed = new URL(String(value || ""));
   } catch {
-    return { ok: false, error: "Enter a valid HTTPS webhook URL." };
+    return { ok: false, error: "Enter a valid webhook URL, like https://example.com/hooks/seo." };
   }
 
   if (parsed.protocol !== "https:") {
-    return { ok: false, error: "Webhook URLs must use HTTPS." };
+    return { ok: false, error: "Webhook URLs must start with https://." };
   }
 
   const host = parsed.hostname.toLowerCase();
@@ -255,7 +255,7 @@ function publicWebhookUrlStatus(value) {
     host.endsWith(".internal") ||
     isPrivateHostname(host)
   ) {
-    return { ok: false, error: "Use a public HTTPS webhook URL, not a private or local address." };
+    return { ok: false, error: "This webhook URL points at a private or local address. Use a public HTTPS URL." };
   }
 
   parsed.hash = "";

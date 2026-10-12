@@ -25,8 +25,8 @@ function buildGeoReadinessAudit(report = {}) {
       severity: "warning",
       title: "SEO/GEO entity clarity needs cleanup",
       proof: `Title: ${home.title || "missing"}; description: ${home.description || "missing"}; H1s: ${home.h1s?.join(" | ") || "missing"}.`,
-      fix: "Make the page title, meta description, and primary H1 clearly name the company, offer, audience, and page purpose.",
-      acceptance: "A rerun shows a clear title, description, and visible H1 that agree with the page content.",
+      fix: "Make the title, meta description and H1 each say who you are, what you offer and who it's for.",
+      acceptance: "A rerun shows a title, description and H1 that agree with each other and with the page.",
       estimatedEffort: "15-45 min",
       workType: "content",
       source: "geo-readiness"
@@ -38,10 +38,10 @@ function buildGeoReadinessAudit(report = {}) {
       priority: repairOpportunities.length + 1,
       severity: "notice",
       title: "Add answer-ready sections for buyer questions",
-      proof: "Rendered headings do not show FAQ, how-it-works, pricing, comparison, or direct question sections.",
-      fix: "Add concise sections that answer the buyer's real questions using visible, crawlable HTML. Keep claims specific and support them with proof.",
+      proof: "No headings for a FAQ, how it works, pricing, comparisons or direct questions.",
+      fix: "Add short sections, in the page HTML, that answer what buyers ask. Keep each claim specific and back it up.",
       acceptance:
-        "A rerun shows crawlable headings and body copy that answer key buyer questions without hiding content behind scripts.",
+        "A rerun shows headings and text that answer the main buyer questions, present in the HTML and not loaded later by scripts.",
       estimatedEffort: "30-90 min",
       workType: "content",
       source: "geo-readiness"
@@ -54,8 +54,8 @@ function buildGeoReadinessAudit(report = {}) {
       severity: "notice",
       title: "Add truthful entity schema where useful",
       proof: `Rendered schema types: ${home.schemaTypes?.join(", ") || "none"}.`,
-      fix: "Add Organization, WebSite, Product, Service, LocalBusiness, or FAQ schema only when it matches visible page content.",
-      acceptance: "JSON-LD validates and the schema types match content users can see on the page.",
+      fix: "Add Organization, WebSite, Product, Service, LocalBusiness or FAQ schema, but only for what the page shows.",
+      acceptance: "The JSON-LD is valid and its types match what visitors see on the page.",
       estimatedEffort: "15-45 min",
       workType: "code",
       source: "geo-readiness"
@@ -68,8 +68,8 @@ function buildGeoReadinessAudit(report = {}) {
       severity: "warning",
       title: "Make core answer content crawlable",
       proof: `${Number(home.wordCount || 0)} rendered words found on the primary page.`,
-      fix: "Add useful visible page copy that explains the offer, use cases, proof, constraints, and next steps.",
-      acceptance: "A rerun shows substantial rendered text and the repair no longer appears as thin content.",
+      fix: "Add visible text that explains the offer, who uses it and how, what it doesn't do, and what to do next.",
+      acceptance: "A rerun shows enough text on the page and this no longer flags as thin content.",
       estimatedEffort: "30-90 min",
       workType: "content",
       source: "geo-readiness"
@@ -92,10 +92,9 @@ function buildGeoReadinessAudit(report = {}) {
 
 function geoGuidance() {
   return {
-    llmsTxt:
-      "llms.txt can be useful for some non-Google AI readers, but it is not required for Google Search or Google generative search surfaces.",
+    llmsTxt: "Some non-Google AI tools read llms.txt. It is not required for Google Search or Google's AI features.",
     priority:
-      "Prioritize crawlable content, clear entity and offer language, accurate schema, internal context, and proof-backed answers."
+      "Focus on text in the HTML, plain statements of who you are and what you sell, accurate schema, internal links, and answers you can back up."
   };
 }
 
