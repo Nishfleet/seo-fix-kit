@@ -1,4 +1,3 @@
-import { escapeHtml } from "../../shared/audit-engine.js";
 import { isEmailConfigured } from "../../shared/fulfillment.js";
 import {
   betaAccessResponse,
@@ -7,6 +6,7 @@ import {
   clearSessionCookie,
   createBetaSession
 } from "../lib/auth.js";
+import { emailButton } from "../../shared/email-layout.js";
 import { sendWorkerEmail } from "../lib/email.js";
 import { json, jsonNoStore } from "../lib/http.js";
 import {
@@ -316,10 +316,11 @@ async function sendAccessLinkEmail(env, { ownerEmail, accessUrl }) {
     "SEO Fix Kit audits produce proof-backed repair briefs. No ranking promises are made."
   ].join("\n");
   const html = [
-    "<p>Use this secure link to open SEO Fix Kit:</p>",
-    `<p><a href="${escapeHtml(accessUrl)}">Open SEO Fix Kit</a></p>`,
-    `<p>This link expires in ${expiresMinutes} minutes and can be used once. If it expires, just request a new one.</p>`,
-    "<p>SEO Fix Kit audits produce proof-backed repair briefs. No ranking promises are made.</p>"
+    '<p style="font-size:18px;font-weight:600;margin:0 0 8px">Your access link</p>',
+    '<p style="margin:0">Use this secure link to open SEO Fix Kit:</p>',
+    emailButton(accessUrl, "Open SEO Fix Kit"),
+    `<p style="margin:0 0 12px">This link expires in ${expiresMinutes} minutes and can be used once. If it expires, just request a new one.</p>`,
+    '<p style="color:#6b6f6c;font-size:13px;margin:0">SEO Fix Kit audits produce proof-backed repair briefs. No ranking promises are made.</p>'
   ].join("");
 
   return sendWorkerEmail(env, {
@@ -327,6 +328,7 @@ async function sendAccessLinkEmail(env, { ownerEmail, accessUrl }) {
     subject,
     text,
     html,
+    preheader: `Your one-time sign-in link expires in ${expiresMinutes} minutes.`,
     tag: "access-link"
   });
 }

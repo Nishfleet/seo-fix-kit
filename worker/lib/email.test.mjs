@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { emailButton } from "../../shared/email-layout.js";
 import { sendWorkerEmail, shouldSkipOwnedInternalEmail } from "./email.js";
 
 function fakeEmailEnv(overrides = {}) {
@@ -67,4 +68,27 @@ test("external fix pack customer emails do not carry the internal inbox marker",
     to: "customer@example.com",
     tag: "fix-pack-payment"
   }), false);
+});
+
+test("sent HTML is wrapped in the shared layout with preheader, button fallback, and footer", async () => {
+  const { env, sent } = fakeEmailEnv();
+
+  await sendWorkerEmail(env, {
+    to: "customer@example.com",
+    subject: "Your SEO Fix Kit access link",
+    text: "Open https://seofixkit.com/x",
+    html: `<p>Hello</p>${emailButton("https://seofixkit.com/beta/access?t=a&b=1", "Open SEO Fix Kit")}`,
+    preheader: "Your one-time sign-in link",
+    tag: "access-link"
+  });
+
+  const html = sent[0].html;
+  assert.match(html, /^<!doctype html>/);
+  assert.match(html, /max-width:560px/);
+  assert.match(html, /Your one-time sign-in link/);
+  assert.match(html, /<p>Hello<\/p>/);
+  assert.match(html, /<a href="https:\/\/seofixkit\.com\/beta\/access\?t=a&amp;b=1" style="background:#0f7a56[^"]*">Open SEO Fix Kit<\/a>/);
+  assert.match(html, /Or paste this link into your browser: https:\/\/seofixkit\.com\/beta\/access\?t=a&amp;b=1/);
+  assert.match(html, /support@seofixkit\.com/);
+  assert.match(sent[0].text, /Open https:\/\/seofixkit\.com\/x\n\n--\nSEO Fix Kit/, "plain-text part keeps its footer");
 });

@@ -2796,6 +2796,7 @@ async function sendFixPackPaymentEmail({
       subject: email.subject,
       text: email.text,
       html: email.html,
+      preheader: email.preheader,
       tag
     });
     const providerMessageId = payload.messageId;
@@ -2949,6 +2950,7 @@ async function sendFixPackStatusEmail({
       subject: email.subject,
       text: email.text,
       html: email.html,
+      preheader: email.preheader,
       tag
     });
     const providerMessageId = payload.messageId;
