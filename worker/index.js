@@ -12,7 +12,7 @@ import {
   sendUrgentOpsAlerts,
   updateFixRequestAdmin
 } from "./routes/admin.js";
-import { getAccountSummary } from "./routes/account.js";
+import { getAccountSummary, listReports } from "./routes/account.js";
 import { json, secureHeaders, withPrivateHeaders, withSecurityHeaders } from "./lib/http.js";
 import { getDeepHealth } from "./routes/health.js";
 import { isSafeUuid } from "./lib/text.js";
@@ -24,7 +24,7 @@ import {
   homeMarkdown,
   llmsText,
   methodologyHtml,
-  packagesHtml,
+  pricingHtml,
   privacyHtml,
   proofCaseHtml,
   proofCaseMarkdown,
@@ -271,6 +271,7 @@ app.post("/api/webhooks/dodo", route(handleDodoWebhook));
 
 // --- Account, team, branding, developer settings -----------------------------
 app.get("/api/account/summary", route(getAccountSummary));
+app.get("/api/reports", route(listReports));
 app.get("/api/developer", route(getDeveloperApiSummary));
 app.post("/api/developer/tokens", route(createDeveloperApiToken));
 app.delete("/api/developer/tokens/:id", route(revokeDeveloperApiToken));
@@ -403,7 +404,7 @@ app.get("/terms", htmlPage(termsHtml));
 app.get("/demo", htmlPage(demoHtml));
 app.get("/check", htmlPage(checkHtml));
 app.get("/methodology", htmlPage(methodologyHtml));
-app.get("/packages", htmlPage(packagesHtml));
+app.get("/pricing", htmlPage(pricingHtml));
 app.get("/small-business-seo-audit", htmlPage(smallBusinessSeoAuditHtml));
 app.get("/rendered-vs-static-seo-audit", htmlPage(renderedVsStaticAuditHtml));
 app.get("/ai-answer-readiness", htmlPage(aiAnswerReadinessHtml));
@@ -417,6 +418,34 @@ function proofPage(c) {
 }
 app.get("/proof", proofPage);
 app.get("/proof.md", proofPage);
+
+// --- Redirects ---------------------------------------------------------------
+// /packages was the pricing page's old address; it moves permanently so old
+// links and search results land on /pricing. The common account URLs people
+// type or bookmark all lead to the sign-in screen at /beta.
+function redirectTo(target, status) {
+  return (c) => {
+    const { search } = new URL(c.req.url);
+    return new Response(null, {
+      status,
+      headers: secureHeaders({ Location: `${target}${search}` })
+    });
+  };
+}
+app.get("/packages", redirectTo("/pricing", 301));
+for (const path of [
+  "/login",
+  "/signin",
+  "/sign-in",
+  "/signup",
+  "/sign-up",
+  "/register",
+  "/dashboard",
+  "/app",
+  "/account"
+]) {
+  app.get(path, redirectTo("/beta", 302));
+}
 
 // --- Single-page app ---------------------------------------------------------
 async function betaShell(c) {

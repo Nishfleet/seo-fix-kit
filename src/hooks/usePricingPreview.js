@@ -1,50 +1,19 @@
-import { useEffect, useState } from "react";
-import { apiFetch } from "../api.js";
+import { useQuery } from "@tanstack/react-query";
+import { fetchPricingPreview } from "../lib/requests.js";
+import { queryKeys } from "../lib/queries.js";
 
 export function usePricingPreview(enabled) {
-  const [pricing, setPricing] = useState({
-    status: enabled ? "loading" : "idle",
-    displayPrice: "",
-    message: ""
-  });
-  const [attempt, setAttempt] = useState(0);
-
-  useEffect(() => {
-    if (!enabled) {
-      setPricing({ status: "idle", displayPrice: "", message: "" });
-      return;
-    }
-
-    let cancelled = false;
-    setPricing({ status: "loading", displayPrice: "", message: "" });
-    apiFetch("/api/pricing-preview", {
-      credentials: "include",
-      requireOkFlag: false,
-      errorKeys: ["message"],
-      fallbackError: "Pricing unavailable."
-    })
-      .then((payload) => payload.pricing || {})
-      .then((nextPricing) => {
-        if (cancelled) return;
-        setPricing({
-          status: nextPricing.displayPrice ? "available" : "error",
-          displayPrice: nextPricing.displayPrice || "",
-          message: nextPricing.displayPrice ? "Dodo checkout price" : "Pricing unavailable."
-        });
-      })
-      .catch((error) => {
-        if (cancelled) return;
-        setPricing({
-          status: "error",
-          displayPrice: "",
-          message: error?.message || "Pricing unavailable."
-        });
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [enabled, attempt]);
-
-  return { ...pricing, reload: () => setAttempt((value) => value + 1) };
+  const query = useQuery({ queryKey: queryKeys.pricing, queryFn: fetchPricingPreview, enabled: Boolean(enabled) });
+  const displayPrice = query.data?.displayPrice || "";
+  let pricing = { status: "idle", displayPrice: "", message: "" };
+  if (enabled && (query.isPending || (query.isError && query.isFetching)))
+    pricing = { status: "loading", displayPrice: "", message: "" };
+  else if (query.isError)
+    pricing = { status: "error", displayPrice: "", message: query.error?.message || "Pricing unavailable." };
+  else if (enabled && query.isSuccess) {
+    pricing = displayPrice
+      ? { status: "available", displayPrice, message: "Dodo checkout price" }
+      : { status: "error", displayPrice: "", message: "Pricing unavailable." };
+  }
+  return { ...pricing, reload: () => query.refetch() };
 }

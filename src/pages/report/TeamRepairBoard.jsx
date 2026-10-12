@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 import StatusMessage from "../../StatusMessage.jsx";
 import {
   repairActionApplyPatch,
@@ -27,6 +28,7 @@ import {
   manualRepairQueueStatus,
   actionTypeForMode
 } from "../../lib/repair-board.js";
+import { queryKeys } from "../../lib/queries.js";
 import {
   loadReportCollaboration,
   saveReportCollaboration,
@@ -38,38 +40,63 @@ import {
   revokeTeamMember
 } from "../../lib/requests.js";
 
+const NO_ITEMS = [];
+
+async function fetchRepairBoard(reportId) {
+  const [collaborationPayload, queuePayload] = await Promise.all([
+    loadReportCollaboration(reportId),
+    loadRepairQueue(reportId)
+  ]);
+  return {
+    members: collaborationPayload.members || [],
+    issues: mergeRepairQueueWithCollaboration(queuePayload.items || [], collaborationPayload.issues || [])
+  };
+}
+
 export function TeamRepairBoard({ report }) {
-  const [members, setMembers] = useState([]);
-  const [issues, setIssues] = useState([]);
+  const queryClient = useQueryClient();
+  const boardKey = queryKeys.repairBoard(report.id);
+  const board = useQuery({
+    queryKey: boardKey,
+    queryFn: () => fetchRepairBoard(report.id),
+    enabled: Boolean(report.id)
+  });
+  const members = board.data?.members || NO_ITEMS;
+  const issues = board.data?.issues || NO_ITEMS;
   const [draftMember, setDraftMember] = useState({ email: "", name: "", role: "editor" });
   const [statusFilter, setStatusFilter] = useState("active");
   const [savingIssueId, setSavingIssueId] = useState("");
   const [actingIssueId, setActingIssueId] = useState("");
-  const [status, setStatus] = useState("idle");
-  const [message, setMessage] = useState("");
+  const [actionStatus, setStatus] = useState("idle");
+  const [actionMessage, setMessage] = useState("");
+  // Until the first action, the board's own load state drives the message.
+  const status =
+    actionStatus !== "idle"
+      ? actionStatus
+      : board.isLoading
+        ? "loading"
+        : board.isError
+          ? "error"
+          : board.isSuccess
+            ? "success"
+            : "idle";
+  const message =
+    actionMessage ||
+    (board.isLoading
+      ? "Loading repair board."
+      : board.isError
+        ? board.error?.message || "Could not load repair queue."
+        : board.isSuccess
+          ? "Repair queue ready."
+          : "");
 
-  useEffect(() => {
-    if (!report.id) return;
-    let cancelled = false;
-    setStatus("loading");
-    setMessage("Loading repair board.");
-    Promise.all([loadReportCollaboration(report.id), loadRepairQueue(report.id)])
-      .then(([collaborationPayload, queuePayload]) => {
-        if (cancelled) return;
-        setMembers(collaborationPayload.members || []);
-        setIssues(mergeRepairQueueWithCollaboration(queuePayload.items || [], collaborationPayload.issues || []));
-        setStatus("success");
-        setMessage("Repair queue ready.");
-      })
-      .catch((error) => {
-        if (cancelled) return;
-        setStatus("error");
-        setMessage(error.message || "Could not load repair queue.");
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [report.id]);
+  // Local edits (status, assignee, note) live in the cached board until saved.
+  function setIssues(update) {
+    queryClient.setQueryData(boardKey, (current = { members: [], issues: [] }) => ({
+      ...current,
+      issues: typeof update === "function" ? update(current.issues) : update
+    }));
+  }
 
   const boardCounts = useMemo(() => repairBoardCounts(issues), [issues]);
   const visibleIssues = useMemo(() => {
@@ -89,12 +116,10 @@ export function TeamRepairBoard({ report }) {
   }
 
   async function reloadBoard(nextMessage = "Repair board updated.") {
-    const [collaborationPayload, queuePayload] = await Promise.all([
-      loadReportCollaboration(report.id),
-      loadRepairQueue(report.id)
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: boardKey, exact: true }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.repairQueue(report.id), exact: true })
     ]);
-    setMembers(collaborationPayload.members || []);
-    setIssues(mergeRepairQueueWithCollaboration(queuePayload.items || [], collaborationPayload.issues || []));
     setStatus("success");
     setMessage(nextMessage);
   }
@@ -182,6 +207,7 @@ export function TeamRepairBoard({ report }) {
       if (payload.queue?.items) {
         const collaborationPayload = await loadReportCollaboration(report.id);
         setIssues(mergeRepairQueueWithCollaboration(payload.queue.items, collaborationPayload.issues || []));
+        queryClient.invalidateQueries({ queryKey: queryKeys.repairQueue(report.id), exact: true });
       } else {
         await reloadBoard("Agent action drafted.");
       }
@@ -205,6 +231,7 @@ export function TeamRepairBoard({ report }) {
       if (payload.queue?.items) {
         const collaborationPayload = await loadReportCollaboration(report.id);
         setIssues(mergeRepairQueueWithCollaboration(payload.queue.items, collaborationPayload.issues || []));
+        queryClient.invalidateQueries({ queryKey: queryKeys.repairQueue(report.id), exact: true });
       } else {
         await reloadBoard("Agent action updated.");
       }

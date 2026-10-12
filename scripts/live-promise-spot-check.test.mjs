@@ -6,7 +6,7 @@ import {
   demoHtml,
   llmsText,
   methodologyHtml,
-  packagesHtml,
+  pricingHtml,
   privacyHtml,
   proofCaseHtml,
   proofCaseMarkdown,
@@ -28,7 +28,7 @@ const pages = {
   "/demo": demoHtml(origin),
   "/check": checkHtml(origin),
   "/methodology": methodologyHtml(origin),
-  "/packages": packagesHtml(origin),
+  "/pricing": pricingHtml(origin),
   "/small-business-seo-audit": smallBusinessSeoAuditHtml(origin),
   "/rendered-vs-static-seo-audit": renderedVsStaticAuditHtml(origin),
   "/ai-answer-readiness": aiAnswerReadinessHtml(origin),
@@ -110,7 +110,7 @@ test("live spot-check covers the public pages including the proof receipt", () =
       "/demo",
       "/check",
       "/methodology",
-      "/packages",
+      "/pricing",
       "/small-business-seo-audit",
       "/rendered-vs-static-seo-audit",
       "/ai-answer-readiness",
@@ -179,10 +179,10 @@ test("live spot-check flags a rendered-vs-static page that lost the free-checker
 });
 
 test("live spot-check flags a page that lost its package price", async () => {
-  const overrides = { "/packages": pages["/packages"].split("$99.00 one-time").join("price hidden") };
+  const overrides = { "/pricing": pages["/pricing"].split("$99.00 one-time").join("price hidden") };
   const results = await spotCheckPublicPages({ baseUrl: origin, fetcher: pageFetcher(overrides) });
-  const packages = results.find((result) => result.path === "/packages");
-  assert.ok(packages.failures.includes("public fix pack price"), "price claim must be reported");
+  const pricing = results.find((result) => result.path === "/pricing");
+  assert.ok(pricing.failures.includes("public fix pack price"), "price claim must be reported");
 });
 
 test("live spot-check flags a missing page", async () => {

@@ -16,8 +16,8 @@ import { pathToFileURL } from "node:url";
 //      when present, next step, and the no-ranking boundary.
 //   2. Records the proof fields verbatim (measured facts, issue counts, guard
 //      and finding titles, engine version, scan time).
-//   3. Verifies the access-conversion copy: nextStep hands off into the
-//      private beta and boundary keeps the no-ranking promise.
+//   3. Verifies the access-conversion copy: nextStep hands off into a
+//      free account and boundary keeps the no-ranking promise.
 //   4. Verifies no unsupported result claims: the payload carries no
 //      affirmative ranking/traffic/indexing/revenue/AI-citation guarantee.
 //
@@ -178,8 +178,8 @@ export function validateWalkPayload(payload) {
   }
   if (!Array.isArray(payload.guards)) failures.push("guards is not an array");
   if (!Array.isArray(payload.findings)) failures.push("findings is not an array");
-  if (typeof payload.nextStep !== "string" || !payload.nextStep.includes("private beta")) {
-    failures.push("nextStep does not hand off into the private beta");
+  if (typeof payload.nextStep !== "string" || !payload.nextStep.includes("create a free account")) {
+    failures.push("nextStep does not hand off into a free account");
   }
   if (typeof payload.boundary !== "string" || !payload.boundary.includes("does not guarantee rankings")) {
     failures.push("boundary does not keep the no-ranking promise");

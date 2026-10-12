@@ -70,11 +70,11 @@ function passingStopEvidence(stop, viewport = "desktop") {
 }
 
 test("anchor matching treats absolute same-origin hrefs as the expected path", () => {
-  assert.equal(samePathname("https://seofixkit.com/packages", "/packages", origin), true);
-  assert.equal(samePathname("/packages", "/packages", origin), true);
+  assert.equal(samePathname("https://seofixkit.com/pricing", "/pricing", origin), true);
+  assert.equal(samePathname("/pricing", "/pricing", origin), true);
   assert.equal(samePathname("https://seofixkit.com/check?utm=x", "/check", origin), true);
-  assert.equal(samePathname("https://other.example.com/packages", "/packages", origin), false);
-  assert.equal(samePathname(null, "/packages", origin), false);
+  assert.equal(samePathname("https://other.example.com/pricing", "/pricing", origin), false);
+  assert.equal(samePathname(null, "/pricing", origin), false);
 });
 
 test("context options builder maps the desktop descriptor into a valid Playwright context", () => {
@@ -144,7 +144,7 @@ test("walk fails when the stop title does not match the funnel copy", () => {
   );
 });
 
-test("walk fails when /demo or /packages canonical drifts", () => {
+test("walk fails when /demo or /pricing canonical drifts", () => {
   for (const stop of [FUNNEL_STOPS[1], FUNNEL_STOPS[2]]) {
     const evidence = passingStopEvidence(stop);
     evidence.canonical = `${origin}/wrong`;
@@ -171,7 +171,7 @@ test("home stop names the intended buyer in its first-viewport copy", () => {
   const homeCopyChecks = FUNNEL_STOPS[0].copyChecks.map((check) => check.match);
   assert.ok(
     homeCopyChecks.includes("for site owners and founders"),
-    "home first-viewport copy must name the intended buyer: site owners and founders"
+    "home copy must name the intended buyer: site owners and founders"
   );
   const audienceCheck = FUNNEL_STOPS[0].copyChecks.find((check) => check.match === "for site owners and founders");
   assert.ok(
@@ -207,7 +207,7 @@ test("walk fails when an expected public proof link is missing", () => {
 test("walk fails when an internal link is broken", () => {
   const evidence = passingStopEvidence(FUNNEL_STOPS[2]);
   evidence.brokenLinks = {
-    checked: [{ href: "/packages", status: 200 }],
+    checked: [{ href: "/pricing", status: 200 }],
     broken: [{ href: "/support", status: 500 }]
   };
   const failures = evaluateStopEvidence(evidence);
@@ -347,10 +347,10 @@ test("journal summary names every funnel stop and the observe-mode access reques
   const summary = funnelWalkSummary(record);
   assert.ok(summary.includes("Private-beta funnel walk pass"), summary);
   assert.ok(summary.includes("desktop /: ok"), summary);
-  assert.ok(summary.includes("mobile /packages: ok"), summary);
+  assert.ok(summary.includes("mobile /pricing: ok"), summary);
   assert.ok(summary.includes("access request: observe mode"), summary);
   assert.ok(summary.includes("console/page errors: none"), summary);
-  assert.ok(summary.includes("home → demo → packages"), summary);
+  assert.ok(summary.includes("home → demo → pricing"), summary);
 });
 
 test("journal summary surfaces stop failures instead of claiming pass", () => {

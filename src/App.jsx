@@ -1,7 +1,10 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Route, Routes, useLocation, useNavigationType } from "react-router";
 import { WaitlistPage } from "./pages/LandingPage.jsx";
-import { BetaApp } from "./pages/beta/BetaApp.jsx";
+
+// The signed-in app is loaded only when a /beta page opens, so the homepage
+// ships without the dashboard code.
+const BetaApp = lazy(() => import("./pages/beta/BetaApp.jsx").then((module) => ({ default: module.BetaApp })));
 
 // The Worker serves this SPA shell for "/" and "/beta/*" (worker/index.js);
 // every other public path is a Worker-rendered page reached by a full load.
@@ -24,7 +27,11 @@ export default function App() {
 function BetaRoute() {
   const location = useLocation();
   const mountKey = location.state?.betaMountKey || location.key;
-  return <BetaApp key={mountKey} mountKey={mountKey} />;
+  return (
+    <Suspense fallback={<div className="app-loading" aria-busy="true" />}>
+      <BetaApp key={mountKey} mountKey={mountKey} />
+    </Suspense>
+  );
 }
 
 // Library-mode BrowserRouter has no scroll restoration; a pushed in-app

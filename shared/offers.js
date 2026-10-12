@@ -137,7 +137,7 @@ function monitoringAccessFromEntitlements(entitlements = [], activeCount = 0, op
       ? "Proof Monitoring entitlement is active for this workspace."
       : checkoutLive
         ? "Paid Proof Monitoring checkout is available for verified sites; access activates after the subscription webhook."
-        : "Private beta includes weekly proof monitoring while paid monitoring checkout is config-gated."
+        : "Weekly monitoring is included free for verified sites during the beta."
   };
 }
 

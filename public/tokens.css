@@ -175,11 +175,80 @@ a:hover {
 
 .site-header nav a {
   color: var(--ink-soft);
+  display: inline-block;
+  padding: 6px 0;
   font-size: var(--text-14);
   font-weight: var(--weight-medium);
 }
 
 .site-header nav a:hover {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+/* Site footer (siteFooter() in worker/routes/pages.js, mirrored in 404.html
+   and the React landing page) */
+.site-foot {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: var(--space-32) var(--space-24);
+  grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr));
+  margin-top: var(--space-48);
+  padding: var(--space-48) 0 var(--space-16);
+}
+
+.site-foot .brand {
+  align-items: center;
+  color: var(--ink);
+  display: inline-flex;
+  font-size: var(--text-16);
+  font-weight: var(--weight-bold);
+  gap: 10px;
+}
+
+.site-foot .brand::before {
+  background: url("/favicon.svg") center / contain no-repeat;
+  content: "";
+  flex: none;
+  height: 24px;
+  width: 24px;
+}
+
+.site-foot .brand:hover {
+  text-decoration: none;
+}
+
+.site-foot-brand p {
+  color: var(--ink-muted);
+  font-size: var(--text-14);
+  line-height: 1.6;
+  margin: var(--space-12) 0 0;
+  max-width: 280px;
+}
+
+.site-foot nav {
+  align-content: start;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.site-foot h2 {
+  color: var(--ink);
+  font-size: var(--text-14);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0;
+  margin: 0 0 4px;
+}
+
+.site-foot nav a {
+  color: var(--ink-muted);
+  font-size: var(--text-14);
+  font-weight: var(--weight-regular);
+  overflow-wrap: anywhere;
+}
+
+.site-foot nav a:hover {
   color: var(--ink);
   text-decoration: none;
 }
@@ -312,6 +381,20 @@ code {
 @media (max-width: 760px) {
   .site-header {
     margin-bottom: var(--space-32);
+  }
+
+  .site-foot {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .site-foot-brand {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 420px) {
+  .site-foot {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

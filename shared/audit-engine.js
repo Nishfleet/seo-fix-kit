@@ -3182,7 +3182,7 @@ export const ROOT_PUBLIC_PATHS = [
   "/demo",
   "/check",
   "/methodology",
-  "/packages",
+  "/pricing",
   "/small-business-seo-audit",
   "/rendered-vs-static-seo-audit",
   "/ai-answer-readiness",
@@ -3205,18 +3205,18 @@ export const ROOT_PUBLIC_PATHS = [
 // worker/routes/pages.test.mjs refuses a stale lastmod so the update
 // cannot silently ship.
 export const ROOT_PUBLIC_LASTMODS = {
-  "/": "2026-10-12T16:38:45Z",
-  "/demo": "2026-10-12T16:27:56Z",
-  "/check": "2026-10-12T16:27:56Z",
-  "/methodology": "2026-10-12T16:27:56Z",
-  "/packages": "2026-10-12T16:27:56Z",
-  "/small-business-seo-audit": "2026-10-12T16:27:56Z",
-  "/rendered-vs-static-seo-audit": "2026-10-12T16:27:56Z",
-  "/ai-answer-readiness": "2026-10-12T16:27:56Z",
-  "/privacy": "2026-10-12T16:27:56Z",
-  "/proof": "2026-10-12T16:27:56Z",
-  "/support": "2026-10-12T16:27:56Z",
-  "/terms": "2026-10-12T16:27:56Z"
+  "/": "2026-10-12T17:35:07Z",
+  "/demo": "2026-10-12T17:35:08Z",
+  "/check": "2026-10-12T17:35:08Z",
+  "/methodology": "2026-10-12T17:35:08Z",
+  "/pricing": "2026-10-12T17:35:07Z",
+  "/small-business-seo-audit": "2026-10-12T17:35:09Z",
+  "/rendered-vs-static-seo-audit": "2026-10-12T17:35:09Z",
+  "/ai-answer-readiness": "2026-10-12T17:35:08Z",
+  "/privacy": "2026-10-12T17:35:07Z",
+  "/proof": "2026-10-12T17:35:08Z",
+  "/support": "2026-10-12T17:35:07Z",
+  "/terms": "2026-10-12T17:35:07Z"
 };
 
 export function rootSitemap(origin) {

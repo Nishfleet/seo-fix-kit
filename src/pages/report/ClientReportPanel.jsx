@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import StatusMessage from "../../StatusMessage.jsx";
 import { copyText } from "../../lib/browser.js";
 import { formatDate, safeHostnameLabel } from "../../lib/format.js";
+import { queryKeys } from "../../lib/queries.js";
 import {
   loadReportBranding,
   saveReportBranding,
@@ -14,50 +16,81 @@ import {
   revokeReportShare
 } from "../../lib/requests.js";
 
+const NO_ITEMS = [];
+const DEFAULT_BRANDING = {
+  agencyName: "",
+  logoUrl: "",
+  brandColor: "#163f5f",
+  accentColor: "#0f9f6e",
+  customDomain: "",
+  footerText: ""
+};
+
+async function fetchClientTools(reportId) {
+  const [brandingPayload, sharesPayload, domainsPayload] = await Promise.all([
+    loadReportBranding(),
+    loadReportShares(reportId),
+    loadReportDomains()
+  ]);
+  return {
+    branding: brandingPayload.branding || {},
+    shares: sharesPayload.shares || [],
+    domains: domainsPayload.domains || []
+  };
+}
+
 export function ClientReportPanel({ report }) {
   const agencyWorkspace = report.agencyWorkspace || {};
-  const [branding, setBranding] = useState({
-    agencyName: "",
-    logoUrl: "",
-    brandColor: "#163f5f",
-    accentColor: "#0f9f6e",
-    customDomain: "",
-    footerText: ""
+  const queryClient = useQueryClient();
+  const toolsKey = queryKeys.clientTools(report.id);
+  const tools = useQuery({
+    queryKey: toolsKey,
+    queryFn: () => fetchClientTools(report.id),
+    enabled: Boolean(report.id)
   });
-  const [shares, setShares] = useState([]);
-  const [domains, setDomains] = useState([]);
+  // The branding form starts from the saved branding and keeps local edits.
+  const [brandingDraft, setBrandingDraft] = useState(null);
+  const branding = brandingDraft || { ...DEFAULT_BRANDING, ...(tools.data?.branding || {}) };
+  const shares = tools.data?.shares || NO_ITEMS;
+  const domains = tools.data?.domains || NO_ITEMS;
   const [domainName, setDomainName] = useState("");
   const [clientName, setClientName] = useState(() => safeHostnameLabel(report.url));
   const [password, setPassword] = useState("");
   const [passwordHint, setPasswordHint] = useState("");
   const [expiresDays, setExpiresDays] = useState("");
-  const [status, setStatus] = useState("idle");
-  const [message, setMessage] = useState("");
+  const [actionStatus, setStatus] = useState("idle");
+  const [actionMessage, setMessage] = useState("");
+  const status =
+    actionStatus !== "idle"
+      ? actionStatus
+      : tools.isLoading
+        ? "loading"
+        : tools.isError
+          ? "error"
+          : tools.isSuccess
+            ? "success"
+            : "idle";
+  const message =
+    actionMessage ||
+    (tools.isLoading
+      ? "Loading client report tools."
+      : tools.isError
+        ? tools.error?.message || "Could not load client report tools."
+        : tools.isSuccess
+          ? "Client reports ready."
+          : "");
 
-  useEffect(() => {
-    if (!report.id) return;
-    let cancelled = false;
-    setStatus("loading");
-    setMessage("Loading client report tools.");
-    Promise.all([loadReportBranding(), loadReportShares(report.id), loadReportDomains()])
-      .then(([brandingPayload, sharesPayload, domainsPayload]) => {
-        if (cancelled) return;
-        setBranding((current) => ({ ...current, ...(brandingPayload.branding || {}) }));
-        setShares(sharesPayload.shares || []);
-        setDomains(domainsPayload.domains || []);
-        setClientName((current) => current || safeHostnameLabel(report.url));
-        setStatus("success");
-        setMessage("Client reports ready.");
-      })
-      .catch((error) => {
-        if (cancelled) return;
-        setStatus("error");
-        setMessage(error.message || "Could not load client report tools.");
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [report.id, report.url]);
+  function updateTools(field, update) {
+    queryClient.setQueryData(toolsKey, (current = { branding: {}, shares: [], domains: [] }) => ({
+      ...current,
+      [field]: typeof update === "function" ? update(current[field] || []) : update
+    }));
+  }
+  const setShares = (update) => updateTools("shares", update);
+  const setDomains = (update) => updateTools("domains", update);
+  function setBranding(update) {
+    setBrandingDraft((current) => (typeof update === "function" ? update(current || branding) : update));
+  }
 
   function updateBranding(field, value) {
     setBranding((current) => ({ ...current, [field]: value }));
@@ -69,7 +102,8 @@ export function ClientReportPanel({ report }) {
     setMessage("Saving branding.");
     try {
       const payload = await saveReportBranding(branding);
-      setBranding((current) => ({ ...current, ...(payload.branding || {}) }));
+      updateTools("branding", { ...branding, ...(payload.branding || {}) });
+      setBrandingDraft(null);
       setStatus("success");
       setMessage("Branding saved.");
     } catch (error) {

@@ -104,7 +104,7 @@ const PUBLIC_HTML_PATHS = [
   "/demo",
   "/check",
   "/methodology",
-  "/packages",
+  "/pricing",
   "/proof",
   "/small-business-seo-audit",
   "/rendered-vs-static-seo-audit",
@@ -490,19 +490,19 @@ test("README weekly monitor promise matches the schedule interval", () => {
 test("README public page promise matches Worker routing and copy", async () => {
   assert.match(
     liveSection,
-    /Public `\/demo`, `\/methodology`, `\/packages`, and `\/proof` pages showing the proof loop, limits, package ladder, and a real before\/after repair receipt/i
+    /Public `\/demo`, `\/methodology`, `\/pricing`, and `\/proof` pages showing the proof loop, limits, plans and prices, and a real before\/after repair receipt/i
   );
   assert.match(
     liveSection,
     /Intent-matching public landing pages at `\/small-business-seo-audit`, `\/rendered-vs-static-seo-audit`, and `\/ai-answer-readiness`/i
   );
-  for (const path of ["/demo", "/methodology", "/packages", "/check", "/proof"]) {
+  for (const path of ["/demo", "/methodology", "/pricing", "/check", "/proof"]) {
     assert.ok(workerRoutes(path, "GET"), `Worker must route ${path}`);
   }
   for (const path of ["/small-business-seo-audit", "/rendered-vs-static-seo-audit", "/ai-answer-readiness"]) {
     assert.ok(workerRoutes(path, "GET"), `Worker must route ${path}`);
   }
-  assert.match(await publicPage("/packages"), /\$99\.00 one-time/, "packages page shows the public Fix Pack price");
+  assert.match(await publicPage("/pricing"), /\$99\.00 one-time/, "pricing page shows the public Fix Pack price");
 });
 
 test("README intent-landing-page promise matches routes, sitemap, and schema boundaries", async () => {
@@ -584,7 +584,7 @@ test("README Cloudflare path routes are actually registered in the Worker", () =
     "/terms",
     "/demo",
     "/methodology",
-    "/packages",
+    "/pricing",
     "/small-business-seo-audit",
     "/rendered-vs-static-seo-audit",
     "/ai-answer-readiness",
@@ -680,14 +680,14 @@ test("README anonymous one-page check claim matches the Worker, page, and rate l
   assert.match(liveSection, /Public anonymous one-page URL check at `\/check` and `POST \/api\/public-check`/i);
   assert.match(liveSection, /per-network and per-site rate limits with hashed, short-lived counters/i);
   assert.match(liveSection, /no stored report/i);
-  assert.match(liveSection, /handoff into private beta access with no ranking promise/i);
+  assert.match(liveSection, /handoff into a free account with no ranking promise/i);
   assert.ok(workerRoutes("/check", "GET"), "Worker must route /check");
   assert.ok(workerRoutes("/api/public-check", "POST"), "Worker must route /api/public-check");
   assert.match(liveSection, /real browser rendering of one public page/i);
   const page = visibleText(await publicPage("/check"));
   assert.match(
     page,
-    /opens the page in a real browser|open the page in a real browser/i,
+    /(?:opens|open|load) (?:the page|it) in a real browser/i,
     "the public check copy states real browser rendering"
   );
   assert.match(
@@ -2078,7 +2078,7 @@ test("README public support, terms, and privacy pages keep no-ranking-guarantee 
     "support page carries no ranking promise"
   );
   assert.match(
-    visibleText(await publicPage("/packages")),
+    visibleText(await publicPage("/pricing")),
     /No ranking or traffic guarantee/,
     "the Fix Pack card carries no ranking guarantee"
   );
@@ -2303,7 +2303,7 @@ test("README retention claim keeps cleanup for expired reports, sessions, and qu
 
 // Lane-1 promise audit, current pass (2026-08-10). A fresh audit of every
 // "What is live in this repo" bullet against the code, plus a live spot-check
-// of /demo, /methodology, and /packages on https://seofixkit.com (all 15
+// of /demo, /methodology, and /packages (now /pricing) on https://seofixkit.com (all 15
 // spot-check surfaces passed), confirmed the sub-claims below are backed by
 // code today, but the sub-claims had no regression pin of their own. Each pin
 // ties the README wording to the behaviour that must keep backing it.
@@ -2366,7 +2366,7 @@ test("README anonymous one-page check claim keeps browser proof, guards, rate wi
   assert.match(liveSection, /real browser rendering of one public page/i);
   assert.match(liveSection, /per-network and per-site rate limits/i);
   assert.match(liveSection, /no stored report/i);
-  assert.match(liveSection, /handoff into private beta access/i);
+  assert.match(liveSection, /handoff into a free account/i);
   // Browser proof, static/rendered word counts, and guarded false positives
   // come from a real engine run in worker/routes/public-check.test.mjs ("public
   // check output is verbatim engine output for the public test page").
@@ -2400,16 +2400,12 @@ test("README anonymous one-page check claim keeps browser proof, guards, rate wi
   assert.deepEqual(tablesWithRows, ["audit_usage"], "the check stores nothing beyond rate-limit counters");
   const page = visibleText(await publicPage("/check"));
   assert.match(page, /No report or URL from your check is stored/, "the page states nothing is stored");
-  assert.match(page, /Actionable findings|guarded false positive/i, "findings and guards render when present");
-  assert.match(
-    page,
-    /run in the private beta after secure email access/,
-    "the page hands off into private beta access"
-  );
+  assert.match(page, /Real problems only|False alarms ruled out/, "findings and guards render when present");
+  assert.match(page, /come with a free account/, "the page hands off into a free account");
   assert.match(
     buildPublicCheckResponse(await fixtureAudit()).nextStep,
-    /The full repair workflow runs in the private beta/,
-    "the check hands off into private beta access"
+    /create a free account/,
+    "the check hands off into a free account"
   );
 });
 
@@ -2552,29 +2548,15 @@ test("README deep-health claim stays runtime/config/schema scoped and public-saf
   assert.doesNotMatch(JSON.stringify(body), /secret-lead@example\.com/, "deep-health must not expose table contents");
 });
 
-test("README packages page claim keeps the config-gated Proof Monitoring price and boundary", async () => {
+test("README pricing page claim keeps Proof Monitoring off sale and the no-ranking promise", async () => {
   assert.match(
     liveSection,
-    /Public `\/demo`, `\/methodology`, `\/packages`, and `\/proof` pages showing the proof loop, limits, package ladder, and a real before\/after repair receipt/i
+    /Public `\/demo`, `\/methodology`, `\/pricing`, and `\/proof` pages showing the proof loop, limits, plans and prices, and a real before\/after repair receipt/i
   );
-  const packages = visibleText(await publicPage("/packages"));
-  assert.match(packages, /\$49-\$99\/mo target/, "Proof Monitoring shows a target price, not a live price");
-  assert.match(packages, /Config-gated subscription/, "Proof Monitoring is labeled config-gated");
-  assert.match(packages, /No ranking or traffic guarantee/, "packages keeps the no-ranking promise");
-  // 2026-08-15 audit: the monitoring offer stays visible in private billing as
-  // a config-gated card (shared/offers.js catalog + src/ offer panel);
-  // only its checkout is gated. The public page must keep saying checkout is
-  // gated, never that the offer "only appears" when configured.
-  assert.match(
-    packages,
-    /Checkout only opens when the Dodo subscription product and webhook entitlement sync are configured; until then it stays a config-gated offer in private billing/,
-    "packages must keep the config-gated checkout boundary"
-  );
-  assert.doesNotMatch(
-    packages,
-    /Only appears in private billing when the Dodo subscription product and webhook entitlement sync are configured/,
-    "packages must not claim Proof Monitoring only appears in billing when configured"
-  );
+  const pricing = visibleText(await publicPage("/pricing"));
+  assert.match(pricing, /a paid plan is not on sale yet/, "Proof Monitoring is marked coming soon, not sold");
+  assert.doesNotMatch(pricing, /\$49-\$99\/mo/, "Proof Monitoring shows no price while it is not on sale");
+  assert.match(pricing, /No ranking or traffic guarantee/, "pricing keeps the no-ranking promise");
 });
 
 test("README anonymous-check claim keeps the deployed copy locked to the live spot-check", () => {
@@ -2582,15 +2564,12 @@ test("README anonymous-check claim keeps the deployed copy locked to the live sp
   for (const surface of [
     { path: "/check", copy: "Check One Page for SEO Proof" },
     { path: "/check", copy: "No account, no email, no stored report" },
-    { path: "/demo", copy: "Do not fix what is not broken." },
+    { path: "/demo", copy: "Fix only what is actually broken." },
     { path: "/demo", copy: "an exact snippet when the engine can generate one" },
     { path: "/methodology", copy: "Limits we state up front" },
-    { path: "/packages", copy: "Package ladder" },
-    { path: "/packages", copy: "$99.00 one-time" },
-    {
-      path: "/packages",
-      copy: "Checkout only opens when the Dodo subscription product and webhook entitlement sync are configured"
-    }
+    { path: "/pricing", copy: "Free to find it. Pay only to fix it." },
+    { path: "/pricing", copy: "$99.00 one-time" },
+    { path: "/pricing", copy: "a paid plan is not on sale yet" }
   ]) {
     assert.match(spotCheck, new RegExp(`path: "${surface.path}"`), `spot-check must still cover ${surface.path}`);
     assert.match(

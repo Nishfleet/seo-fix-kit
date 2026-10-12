@@ -20,7 +20,7 @@ import {
   homeMarkdown,
   llmsText,
   methodologyHtml,
-  packagesHtml,
+  pricingHtml,
   privacyHtml,
   proofCaseHtml,
   proofCaseMarkdown,
@@ -37,13 +37,13 @@ const origin = "https://seofixkit.com";
 // SVG source is rendered to public/og-image.png). The root page is the SPA
 // app shell served from index.html (not worker-rendered) and intentionally
 // keeps its jpg waitlist share image. The image URL is absolute and points
-// at the shipped public/og-image.png asset, so a share of /demo, /packages,
+// at the shipped public/og-image.png asset, so a share of /demo, /pricing,
 // /check, or any other public page never renders without a preview image.
 const allWorkerRenderedPublicPages = [
   { name: "/demo", html: demoHtml(origin) },
   { name: "/check", html: checkHtml(origin) },
   { name: "/methodology", html: methodologyHtml(origin) },
-  { name: "/packages", html: packagesHtml(origin) },
+  { name: "/pricing", html: pricingHtml(origin) },
   { name: "/small-business-seo-audit", html: smallBusinessSeoAuditHtml(origin) },
   { name: "/rendered-vs-static-seo-audit", html: renderedVsStaticAuditHtml(origin) },
   { name: "/ai-answer-readiness", html: aiAnswerReadinessHtml(origin) },
@@ -126,9 +126,9 @@ test("the PNG share image and touch icon exist at their declared sizes", () => {
 });
 const expectedSitemapUrls = ROOT_PUBLIC_PATHS.map((path) => `${origin}${path}`);
 
-test("public proof pages expose methodology and package ladder without overclaims", () => {
+test("public proof pages expose methodology and pricing without overclaims", () => {
   const methodology = methodologyHtml(origin);
-  const packages = packagesHtml(origin);
+  const packages = pricingHtml(origin);
   const combined = `${methodology}\n${packages}`;
 
   assert.match(methodology, /Proof first\. Repairs second\. Claims last\./);
@@ -170,8 +170,8 @@ test("public proof pages expose methodology and package ladder without overclaim
   assert.match(methodology, /no live AI-engine sampling, no AI citation monitoring, and no ranking guarantees/i);
   assert.match(
     methodology,
-    new RegExp(`<a href="${origin}/packages">package ladder</a>`),
-    "the free-skill answer must link the package ladder"
+    new RegExp(`<a href="${origin}/pricing">pricing</a>`),
+    "the free-skill answer must link pricing"
   );
   assert.match(
     methodology,
@@ -365,35 +365,25 @@ test("public proof pages expose methodology and package ladder without overclaim
       /73 issues|41 closed|6 days|guaranteed rankings|live AI-engine sampling is live|we apply your fixes/i
     );
   }
-  assert.match(packages, /Wondering why a hosted service at all, when free installable AI SEO agent skills exist\?/);
-  assert.match(
-    packages,
-    new RegExp(`<a href="${origin}/methodology">methodology page</a>`),
-    "packages must cross-link the methodology free-skill answer"
-  );
-  assert.match(packages, /SEO Fix Pack/);
+  assert.match(packages, /Fix Pack/);
   assert.match(packages, /\$99\.00 one-time/);
-  assert.match(packages, /Dodo shows the final checkout price/);
-  assert.match(packages, /Proof Monitoring/);
-  assert.match(packages, /Config-gated subscription/);
-  assert.match(packages, /Access activates after Dodo webhook entitlement/);
-  assert.match(packages, /Roadmap/);
-  // The Fix Pack tile itself must not be a support-only dead end: extract the
-  // tile article and require at least one real checkout-path link in it.
-  {
-    const tile = (packages.match(
-      /<article class="package-card live">[\s\S]*?<h2>SEO Fix Pack<\/h2>[\s\S]*?<\/article>/
+  assert.match(packages, /final price including any local tax is shown at checkout before you pay/);
+  assert.match(packages, /No ranking or traffic guarantee is made/);
+  assert.match(packages, /Dodo Payments handles checkout as merchant of record/);
+  // Proof Monitoring is not on sale: it must be marked coming soon, never priced.
+  assert.match(packages, /Coming soon[\s\S]*?Proof Monitoring/);
+  assert.match(packages, /a paid plan is not on sale yet/);
+  assert.doesNotMatch(packages, /\$49-\$99\/mo/);
+  // Every plan card leads somewhere: no dead-end tiles.
+  for (const plan of ["Page check", "Site audit", "Fix Pack"]) {
+    const card = (packages.match(
+      new RegExp(`<article class="plan[^"]*">[\\s\\S]*?<h2>${plan}</h2>[\\s\\S]*?</article>`)
     ) || [])[0];
-    assert.ok(tile, "the Fix Pack tile article must exist");
+    assert.ok(card, `the ${plan} card must exist`);
     assert.match(
-      tile,
-      new RegExp(`<a href="${origin}/check">Start from a report with real fixes</a>`),
-      "the Fix Pack tile must link the checkout path into the report funnel"
-    );
-    assert.match(
-      tile,
-      new RegExp(`<a href="${origin}/">Request private access</a>`),
-      "the Fix Pack tile must link the private access request"
+      card,
+      /<a class="btn [^"]+" href="https:\/\/seofixkit\.com\/[^"]*">/,
+      `the ${plan} card must carry a call to action`
     );
   }
   assert.doesNotMatch(combined, /completed 50K rendered validation/i);
@@ -414,37 +404,20 @@ test("public proof pages expose methodology and package ladder without overclaim
     /with a suggested fix and an exact snippet when the engine can generate one/,
     "the demo must keep the engine-capable snippet qualifier"
   );
-  assert.doesNotMatch(
-    packages,
-    /Only appears in private billing when the Dodo subscription product and webhook entitlement sync are configured/,
-    "packages must not claim Proof Monitoring only appears in billing when configured"
-  );
-  assert.match(
-    packages,
-    /Checkout only opens when the Dodo subscription product and webhook entitlement sync are configured; until then it stays a config-gated offer in private billing/,
-    "packages must keep the config-gated checkout boundary"
-  );
 });
 
-test("packages page names the GEO Auditor agent-fix parity trade-off without overclaims", () => {
-  const packages = packagesHtml(origin);
+test("pricing page answers the GEO Auditor agent-fix trade-off without overclaims", () => {
+  const packages = pricingHtml(origin);
   // The competitor and its price/delivery mode are named plainly (verified on
-  // geoauditor.app, 2026-08-21): free audit, $29 one-time report, Agent Fix Mode.
-  assert.match(packages, /Compared with GEO Auditor/);
-  assert.match(packages, /geoauditor\.app/);
-  assert.match(packages, /\$29 one-time full report/);
+  // geoauditor.app, 2026-08-21): $29 one-time report, Agent Fix Mode.
+  assert.match(packages, /GEO Auditor applies agent fixes at \$29/);
   assert.match(packages, /Agent Fix Mode/);
-  assert.match(packages, /40\+ signals across 6 AI platforms/);
-  // The wedge answer must carry the three load-bearing halves: proof-backed
-  // snippets, approval-first queue, rerun proof.
-  assert.match(packages, /approval-first repair queue/);
-  assert.match(packages, /exact snippet when the engine can generate one/);
-  assert.match(packages, /proof receipt that says fixed, still-open, new, or regressed/);
-  // Fair-to-competitor guard: name the trade-off, do not disparage.
-  assert.match(packages, /reasonable choice/);
-  // No-overclaim guards: SEO Fix Kit must not claim it applies fixes itself,
-  // and the snippet qualifier must stay engine-capable.
-  assert.doesNotMatch(packages, /applies all fixes/);
+  // The answer carries the load-bearing halves: real-browser evidence,
+  // per-fix approval, rerun proof; and it stays fair to the competitor.
+  assert.match(packages, /evidence from a real browser/);
+  assert.match(packages, /you approve each one before anything changes/);
+  assert.match(packages, /a rerun shows what actually got fixed/);
+  assert.match(packages, /fast and fairly priced/);
   assert.doesNotMatch(packages, /we apply your fixes/i);
   assert.doesNotMatch(packages, /each with an exact snippet/);
 });
@@ -481,7 +454,7 @@ test("machine-readable public surfaces list proof pages and limits", () => {
   for (const path of [
     "/demo",
     "/methodology",
-    "/packages",
+    "/pricing",
     "/check",
     "/small-business-seo-audit",
     "/rendered-vs-static-seo-audit",
@@ -641,10 +614,10 @@ test("intent-matching landing pages carry unique, truthful, machine-readable pro
 test("public proof pages carry a site footer with terms and privacy links", () => {
   const demo = demoHtml(origin);
   const methodology = methodologyHtml(origin);
-  const packages = packagesHtml(origin);
+  const packages = pricingHtml(origin);
 
   for (const html of [demo, methodology, packages]) {
-    assert.match(html, /<footer class="site-footer">/, "proof pages must carry a site footer");
+    assert.match(html, /<footer class="site-foot">/, "proof pages must carry a site footer");
     assert.match(html, new RegExp(`href="${origin}/terms"`), "proof pages must link to terms");
     assert.match(html, new RegExp(`href="${origin}/privacy"`), "proof pages must link to privacy");
     assert.match(html, new RegExp(`href="${origin}/support"`), "proof pages must link to support");
@@ -662,12 +635,12 @@ test("policy pages cross-link each other and the live anonymous check", () => {
     assert.match(html, new RegExp(`href="${origin}/support"`), "policy pages must link to support");
     assert.match(
       html,
-      new RegExp(`href="${origin}/check">Check one page now</a>`),
+      new RegExp(`href="${origin}/check">Free page check</a>`),
       "policy pages must carry a path to the live anonymous one-page check"
     );
   }
   assert.match(privacy, new RegExp(`href="${origin}/methodology"`), "the privacy page must not be a dead end");
-  assert.match(privacy, new RegExp(`href="${origin}/packages"`), "the privacy page must reach the package ladder");
+  assert.match(privacy, new RegExp(`href="${origin}/pricing"`), "the privacy page must reach pricing");
 });
 
 test("public demo and support pages carry enough buyer-facing detail", () => {
@@ -711,12 +684,12 @@ test("public one-page check page is a truthful, searchable entry path", () => {
   assert.match(check, /id="check-form"/);
   assert.match(check, /Check this page/);
   assert.match(check, new RegExp(`${origin}/api/public-check`));
-  assert.match(check, /Rendered evidence/);
-  assert.match(check, /Guarded false positives/);
-  assert.match(check, /Findings when present/);
-  assert.match(check, /Measured handoff/);
+  assert.match(check, /What the browser sees/);
+  assert.match(check, /False alarms ruled out/);
+  assert.match(check, /Real problems only/);
+  assert.match(check, /Your whole site, next/);
   assert.match(check, /does not guarantee rankings, traffic, indexing, revenue, AI citations/i);
-  assert.match(check, /Request private access/);
+  assert.match(check, /Create a free account/);
   assert.match(check, /Rate-limited per network and per site/i);
   assert.match(check, /no report or URL is stored/i);
   assert.match(check, /Frequently asked questions/);
@@ -738,7 +711,7 @@ test("demo brief is verbatim real engine output for the public test page", async
     if (req.url === "/llms.txt") {
       res.writeHead(200, { "content-type": "text/plain; charset=utf-8" });
       res.end(
-        `# SEO Fix Kit\n\nPublic proof pages:\n- ${fixtureOrigin}/demo\n- ${fixtureOrigin}/methodology\n- ${fixtureOrigin}/packages\n`
+        `# SEO Fix Kit\n\nPublic proof pages:\n- ${fixtureOrigin}/demo\n- ${fixtureOrigin}/methodology\n- ${fixtureOrigin}/pricing\n`
       );
       return;
     }
@@ -869,7 +842,7 @@ test("shared public-product shell reflows at narrow viewports without a 320px fl
   const { chromium } = await import("playwright");
   const shellPages = [
     { name: "/methodology", html: methodologyHtml(origin) },
-    { name: "/packages", html: packagesHtml(origin) },
+    { name: "/pricing", html: pricingHtml(origin) },
     { name: "/small-business-seo-audit", html: smallBusinessSeoAuditHtml(origin) },
     { name: "/rendered-vs-static-seo-audit", html: renderedVsStaticAuditHtml(origin) },
     { name: "/ai-answer-readiness", html: aiAnswerReadinessHtml(origin) }
@@ -926,7 +899,7 @@ test("static public skill and sitemap files keep buyer-facing boundaries", () =>
   for (const path of [
     "/demo",
     "/methodology",
-    "/packages",
+    "/pricing",
     "/check",
     "/proof",
     "/support",
@@ -994,7 +967,7 @@ test("Cloudflare asset routing sends public proof pages through the Worker", () 
     for (const path of [
       "/demo",
       "/methodology",
-      "/packages",
+      "/pricing",
       "/check",
       "/proof",
       "/support",
@@ -1024,7 +997,7 @@ test("real before/after proof receipt pins the same measurement path before and 
   assert.match(html, /github\.com\/nish3451\/tinystudio-in\/pull\/5/);
   assert.match(html, new RegExp(`<a class="cta" href="${origin}/proof\\.md">`));
   assert.match(html, new RegExp(`href="${origin}/methodology"`));
-  assert.match(html, new RegExp(`href="${origin}/packages"`));
+  assert.match(html, new RegExp(`href="${origin}/pricing"`));
   assert.match(html, /No ranking, traffic, indexing, citation, or revenue promise is made/);
   assert.match(html, /SEO Fix Kit did not publish CMS changes, open GitHub pull requests, merge code/);
   assert.match(html, /Founder-owned \(consented and redacted\)/);

@@ -1,7 +1,11 @@
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { Link } from "react-router";
 import StatusMessage from "../../StatusMessage.jsx";
+import { PageHeader } from "../../components/AppShell.jsx";
 import { Metric } from "../../components/Metric.jsx";
 import { copyText } from "../../lib/browser.js";
+import { queryKeys } from "../../lib/queries.js";
+import { fetchReportsPage } from "../../lib/requests.js";
 import { hostKey, formatDate, safeHostnameLabel, safeUrlLabel } from "../../lib/format.js";
 import {
   repairStatusLabel,
@@ -11,36 +15,11 @@ import {
   auditScheduleDetail
 } from "../../lib/labels.js";
 
-export function CustomerDashboard({
-  accountData,
-  developerData,
-  developerMessage,
-  developerStatus,
-  apiTokenSecret,
-  webhookSecret,
-  webhookUrl,
-  onApiTokenCreate,
-  onApiTokenRevoke,
-  message,
-  onScheduleCreate,
-  onScheduleDelete,
-  onSiteClaim,
-  onSiteHostChange,
-  onSiteVerify,
-  onWebhookCreate,
-  onWebhookRevoke,
-  onWebhookUrlChange,
-  scheduleMessage,
-  scheduleStatus,
-  siteHost,
-  siteMessage,
-  siteStatus,
-  status
-}) {
+// Overview: first-run checklist until the account is set up, the new-audit
+// form, and (once there are reports) headline numbers and the repair feed.
+export function Overview({ accountData, auditPanel, message, status }) {
   const metrics = accountData?.metrics || {};
   const reports = accountData?.recentReports || [];
-  const auditJobs = accountData?.recentAuditJobs || [];
-  const fixRequests = accountData?.fixRequests || [];
   const nextActions = accountData?.nextActions || [];
   const primaryAction = nextActions[0] || null;
   const repairAgent = accountData?.repairAgent || {};
@@ -48,54 +27,288 @@ export function CustomerDashboard({
   const repairItems = repairAgent.nextItems || [];
   const sites = accountData?.sites || [];
   const schedules = accountData?.schedules || [];
-  const monitoring = accountData?.monitoring || {};
-  const verifiedSites = sites.filter((site) => site.status === "verified");
+  const verifiedCount = metrics.verifiedSites || sites.filter((site) => site.status === "verified").length;
+  const monitorCount = metrics.monitors || schedules.length;
+  const steps = [
+    {
+      done: verifiedCount > 0,
+      title: "Add and verify your site",
+      detail: "Prove you own it with a DNS record or a small file. Until then you can check your homepage.",
+      to: "/beta/sites",
+      cta: "Add site"
+    },
+    {
+      done: reports.length > 0,
+      title: "Run your first audit",
+      detail: "Start with your homepage, pricing page, or best-selling product page.",
+      to: "#new-audit",
+      cta: "Start audit"
+    },
+    {
+      done: Number(metrics.repairItems || 0) > 0,
+      title: "Review your fixes",
+      detail: "Open a report to see each proven problem with its evidence and fix.",
+      to: reports[0]?.reportPath || "/beta/reports",
+      cta: "Open report"
+    },
+    {
+      done: monitorCount > 0,
+      title: "Turn on weekly monitoring",
+      detail: "We rerun the audit every week and flag anything that breaks again.",
+      to: "/beta/sites",
+      cta: "Set up"
+    }
+  ];
+  const doneCount = steps.filter((step) => step.done).length;
+  const currentStep = steps.find((step) => !step.done);
+  const loading = status === "loading" && !accountData;
 
   return (
-    <section className="account-dashboard" aria-label="Account overview">
-      <div className="section-heading">
-        <p className="beta-eyebrow">Your workspace</p>
-        <h2>{verifiedSites.length ? "Recent proof audits" : "Verify a site first"}</h2>
-        {message && status !== "success" && <StatusMessage tone={status}>{message}</StatusMessage>}
+    <div className="app-page">
+      <PageHeader title="Overview" description="Find what is broken on your site, fix it, and prove it worked." />
+      {message && status === "error" && <StatusMessage tone={status}>{message}</StatusMessage>}
+      {!loading && doneCount < steps.length && (
+        <section className="app-card onboarding" aria-labelledby="onboarding-title">
+          <div className="app-card-head">
+            <h2 id="onboarding-title">Get set up</h2>
+            <span className="app-progress-label">
+              {doneCount} of {steps.length} done
+            </span>
+          </div>
+          <div className="app-progress" aria-hidden="true">
+            <span style={{ width: `${(doneCount / steps.length) * 100}%` }} />
+          </div>
+          <ol className="onboarding-list">
+            {steps.map((step) => (
+              <li className={step.done ? "done" : ""} key={step.title}>
+                <span className="onboarding-check" aria-hidden="true">
+                  {step.done ? "✓" : ""}
+                </span>
+                <div>
+                  <strong>{step.title}</strong>
+                  <p>{step.detail}</p>
+                </div>
+                {step.done ? (
+                  <span className="onboarding-done">Done</span>
+                ) : step !== currentStep ? (
+                  <span />
+                ) : step.to.startsWith("#") ? (
+                  <a className="app-button" href={step.to}>
+                    {step.cta}
+                  </a>
+                ) : (
+                  <Link discover="none" className="app-button" to={step.to}>
+                    {step.cta}
+                  </Link>
+                )}
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+      <section className="app-card" id="new-audit" aria-labelledby="new-audit-title">
+        <div className="app-card-head">
+          <h2 id="new-audit-title">New audit</h2>
+        </div>
+        {auditPanel}
+      </section>
+      {reports.length > 0 && (
+        <>
+          <section className="app-stats" aria-label="Account summary">
+            <Metric label="Reports" value={metrics.reports || reports.length} />
+            <Metric label="Open fixes" value={metrics.openRepairs || repairCounts.active || 0} />
+            <Metric label="Verified sites" value={verifiedCount} />
+            <Metric
+              label="Weekly monitors"
+              value={`${monitorCount}/${metrics.monitorLimit || accountData?.monitoring?.limit || 5}`}
+            />
+          </section>
+          <RepairAgentFeed items={repairItems} nextAction={primaryAction} reports={reports} />
+          <section className="app-card" aria-labelledby="recent-reports-title">
+            <div className="app-card-head">
+              <h2 id="recent-reports-title">Recent reports</h2>
+              <Link discover="none" className="app-card-link" to="/beta/reports">
+                View all
+              </Link>
+            </div>
+            <ReportRows reports={reports.slice(0, 5)} />
+          </section>
+        </>
+      )}
+    </div>
+  );
+}
+
+function ReportRows({ reports }) {
+  if (!reports.length) {
+    return <p className="app-empty">Your reports will show up here after your first audit.</p>;
+  }
+  return (
+    <div className="app-table" role="table" aria-label="Reports">
+      <div className="app-table-row app-table-headrow" role="row">
+        <span role="columnheader">Site</span>
+        <span role="columnheader">Score</span>
+        <span role="columnheader">Date</span>
       </div>
-      <section className="metric-strip account-metrics" aria-label="Account summary">
-        <Metric label="Reports" value={metrics.reports || 0} />
-        <Metric label="Running" value={metrics.runningAudits || 0} />
-        <Metric label="Fix Packs" value={metrics.fixRequests || 0} />
-        <Metric label="Verified sites" value={metrics.verifiedSites || verifiedSites.length || 0} />
-        <Metric
-          label="Monitors"
-          value={`${metrics.monitors || schedules.length || 0}/${metrics.monitorLimit || monitoring.limit || 5}`}
-        />
-        <Metric label="Open repairs" value={metrics.openRepairs || repairCounts.active || 0} />
-        <Metric label="Drafts" value={metrics.draftedActions || repairCounts.awaitingApproval || 0} />
-        <Metric label="Regressed" value={metrics.regressedRepairs || 0} />
-      </section>
-      <section className="account-panel monitoring-offer-panel">
-        <div className="section-heading">
-          <p className="beta-eyebrow">Proof Monitoring</p>
-          <h3>
-            {monitoring.status === "active"
-              ? "Monitoring entitlement active"
-              : monitoring.checkoutLive
-                ? "Paid monitoring checkout available"
-                : "Beta monitoring allowance"}
-          </h3>
+      {reports.map((item) => (
+        <Link discover="none" className="app-table-row" role="row" to={item.reportPath} key={item.id}>
+          <span role="cell" className="app-table-primary">
+            {item.targetHost || safeHostnameLabel(item.url)}
+          </span>
+          <span role="cell">
+            <ScoreBadge score={item.score} />
+          </span>
+          <span role="cell" className="app-table-muted">
+            {formatDate(item.createdAt || item.savedAt || item.generatedAt)}
+          </span>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+function ScoreBadge({ score }) {
+  const value = Number(score);
+  if (!Number.isFinite(value)) return <span className="score-badge">–</span>;
+  const tone = value >= 90 ? "good" : value >= 70 ? "ok" : "bad";
+  return <span className={`score-badge ${tone}`}>{value}</span>;
+}
+
+// Reports: audits that are still running, every saved report, and Fix Pack
+// status.
+export function ReportsPage({ accountData, message, status }) {
+  // The account summary only carries the newest few; this lists every report.
+  const reportPages = useInfiniteQuery({
+    queryKey: queryKeys.reports,
+    queryFn: ({ pageParam }) => fetchReportsPage(pageParam),
+    initialPageParam: "",
+    getNextPageParam: (lastPage) => lastPage.nextCursor || undefined
+  });
+  const reports = reportPages.data
+    ? reportPages.data.pages.flatMap((page) => page.reports || [])
+    : accountData?.recentReports || [];
+  const auditJobs = (accountData?.recentAuditJobs || []).filter((job) => !job.reportPath);
+  const fixRequests = accountData?.fixRequests || [];
+  return (
+    <div className="app-page">
+      <PageHeader
+        title="Reports"
+        description="Every audit you run is saved here for 30 days."
+        actions={
+          <Link discover="none" className="app-button" to="/beta#new-audit">
+            New audit
+          </Link>
+        }
+      />
+      {message && status === "error" && <StatusMessage tone={status}>{message}</StatusMessage>}
+      {Boolean(auditJobs.length) && (
+        <section className="app-card" aria-labelledby="running-title">
+          <div className="app-card-head">
+            <h2 id="running-title">In progress</h2>
+          </div>
+          <div className="audit-job-list">
+            {auditJobs.slice(0, 5).map((job) => (
+              <article className={`audit-job-card ${job.status}`} key={job.id}>
+                <div>
+                  <span className="status-pill">{statusLabel(job.status)}</span>
+                  <h3>{job.targetHost || safeHostnameLabel(job.targetUrl)}</h3>
+                  <p>{auditJobDetail(job)}</p>
+                </div>
+                <span className="quiet-note">{job.status === "failed" ? "Needs rerun" : "Working"}</span>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+      <section className="app-card" aria-labelledby="all-reports-title">
+        <div className="app-card-head">
+          <h2 id="all-reports-title">Saved reports</h2>
         </div>
-        <p>
-          {monitoring.message ||
-            "Weekly monitoring watches verified sites and reports proof deltas without claiming to fix issues."}
+        <ReportRows reports={reports} />
+        {reportPages.hasNextPage && (
+          <button
+            className="app-button-secondary app-load-more"
+            disabled={reportPages.isFetchingNextPage}
+            onClick={() => reportPages.fetchNextPage()}
+            type="button"
+          >
+            {reportPages.isFetchingNextPage ? "Loading…" : "Show older reports"}
+          </button>
+        )}
+      </section>
+      <section className="app-card" aria-labelledby="fix-packs-title">
+        <div className="app-card-head">
+          <h2 id="fix-packs-title">Fix Packs</h2>
+          <Link discover="none" className="app-card-link" to="/beta/billing">
+            Billing
+          </Link>
+        </div>
+        {fixRequests.length ? (
+          <div className="app-table" role="table" aria-label="Fix Packs">
+            {fixRequests.map((request) => (
+              <Link
+                discover="none"
+                className="app-table-row"
+                role="row"
+                to={request.reportPath || "/beta/billing"}
+                key={request.id}
+              >
+                <span role="cell" className="app-table-primary">
+                  {request.targetHost || request.targetUrl || "Fix Pack"}
+                </span>
+                <span role="cell">{request.statusLabel || statusLabel(request.status)}</span>
+                <span role="cell" className="app-table-muted">
+                  {formatDate(request.updatedAt || request.createdAt)}
+                </span>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <p className="app-empty">No Fix Packs yet. You can start one from any report that finds real problems.</p>
+        )}
+      </section>
+    </div>
+  );
+}
+
+// Sites & monitoring: add a site, verify ownership, and turn weekly
+// monitoring on or off.
+export function SitesPage({
+  accountData,
+  message,
+  onScheduleCreate,
+  onScheduleDelete,
+  onSiteClaim,
+  onSiteHostChange,
+  onSiteVerify,
+  scheduleMessage,
+  scheduleStatus,
+  siteHost,
+  siteMessage,
+  siteStatus,
+  status
+}) {
+  const sites = accountData?.sites || [];
+  const schedules = accountData?.schedules || [];
+  const monitoring = accountData?.monitoring || {};
+  const isFounder = accountData?.owner?.accessMode === "founder-override";
+  return (
+    <div className="app-page">
+      <PageHeader
+        title="Sites & monitoring"
+        description="Verify the sites you own to unlock full audits and weekly monitoring."
+      />
+      {message && status === "error" && <StatusMessage tone={status}>{message}</StatusMessage>}
+      <section className="app-card" aria-labelledby="add-site-title">
+        <div className="app-card-head">
+          <h2 id="add-site-title">Add a site</h2>
+        </div>
+        <p className="app-card-text">
+          Enter your domain and we’ll give you a DNS record or a small file to prove you own it.
+          {isFounder ? " Founder accounts can audit any site without verifying." : ""}
         </p>
-      </section>
-      <RepairAgentFeed items={repairItems} nextAction={primaryAction} reports={reports} />
-      <div className="site-verification-panel">
-        <div>
-          <p className="beta-eyebrow">Site verification</p>
-          <h3>Prove you own the host before self-serve audits run.</h3>
-          <p>Founder override can still test manually. Customer sessions need an exact verified host.</p>
-        </div>
         <form className="site-claim-form" onSubmit={onSiteClaim}>
-          <label htmlFor="site-host">Website host</label>
+          <label htmlFor="site-host">Domain</label>
           <div className="audit-row">
             <input
               id="site-host"
@@ -107,188 +320,100 @@ export function CustomerDashboard({
               value={siteHost}
             />
             <button disabled={siteStatus === "loading"} type="submit">
-              {siteStatus === "loading" ? "Checking" : "Add site"}
+              {siteStatus === "loading" ? "Adding…" : "Add site"}
             </button>
           </div>
           <StatusMessage tone={siteStatus}>{siteMessage}</StatusMessage>
         </form>
-      </div>
-      <StatusMessage tone={scheduleStatus}>{scheduleMessage}</StatusMessage>
-      {Boolean(sites.length) && (
-        <div className="site-claim-list">
-          {sites.map((site) => {
-            const monitor = schedules.find(
-              (schedule) => hostKey(schedule.targetHost || schedule.targetUrl) === hostKey(site.host)
-            );
-            return (
-              <article className={`site-claim-card ${site.status}`} key={site.id || site.host}>
-                <div>
-                  <span className="status-pill">{site.status}</span>
-                  <h3>{site.host}</h3>
+      </section>
+      <section className="app-card" aria-labelledby="your-sites-title">
+        <div className="app-card-head">
+          <h2 id="your-sites-title">Your sites</h2>
+          <span className="app-progress-label">
+            {schedules.length}/{monitoring.limit || 5} weekly monitors
+          </span>
+        </div>
+        <StatusMessage tone={scheduleStatus}>{scheduleMessage}</StatusMessage>
+        {sites.length ? (
+          <div className="site-claim-list">
+            {sites.map((site) => {
+              const monitor = schedules.find(
+                (schedule) => hostKey(schedule.targetHost || schedule.targetUrl) === hostKey(site.host)
+              );
+              return (
+                <article className={`site-claim-card ${site.status}`} key={site.id || site.host}>
+                  <div>
+                    <span className="status-pill">{site.status === "verified" ? "Verified" : "Not verified"}</span>
+                    <h3>{site.host}</h3>
+                    {site.status === "verified" ? (
+                      <p>
+                        {monitor
+                          ? `Checked ${monitor.cadenceLabel?.toLowerCase() || "weekly"}. ${auditScheduleDetail(monitor)}`
+                          : "Weekly monitoring is off."}
+                      </p>
+                    ) : (
+                      <div className="verification-instructions">
+                        <p>Add one of these, then select Verify.</p>
+                        <span className="verification-label">DNS TXT record</span>
+                        <code>
+                          {site.dnsName}: {site.dnsValue}
+                        </code>
+                        <span className="verification-label">Or a file on your site</span>
+                        <code>
+                          {site.filePath}: {site.fileContents}
+                        </code>
+                      </div>
+                    )}
+                  </div>
                   {site.status === "verified" ? (
-                    <p>
-                      {monitor
-                        ? `Monitoring ${monitor.cadenceLabel?.toLowerCase() || "weekly"}.`
-                        : `Verified by ${site.verificationMethod || "site proof"}.`}
-                    </p>
+                    monitor ? (
+                      <div className="schedule-actions">
+                        {monitor.lastReportPath && (
+                          <a className="action-link" href={monitor.lastReportPath}>
+                            Latest report
+                          </a>
+                        )}
+                        <button
+                          className="action-link secondary"
+                          disabled={scheduleStatus === "loading"}
+                          onClick={() => onScheduleDelete(monitor.id)}
+                          type="button"
+                        >
+                          Pause monitoring
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        className="action-link"
+                        disabled={scheduleStatus === "loading"}
+                        onClick={() => onScheduleCreate(`https://${site.host}/`)}
+                        type="button"
+                      >
+                        Monitor weekly
+                      </button>
+                    )
                   ) : (
-                    <div className="verification-instructions">
-                      <p>Add either proof, then click verify.</p>
-                      <code>
-                        TXT {site.dnsName}: {site.dnsValue}
-                      </code>
-                      <code>
-                        {site.filePath}: {site.fileContents}
-                      </code>
-                    </div>
+                    <button
+                      className="action-link"
+                      disabled={siteStatus === "loading"}
+                      onClick={() => onSiteVerify(site.id)}
+                      type="button"
+                    >
+                      Verify
+                    </button>
                   )}
-                </div>
-                {site.status === "verified" ? (
-                  monitor ? (
-                    <button
-                      className="action-link"
-                      disabled={scheduleStatus === "loading"}
-                      onClick={() => onScheduleDelete(monitor.id)}
-                      type="button"
-                    >
-                      Pause monitor
-                    </button>
-                  ) : (
-                    <button
-                      className="action-link"
-                      disabled={scheduleStatus === "loading"}
-                      onClick={() => onScheduleCreate(`https://${site.host}/`)}
-                      type="button"
-                    >
-                      Monitor weekly
-                    </button>
-                  )
-                ) : (
-                  <button
-                    className="action-link"
-                    disabled={siteStatus === "loading"}
-                    onClick={() => onSiteVerify(site.id)}
-                    type="button"
-                  >
-                    Verify now
-                  </button>
-                )}
-              </article>
-            );
-          })}
-        </div>
-      )}
-      {Boolean(schedules.length) && (
-        <div className="audit-schedule-list">
-          {schedules.map((schedule) => (
-            <article className={`audit-schedule-card ${schedule.lastError ? "failed" : "active"}`} key={schedule.id}>
-              <div>
-                <span className="status-pill">{schedule.cadenceLabel || "Weekly"}</span>
-                <h3>{schedule.targetHost || safeHostnameLabel(schedule.targetUrl)}</h3>
-                <p>{auditScheduleDetail(schedule)}</p>
-                {schedule.lastError && <p className="quiet-note">{schedule.lastError}</p>}
-              </div>
-              <div className="schedule-actions">
-                {schedule.lastReportPath ? (
-                  <a className="action-link" href={schedule.lastReportPath}>
-                    Latest report
-                  </a>
-                ) : (
-                  <span className="quiet-note">Waiting for first run</span>
-                )}
-                <button
-                  className="action-link"
-                  disabled={scheduleStatus === "loading"}
-                  onClick={() => onScheduleDelete(schedule.id)}
-                  type="button"
-                >
-                  Pause
-                </button>
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
-      {Boolean(auditJobs.length) && (
-        <div className="audit-job-list">
-          {auditJobs.slice(0, 5).map((job) => (
-            <article className={`audit-job-card ${job.status}`} key={job.id}>
-              <div>
-                <span className="status-pill">{statusLabel(job.status)}</span>
-                <h3>{job.targetHost || safeHostnameLabel(job.targetUrl)}</h3>
-                <p>{auditJobDetail(job)}</p>
-              </div>
-              {job.reportPath ? (
-                <Link discover="none" className="action-link" to={job.reportPath}>
-                  Open report
-                </Link>
-              ) : (
-                <span className="quiet-note">{job.status === "failed" ? "Needs rerun" : "Working"}</span>
-              )}
-            </article>
-          ))}
-        </div>
-      )}
-      <div className="account-grid">
-        <div className="account-panel">
-          <div className="section-heading">
-            <p className="beta-eyebrow">Next</p>
-            <h3>{primaryAction?.label || "Start with a page that matters"}</h3>
+                </article>
+              );
+            })}
           </div>
-          <p>{primaryAction?.detail || "Paste your homepage, pricing page, or highest-value product page."}</p>
-          {primaryAction?.href && (
-            <a className="action-link" href={primaryAction.href}>
-              Open next action
-            </a>
-          )}
-        </div>
-        <div className="account-panel">
-          <div className="section-heading">
-            <p className="beta-eyebrow">Reports</p>
-            <h3>{reports.length ? "Latest scans" : "No reports yet"}</h3>
-          </div>
-          <div className="account-list">
-            {reports.slice(0, 4).map((item) => (
-              <Link discover="none" to={item.reportPath} key={item.id}>
-                <span>{item.targetHost || safeHostnameLabel(item.url)}</span>
-                <strong>{item.score}/100</strong>
-              </Link>
-            ))}
-            {!reports.length && (
-              <p className="quiet-note">Your saved reports will appear here after the first audit.</p>
-            )}
-          </div>
-        </div>
-        <div className="account-panel">
-          <div className="section-heading">
-            <p className="beta-eyebrow">Repair queue</p>
-            <h3>{fixRequests.length ? "Fix Pack status" : "Nothing paid yet"}</h3>
-          </div>
-          <div className="account-list">
-            {fixRequests.slice(0, 3).map((request) => (
-              <Link discover="none" to={request.reportPath || "/beta/billing"} key={request.id}>
-                <span>{request.targetHost || request.targetUrl || "Fix Pack"}</span>
-                <strong>{request.statusLabel || statusLabel(request.status)}</strong>
-              </Link>
-            ))}
-            {!fixRequests.length && <p className="quiet-note">Checkout starts from a report with proven fixes.</p>}
-          </div>
-        </div>
-      </div>
-      <DeveloperApiPanel
-        apiTokenSecret={apiTokenSecret}
-        developerData={developerData}
-        developerMessage={developerMessage}
-        developerStatus={developerStatus}
-        onApiTokenCreate={onApiTokenCreate}
-        onApiTokenRevoke={onApiTokenRevoke}
-        onWebhookCreate={onWebhookCreate}
-        onWebhookRevoke={onWebhookRevoke}
-        onWebhookUrlChange={onWebhookUrlChange}
-        webhookSecret={webhookSecret}
-        webhookUrl={webhookUrl}
-      />
-    </section>
+        ) : (
+          <p className="app-empty">No sites yet. Add your first one above.</p>
+        )}
+        <p className="app-footnote">
+          {monitoring.message || "Weekly monitoring is included free for verified sites during the beta."}
+        </p>
+      </section>
+    </div>
   );
 }
 
@@ -298,19 +423,18 @@ export function RepairAgentFeed({ items = [], nextAction = null, reports = [] })
     <section className="repair-agent-panel" aria-label="Repair agent feed">
       <div className="repair-agent-heading">
         <div>
-          <p className="beta-eyebrow">Repair agent</p>
-          <h3>{items.length ? nextAction?.label || "Proof-backed next actions" : "Waiting for repair proof"}</h3>
+          <h2>{items.length ? "Fixes to work on" : "No fixes waiting"}</h2>
           <p>
             {items.length
-              ? nextAction?.detail || "Review the highest-priority repair work across your saved reports."
+              ? "The most important open fixes across your reports."
               : hasReports
-                ? "Open a report with proven issues to start the repair queue."
-                : "Run the first audit to create a queue."}
+                ? "Open a report with proven problems to start working through them."
+                : "Run your first audit to see what needs fixing."}
           </p>
         </div>
-        {nextAction?.href && (
-          <a className="action-link" href={nextAction.href}>
-            Open action
+        {nextAction?.href && items.length > 0 && (
+          <a className="app-card-link" href={nextAction.href}>
+            Open
           </a>
         )}
       </div>
@@ -335,11 +459,9 @@ export function RepairAgentFeed({ items = [], nextAction = null, reports = [] })
         ))}
         {!items.length && (
           <div className="repair-agent-empty">
-            <strong>{hasReports ? "No active repair queue yet." : "No reports yet."}</strong>
+            <strong>{hasReports ? "Nothing to fix right now." : "No reports yet."}</strong>
             <span>
-              {hasReports
-                ? "Latest reports and drafts will appear here once issues are queued."
-                : "Verify a site and run an audit first."}
+              {hasReports ? "New problems from your next audit will show up here." : "Run an audit to get started."}
             </span>
           </div>
         )}
@@ -365,11 +487,7 @@ export function DeveloperApiPanel({
   const webhooks = developerData?.webhooks || [];
   return (
     <section className="developer-api-panel" aria-label="Developer API">
-      <div className="section-heading">
-        <p className="beta-eyebrow">Developer API</p>
-        <h3>Run proof audits from your own tools.</h3>
-        <StatusMessage tone={developerStatus}>{developerMessage}</StatusMessage>
-      </div>
+      <StatusMessage tone={developerStatus}>{developerMessage}</StatusMessage>
       <div className="developer-api-grid">
         <div className="developer-api-column">
           <div className="developer-api-header">
@@ -388,7 +506,7 @@ export function DeveloperApiPanel({
           </div>
           {apiTokenSecret && (
             <div className="secret-box">
-              <span>Copy now</span>
+              <span>Copy this key now. You won’t see it again.</span>
               <code>{apiTokenSecret}</code>
               <button className="text-button accent-text" onClick={() => copyText(apiTokenSecret)} type="button">
                 Copy
@@ -438,7 +556,7 @@ export function DeveloperApiPanel({
           </form>
           {webhookSecret && (
             <div className="secret-box">
-              <span>Signing secret</span>
+              <span>Signing secret. Copy it now; you won’t see it again.</span>
               <code>{webhookSecret}</code>
               <button className="text-button accent-text" onClick={() => copyText(webhookSecret)} type="button">
                 Copy

@@ -1,9 +1,239 @@
 import { useEffect, useState } from "react";
-import { LogoMark } from "../components/LogoMark.jsx";
 import { readOrCreateFunnelKey, sendAccessBeacon } from "../lib/browser.js";
 import { postAccessRequest } from "../lib/requests.js";
 
+const STEPS = [
+  {
+    title: "Find",
+    text: "We open your pages in a real browser, the way Google and your customers see them, and list what is actually broken."
+  },
+  {
+    title: "Fix",
+    text: "Each problem comes with the evidence, why it matters, and a ready-to-paste fix your developer can ship."
+  },
+  {
+    title: "Prove",
+    text: "After the fix goes live, rerun the audit. Every item is marked fixed, still open, or new, so you know it worked."
+  }
+];
+
+const FEATURES = [
+  {
+    title: "No false alarms",
+    text: "Most scanners only read raw HTML and flag problems that are not there. We compare it with the real page and drop the noise."
+  },
+  {
+    title: "Ready-to-paste fixes",
+    text: "Missing tags, schema, and social previews come with the exact snippet to add, built from your own page."
+  },
+  {
+    title: "A repair queue for your team",
+    text: "Assign fixes, add notes, approve changes, and track every item from open to proven fixed."
+  },
+  {
+    title: "Weekly monitoring",
+    text: "Verified sites get a weekly rerun, so you hear about a regression early."
+  },
+  {
+    title: "Ready for AI search",
+    text: "See whether ChatGPT-style crawlers, which skip JavaScript, can read your content and structure."
+  },
+  {
+    title: "API and webhooks",
+    text: "Start audits and pull results from your own tools, and get notified when an audit finishes."
+  }
+];
+
+const FAQ = [
+  {
+    q: "What happens after I enter a URL?",
+    a: "Anyone can check one public page right now with no account. Sign up with your email to audit your whole site: verify you own it, then run audits of up to 1,000 pages, keep your reports, and work through the repair queue."
+  },
+  {
+    q: "What does the paid Fix Pack include?",
+    a: "One repair pass on a saved report with real, proven problems, plus one rerun after the fixes ship to prove they worked. It costs $99 one-time. You only see the offer when a report has something worth fixing."
+  },
+  {
+    q: "How is AI or GEO readiness handled?",
+    a: "We check what AI crawlers can read: whether your content is in the raw HTML, whether your schema and structure are clear, and whether you answer real questions. We do not track AI citations or sample AI answers."
+  },
+  {
+    q: "What doesn’t SEO Fix Kit do?",
+    a: "It does not auto-publish content or change your site for you, and it does not guarantee rankings, traffic, indexing, AI citations, or revenue. It proves what is broken and proves when it is fixed."
+  }
+];
+
 export function WaitlistPage() {
+  useEffect(() => {
+    document.title = "SEO Fix Kit - SEO fixes you can prove";
+  }, []);
+
+  return (
+    <div className="landing">
+      <header className="landing-header">
+        <a className="landing-brand" href="/">
+          SEO Fix Kit
+        </a>
+        <nav aria-label="Main">
+          <a href="/demo">Demo</a>
+          <a href="/pricing">Pricing</a>
+          <a href="/methodology">How it works</a>
+          <a href="/beta">Sign in</a>
+        </nav>
+        <a className="landing-btn landing-btn-sm" href="/check">
+          Check a page free
+        </a>
+      </header>
+
+      <main>
+        <section className="landing-hero" aria-labelledby="page-title">
+          <div className="landing-hero-copy">
+            <p className="landing-pill">Now in private beta · Free to try</p>
+            <h1 id="page-title">SEO fixes you can prove.</h1>
+            <p className="landing-lead">
+              SEO Fix Kit checks your site in a real browser, shows exactly what is broken with the evidence, and hands
+              your developer ready-to-paste fixes. Then it reruns the check to prove they worked.
+            </p>
+            <AccessForm />
+          </div>
+          <ReportPreview />
+        </section>
+
+        <section className="landing-facts" aria-label="At a glance">
+          <div>
+            <strong>1,000</strong>
+            <span>pages per audit</span>
+          </div>
+          <div>
+            <strong>Real browser</strong>
+            <span>rendering on every page</span>
+          </div>
+          <div>
+            <strong>$0</strong>
+            <span>to find the problems</span>
+          </div>
+          <div>
+            <strong>Proof</strong>
+            <span>after every fix</span>
+          </div>
+        </section>
+
+        <section className="landing-section" aria-labelledby="how-title">
+          <p className="landing-eyebrow">How it works</p>
+          <h2 id="how-title">From “something is wrong” to “proven fixed”.</h2>
+          <ol className="landing-steps">
+            {STEPS.map((step, index) => (
+              <li key={step.title}>
+                <span className="landing-step-number">{index + 1}</span>
+                <h3>{step.title}</h3>
+                <p>{step.text}</p>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        <section className="landing-section" aria-labelledby="features-title">
+          <p className="landing-eyebrow">Made for site owners and founders</p>
+          <h2 id="features-title">Built for fixing, not for another to-do list.</h2>
+          <div className="landing-features">
+            {FEATURES.map((feature) => (
+              <article key={feature.title}>
+                <h3>{feature.title}</h3>
+                <p>{feature.text}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="landing-proof" aria-labelledby="proof-title">
+          <div>
+            <p className="landing-eyebrow">Real result</p>
+            <h2 id="proof-title">85 to 100, with a receipt.</h2>
+            <p>
+              Our founder’s own portfolio site went from 7 problems to none across two small changes. The same audit ran
+              before and after each one, so every step is on the record.
+            </p>
+            <a className="landing-link" href="/proof">
+              See the before and after →
+            </a>
+          </div>
+          <dl className="landing-proof-scores">
+            <div>
+              <dt>Before</dt>
+              <dd>85</dd>
+              <span>7 problems</span>
+            </div>
+            <div>
+              <dt>After fix 1</dt>
+              <dd>99</dd>
+              <span>2 problems</span>
+            </div>
+            <div>
+              <dt>After fix 2</dt>
+              <dd>100</dd>
+              <span>0 problems</span>
+            </div>
+          </dl>
+        </section>
+
+        <section className="landing-section" aria-labelledby="pricing-title">
+          <p className="landing-eyebrow">Pricing</p>
+          <h2 id="pricing-title">Free to find it. Pay only to fix it.</h2>
+          <div className="landing-plans">
+            <article>
+              <h3>Page check</h3>
+              <p className="landing-price">Free</p>
+              <p>One public page, no account.</p>
+            </article>
+            <article className="featured">
+              <h3>Site audit</h3>
+              <p className="landing-price">Free</p>
+              <p>Up to 1,000 pages, saved reports, and a repair queue. Free during the beta.</p>
+            </article>
+            <article>
+              <h3>Fix Pack</h3>
+              <p className="landing-price">$99</p>
+              <p>One-time repair pass and a rerun that proves it, only when a report finds real fixes.</p>
+            </article>
+          </div>
+          <a className="landing-link" href="/pricing">
+            Compare plans →
+          </a>
+        </section>
+
+        <section className="landing-section" aria-labelledby="faq-title">
+          <p className="landing-eyebrow">Questions</p>
+          <h2 id="faq-title">Straight answers.</h2>
+          <div className="landing-faq">
+            {FAQ.map((item) => (
+              <details key={item.q}>
+                <summary>{item.q}</summary>
+                <p>{item.a}</p>
+              </details>
+            ))}
+          </div>
+        </section>
+
+        <section className="landing-final" aria-labelledby="final-title">
+          <h2 id="final-title">Find out what is really wrong with your site.</h2>
+          <p>Start with one page for free. No account, no card.</p>
+          <div className="landing-final-actions">
+            <a className="landing-btn" href="/check">
+              Check a page free
+            </a>
+            <a className="landing-btn landing-btn-ghost" href="#get-started">
+              Create a free account
+            </a>
+          </div>
+        </section>
+      </main>
+
+      <LandingFooter />
+    </div>
+  );
+}
+
+function AccessForm() {
   const [email, setEmail] = useState("");
   const [company, setCompany] = useState("");
   const [status, setStatus] = useState("idle");
@@ -12,10 +242,6 @@ export function WaitlistPage() {
   const [formStartedAt] = useState(() => Date.now());
   const [funnelKey] = useState(() => readOrCreateFunnelKey());
   const [inputFired, setInputFired] = useState(false);
-
-  useEffect(() => {
-    document.title = "SEO Fix Kit - Proof-Backed SEO Repair Beta";
-  }, []);
 
   useEffect(() => {
     sendAccessBeacon("beta_view", {
@@ -39,7 +265,7 @@ export function WaitlistPage() {
     }
   }
 
-  async function joinWaitlist(event) {
+  async function requestAccess(event) {
     event.preventDefault();
     setStatus("submitting");
     setMessage("");
@@ -53,198 +279,146 @@ export function WaitlistPage() {
         funnelKey
       });
       setStatus("success");
-      setMessage(payload.message || "Check your email for a secure access link.");
+      setMessage(payload.message || "Check your inbox for a sign-in link.");
       setAccessUrl(payload.accessUrl || "");
       setEmail("");
       setCompany("");
     } catch (error) {
       setStatus("error");
       setAccessUrl("");
-      setMessage(error.message || "Could not send the access link.");
+      setMessage(error.message || "We couldn’t send the link. Please try again.");
     }
   }
 
   return (
-    <main className="waitlist-shell">
-      <img alt="" aria-hidden="true" className="hero-art" src="/assets/waitlist-hero.jpg" />
-      <div className="hero-shade" />
-
-      <header className="site-top">
-        <a className="brand-lockup" href="/" aria-label="SEO Fix Kit home">
-          <LogoMark />
-          <span>SEO Fix Kit</span>
-        </a>
-        <span className="launch-status">Private beta</span>
-      </header>
-
-      <section className="hero-copy" aria-labelledby="page-title">
-        <p className="kicker">Private beta</p>
-        <h1 id="page-title">SEO Fix Kit</h1>
-        <p className="coming-soon">Private beta access.</p>
-        <p className="hero-text">
-          Evidence-backed SEO audits for site owners and founders are opening by secure email link. Join the private
-          beta, run a proof audit, and only pay when the report finds repairs worth doing.
-        </p>
-        <p className="hero-pricing">
-          Audits are free in the beta. The paid SEO Fix Pack shows the Dodo checkout price before payment — one
-          proof-backed repair pass plus one rerun, only offered when real fixes exist.
-        </p>
-        <nav className="public-proof-links" aria-label="Public proof pages">
-          <a href="/demo">Sample proof report</a>
-          <a href="/methodology">Methodology and limits</a>
-          <a href="/packages">Package ladder</a>
-        </nav>
-
-        <div className="access-entry">
-          <form className="waitlist-form" onSubmit={joinWaitlist}>
-            <label htmlFor="email">Email address</label>
-            <div className="email-row">
-              <input
-                autoComplete="email"
-                id="email"
-                inputMode="email"
-                onChange={handleEmailChange}
-                placeholder="you@example.com"
-                required
-                type="email"
-                value={email}
-              />
-              <button disabled={status === "submitting"} type="submit">
-                {status === "submitting" ? "Sending" : "Email access link"}
-              </button>
-            </div>
-            <label className="honeypot" htmlFor="company">
-              Company
-              <input
-                autoComplete="off"
-                id="company"
-                onChange={(event) => setCompany(event.target.value)}
-                tabIndex="-1"
-                type="text"
-                value={company}
-              />
-            </label>
-            <p className={`form-message ${status}`} aria-live="polite">
-              {message || "We’ll only use this email for SEO Fix Kit access and outreach."}
-              {accessUrl && (
-                <>
-                  <br />
-                  <a className="inline-link" href={accessUrl}>
-                    Open local access link
-                  </a>
-                </>
-              )}
-            </p>
-          </form>
-
-          <div className="check-entry" aria-label="Anonymous one-page check">
-            <p className="check-entry-note">No account, no email</p>
-            <a className="check-entry-cta" href="/check">
-              Check one page now
+    <form className="landing-form" id="get-started" onSubmit={requestAccess}>
+      <label htmlFor="email">Work email</label>
+      <div className="landing-form-row">
+        <input
+          autoComplete="email"
+          id="email"
+          inputMode="email"
+          onChange={handleEmailChange}
+          placeholder="you@company.com"
+          required
+          type="email"
+          value={email}
+        />
+        <button disabled={status === "submitting"} type="submit">
+          {status === "submitting" ? "Sending…" : "Get started free"}
+        </button>
+      </div>
+      <label className="honeypot" htmlFor="company">
+        Company
+        <input
+          autoComplete="off"
+          id="company"
+          onChange={(event) => setCompany(event.target.value)}
+          tabIndex="-1"
+          type="text"
+          value={company}
+        />
+      </label>
+      <p className={`form-message ${status}`} aria-live="polite">
+        {message || "We’ll email you a secure sign-in link. No password, no card."}
+        {accessUrl && (
+          <>
+            <br />
+            <a className="inline-link" href={accessUrl}>
+              Open local access link
             </a>
-            <p className="check-entry-note">Live rendered proof for one public page. No report or URL is stored.</p>
-          </div>
-        </div>
+          </>
+        )}
+      </p>
+      <p className="landing-form-alt">
+        Just curious? <a href="/check">Check one page without an account →</a>
+      </p>
+    </form>
+  );
+}
 
-        <div className="report-preview" aria-label="SEO Fix Kit report preview">
+// Illustrative report card for the hero. It mirrors the real report's
+// structure (score, proven issues, a filtered false alarm, a fix snippet)
+// and is labelled as an example.
+function ReportPreview() {
+  return (
+    <figure className="landing-preview" aria-label="Example SEO Fix Kit report">
+      <div className="preview-bar">
+        <span className="preview-dots" aria-hidden="true">
+          <i />
+          <i />
+          <i />
+        </span>
+        <span className="preview-url">example.com · 48 pages audited</span>
+      </div>
+      <div className="preview-body">
+        <div className="preview-score">
           <div>
-            <strong>Issue</strong>
-            <span>Static crawler says the homepage has no H1.</span>
+            <span className="preview-label">Site score</span>
+            <strong>72</strong>
           </div>
-          <div>
-            <strong>Proof</strong>
-            <span>Rendered DOM shows the SEO Fix Kit H1 and private-beta access copy.</span>
-          </div>
-          <div>
-            <strong>Fix</strong>
-            <span>Do nothing. The finding is a false positive.</span>
+          <div className="preview-delta">
+            <span className="preview-label">After fixes</span>
+            <strong>96</strong>
           </div>
         </div>
-      </section>
+        <ul className="preview-issues">
+          <li>
+            <span className="chip chip-critical">Critical</span>
+            <span>Pricing page is set to noindex</span>
+          </li>
+          <li>
+            <span className="chip chip-warning">Warning</span>
+            <span>12 pages share the same title</span>
+          </li>
+          <li>
+            <span className="chip chip-notice">Notice</span>
+            <span>Social preview image missing</span>
+          </li>
+          <li className="preview-filtered">
+            <span className="chip chip-ok">Filtered</span>
+            <span>“Missing H1” is a false alarm: it appears once the page loads</span>
+          </li>
+        </ul>
+        <pre className="preview-snippet" aria-label="Suggested fix">
+          <code>{`<meta property="og:image"\n  content="https://example.com/og.png" />`}</code>
+        </pre>
+      </div>
+      <figcaption>Example report</figcaption>
+    </figure>
+  );
+}
 
-      <section className="homepage-proof-band" aria-labelledby="proof-loop-title">
-        <div className="proof-band-copy">
-          <p className="kicker">Proof-backed repair agent</p>
-          <h2 id="proof-loop-title">The audit is useful only if it leads to a safe fix.</h2>
-          <p>
-            SEO Fix Kit renders the site like a browser, compares the visible page with the raw app shell, and keeps
-            false positives out of the repair queue. When a real issue is proven, the report keeps the page, source
-            evidence, suggested fix, effort, confidence, and acceptance check in one place so a founder, teammate, or
-            developer can act without guessing.
-          </p>
-        </div>
-        <div className="proof-step-grid" aria-label="Proof-backed repair steps">
-          <article>
-            <strong>1. Prove</strong>
-            <p>
-              Run a private audit, verify site ownership for deeper crawls, and see rendered proof before paying for
-              repairs.
-            </p>
-          </article>
-          <article>
-            <strong>2. Approve</strong>
-            <p>
-              Review the repair queue, ignore noise, approve safe drafts, or start the paid Fix Pack from a report with
-              real fixes.
-            </p>
-          </article>
-          <article>
-            <strong>3. Re-measure</strong>
-            <p>After changes ship, rerun the audit. Fresh proof marks repairs fixed, still open, new, or regressed.</p>
-          </article>
-        </div>
-      </section>
-
-      <section className="homepage-faq" aria-labelledby="homepage-faq-title">
-        <p className="kicker">Buyer questions</p>
-        <h2 id="homepage-faq-title">What can I trust SEO Fix Kit to do today?</h2>
-        <div className="faq-grid">
-          <article>
-            <h3>What happens after I enter a URL?</h3>
-            <p>
-              Anyone can check one public page now at <a href="/check">/check</a> with no account. After a secure email
-              access link you get a rate-limited private audit: a one-page Lite check can run before verification, and
-              verified sites unlock deeper self-serve crawls, imports, saved reports, monitoring controls, and
-              owner-scoped repair queues.
-            </p>
-          </article>
-          <article>
-            <h3>What does the paid Fix Pack include?</h3>
-            <p>
-              The live paid offer is one proof-backed repair pass tied to one saved report, plus one rerun after fixes.
-              Dodo shows the checkout price, and the support policy covers refund handling if payment succeeds but the
-              repair queue cannot start.
-            </p>
-          </article>
-          <article>
-            <h3>How is AI or GEO readiness handled?</h3>
-            <p>
-              AI Answer Readiness is proof-derived from rendered content, schema, canonical and internal-link clarity,
-              sitemap context, question-led sections, and optional llms.txt boundaries. When Search Console rows are
-              imported, those faults are ranked by the clicks and impressions on the affected pages. It is not live
-              answer-engine sampling or AI citation monitoring.
-            </p>
-          </article>
-          <article>
-            <h3>What is not live yet?</h3>
-            <p>
-              SEO Fix Kit does not auto-publish content, call CMS admin APIs, open GitHub pull requests, sell recurring
-              repair-agent subscriptions, or guarantee rankings, traffic, indexing, AI citations, or revenue.
-            </p>
-          </article>
-        </div>
-      </section>
-
-      <footer className="site-footer">
-        <span>Audit it. Prove it. Fix it.</span>
-        <a href="/demo">Demo</a>
-        <a href="/methodology">Methodology</a>
-        <a href="/packages">Packages</a>
+function LandingFooter() {
+  return (
+    <footer className="landing-footer">
+      <div className="landing-footer-brand">
+        <a className="landing-brand" href="/">
+          SEO Fix Kit
+        </a>
+        <p>Find the SEO problems that matter, prove them, and fix them.</p>
+      </div>
+      <nav aria-label="Product">
+        <h2>Product</h2>
+        <a href="/check">Free page check</a>
+        <a href="/demo">Sample report</a>
+        <a href="/proof">Customer proof</a>
+        <a href="/pricing">Pricing</a>
+      </nav>
+      <nav aria-label="Use cases">
+        <h2>Use cases</h2>
+        <a href="/small-business-seo-audit">Small business SEO audit</a>
+        <a href="/rendered-vs-static-seo-audit">JavaScript SEO audit</a>
+        <a href="/ai-answer-readiness">AI answer readiness</a>
+      </nav>
+      <nav aria-label="Company">
+        <h2>Company</h2>
+        <a href="/methodology">How it works</a>
         <a href="/support">Support</a>
         <a href="/terms">Terms</a>
         <a href="/privacy">Privacy</a>
         <a href="mailto:support@seofixkit.com">support@seofixkit.com</a>
-      </footer>
-    </main>
+      </nav>
+    </footer>
   );
 }

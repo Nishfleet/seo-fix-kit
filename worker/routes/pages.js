@@ -32,7 +32,7 @@ SEO Fix Kit is a private-beta, self-serve SEO audit and paid Fix Pack workflow.
 - [${origin}/check](https://seofixkit.com/check): Anonymous one-page browser-rendered SEO audit. No account, no stored report, no ranking promises.
 - [${origin}/demo](https://seofixkit.com/demo): Public sample report showing rendered-vs-static false-positive guards and repair briefs.
 - [${origin}/methodology](https://seofixkit.com/methodology): Proof standard, limits, and boundaries. No live AI-engine sampling, no citation monitoring, no ranking guarantees.
-- [${origin}/packages](https://seofixkit.com/packages): Package ladder with $99 one-time beta Fix Pack. Dodo checkout is the price source of truth.
+- [${origin}/pricing](https://seofixkit.com/pricing): Pricing: free page checks, free beta site audits, and the $99 one-time Fix Pack. Dodo checkout is the price source of truth.
 - [${origin}/proof](https://seofixkit.com/proof): Before/after repair proof receipt from a completed beta repair. Published with consent.
 - [${origin}/small-business-seo-audit](https://seofixkit.com/small-business-seo-audit): Proof-backed SEO audit for small businesses. Check one page free, pay only when real fixes exist.
 - [${origin}/rendered-vs-static-seo-audit](https://seofixkit.com/rendered-vs-static-seo-audit): Renders pages in a real browser to compare raw HTML with the rendered DOM — guarding static-crawler false positives and showing AI crawler visibility for JavaScript-blind crawlers like GPTBot, ClaudeBot, PerplexityBot, and CCBot.
@@ -43,7 +43,7 @@ SEO Fix Kit is a private-beta, self-serve SEO audit and paid Fix Pack workflow.
 
 Live product claims:
 - Visitors can request a secure email access link.
-- Anyone can anonymously check one public page URL at /check and see rendered proof, guarded false positives, and actionable findings when present, with no account and no stored report.
+- Anyone can anonymously check one public page URL at /check and see real-browser evidence, the false alarms it rules out, and real problems with fixes, with no account and no stored report.
 - Verified sessions can run rate-limited private audits and save owner-only reports.
 - Verified sessions can choose self-serve crawl depth up to 1,000 pages per queued audit.
 - Reports include robots.txt and sitemap crawl inventory up to 50,000 discovered URLs.
@@ -78,7 +78,7 @@ Hosted-only differentiators vs free installable SEO agent skills:
 - Why not just use a free AI SEO agent skill? The plain answer is on ${origin}/methodology; the same boundaries apply to both, including no live AI-engine sampling, no AI citation monitoring, and no ranking guarantees.
 
 Agent-readable acquisition and action surfaces:
-- Public context for agents: ${origin}/llms.txt, ${origin}/.well-known/skill.md, ${origin}/demo, ${origin}/methodology, ${origin}/packages, ${origin}/proof, ${origin}/support, and ${origin}/terms.
+- Public context for agents: ${origin}/llms.txt, ${origin}/.well-known/skill.md, ${origin}/demo, ${origin}/methodology, ${origin}/pricing, ${origin}/proof, ${origin}/support, and ${origin}/terms.
 - Owner setup starts inside the private beta workspace; anonymous one-page checks are live at ${origin}/check, while full multi-page audits and unauthenticated repair actions are not live.
 - Self-serve API setup is owner-scoped at ${origin}/api/developer, with API keys from ${origin}/api/developer/tokens and lifecycle webhooks from ${origin}/api/developer/webhooks.
 - Bearer-token API actions agents can use today: POST /v1/audits, GET /v1/audits/{audit_id}, GET /v1/audits/{audit_id}/issues, GET /v1/audits/{audit_id}/report, GET/PATCH /v1/audits/{audit_id}/repair-queue, POST /v1/audits/{audit_id}/repair-actions, PATCH /v1/audits/{audit_id}/repair-actions/{action_id}, GET /v1/audits/{audit_id}/repair-actions/{action_id}/implementation.md, GET /v1/audits/{audit_id}/repair-actions/{action_id}/proof.md, GET /v1/projects, POST /v1/large-crawls, and GET /v1/large-crawls/{large_crawl_id}.
@@ -87,7 +87,7 @@ Agent-readable acquisition and action surfaces:
 - There is no live SEO Fix Kit MCP endpoint today; agents should use the documented REST and markdown proof endpoints.
 
 Current product boundary:
-- Public methodology and package pages describe the live proof loop, limits, and package ladder; they are not a public anonymous audit.
+- Public methodology and pricing pages describe the live proof loop, limits, and plans; they are not a public anonymous audit.
 - Does not sell or claim completed 50,000-page rendered validation; large crawls are early-access staged plans until every batch has page-level proof and merge readiness is clear.
 - 100,000+ enterprise rendered crawls and browser-container fleet autoscaling are not live yet.
 - Does not provide full-site rank, index, or orphan discovery beyond rendered crawl proof and sitemap inventory samples.
@@ -119,7 +119,7 @@ Useful routes:
 - ${origin}/terms
 - ${origin}/demo
 - ${origin}/methodology
-- ${origin}/packages
+- ${origin}/pricing
 - ${origin}/proof
 - ${origin}/small-business-seo-audit
 - ${origin}/rendered-vs-static-seo-audit
@@ -138,7 +138,7 @@ Public proof before payment:
 - Anonymous one-page check: ${origin}/check
 - Sample proof report: ${origin}/demo
 - Methodology and limits: ${origin}/methodology
-- Package ladder: ${origin}/packages
+- Pricing: ${origin}/pricing
 - Small-business SEO audit: ${origin}/small-business-seo-audit
 - Rendered vs static audit: ${origin}/rendered-vs-static-seo-audit
 - AI Answer Readiness check: ${origin}/ai-answer-readiness
@@ -165,19 +165,54 @@ function publicAssetHead(origin) {
 }
 
 // The one site header every worker-rendered public page uses (mirrored by
-// hand in public/404.html, which is a static asset). Styles live in
-// public/tokens.css under .site-header; the logo mark is /favicon.svg drawn
-// by .brand::before so the link text stays the plain product name.
+// hand in public/404.html, which is a static asset, and in the React landing
+// page). Styles live in public/tokens.css under .site-header; the logo mark
+// is /favicon.svg drawn by .brand::before so the link text stays the plain
+// product name.
 function siteHeader(origin) {
   return `<header class="site-header">
         <a class="brand" href="${origin}/">SEO Fix Kit</a>
-        <nav aria-label="Public pages">
+        <nav aria-label="Main">
           <a href="${origin}/demo">Demo</a>
-          <a href="${origin}/methodology">Methodology</a>
-          <a href="${origin}/packages">Packages</a>
+          <a href="${origin}/pricing">Pricing</a>
+          <a href="${origin}/methodology">How it works</a>
+          <a href="${origin}/beta">Sign in</a>
         </nav>
-        <a class="btn btn-primary btn-sm header-cta" href="${origin}/check">Check a page</a>
+        <a class="btn btn-primary btn-sm header-cta" href="${origin}/check">Check a page free</a>
       </header>`;
+}
+
+// The one site footer every worker-rendered public page uses (mirrored in
+// public/404.html and the React landing page). Styles live in
+// public/tokens.css under .site-foot.
+function siteFooter(origin) {
+  return `<footer class="site-foot">
+        <div class="site-foot-brand">
+          <a class="brand" href="${origin}/">SEO Fix Kit</a>
+          <p>Find the SEO problems that matter, prove them, and fix them.</p>
+        </div>
+        <nav aria-label="Product">
+          <h2>Product</h2>
+          <a href="${origin}/check">Free page check</a>
+          <a href="${origin}/demo">Sample report</a>
+          <a href="${origin}/proof">Customer proof</a>
+          <a href="${origin}/pricing">Pricing</a>
+        </nav>
+        <nav aria-label="Use cases">
+          <h2>Use cases</h2>
+          <a href="${origin}/small-business-seo-audit">Small business SEO audit</a>
+          <a href="${origin}/rendered-vs-static-seo-audit">JavaScript SEO audit</a>
+          <a href="${origin}/ai-answer-readiness">AI answer readiness</a>
+        </nav>
+        <nav aria-label="Company">
+          <h2>Company</h2>
+          <a href="${origin}/methodology">How it works</a>
+          <a href="${origin}/support">Support</a>
+          <a href="${origin}/terms">Terms</a>
+          <a href="${origin}/privacy">Privacy</a>
+          <a href="mailto:support@seofixkit.com">support@seofixkit.com</a>
+        </nav>
+      </footer>`;
 }
 
 function pageSocialHead({ origin, title, description, path = "/" }) {
@@ -233,8 +268,6 @@ ${pageSocialHead({ origin, title: "Proof-Backed SEO Repair Demo - SEO Fix Kit", 
       .proof strong { color: var(--accent); }
       .panel li strong, .panel p strong { color: var(--ink); font-weight: 600; letter-spacing: 0; text-transform: none; font-size: inherit; display: inline; }
       code { max-width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; }
-      .site-footer { border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 12px 20px; margin-top: 40px; padding-top: 24px; }
-      .site-footer a { font-size: 14px; font-weight: 500; }
       @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } main { padding-top: 24px; } }
     </style>
   </head>
@@ -242,9 +275,9 @@ ${pageSocialHead({ origin, title: "Proof-Backed SEO Repair Demo - SEO Fix Kit", 
     <main>
       ${siteHeader(origin)}
       <section>
-        <p class="kicker">Public sample · Proof loop</p>
-        <h1>Do not fix what is not broken.</h1>
-        <p>Weak SEO scanners read the raw app shell and invent work. SEO Fix Kit compares raw HTML with the rendered page, shows the proof, and only creates a repair when the browser-visible page is actually wrong.</p>
+        <p class="kicker">Sample report · Real output</p>
+        <h1>Fix only what is actually broken.</h1>
+        <p>Basic SEO scanners read a page’s raw code and flag problems that aren’t there. SEO Fix Kit loads the page in a real browser, shows the evidence, and only suggests a fix when something is actually wrong.</p>
       </section>
       <section class="grid" aria-label="Sample audit outcome">
         <article class="panel">
@@ -257,14 +290,14 @@ ${pageSocialHead({ origin, title: "Proof-Backed SEO Repair Demo - SEO Fix Kit", 
         </article>
         <article class="panel">
           <strong>Repair brief</strong>
-          <p>No thin-content fix is queued: the engine guards the warning with rendered-word evidence. Issues that are real still surface — noindex, a canonical conflict, a missing share image, missing schema — with a suggested fix and an exact snippet when the engine can generate one.</p>
+          <p>No thin-content fix is queued: the browser evidence rules that warning out. Issues that are real still surface — noindex, a canonical conflict, a missing share image, missing schema — with a suggested fix and an exact snippet when the engine can generate one.</p>
         </article>
       </section>
       <section class="panel proof">
         <h2>Real engine output for the public test page</h2>
         <p>The proof below is verbatim output from the SEO Fix Kit audit engine run against SEO Fix Kit's own <a href="${origin}${DEMO_FIXTURE_PATH}">public test page</a> — the same engine, the same page, and the same proof fields used for private reports. Every finding below is engine-generated, not hand-written demo copy.</p>
         <p><strong>Measured on the test page:</strong> ${DEMO_PROOF.measured.staticWordCount} visible words in the raw HTML response vs ${DEMO_PROOF.measured.renderedWordCount} words, one H1, and ${DEMO_PROOF.measured.renderedInternalLinkCount} internal links after browser render.</p>
-        <p><strong>Guarded false positives:</strong></p>
+        <p><strong>False alarms ruled out:</strong></p>
         <ul>
 ${DEMO_PROOF.guards
   .map(
@@ -304,17 +337,10 @@ ${DEMO_PROOF.repairPlan.map((item) => `          <li><strong>${escapeHtml(item.s
       </section>
       <section>
         <h2>What this sample does not claim</h2>
-        <p>This page is a sample, not an audit of your site. The proof excerpt above is the engine's real output for the test page, not a preview of your site's results. Anonymous one-page checks are live at ${origin}/check: paste a public URL and get rendered proof, guarded false positives, and actionable findings when present — with no account, no email, and no stored report. Full reports still run inside the private beta after secure email access and, for deeper crawls, site verification. Neither the sample nor the one-page check promises rankings, traffic, indexing, revenue, AI citations, or live answer-engine visibility. The product standard is the same everywhere: prove the issue, avoid false positives, ask for approval, then rerun the same measurement after the fix.</p>
+        <p>This page is a sample, not an audit of your site. The proof excerpt above is the engine's real output for the test page, not a preview of your site's results. Anonymous one-page checks are live at ${origin}/check: paste a public URL and get real-browser evidence, the false alarms it rules out, and real problems with fixes — with no account, no email, and no stored report. Full reports still run inside the private beta after secure email access and, for deeper crawls, site verification. Neither the sample nor the one-page check promises rankings, traffic, indexing, revenue, AI citations, or live answer-engine visibility. The product standard is the same everywhere: prove the issue, avoid false positives, ask for approval, then rerun the same measurement after the fix.</p>
       </section>
       <p><a class="cta" href="${origin}/check">Check one page now</a></p>
-      <footer class="site-footer">
-        <a href="${origin}/">Request private access</a>
-        <a href="${origin}/methodology">Read methodology and limits</a>
-        <a href="${origin}/packages">View package ladder</a>
-        <a href="${origin}/support">Support and refunds</a>
-        <a href="${origin}/terms">Terms</a>
-        <a href="${origin}/privacy">Privacy</a>
-      </footer>
+      ${siteFooter(origin)}
     </main>
   </body>
 </html>`;
@@ -342,7 +368,7 @@ function methodologyHtml(origin) {
       <section class="band">
         <h2>What is live today</h2>
         <ul class="check-list">
-          <li>Anonymous one-page checks at <a href="${origin}/check">${origin}/check</a>: paste a public URL and get rendered proof, guarded false positives, and actionable findings when present, with no account and no stored report.</li>
+          <li>Anonymous one-page checks at <a href="${origin}/check">${origin}/check</a>: paste a public URL and get real-browser evidence, the false alarms it rules out, and real problems with fixes, with no account and no stored report.</li>
           <li>Private self-serve audits for authorized sites, with 1-page Lite checks and verified-host crawl depths up to 1,000 pages.</li>
           <li>Rendered page proof, sitemap inventory up to 50,000 discovered URLs, crawl intelligence, resource waterfall proof, platform SEO checks, proof-derived AI Answer Readiness, draft-only growth briefs, competitor homepage benchmarks, and supplied backlink/local/keyword imports.</li>
           <li>Private report repair queues with proof, status, safe drafts, approval state, owner-approved implementation packs, proof receipts after fixed reruns, teammate assignment, account-level next actions, and one Fix Pack checkout path when real fixes exist.</li>
@@ -414,110 +440,181 @@ function methodologyHtml(origin) {
         <h2>Why not just use a free AI SEO agent skill?</h2>
         <p>Free installable SEO agent skills are genuinely useful for quick, single-page checks: read a page, spot a missing title or description, draft a fix. Open-source SEO tooling is good at that, and you should keep using it. Those skills run per prompt, though, with no persisted state across a whole site.</p>
         <p>The hosted product earns its place by doing the parts that need infrastructure and persistence: rendered crawl scope at site scale (self-serve audits up to 1,000 pages, sitemap inventory up to 50,000 discovered URLs, and staged large rendered crawl jobs), a persistent repair queue with approval, acceptance checks, and fixed-rerun proof receipts, owner-approved implementation packs, and paid Fix Pack fulfillment with one rerun after fixes.</p>
-        <p>The boundaries stay the same as a free skill's: no live AI-engine sampling, no AI citation monitoring, and no ranking guarantees. If a one-page check is all you need, <a href="${origin}/check">${origin}/check</a> is free and needs no account; if you need the hosted loop, see the <a href="${origin}/packages">package ladder</a>.</p>
+        <p>The boundaries stay the same as a free skill's: no live AI-engine sampling, no AI citation monitoring, and no ranking guarantees. If a one-page check is all you need, <a href="${origin}/check">${origin}/check</a> is free and needs no account; if you need the hosted loop, see <a href="${origin}/pricing">pricing</a>.</p>
       </section>
     `
   });
 }
 
-function packagesHtml(origin) {
+// Plans shown on /pricing. Each row of PRICING_FEATURES says which plans
+// include it, so the cards and the comparison table cannot disagree.
+const PRICING_PLANS = [
+  {
+    key: "check",
+    name: "Page check",
+    price: "Free",
+    cadence: "No account needed",
+    summary: "See what a real browser finds on one public page, with the evidence.",
+    cta: { label: "Check a page", href: "/check" }
+  },
+  {
+    key: "audit",
+    name: "Site audit",
+    price: "Free",
+    cadence: "During the beta",
+    summary: "Audit your whole site, keep the reports, and get a repair queue your developer can work from.",
+    cta: { label: "Get started", href: "/#get-started" },
+    featured: true
+  },
+  {
+    key: "fixpack",
+    name: "Fix Pack",
+    price: FIX_PACK_PUBLIC_PRICE.replace(/\.00 one-time$/, ""),
+    cadence: "One-time, per report",
+    summary: "We work through the proven fixes on one report with you, then rerun the audit to prove what got fixed.",
+    cta: { label: "Start with a free audit", href: "/#get-started" }
+  }
+];
+
+const PRICING_FEATURES = [
+  { label: "Real-browser rendering with page evidence", plans: ["check", "audit", "fixpack"] },
+  { label: "False alarms filtered out", plans: ["check", "audit", "fixpack"] },
+  { label: "Pages per audit", values: { check: "1", audit: "Up to 1,000", fixpack: "Up to 1,000" } },
+  { label: "Saved reports and history", plans: ["audit", "fixpack"] },
+  { label: "Repair queue with ready-to-paste fixes", plans: ["audit", "fixpack"] },
+  { label: "Weekly monitoring for verified sites", plans: ["audit", "fixpack"] },
+  { label: "Developer API and webhooks", plans: ["audit", "fixpack"] },
+  { label: "Guided repair pass on one report", plans: ["fixpack"] },
+  { label: "Rerun with a before/after proof receipt", plans: ["fixpack"] }
+];
+
+const PRICING_FAQ = [
+  {
+    q: "When do I pay?",
+    a: `Only when a report finds something worth fixing. Audits are free during the beta. The Fix Pack (${FIX_PACK_PUBLIC_PRICE}) is offered from a report that has real, proven fixes, and the final price including any local tax is shown at checkout before you pay.`
+  },
+  {
+    q: "Who processes payment?",
+    a: "Dodo Payments handles checkout as merchant of record, so they take care of cards, local taxes, and receipts. We never see or store your card details."
+  },
+  {
+    q: "What if the Fix Pack cannot start?",
+    a: "If payment goes through but the repair queue cannot start, we refund you. The support page has the full refund policy."
+  },
+  {
+    q: "Do you guarantee rankings or traffic?",
+    a: "No. Nobody honest can. We prove what is broken, help you fix it, and rerun the same check to show it is fixed. No ranking or traffic guarantee is made."
+  },
+  {
+    q: "Will you change my site?",
+    a: "No. Nothing is applied to your site. You approve each fix and your team or developer ships it; then we rerun the audit to confirm."
+  },
+  {
+    q: "Why pay more for a Fix Pack when GEO Auditor applies agent fixes at $29?",
+    a: "GEO Auditor's Agent Fix Mode hands you one command and your AI agent applies every fix automatically. That is fast and fairly priced. The Fix Pack is the careful alternative: every fix comes with evidence from a real browser, you approve each one before anything changes, and a rerun shows what actually got fixed."
+  },
+  {
+    q: "Is Proof Monitoring available?",
+    a: "Weekly monitoring is included free for verified sites during the beta. A paid monitoring plan is coming soon; it is not on sale yet."
+  }
+];
+
+function pricingCheck(included) {
+  return included
+    ? `<span class="tick" aria-label="Included">✓</span>`
+    : `<span class="dash" aria-label="Not included">–</span>`;
+}
+
+function pricingHtml(origin) {
+  const cards = PRICING_PLANS.map(
+    (plan) => `
+        <article class="plan${plan.featured ? " featured" : ""}">
+          ${plan.featured ? `<p class="plan-badge">Most popular</p>` : ""}
+          <h2>${escapeHtml(plan.name)}</h2>
+          <p class="plan-price"><strong>${escapeHtml(plan.price)}</strong><span>${escapeHtml(plan.cadence)}</span></p>
+          <p class="plan-summary">${escapeHtml(plan.summary)}</p>
+          <a class="btn ${plan.featured ? "btn-primary" : "btn-secondary"}" href="${origin}${plan.cta.href}">${escapeHtml(plan.cta.label)}</a>
+          <ul>
+            ${PRICING_FEATURES.filter((feature) => feature.plans?.includes(plan.key) || feature.values)
+              .map(
+                (feature) =>
+                  `<li>${escapeHtml(feature.values ? `${feature.values[plan.key]} ${feature.values[plan.key] === "1" ? "page" : "pages"} per audit` : feature.label)}</li>`
+              )
+              .join("")}
+          </ul>
+        </article>`
+  ).join("");
+  const rows = PRICING_FEATURES.map(
+    (feature) => `
+            <tr>
+              <th scope="row">${escapeHtml(feature.label)}</th>
+              ${PRICING_PLANS.map((plan) => `<td>${feature.values ? escapeHtml(feature.values[plan.key]) : pricingCheck(feature.plans.includes(plan.key))}</td>`).join("")}
+            </tr>`
+  ).join("");
   return publicProductPageHtml({
     origin,
-    path: "/packages",
-    title: "Packages",
-    description:
-      "The current SEO Fix Kit package ladder, including free beta audits, one-time Fix Pack checkout, and clearly marked roadmap packages.",
-    eyebrow: "Package ladder",
-    heading: "Start with proof. Pay only when there is work to do.",
-    lead: `The live paid offer is intentionally narrow: one proof-backed repair pass tied to one report, plus one rerun after fixes. Current beta price is ${FIX_PACK_PUBLIC_PRICE}; Dodo checkout remains the final price source at payment time.`,
+    path: "/pricing",
+    title: "Pricing",
+    description: `Free one-page checks and free site audits during the beta. Pay ${FIX_PACK_PUBLIC_PRICE} for a Fix Pack only when a report finds real fixes.`,
+    eyebrow: "Pricing",
+    heading: "Free to find it. Pay only to fix it.",
+    lead: "Check pages and audit your site for free. When a report finds real problems, a one-time Fix Pack walks you through the repairs and proves they worked.",
     body: `
-      <section class="package-grid" aria-label="SEO Fix Kit package ladder">
-        <article class="package-card live">
-          <span>Live beta</span>
-          <h2>Private audit</h2>
-          <p>Run a rate-limited proof audit from a secure access link. Verified hosts unlock normal self-serve crawl depth. New: check one public page anonymously with no account.</p>
-          <ul>
-            <li>Rendered proof report</li>
-            <li>Repair queue when issues are proven</li>
-            <li>Account next actions</li>
-          </ul>
-          <a href="${origin}/">Request access</a>
-          <a href="${origin}/check">Check one page now</a>
-        </article>
-        <article class="package-card live">
-          <span>Live checkout when eligible</span>
-          <h2>SEO Fix Pack</h2>
-          <p class="package-price"><strong>${FIX_PACK_PUBLIC_PRICE}</strong><br />For one eligible report in beta; Dodo checkout is final at payment time.</p>
-          <p>One proof-backed repair pass tied to the report queue, plus one rerun after fixes. Offered only from a report with real fixes.</p>
-          <ul>
-            <li>Public price is visible before checkout</li>
-            <li>Dodo shows the final checkout price</li>
-            <li>No ranking or traffic guarantee</li>
-            <li>Refund guard if payment succeeds but the queue cannot start</li>
-          </ul>
-          <a href="${origin}/check">Start from a report with real fixes</a>
-          <a href="${origin}/">Request private access</a>
-          <a href="${origin}/support">Read support terms</a>
-        </article>
-        <article class="package-card">
-          <span>Config-gated subscription</span>
+      <section class="plans" aria-label="Plans">${cards}
+      </section>
+      <section class="band">
+        <h2>Compare plans</h2>
+        <table class="compare">
+            <thead>
+              <tr>
+                <th scope="col"><span class="sr-only">Feature</span></th>
+                ${PRICING_PLANS.map((plan) => `<th scope="col">${escapeHtml(plan.name)}<span>${escapeHtml(plan.price)}</span></th>`).join("")}
+              </tr>
+            </thead>
+            <tbody>${rows}
+            </tbody>
+          </table>
+      </section>
+      <section class="band coming">
+        <div>
+          <p class="eyebrow">Coming soon</p>
           <h2>Proof Monitoring</h2>
-          <p class="package-price"><strong>$49-$99/mo target</strong><br />Checkout only opens when the Dodo subscription product and webhook entitlement sync are configured; until then it stays a config-gated offer in private billing.</p>
-          <p>Weekly proof reruns, report deltas, and change alerts for verified sites. Monitoring does not include repair execution.</p>
-          <ul>
-            <li>Verified sites only</li>
-            <li>Access activates after Dodo webhook entitlement</li>
-            <li>No CMS writes or GitHub pull requests</li>
-          </ul>
-          <a href="${origin}/methodology">See monitoring limits</a>
-        </article>
-        <article class="package-card">
-          <span>Roadmap</span>
-          <h2>Repair Agent</h2>
-          <p>Private implementation packs are live as handoffs for approved actions, and proof receipts are live after fixed rerun proof. Recurring subscription workflow, CMS writes, and GitHub PR creation remain roadmap until explicit integrations exist.</p>
-          <ul>
-            <li>No live subscription yet</li>
-            <li>No CMS writes yet</li>
-            <li>No GitHub PR creation yet</li>
-          </ul>
-          <a href="${origin}/methodology">See limits</a>
-        </article>
-        <article class="package-card">
-          <span>Roadmap</span>
-          <h2>Growth Add-On</h2>
-          <p>Reports now include draft-only opportunities from verified gaps such as low CTR imports, competitor gaps, structured content, and crawl proof. The paid package remains roadmap until billing and integrations are live.</p>
-          <ul>
-            <li>No article-volume autopilot</li>
-            <li>No auto-publishing or CMS drafts</li>
-            <li>No backlink exchange network</li>
-            <li>No unqualified AI citation claims</li>
-          </ul>
-          <a href="${origin}/demo">View proof sample</a>
-        </article>
-      </section>
-      <section class="band">
-        <h2>Why this ladder exists</h2>
-        <p>The product is built to avoid audit noise and over-automation. The first paid step is a small, inspectable repair pass. Future packages only become live when proof, approval controls, billing, and provider safety are implemented.</p>
-        <p>Wondering why a hosted service at all, when free installable AI SEO agent skills exist? The plain answer is on the <a href="${origin}/methodology">methodology page</a>: free skills are great for one-page checks, while hosted audits add site-scale rendered crawl scope, persistent repair state, and fulfillment.</p>
-      </section>
-      <section class="band">
-        <h2>Compared with GEO Auditor</h2>
-        <p>GEO Auditor (geoauditor.app) runs a free AI-visibility audit — 40+ signals across 6 AI platforms, no signup, about 45 seconds — and sells a $29 one-time full report whose Agent Fix Mode gives you one Claude command for your local AI agent to apply the report's fixes to your project. That is genuine delivery speed at a third of the Fix Pack price, and it deserves a straight answer rather than a feature table.</p>
-        <ul class="check-list">
-          <li>The Fix Pack delivers suggested fixes with an exact snippet when the engine can generate one, inside an approval-first repair queue: every item carries source evidence and an acceptance check, nothing is applied until you approve it, and one rerun after fixes issues a proof receipt that says fixed, still-open, new, or regressed.</li>
-          <li>Automatic agent application optimizes for speed. It has no per-item approval gate and no re-measurement step, so if a finding was a false positive, an automated agent applies it anyway.</li>
-          <li>SEO Fix Kit's rendered-vs-static guards exist precisely so neither a human nor an agent "fixes" something the browser already renders correctly — the failure mode an automated fix loop cannot see.</li>
-          <li>If you want the fastest path and accept that trade-off, GEO Auditor's Agent Fix Mode is a reasonable choice. If you want owner approval before anything touches the site plus rerun proof, that inspection loop is what this ladder sells at ${FIX_PACK_PUBLIC_PRICE}.</li>
-        </ul>
-        <p>SEO Fix Kit does not auto-apply fixes to your site: implementation packs are handoff documents, and the full boundary is stated on the <a href="${origin}/methodology">methodology page</a>.</p>
+          <p>Weekly reruns, before/after changes, and alerts when something breaks again. Included free for verified sites during the beta; a paid plan is not on sale yet.</p>
+        </div>
+        <a class="btn btn-secondary" href="${origin}/methodology">How monitoring works</a>
       </section>
     `,
-    faq: [
-      {
-        q: "Why pay more for a Fix Pack when GEO Auditor applies agent fixes at $29?",
-        a: "GEO Auditor's Agent Fix Mode hands you one Claude command and your local AI agent applies the report's fixes automatically — fast, and fairly priced. The Fix Pack is the inspection-first alternative: proof-backed snippets from rendered evidence, an approval gate before anything is applied, and one rerun whose proof receipt records what actually changed. Dodo shows the final checkout price before payment."
-      }
-    ]
+    faq: PRICING_FAQ,
+    extraStyle: `
+      .plans { display: grid; gap: 16px; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0 0 48px; }
+      .plan { align-content: start; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; display: grid; gap: 16px; padding: 28px 24px; position: relative; min-width: 0; }
+      .plan.featured { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 24px 60px -30px rgba(152,240,204,.35); }
+      .plan h2 { font-size: 20px; margin: 0; }
+      .plan-badge { background: var(--accent); border-radius: 999px; color: var(--accent-ink); font-size: 12px; font-weight: 600; justify-self: start; margin: 0; padding: 4px 10px; position: absolute; right: 20px; top: 24px; }
+      .plan-price { display: grid; gap: 4px; margin: 0; }
+      .plan-price strong { color: var(--ink); font-size: 44px; letter-spacing: -0.03em; line-height: 1; }
+      .plan-price span { color: var(--ink-muted); font-size: 14px; }
+      .plan-summary { margin: 0; min-height: 78px; }
+      .plan .btn { width: 100%; }
+      .plan ul { border-top: 1px solid var(--line); display: grid; gap: 10px; list-style: none; margin: 4px 0 0; padding: 20px 0 0; }
+      .plan li { font-size: 15px; line-height: 1.5; padding-left: 26px; position: relative; }
+      .plan li::before { color: var(--accent); content: "✓"; font-weight: 700; left: 0; position: absolute; }
+      .compare { border-collapse: collapse; table-layout: fixed; width: 100%; }
+      .compare th:first-child { width: 40%; }
+      .compare th, .compare td { border-bottom: 1px solid var(--line); font-size: 15px; padding: 14px 12px; text-align: center; }
+      .compare thead th { color: var(--ink); font-weight: 600; vertical-align: bottom; }
+      .compare thead th span { color: var(--ink-muted); display: block; font-size: 13px; font-weight: 500; margin-top: 2px; }
+      .compare tbody th { color: var(--ink-soft); font-weight: 500; text-align: left; }
+      .compare td { color: var(--ink-soft); }
+      .compare .tick { color: var(--accent); font-weight: 700; }
+      .compare .dash { color: var(--ink-muted); }
+      .coming { align-items: center; display: flex; flex-wrap: wrap; gap: 16px 32px; justify-content: space-between; }
+      .coming > div { max-width: 680px; }
+      .coming p:last-child { margin-bottom: 0; }
+      .sr-only { clip: rect(0 0 0 0); height: 1px; overflow: hidden; position: absolute; white-space: nowrap; width: 1px; }
+      @media (max-width: 900px) { .plans { grid-template-columns: 1fr; } .plan-summary { min-height: 0; } }
+      @media (max-width: 600px) { .compare th, .compare td { font-size: 13px; overflow-wrap: anywhere; padding: 12px 4px; } .compare th:first-child { width: 34%; } .compare thead th span { font-size: 12px; } }
+    `
   });
 }
 
@@ -527,7 +624,7 @@ function smallBusinessSeoAuditHtml(origin) {
     path: "/small-business-seo-audit",
     title: "Small Business SEO Audit",
     description:
-      "A proof-backed SEO audit for small businesses: check one public page free, see the rendered evidence behind each finding, and only pay for a repair pass when real fixes exist.",
+      "An SEO audit for small businesses: check one page free, see the evidence behind each problem, and pay for a repair pass only when real fixes exist.",
     eyebrow: "Small-business SEO audit",
     heading: "An SEO audit that shows proof, not homework.",
     lead: "Small businesses lose hours to audit tools that dump red flags and generic checklists. SEO Fix Kit checks one page free, shows the rendered proof behind each finding, and only queues a repair when the browser-visible page is actually wrong.",
@@ -544,7 +641,7 @@ function smallBusinessSeoAuditHtml(origin) {
         </ul>
       </section>
       <section class="grid three" aria-label="How to start">
-        <article class="panel proof"><strong>Free one-page check</strong><p>Paste a public URL at ${origin}/check. You get rendered proof, guarded false positives, and actionable findings when present — no account, no email, nothing stored.</p></article>
+        <article class="panel proof"><strong>Free one-page check</strong><p>Paste a public URL at ${origin}/check. You get real-browser evidence, the false alarms it rules out, and real problems with fixes — no account, no email, nothing stored.</p></article>
         <article class="panel"><strong>Private audit for your site</strong><p>Request a secure email access link for rate-limited private audits. Verified hosts unlock self-serve crawl depth up to 1,000 pages per queued audit.</p></article>
         <article class="panel"><strong>Fix Pack only when fixes exist</strong><p>The paid offer is one proof-backed repair pass tied to one report, plus one rerun after fixes. Dodo shows the checkout price before payment.</p></article>
       </section>
@@ -559,7 +656,7 @@ function smallBusinessSeoAuditHtml(origin) {
       <section class="band">
         <h2>Start with proof</h2>
         <p><a class="cta" href="${origin}/check">Check one page now</a></p>
-        <p><a href="${origin}/demo">View the proof sample</a> · <a href="${origin}/methodology">Read methodology and limits</a> · <a href="${origin}/packages">View package ladder</a></p>
+        <p><a href="${origin}/demo">View the proof sample</a> · <a href="${origin}/methodology">Read methodology and limits</a> · <a href="${origin}/pricing">See pricing</a></p>
       </section>
     `,
     faq: [
@@ -589,7 +686,7 @@ function renderedVsStaticAuditHtml(origin) {
     path: "/rendered-vs-static-seo-audit",
     title: "Rendered vs Static SEO Audit",
     description:
-      "GPTBot, ClaudeBot, PerplexityBot, and CCBot read raw HTML without executing JavaScript. SEO Fix Kit compares raw HTML with the rendered DOM to show your AI crawler visibility and keep false positives out of the repair queue.",
+      "AI crawlers like GPTBot read raw HTML and skip JavaScript. Compare raw HTML with the rendered page to see what they miss, without false alarms.",
     eyebrow: "AI crawler visibility · Rendered vs static audit",
     heading: "Static scanners invent work. AI crawlers miss content. Rendered proof handles both.",
     lead: "JavaScript-heavy sites fail static scanners that read the raw app shell, and AI crawlers never execute JavaScript at all. SEO Fix Kit opens the page in a real browser, compares raw HTML with the rendered DOM, shows exactly what a JavaScript-blind crawler can see, and only creates a repair when the browser-visible page is actually wrong.",
@@ -623,7 +720,7 @@ function renderedVsStaticAuditHtml(origin) {
         <h2>Where you can see it live</h2>
         <ul class="check-list">
           <li>${origin}/demo: the public sample shows a static scanner's false positive against the rendered proof, step by step.</li>
-          <li>${origin}/check: paste any public URL and get rendered proof, guarded false positives, and actionable findings when present — no account and nothing stored.</li>
+          <li>${origin}/check: paste any public URL and get real-browser evidence, the false alarms it rules out, and real problems with fixes — no account and nothing stored.</li>
           <li>Private reports for verified sites include rendered crawl intelligence, resource waterfall proof, and rerun deltas.</li>
         </ul>
       </section>
@@ -634,7 +731,7 @@ function renderedVsStaticAuditHtml(origin) {
       <section class="band">
         <h2>Start with proof</h2>
         <p><a class="cta" href="${origin}/check">Check one page now</a></p>
-        <p><a href="${origin}/demo">View the proof sample</a> · <a href="${origin}/methodology">Read methodology and limits</a> · <a href="${origin}/packages">View package ladder</a></p>
+        <p><a href="${origin}/demo">View the proof sample</a> · <a href="${origin}/methodology">Read methodology and limits</a> · <a href="${origin}/pricing">See pricing</a></p>
       </section>
     `,
     faq: [
@@ -735,7 +832,7 @@ function aiAnswerReadinessHtml(origin) {
       <section class="band">
         <h2>How to get the check</h2>
         <ul class="check-list">
-          <li>Free: paste a public URL at ${origin}/check for rendered proof, guarded false positives, and actionable findings when present — no account and nothing stored.</li>
+          <li>Free: paste a public URL at ${origin}/check for real-browser evidence, the false alarms it rules out, and real problems with fixes — no account and nothing stored.</li>
           <li>Private reports for verified sites include proof-derived AI Answer Readiness checks beside the rendered crawl evidence. Import Search Console rows on the same audit to rank those faults by traffic.</li>
           <li>Read the exact boundaries on ${origin}/methodology before relying on any readiness signal.</li>
         </ul>
@@ -747,7 +844,7 @@ function aiAnswerReadinessHtml(origin) {
       <section class="band">
         <h2>Start with proof</h2>
         <p><a class="cta" href="${origin}/check">Check one page now</a></p>
-        <p><a href="${origin}/demo">View the proof sample</a> · <a href="${origin}/methodology">Read methodology and limits</a> · <a href="${origin}/packages">View package ladder</a></p>
+        <p><a href="${origin}/demo">View the proof sample</a> · <a href="${origin}/methodology">Read methodology and limits</a> · <a href="${origin}/pricing">See pricing</a></p>
       </section>
     `,
     faq: [
@@ -789,7 +886,8 @@ function publicProductPageHtml({
   lead,
   body,
   faq = [],
-  softwareDescription = null
+  softwareDescription = null,
+  extraStyle = ""
 }) {
   const extraLd = [];
   if (softwareDescription) {
@@ -873,10 +971,7 @@ ${extraLd.join("\n")}
       .faq-list { display: grid; gap: 12px; }
       .faq-item { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 20px; min-width: 0; }
       .faq-item p { margin: 0; }
-      .site-footer { align-items: center; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 12px 20px; margin-top: 24px; padding-top: 24px; }
-      .site-footer span { color: var(--ink-muted); font-size: 14px; margin-right: auto; }
-      .site-footer a { font-size: 14px; font-weight: 500; }
-      @media (max-width: 760px) { .grid.three, .grid.two, .package-grid { grid-template-columns: 1fr; } main { padding-top: 24px; } .site-footer span { flex-basis: 100%; } }
+      @media (max-width: 760px) { .grid.three, .grid.two, .package-grid { grid-template-columns: 1fr; } main { padding-top: 24px; } }${extraStyle}
     </style>
   </head>
   <body>
@@ -889,16 +984,7 @@ ${extraLd.join("\n")}
       </section>
       ${body}
       ${faqSection}
-      <footer class="site-footer">
-        <span>Audit it. Prove it. Fix it.</span>
-        <a href="${origin}/demo">Demo</a>
-        <a href="${origin}/methodology">Methodology</a>
-        <a href="${origin}/packages">Packages</a>
-        <a href="${origin}/support">Support</a>
-        <a href="${origin}/terms">Terms</a>
-        <a href="${origin}/privacy">Privacy</a>
-        <a href="mailto:support@seofixkit.com">support@seofixkit.com</a>
-      </footer>
+      ${siteFooter(origin)}
     </main>
   </body>
 </html>`;
@@ -940,7 +1026,7 @@ const PROOF_CASE = {
 };
 
 function proofCaseHtml(origin) {
-  const description = `Real before/after repair proof receipt: founder-owned Tiny Studio portfolio site went from ${PROOF_CASE.before.score}/100 with ${PROOF_CASE.before.findings} findings to ${PROOF_CASE.after.score}/100 with ${PROOF_CASE.after.findings} findings after owner-approved changes. Published with consent and redaction.`;
+  const description = `Real before/after proof: a portfolio site went from ${PROOF_CASE.before.score}/100 with ${PROOF_CASE.before.findings} findings to ${PROOF_CASE.after.score}/100 with ${PROOF_CASE.after.findings} after owner-approved fixes.`;
   const title = "Before/After Repair Proof - SEO Fix Kit";
   return `<!doctype html>
 <html lang="en">
@@ -985,8 +1071,6 @@ ${ldBlock({
       .receipt dt { color: var(--ink-muted); font-weight: 500; }
       .receipt dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
       .boundary { background: var(--gold-surface); border: 1px solid var(--gold-line); border-radius: 8px; padding: 20px 22px; margin: 24px 0; }
-      .site-footer { border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 12px 20px; margin-top: 40px; padding-top: 24px; }
-      .site-footer a { font-size: 14px; font-weight: 500; }
       @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } .receipt dl { grid-template-columns: 1fr; gap: 2px 0; } .receipt dd { margin-bottom: 8px; } main { padding-top: 24px; } }
     </style>
   </head>
@@ -1046,17 +1130,9 @@ ${PROOF_CASE.changes.map((change) => `          <li><strong>${escapeHtml(change.
       <section>
         <h2>How to read this page</h2>
         <p>The same audit path ran three times against the same host: once before the repair, once after the first merge, and once after the second. The proof receipt pins the report ids, scores, finding counts, and merged PR refs so anyone can rerun the same measurement path against <code>https://${PROOF_CASE.site}/</code> and compare. SEO Fix Kit does not claim this receipt represents the result you will see on your site; it is evidence that the same measurement path can connect a real issue to a real operator-applied fix and a real rerun.</p>
-        <p>For an anonymous one-page check on any public URL, see <a href="${origin}/check">${origin}/check</a>. For methodology and limits, see <a href="${origin}/methodology">${origin}/methodology</a>. For package ladder, see <a href="${origin}/packages">${origin}/packages</a>.</p>
+        <p>For an anonymous one-page check on any public URL, see <a href="${origin}/check">${origin}/check</a>. For methodology and limits, see <a href="${origin}/methodology">${origin}/methodology</a>. For plans and prices, see <a href="${origin}/pricing">${origin}/pricing</a>.</p>
       </section>
-      <footer class="site-footer">
-        <a href="${origin}/">SEO Fix Kit</a>
-        <a href="${origin}/demo">Demo</a>
-        <a href="${origin}/methodology">Methodology</a>
-        <a href="${origin}/packages">Packages</a>
-        <a href="${origin}/support">Support</a>
-        <a href="${origin}/terms">Terms</a>
-        <a href="${origin}/privacy">Privacy</a>
-      </footer>
+      ${siteFooter(origin)}
     </main>
   </body>
 </html>`;
@@ -1102,7 +1178,7 @@ The same audit path ran three times against the same host: once before the repai
 
 - Anonymous one-page check: ${origin}/check
 - Methodology and limits: ${origin}/methodology
-- Package ladder: ${origin}/packages
+- Pricing: ${origin}/pricing
 `;
 }
 
@@ -1118,14 +1194,12 @@ ${pageSocialHead({ origin, title: "Privacy - SEO Fix Kit", description: "SEO Fix
     <style>
       body { margin: 0; min-width: 0; }
       .shell { margin: 0 auto; max-width: 1120px; padding: 32px 22px 0; min-width: 0; }
-      main { margin: 0 auto; max-width: 760px; padding: 16px 22px 72px; min-width: 0; }
+      main { margin: 0 auto; max-width: 760px; padding: 16px 22px 24px; min-width: 0; }
       h1 { font-size: clamp(40px, 7vw, 72px); line-height: .95; margin: 0 0 32px; overflow-wrap: break-word; }
       h2 { font-size: clamp(20px, 3vw, 24px); line-height: 1.25; margin: 40px 0 12px; overflow-wrap: break-word; }
       p, li { color: var(--ink-soft); font-size: 17px; line-height: 1.65; overflow-wrap: anywhere; }
       ul { padding-left: 22px; }
       li + li { margin-top: 8px; }
-      .page-links { border-top: 1px solid var(--line); margin-top: 40px; padding-top: 24px; }
-      .page-links a { font-size: 15px; font-weight: 500; }
       @media (max-width: 760px) { .shell { padding-top: 24px; } main { padding-top: 0; } }
     </style>
   </head>
@@ -1147,8 +1221,10 @@ ${pageSocialHead({ origin, title: "Privacy - SEO Fix Kit", description: "SEO Fix
         <li>Deletion and access: email <a href="mailto:support@seofixkit.com">support@seofixkit.com</a> (or reply to any email we send) to request a copy or deletion of your beta data. We honor verified requests within 30 days, except records we must keep for payment reconciliation or abuse prevention.</li>
       </ul>
       <p>Last updated: June 15, 2026.</p>
-      <p class="page-links"><a href="${origin}/terms">Terms</a> · <a href="${origin}/support">Support</a> · <a href="${origin}/methodology">Methodology</a> · <a href="${origin}/packages">Packages</a> · <a href="${origin}/check">Check one page now</a></p>
     </main>
+    <div class="shell">
+      ${siteFooter(origin)}
+    </div>
   </body>
 </html>`;
 }
@@ -1184,7 +1260,6 @@ function supportHtml(origin) {
       <h2>Ownership and deletion</h2>
       <p>SEO Fix Kit is for sites you own or are authorized to audit. We may pause audits, delete reports, or revoke access when ownership is unclear, the target appears abusive, or the crawl could overload a third-party site. To request deletion or a copy of beta data, email from the account address or reply to a SEO Fix Kit email thread so ownership can be verified.</p>
       <p>Last updated: June 19, 2026.</p>
-      <p class="page-links"><a href="${origin}/privacy">Privacy</a> · <a href="${origin}/terms">Terms</a> · <a href="${origin}/methodology">Methodology</a> · <a href="${origin}/packages">Packages</a> · <a href="${origin}/check">Check one page now</a></p>
     `
   });
 }
@@ -1235,7 +1310,6 @@ function termsHtml(origin) {
         <li>Questions about these terms or your account: <a href="mailto:support@seofixkit.com">support@seofixkit.com</a>.</li>
       </ul>
       <p>Last updated: June 12, 2026.</p>
-      <p class="page-links"><a href="${origin}/privacy">Privacy</a> · <a href="${origin}/support">Support</a> · <a href="${origin}/methodology">Methodology</a> · <a href="${origin}/packages">Packages</a> · <a href="${origin}/check">Check one page now</a></p>
     `
   });
 }
@@ -1252,14 +1326,12 @@ ${pageSocialHead({ origin, title: `${title} - SEO Fix Kit`, description, path })
     <style>
       body { margin: 0; min-width: 0; }
       .shell { margin: 0 auto; max-width: 1120px; padding: 32px 22px 0; min-width: 0; }
-      main { margin: 0 auto; max-width: 760px; padding: 16px 22px 72px; min-width: 0; }
+      main { margin: 0 auto; max-width: 760px; padding: 16px 22px 24px; min-width: 0; }
       h1 { font-size: clamp(40px, 7vw, 72px); line-height: .95; margin: 0 0 32px; overflow-wrap: break-word; }
       h2 { font-size: clamp(20px, 3vw, 24px); line-height: 1.25; margin: 40px 0 12px; overflow-wrap: break-word; }
       p, li { color: var(--ink-soft); font-size: 17px; line-height: 1.65; overflow-wrap: anywhere; }
       ul { padding-left: 22px; }
       li + li { margin-top: 8px; }
-      .page-links { border-top: 1px solid var(--line); margin-top: 40px; padding-top: 24px; }
-      .page-links a { font-size: 15px; font-weight: 500; }
       @media (max-width: 760px) { .shell { padding-top: 24px; } main { padding-top: 0; } }
     </style>
   </head>
@@ -1271,6 +1343,9 @@ ${pageSocialHead({ origin, title: `${title} - SEO Fix Kit`, description, path })
       <h1>${escapeHtml(title)}</h1>
       ${body}
     </main>
+    <div class="shell">
+      ${siteFooter(origin)}
+    </div>
   </body>
 </html>`;
 }
@@ -1284,13 +1359,14 @@ export {
   homeMarkdown,
   llmsText,
   methodologyHtml,
-  packagesHtml,
+  pricingHtml,
   policyPageHtml,
   privacyHtml,
   proofCaseHtml,
   proofCaseMarkdown,
   publicAssetHead,
   renderedVsStaticAuditHtml,
+  siteFooter,
   siteHeader,
   socialImageMeta,
   smallBusinessSeoAuditHtml,

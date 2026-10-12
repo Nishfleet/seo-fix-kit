@@ -269,11 +269,11 @@ test("public check response is built only from engine fields with truthful copy"
   );
   assert.equal(payload.issues.guardedFalsePositives, 1);
   assert.equal(payload.issues.critical, 2);
-  assert.ok(payload.nextStep.includes("private beta"), "next step hands off into private access");
+  assert.ok(payload.nextStep.includes("create a free account"), "next step hands off into a free account");
   assert.ok(payload.boundary.includes("does not guarantee rankings"), "boundary keeps the no-ranking promise");
 });
 
-test("public check page is searchable and hands off into private access", () => {
+test("public check page is searchable and hands off into a free account", () => {
   const html = checkHtml(origin);
   assert.ok(visibleWordCount(html) >= 250, "check page should not look thin to rendered audits");
   assert.match(html, /rel="canonical" href="https:\/\/seofixkit\.com\/check"/);
@@ -286,7 +286,7 @@ test("public check page is searchable and hands off into private access", () => 
   assert.match(html, /https:\/\/seofixkit\.com\/api\/public-check/);
   assert.match(html, /no report or URL is stored/i);
   assert.match(html, /short-lived anonymous rate-limit counters/i);
-  assert.match(html, /Request private access/);
+  assert.match(html, /<a class="cta" href="https:\/\/seofixkit\.com\/beta">Create a free account<\/a>/);
   assert.match(html, /href="https:\/\/seofixkit\.com\/">SEO Fix Kit<\/a>/);
   assert.match(html, /href="https:\/\/seofixkit\.com\/support"/, "the anonymous check links to support");
   assert.match(html, /href="https:\/\/seofixkit\.com\/terms"/, "the anonymous check links to terms");
@@ -315,9 +315,9 @@ test("public check meta description and WebPage JSON-LD stay within the 70-165 c
     description.length <= 165,
     `meta description is too long (${description.length} chars); search snippets will truncate`
   );
-  assert.match(description, /No account, no ranking promises\./, "the no-ranking boundary must survive the trim");
-  assert.match(description, /browser-rendered/, "the differentiator must survive the trim");
-  assert.match(description, /guarded false positives/, "the guarded false-positives promise must survive the trim");
+  assert.match(description, /no ranking promises\./, "the no-ranking boundary must survive the trim");
+  assert.match(description, /real browser/, "the differentiator must survive the trim");
+  assert.match(description, /false alarms ruled out/, "the ruled-out false alarms promise must survive the trim");
 
   const blocks = jsonLdBlocks(html);
   const graph = blocks.flatMap((block) => (Array.isArray(block["@graph"]) ? block["@graph"] : [block]));
@@ -333,7 +333,7 @@ test("public check meta description and WebPage JSON-LD stay within the 70-165 c
   );
   assert.match(
     jsonLdDescription,
-    /No account, no ranking promises\./,
+    /no ranking promises\./,
     "the JSON-LD description also keeps the no-ranking boundary"
   );
 });
@@ -518,7 +518,7 @@ test("public check output is verbatim engine output for the public test page", a
     );
     assert.equal(payload.issues.guardedFalsePositives, report.summary.guardedFalsePositives);
     assert.equal(payload.issues.critical, report.summary.critical);
-    assert.ok(payload.nextStep.includes("private beta"));
+    assert.ok(payload.nextStep.includes("create a free account"));
     assert.ok(payload.boundary.includes("does not guarantee rankings"));
   } finally {
     await new Promise((resolve) => server.close(resolve));

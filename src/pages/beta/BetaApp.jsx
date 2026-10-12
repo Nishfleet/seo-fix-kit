@@ -1,20 +1,23 @@
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { useLocation, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { CRAWL_DEPTH_TIERS, DEFAULT_CRAWL_PAGES, SELF_SERVE_MAX_CRAWL_PAGES } from "../../../shared/crawl-depth.js";
 import { RENDERED_CRAWL_TARGETS } from "../../../shared/rendered-crawl-scale.js";
 import { apiFetch, isAbortError } from "../../api.js";
 import { storageGet, storageRemove, storageSet } from "../../storage.js";
-import { EmptyAuditState, LoadingAuditState, ErrorAuditState } from "../../components/AuditStates.jsx";
-import { BetaTop } from "../../components/BetaTop.jsx";
+import { AppShell, PageHeader } from "../../components/AppShell.jsx";
+import { LoadingAuditState, ErrorAuditState } from "../../components/AuditStates.jsx";
 import { reportIdFromPath, readOrCreateFunnelKey } from "../../lib/browser.js";
 import { BETA_SESSION_KEY, BETA_EMAIL_KEY, FUNNEL_KEY } from "../../lib/constants.js";
+import { sectionFromPath } from "../../lib/app-sections.js";
+import { queryKeys } from "../../lib/queries.js";
 import { formatCount, safeHostnameLabel } from "../../lib/format.js";
 import {
-  refreshSession,
+  fetchSession,
   postAccessRequest,
   verifyAccessToken,
-  loadAccountSummary,
-  loadDeveloperSummary,
+  fetchAccountSummary,
+  fetchDeveloperSummary,
   postSiteClaim,
   postSiteVerify,
   postAuditSchedule,
@@ -23,14 +26,22 @@ import {
   deleteDeveloperToken,
   postDeveloperWebhook,
   deleteDeveloperWebhook,
-  loadReport,
+  fetchReport,
   pollAuditJob,
   loadAdmin
 } from "../../lib/requests.js";
 import { AdminDashboard } from "../admin/AdminDashboard.jsx";
-import { CustomerDashboard } from "./CustomerDashboard.jsx";
+import { DeveloperApiPanel, Overview, ReportsPage, SitesPage } from "./CustomerDashboard.jsx";
+import { SignIn } from "./SignIn.jsx";
 import { BillingPortal } from "../billing/BillingPortal.jsx";
 import { ReportView } from "../report/ReportView.jsx";
+
+// A sign-out's cookie-clearing response must land before any new sign-in
+// sets a fresh session cookie, so sign-ins wait for it.
+let pendingSignOut = Promise.resolve();
+
+// Query keys that are not private account data and survive a user switch.
+const SESSION_QUERY_ROOTS = new Set(["session", "access-token"]);
 
 export function BetaApp({ mountKey }) {
   const location = useLocation();
@@ -43,12 +54,83 @@ export function BetaApp({ mountKey }) {
   // this BetaApp mounted; see BetaRoute in App.jsx.
   const replaceUrl = (path) => navigate(path, { replace: true, state: { betaMountKey: mountKey } });
   const accessToken = inviteParams.get("access") || "";
-  const [ownerEmail, setOwnerEmail] = useState(() => inviteParams.get("email") || storageGet(BETA_EMAIL_KEY) || "");
-  const [loginEmail, setLoginEmail] = useState(ownerEmail || inviteParams.get("email") || "");
+  const hasInviteParam = inviteParams.has("invite");
+  const queryClient = useQueryClient();
+  const [loginEmail, setLoginEmail] = useState(() => inviteParams.get("email") || storageGet(BETA_EMAIL_KEY) || "");
   const [inviteCode, setInviteCode] = useState(inviteParams.get("invite") || "");
-  const [isAuthed, setIsAuthed] = useState(() => storageGet(BETA_SESSION_KEY) === "1");
-  const [loginStatus, setLoginStatus] = useState(accessToken ? "submitting" : "idle");
+  const [loginStatus, setLoginStatus] = useState("idle");
   const [loginMessage, setLoginMessage] = useState("");
+
+  // Session: undefined until checked, null when signed out, else the owner.
+  // The server is always asked; until it answers, the stored hint decides
+  // whether to show the workspace optimistically.
+  const sessionQuery = useQuery({
+    queryKey: queryKeys.session,
+    queryFn: async () => {
+      const next = await fetchSession();
+      const previous = queryClient.getQueryData(queryKeys.session);
+      if (!next || (previous && previous.ownerEmail !== next.ownerEmail)) clearPrivateData();
+      return next;
+    },
+    enabled: !accessToken,
+    staleTime: 5 * 60_000
+  });
+  const session = sessionQuery.data;
+  const isAuthed = session === undefined ? storageGet(BETA_SESSION_KEY) === "1" : Boolean(session);
+  const ownerEmail =
+    session === undefined ? inviteParams.get("email") || storageGet(BETA_EMAIL_KEY) || "" : session?.ownerEmail || "";
+
+  // Drop every cached account query so one owner's data never shows to the next.
+  function clearPrivateData() {
+    queryClient.removeQueries({ predicate: (query) => !SESSION_QUERY_ROOTS.has(query.queryKey[0]) });
+  }
+
+  function setSignedIn(email) {
+    clearPrivateData();
+    storageSet(BETA_SESSION_KEY, "1");
+    storageSet(BETA_EMAIL_KEY, email);
+    queryClient.setQueryData(queryKeys.session, { ownerEmail: email });
+  }
+
+  function markSignedOut() {
+    clearPrivateData();
+    storageRemove(BETA_SESSION_KEY);
+    storageRemove(BETA_EMAIL_KEY);
+    queryClient.setQueryData(queryKeys.session, null);
+  }
+
+  // One-use sign-in links are verified once per token; the cached result
+  // survives remounts so the token is never spent twice.
+  const accessQuery = useQuery({
+    queryKey: ["access-token", accessToken],
+    queryFn: async () => {
+      await pendingSignOut;
+      const payload = await verifyAccessToken(accessToken, storageGet(FUNNEL_KEY) || "");
+      const email = payload.ownerEmail || loginEmail;
+      setSignedIn(email);
+      const cleanUrl = new URL(window.location.href);
+      cleanUrl.searchParams.delete("access");
+      cleanUrl.searchParams.delete("email");
+      replaceUrl(`${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`);
+      return { ownerEmail: email };
+    },
+    enabled: Boolean(accessToken),
+    retry: false,
+    staleTime: Infinity,
+    gcTime: Infinity
+  });
+  const signInStatus =
+    loginStatus === "idle" && accessToken && accessQuery.isPending
+      ? "submitting"
+      : loginStatus === "idle" && accessQuery.isError
+        ? "error"
+        : loginStatus;
+  const signInMessage =
+    loginStatus === "idle" && accessToken && accessQuery.isPending
+      ? "Signing you in…"
+      : loginStatus === "idle" && accessQuery.isError
+        ? accessQuery.error?.message || "This sign-in link has expired or was already used. Request a new one below."
+        : loginMessage;
   const [targetUrl, setTargetUrl] = useState("");
   const [maxPages, setMaxPages] = useState(String(DEFAULT_CRAWL_PAGES));
   const [renderedCrawlTarget, setRenderedCrawlTarget] = useState("0");
@@ -61,20 +143,15 @@ export function BetaApp({ mountKey }) {
   const [googleBusinessProfileUrl, setGoogleBusinessProfileUrl] = useState("");
   const [localKeywords, setLocalKeywords] = useState("");
   const [localCitations, setLocalCitations] = useState("");
-  const [auditStatus, setAuditStatus] = useState(reportId ? "loading" : "idle");
+  const [auditStatus, setAuditStatus] = useState("idle");
   const [auditMessage, setAuditMessage] = useState("");
-  const [report, setReport] = useState(null);
-  const [accountData, setAccountData] = useState(null);
-  const [accountStatus, setAccountStatus] = useState("idle");
-  const [accountMessage, setAccountMessage] = useState("");
   const [siteHost, setSiteHost] = useState("");
   const [siteStatus, setSiteStatus] = useState("idle");
   const [siteMessage, setSiteMessage] = useState("");
   const [scheduleStatus, setScheduleStatus] = useState("idle");
   const [scheduleMessage, setScheduleMessage] = useState("");
-  const [developerData, setDeveloperData] = useState(null);
-  const [developerStatus, setDeveloperStatus] = useState("idle");
-  const [developerMessage, setDeveloperMessage] = useState("");
+  const [developerActionStatus, setDeveloperStatus] = useState("idle");
+  const [developerActionMessage, setDeveloperMessage] = useState("");
   const [apiTokenSecret, setApiTokenSecret] = useState("");
   const [webhookUrl, setWebhookUrl] = useState("");
   const [webhookSecret, setWebhookSecret] = useState("");
@@ -83,6 +160,50 @@ export function BetaApp({ mountKey }) {
   const [adminStatus, setAdminStatus] = useState("idle");
   const [adminMessage, setAdminMessage] = useState("");
   const [accessFormStartedAt] = useState(() => Date.now());
+
+  const reportQuery = useQuery({
+    queryKey: queryKeys.report(reportId),
+    queryFn: async () => {
+      try {
+        return await fetchReport(reportId);
+      } catch (error) {
+        if (error.status === 401) markSignedOut();
+        throw error;
+      }
+    },
+    enabled: isAuthed && Boolean(reportId)
+  });
+  const report = reportQuery.data || null;
+
+  const accountQuery = useQuery({
+    queryKey: queryKeys.account,
+    queryFn: fetchAccountSummary,
+    enabled: isAuthed && !isAdminRoute,
+    // Keep the dashboard live while an audit is running.
+    refetchInterval: (query) =>
+      !reportId && !isBillingRoute && Number(query.state.data?.metrics?.runningAudits || 0) ? 3500 : false
+  });
+  const accountData = accountQuery.data || null;
+  const accountStatus = accountQuery.isError ? "error" : accountQuery.isLoading ? "loading" : "success";
+  const accountMessage = accountQuery.isError ? accountQuery.error?.message || "Could not load your workspace." : "";
+  const refreshAccount = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.account }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.reports })
+    ]);
+
+  const developerQuery = useQuery({
+    queryKey: queryKeys.developer,
+    queryFn: fetchDeveloperSummary,
+    enabled: isAuthed && !reportId && !isAdminRoute && !isBillingRoute
+  });
+  const developerData = developerQuery.data || null;
+  const developerStatus =
+    developerActionStatus !== "idle" ? developerActionStatus : developerQuery.isError ? "error" : "idle";
+  const developerMessage =
+    developerActionMessage ||
+    (developerQuery.isError ? developerQuery.error?.message || "Could not load developer API." : "");
+  const refreshDeveloper = () => queryClient.invalidateQueries({ queryKey: queryKeys.developer });
 
   useEffect(() => {
     if (isAdminRoute) {
@@ -97,75 +218,19 @@ export function BetaApp({ mountKey }) {
       document.title = `SEO Fix Kit report - ${safeHostnameLabel(report.url)}`;
       return;
     }
-    document.title = "SEO Fix Kit Beta";
+    document.title = "SEO Fix Kit";
   }, [isAdminRoute, isBillingRoute, report?.url]);
 
+  // Drop a consumed ?invite= code from the address bar.
   useEffect(() => {
-    if (storageGet(BETA_SESSION_KEY) === "1" || reportId || isAdminRoute || isBillingRoute) {
-      refreshSession(setIsAuthed, setOwnerEmail);
-    }
-  }, [reportId, isAdminRoute, isBillingRoute]);
-
-  useEffect(() => {
-    if (!inviteParams.get("invite")) return;
+    if (!hasInviteParam) return;
     const cleanUrl = new URL(window.location.href);
     cleanUrl.searchParams.delete("invite");
-    replaceUrl(`${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`);
-  }, []);
-
-  useEffect(() => {
-    if (!accessToken) return;
-    let cancelled = false;
-    setLoginStatus("submitting");
-    setLoginMessage("Opening secure access link.");
-    const storedFunnelKey = storageGet(FUNNEL_KEY) || "";
-    verifyAccessToken(accessToken, storedFunnelKey)
-      .then((payload) => {
-        if (cancelled) return;
-        storageSet(BETA_SESSION_KEY, "1");
-        storageSet(BETA_EMAIL_KEY, payload.ownerEmail || loginEmail);
-        setOwnerEmail(payload.ownerEmail || loginEmail);
-        setIsAuthed(true);
-        setLoginStatus("success");
-        setLoginMessage("Access unlocked.");
-        const cleanUrl = new URL(window.location.href);
-        cleanUrl.searchParams.delete("access");
-        cleanUrl.searchParams.delete("email");
-        replaceUrl(`${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`);
-      })
-      .catch((error) => {
-        if (cancelled) return;
-        setLoginStatus("error");
-        setLoginMessage(error.message || "Access link is expired or already used.");
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [accessToken]);
-
-  useEffect(() => {
-    if (!isAuthed || !reportId) return;
-    loadReport(reportId, setReport, setAuditStatus, setAuditMessage, () => {
-      setIsAuthed(false);
-      storageRemove(BETA_SESSION_KEY);
-      storageRemove(BETA_EMAIL_KEY);
+    navigate(`${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`, {
+      replace: true,
+      state: { betaMountKey: mountKey }
     });
-  }, [isAuthed, reportId]);
-
-  useEffect(() => {
-    if (!isAuthed || reportId || isAdminRoute || isBillingRoute) return;
-    loadAccountSummary(setAccountData, setAccountStatus, setAccountMessage);
-    loadDeveloperSummary(setDeveloperData, setDeveloperStatus, setDeveloperMessage);
-  }, [isAuthed, reportId, isAdminRoute, isBillingRoute]);
-
-  useEffect(() => {
-    if (!isAuthed || reportId || isAdminRoute || isBillingRoute) return;
-    if (!Number(accountData?.metrics?.runningAudits || 0)) return;
-    const interval = window.setInterval(() => {
-      loadAccountSummary(setAccountData, setAccountStatus, setAccountMessage);
-    }, 3500);
-    return () => window.clearInterval(interval);
-  }, [isAuthed, reportId, isAdminRoute, isBillingRoute, accountData?.metrics?.runningAudits]);
+  }, [hasInviteParam, navigate, mountKey]);
 
   // Queued audits are polled for minutes; tie that loop to this component so
   // unmounting (or starting another audit) stops it instead of leaking
@@ -179,21 +244,19 @@ export function BetaApp({ mountKey }) {
     setLoginMessage("");
 
     try {
+      await pendingSignOut;
       const payload = await apiFetch("/api/beta/login", {
         method: "POST",
         body: { email: loginEmail, inviteCode },
         requireOkFlag: false,
-        fallbackError: "Private beta invite code required."
+        fallbackError: "That invite code didn’t work."
       });
-      storageSet(BETA_SESSION_KEY, "1");
-      storageSet(BETA_EMAIL_KEY, payload.ownerEmail || loginEmail);
-      setOwnerEmail(payload.ownerEmail || loginEmail);
-      setIsAuthed(true);
+      setSignedIn(payload.ownerEmail || loginEmail);
       setLoginStatus("success");
       setInviteCode("");
     } catch (error) {
       setLoginStatus("error");
-      setLoginMessage(error.message || "Could not unlock private beta.");
+      setLoginMessage(error.message || "We couldn’t sign you in. Please try again.");
     }
   }
 
@@ -210,18 +273,13 @@ export function BetaApp({ mountKey }) {
         funnelKey: gateFunnelKey
       });
       setLoginStatus("success");
-      setLoginMessage(
-        payload.accessUrl
-          ? "Local access link created."
-          : payload.message ||
-              (reportId
-                ? "Check your email — the link will bring you straight back to this report."
-                : "Check your email for a secure access link.")
-      );
+      setLoginMessage(payload.accessUrl ? "Local access link created." : "");
       if (payload.accessUrl) window.location.assign(payload.accessUrl);
+      return true;
     } catch (error) {
       setLoginStatus("error");
-      setLoginMessage(error.message || "Could not send the access link.");
+      setLoginMessage(error.message || "We couldn’t send the link. Please try again.");
+      return false;
     }
   }
 
@@ -234,7 +292,7 @@ export function BetaApp({ mountKey }) {
       setSiteStatus("success");
       setSiteMessage(`Verification challenge ready for ${payload.site?.host || siteHost}.`);
       setSiteHost("");
-      await loadAccountSummary(setAccountData, setAccountStatus, setAccountMessage);
+      await refreshAccount();
     } catch (error) {
       setSiteStatus("error");
       setSiteMessage(error.message || "Could not create site verification.");
@@ -252,7 +310,7 @@ export function BetaApp({ mountKey }) {
           ? `${payload.site.host} is verified.`
           : payload.message || "Verification proof was not found yet."
       );
-      await loadAccountSummary(setAccountData, setAccountStatus, setAccountMessage);
+      await refreshAccount();
     } catch (error) {
       setSiteStatus("error");
       setSiteMessage(error.message || "Could not verify site.");
@@ -266,7 +324,7 @@ export function BetaApp({ mountKey }) {
       const payload = await postAuditSchedule(url, { intervalDays: 7, maxPages: DEFAULT_CRAWL_PAGES });
       setScheduleStatus("success");
       setScheduleMessage(`${payload.schedule?.targetHost || safeHostnameLabel(url)} will be checked weekly.`);
-      await loadAccountSummary(setAccountData, setAccountStatus, setAccountMessage);
+      await refreshAccount();
     } catch (error) {
       setScheduleStatus("error");
       setScheduleMessage(error.message || "Could not add monitor.");
@@ -280,7 +338,7 @@ export function BetaApp({ mountKey }) {
       await pauseAuditSchedule(scheduleId);
       setScheduleStatus("success");
       setScheduleMessage("Monitor paused.");
-      await loadAccountSummary(setAccountData, setAccountStatus, setAccountMessage);
+      await refreshAccount();
     } catch (error) {
       setScheduleStatus("error");
       setScheduleMessage(error.message || "Could not pause monitor.");
@@ -296,7 +354,7 @@ export function BetaApp({ mountKey }) {
       setApiTokenSecret(payload.tokenSecret || "");
       setDeveloperStatus("success");
       setDeveloperMessage(payload.message || "API key created.");
-      await loadDeveloperSummary(setDeveloperData, setDeveloperStatus, setDeveloperMessage);
+      await refreshDeveloper();
     } catch (error) {
       setDeveloperStatus("error");
       setDeveloperMessage(error.message || "Could not create API key.");
@@ -310,7 +368,7 @@ export function BetaApp({ mountKey }) {
       await deleteDeveloperToken(tokenId);
       setDeveloperStatus("success");
       setDeveloperMessage("API key revoked.");
-      await loadDeveloperSummary(setDeveloperData, setDeveloperStatus, setDeveloperMessage);
+      await refreshDeveloper();
     } catch (error) {
       setDeveloperStatus("error");
       setDeveloperMessage(error.message || "Could not revoke API key.");
@@ -328,7 +386,7 @@ export function BetaApp({ mountKey }) {
       setWebhookSecret(payload.signingSecret || "");
       setDeveloperStatus("success");
       setDeveloperMessage("Webhook added.");
-      await loadDeveloperSummary(setDeveloperData, setDeveloperStatus, setDeveloperMessage);
+      await refreshDeveloper();
     } catch (error) {
       setDeveloperStatus("error");
       setDeveloperMessage(error.message || "Could not add webhook.");
@@ -342,7 +400,7 @@ export function BetaApp({ mountKey }) {
       await deleteDeveloperWebhook(webhookId);
       setDeveloperStatus("success");
       setDeveloperMessage("Webhook revoked.");
-      await loadDeveloperSummary(setDeveloperData, setDeveloperStatus, setDeveloperMessage);
+      await refreshDeveloper();
     } catch (error) {
       setDeveloperStatus("error");
       setDeveloperMessage(error.message || "Could not revoke webhook.");
@@ -368,7 +426,6 @@ export function BetaApp({ mountKey }) {
         ? "Rendering the site, checking comparison inputs, and collecting proof."
         : "Rendering the site, crawling same-site links, and collecting proof."
     );
-    setReport(null);
     auditPollRef.current?.abort();
     const auditPoll = new AbortController();
     auditPollRef.current = auditPoll;
@@ -395,22 +452,17 @@ export function BetaApp({ mountKey }) {
         if (!job.reportId) {
           throw new Error("Audit finished without a saved report.");
         }
-        if (job.reportPath) {
-          replaceUrl(job.reportPath);
-        }
-        await loadReport(job.reportId, setReport, setAuditStatus, setAuditMessage, () => {
-          setIsAuthed(false);
-          storageRemove(BETA_SESSION_KEY);
-          storageRemove(BETA_EMAIL_KEY);
-        });
-        loadAccountSummary(setAccountData, setAccountStatus, setAccountMessage);
+        setAuditStatus("idle");
+        setAuditMessage("");
+        refreshAccount();
+        replaceUrl(job.reportPath || `/beta/reports/${encodeURIComponent(job.reportId)}`);
         window.requestAnimationFrame(() => window.scrollTo(0, 0));
         return;
       }
-      setReport(payload);
-      setAuditStatus("success");
-      setAuditMessage("Audit saved. Private report URL is ready.");
-      loadAccountSummary(setAccountData, setAccountStatus, setAccountMessage);
+      if (payload.id) queryClient.setQueryData(queryKeys.report(payload.id), payload);
+      setAuditStatus("idle");
+      setAuditMessage("");
+      refreshAccount();
       if (payload.reportPath) {
         replaceUrl(payload.reportPath);
       }
@@ -422,34 +474,37 @@ export function BetaApp({ mountKey }) {
         error.message.toLowerCase().includes("password") ||
         error.message.toLowerCase().includes("invite")
       ) {
-        setIsAuthed(false);
-        storageRemove(BETA_SESSION_KEY);
-        storageRemove(BETA_EMAIL_KEY);
+        markSignedOut();
       }
       setAuditStatus("error");
       setAuditMessage(error.message || "The audit failed. Try another URL.");
     }
   }
 
-  function lock() {
-    fetch("/api/beta/logout", { method: "POST", credentials: "same-origin" }).catch(() => {});
-    storageRemove(BETA_SESSION_KEY);
-    storageRemove(BETA_EMAIL_KEY);
-    setOwnerEmail("");
+  function signOut() {
+    pendingSignOut = fetch("/api/beta/logout", { method: "POST", credentials: "same-origin" }).catch(() => {});
+    queryClient.clear();
+    markSignedOut();
     setLoginEmail("");
     setInviteCode("");
-    setIsAuthed(false);
-    setReport(null);
-    setAccountData(null);
-    replaceUrl("/beta");
+    navigate("/beta", { replace: true });
   }
 
-  const showingReport = Boolean(report && auditStatus === "success");
+  const section = sectionFromPath(location.pathname);
+  const shell = (children) => (
+    <AppShell
+      onSignOut={signOut}
+      ownerEmail={ownerEmail}
+      section={section}
+      showOps={accountData?.owner?.accessMode === "founder-override" || isAdminRoute}
+    >
+      {children}
+    </AppShell>
+  );
 
   if (isAdminRoute) {
-    return (
-      <main className="beta-shell">
-        <BetaTop onLock={lock} showBilling showOps />
+    return shell(
+      <div className="app-page app-page-wide">
         <AdminDashboard
           adminData={adminData}
           adminMessage={adminMessage}
@@ -461,124 +516,153 @@ export function BetaApp({ mountKey }) {
           }}
           onInviteCreated={() => loadAdmin("", setAdminData, setAdminStatus, setAdminMessage)}
         />
-      </main>
+      </div>
     );
+  }
+
+  // No stored hint yet: wait for the server before offering sign-in, so a
+  // valid session is never shown the sign-in screen.
+  if (!isAuthed && session === undefined && sessionQuery.isFetching) {
+    return <div className="app-loading" aria-busy="true" />;
   }
 
   if (!isAuthed) {
     return (
-      <main className="beta-shell beta-gate">
-        <BetaTop />
-        <section className="gate-panel" aria-labelledby="beta-title">
-          <p className="beta-eyebrow">Private beta</p>
-          <h1 id="beta-title">Enter your beta invite</h1>
-          <p>
-            Run evidence-backed audits, save private reports, and generate the repair brief a developer can ship from.
-          </p>
-          <form className="gate-form" onSubmit={login}>
-            <label htmlFor="beta-email">Invite email</label>
-            <input
-              autoComplete="email"
-              id="beta-email"
-              inputMode="email"
-              onChange={(event) => setLoginEmail(event.target.value)}
-              placeholder="you@example.com"
-              required
-              type="email"
-              value={loginEmail}
-            />
-            <label htmlFor="beta-password">Invite code</label>
-            <div className="gate-row">
-              <input
-                autoComplete="current-password"
-                id="beta-password"
-                onChange={(event) => setInviteCode(event.target.value)}
-                required
-                type="password"
-                value={inviteCode}
-              />
-              <button disabled={loginStatus === "submitting"} type="submit">
-                {loginStatus === "submitting" ? "Checking" : "Enter"}
-              </button>
-            </div>
-            <p className={`form-message ${loginStatus}`} aria-live="polite">
-              {loginMessage || "Use an invite code, or email yourself a secure one-use link."}
-            </p>
-            <div className="access-request-row">
-              <span>Need access?</span>
-              <button
-                className="text-button accent-text"
-                disabled={loginStatus === "submitting" || !loginEmail}
-                onClick={requestGateAccess}
-                type="button"
-              >
-                Email access link
-              </button>
-            </div>
-          </form>
-        </section>
-      </main>
+      <SignIn
+        email={loginEmail}
+        inviteCode={inviteCode}
+        message={signInMessage}
+        onCodeSubmit={login}
+        onEmailChange={setLoginEmail}
+        onInviteCodeChange={setInviteCode}
+        onLinkRequest={requestGateAccess}
+        returningToReport={Boolean(reportId)}
+        status={signInStatus}
+      />
     );
   }
 
   if (isBillingRoute) {
-    return (
-      <main className="beta-shell">
-        <BetaTop onLock={lock} showBilling />
-        <BillingPortal ownerEmail={ownerEmail} />
-      </main>
+    return shell(<BillingPortal />);
+  }
+
+  if (section === "report") {
+    return shell(
+      <div className="app-page app-page-wide">
+        <nav className="app-breadcrumb" aria-label="Breadcrumb">
+          <Link discover="none" to="/beta/reports">
+            Reports
+          </Link>
+          <span aria-hidden="true">/</span>
+          <span>{report?.url ? safeHostnameLabel(report.url) : "Report"}</span>
+        </nav>
+        <section className="audit-stage" aria-live="polite">
+          {reportQuery.isPending && <LoadingAuditState message="Loading saved report." />}
+          {reportQuery.isError && (
+            <ErrorAuditState
+              hint="It may have expired, or it belongs to a different account."
+              message={reportQuery.error?.message || "Could not load report."}
+              title="Report unavailable"
+            >
+              <Link className="app-button-secondary" discover="none" to="/beta/reports">
+                Back to reports
+              </Link>
+            </ErrorAuditState>
+          )}
+          {report && <ReportView report={report} />}
+        </section>
+      </div>
     );
   }
 
-  return (
-    <main className="beta-shell">
-      <BetaTop onLock={lock} showBilling />
+  if (section === "reports") {
+    return shell(<ReportsPage accountData={accountData} message={accountMessage} status={accountStatus} />);
+  }
 
-      <section
-        className={`beta-hero ${showingReport ? "beta-hero-compact" : ""}`}
-        aria-labelledby="beta-workspace-title"
-      >
-        <div>
-          <p className="beta-eyebrow">Audit workspace</p>
-          <h1 id="beta-workspace-title">
-            {showingReport ? "Proof-backed SEO audit" : "Find the SEO problem. Prove it. Generate the fix."}
-          </h1>
-          {ownerEmail && <p className="session-note">Private beta session: {ownerEmail}</p>}
+  if (section === "sites") {
+    return shell(
+      <SitesPage
+        accountData={accountData}
+        message={accountMessage}
+        onScheduleCreate={createSchedule}
+        onScheduleDelete={deleteSchedule}
+        onSiteClaim={claimSite}
+        onSiteHostChange={setSiteHost}
+        onSiteVerify={verifySite}
+        scheduleMessage={scheduleMessage}
+        scheduleStatus={scheduleStatus}
+        siteHost={siteHost}
+        siteMessage={siteMessage}
+        siteStatus={siteStatus}
+        status={accountStatus}
+      />
+    );
+  }
+
+  if (section === "developers") {
+    return shell(
+      <div className="app-page">
+        <PageHeader
+          title="Developers"
+          description="Start audits and read results from your own tools with API keys, and get notified with webhooks."
+        />
+        <DeveloperApiPanel
+          apiTokenSecret={apiTokenSecret}
+          developerData={developerData}
+          developerMessage={developerMessage}
+          developerStatus={developerStatus}
+          onApiTokenCreate={createApiToken}
+          onApiTokenRevoke={revokeApiToken}
+          onWebhookCreate={createWebhook}
+          onWebhookRevoke={revokeWebhook}
+          onWebhookUrlChange={setWebhookUrl}
+          webhookSecret={webhookSecret}
+          webhookUrl={webhookUrl}
+        />
+      </div>
+    );
+  }
+
+  const auditPanel = (
+    <>
+      <form className="audit-form" onSubmit={runAudit}>
+        <label htmlFor="audit-url">Page or site URL</label>
+        <div className="audit-row">
+          <input
+            id="audit-url"
+            inputMode="url"
+            onChange={(event) => setTargetUrl(event.target.value)}
+            placeholder="https://example.com"
+            required
+            type="url"
+            value={targetUrl}
+          />
+          <button disabled={auditStatus === "loading"} type="submit">
+            {auditStatus === "loading" ? "Running…" : "Run audit"}
+          </button>
         </div>
-        <form className="audit-form" onSubmit={runAudit}>
-          <label htmlFor="audit-url">Website URL</label>
-          <div className="audit-row">
-            <input
-              id="audit-url"
-              inputMode="url"
-              onChange={(event) => setTargetUrl(event.target.value)}
-              placeholder="https://example.com"
-              required
-              type="url"
-              value={targetUrl}
-            />
-            <button disabled={auditStatus === "loading"} type="submit">
-              {auditStatus === "loading" ? "Auditing" : "Run audit"}
-            </button>
+        <div className="audit-options">
+          <div>
+            <label htmlFor="crawl-depth">How many pages</label>
+            <select id="crawl-depth" onChange={(event) => setMaxPages(event.target.value)} value={maxPages}>
+              {CRAWL_DEPTH_TIERS.map((tier) => (
+                <option key={tier.id} value={tier.pages}>
+                  {tier.label} - {tier.pages} pages
+                </option>
+              ))}
+            </select>
+            <p className="field-note">Up to {formatCount(SELF_SERVE_MAX_CRAWL_PAGES)} pages per audit.</p>
           </div>
-          <label htmlFor="crawl-depth">Crawl depth</label>
-          <select id="crawl-depth" onChange={(event) => setMaxPages(event.target.value)} value={maxPages}>
-            {CRAWL_DEPTH_TIERS.map((tier) => (
-              <option key={tier.id} value={tier.pages}>
-                {tier.label} - {tier.pages} pages
-              </option>
-            ))}
-          </select>
-          <p className="field-note">
-            Self-serve deep crawls currently run up to {formatCount(SELF_SERVE_MAX_CRAWL_PAGES)} pages.
-          </p>
-          <label htmlFor="rendered-crawl-target">Rendered scale target</label>
+        </div>
+        <details className="advanced-inputs">
+          <summary>More options</summary>
+          <label htmlFor="rendered-crawl-target">Very large sites (early access)</label>
           <select
             id="rendered-crawl-target"
             onChange={(event) => setRenderedCrawlTarget(event.target.value)}
             value={renderedCrawlTarget}
           >
-            <option value="0">No staged target</option>
+            <option value="0">Off</option>
             {RENDERED_CRAWL_TARGETS.slice(1).map((tier) => (
               <option key={tier.id} value={tier.pages}>
                 {tier.label} - {formatCount(tier.pages)} pages
@@ -586,125 +670,94 @@ export function BetaApp({ mountKey }) {
             ))}
           </select>
           <p className="field-note">
-            Early access: large targets create a staged batch plan that renders gradually in the background over days to
-            weeks. No full-coverage claim is made until every batch completes.
+            Large sites are audited in batches in the background over days to weeks. Results say clearly how much has
+            been covered so far.
           </p>
-          <details className="advanced-inputs">
-            <summary>Advanced inputs (optional)</summary>
-            <label htmlFor="competitor-urls">Competitors</label>
+          <label htmlFor="competitor-urls">Competitors</label>
+          <textarea
+            id="competitor-urls"
+            onChange={(event) => setCompetitorUrls(event.target.value)}
+            placeholder="https://competitor.com"
+            rows="3"
+            value={competitorUrls}
+          />
+          <label htmlFor="backlink-rows">Backlinks</label>
+          <textarea
+            id="backlink-rows"
+            onChange={(event) => setBacklinkRows(event.target.value)}
+            placeholder="https://source.com/page,https://example.com/page,anchor text"
+            rows="4"
+            value={backlinkRows}
+          />
+          <label htmlFor="keyword-rows">Keyword rows</label>
+          <textarea
+            id="keyword-rows"
+            onChange={(event) => setKeywordRows(event.target.value)}
+            placeholder="query,page,clicks,impressions,ctr,position,previous_clicks,previous_position"
+            rows="4"
+            value={keywordRows}
+          />
+          <div className="local-seo-fields">
+            <label htmlFor="local-business-name">Local business</label>
+            <input
+              id="local-business-name"
+              onChange={(event) => setLocalBusinessName(event.target.value)}
+              placeholder="Bright Dental Austin"
+              type="text"
+              value={localBusinessName}
+            />
+            <label htmlFor="local-phone">Phone</label>
+            <input
+              id="local-phone"
+              onChange={(event) => setLocalPhone(event.target.value)}
+              placeholder="+1 512 555 0199"
+              type="tel"
+              value={localPhone}
+            />
+            <label htmlFor="local-address">Address</label>
             <textarea
-              id="competitor-urls"
-              onChange={(event) => setCompetitorUrls(event.target.value)}
-              placeholder="https://competitor.com"
+              id="local-address"
+              onChange={(event) => setLocalAddress(event.target.value)}
+              placeholder="123 Main St, Austin, TX 78701"
+              rows="2"
+              value={localAddress}
+            />
+            <label htmlFor="google-business-profile-url">Google Business Profile</label>
+            <input
+              id="google-business-profile-url"
+              inputMode="url"
+              onChange={(event) => setGoogleBusinessProfileUrl(event.target.value)}
+              placeholder="https://maps.google.com/?cid=..."
+              type="url"
+              value={googleBusinessProfileUrl}
+            />
+            <label htmlFor="local-keywords">Local keywords</label>
+            <textarea
+              id="local-keywords"
+              onChange={(event) => setLocalKeywords(event.target.value)}
+              placeholder="dentist Austin"
               rows="3"
-              value={competitorUrls}
+              value={localKeywords}
             />
-            <label htmlFor="backlink-rows">Backlinks</label>
+            <label htmlFor="local-citations">Citations</label>
             <textarea
-              id="backlink-rows"
-              onChange={(event) => setBacklinkRows(event.target.value)}
-              placeholder="https://source.com/page,https://example.com/page,anchor text"
-              rows="4"
-              value={backlinkRows}
+              id="local-citations"
+              onChange={(event) => setLocalCitations(event.target.value)}
+              placeholder="https://directory.com/profile,Bright Dental Austin,+1 512 555 0199,123 Main St Austin TX"
+              rows="3"
+              value={localCitations}
             />
-            <label htmlFor="keyword-rows">Keyword rows</label>
-            <textarea
-              id="keyword-rows"
-              onChange={(event) => setKeywordRows(event.target.value)}
-              placeholder="query,page,clicks,impressions,ctr,position,previous_clicks,previous_position"
-              rows="4"
-              value={keywordRows}
-            />
-            <div className="local-seo-fields">
-              <label htmlFor="local-business-name">Local business</label>
-              <input
-                id="local-business-name"
-                onChange={(event) => setLocalBusinessName(event.target.value)}
-                placeholder="Bright Dental Austin"
-                type="text"
-                value={localBusinessName}
-              />
-              <label htmlFor="local-phone">Phone</label>
-              <input
-                id="local-phone"
-                onChange={(event) => setLocalPhone(event.target.value)}
-                placeholder="+1 512 555 0199"
-                type="tel"
-                value={localPhone}
-              />
-              <label htmlFor="local-address">Address</label>
-              <textarea
-                id="local-address"
-                onChange={(event) => setLocalAddress(event.target.value)}
-                placeholder="123 Main St, Austin, TX 78701"
-                rows="2"
-                value={localAddress}
-              />
-              <label htmlFor="google-business-profile-url">Google Business Profile</label>
-              <input
-                id="google-business-profile-url"
-                inputMode="url"
-                onChange={(event) => setGoogleBusinessProfileUrl(event.target.value)}
-                placeholder="https://maps.google.com/?cid=..."
-                type="url"
-                value={googleBusinessProfileUrl}
-              />
-              <label htmlFor="local-keywords">Local keywords</label>
-              <textarea
-                id="local-keywords"
-                onChange={(event) => setLocalKeywords(event.target.value)}
-                placeholder="dentist Austin"
-                rows="3"
-                value={localKeywords}
-              />
-              <label htmlFor="local-citations">Citations</label>
-              <textarea
-                id="local-citations"
-                onChange={(event) => setLocalCitations(event.target.value)}
-                placeholder="https://directory.com/profile,Bright Dental Austin,+1 512 555 0199,123 Main St Austin TX"
-                rows="3"
-                value={localCitations}
-              />
-            </div>
-          </details>
-        </form>
-      </section>
-
-      {!showingReport && (
-        <CustomerDashboard
-          accountData={accountData}
-          developerData={developerData}
-          developerMessage={developerMessage}
-          developerStatus={developerStatus}
-          apiTokenSecret={apiTokenSecret}
-          webhookSecret={webhookSecret}
-          webhookUrl={webhookUrl}
-          onApiTokenCreate={createApiToken}
-          onApiTokenRevoke={revokeApiToken}
-          onScheduleCreate={createSchedule}
-          onScheduleDelete={deleteSchedule}
-          onSiteClaim={claimSite}
-          onSiteHostChange={setSiteHost}
-          onSiteVerify={verifySite}
-          onWebhookCreate={createWebhook}
-          onWebhookRevoke={revokeWebhook}
-          onWebhookUrlChange={setWebhookUrl}
-          message={accountMessage}
-          scheduleMessage={scheduleMessage}
-          scheduleStatus={scheduleStatus}
-          siteHost={siteHost}
-          siteMessage={siteMessage}
-          siteStatus={siteStatus}
-          status={accountStatus}
-        />
-      )}
-
-      <section className="audit-stage" aria-live="polite">
-        {auditStatus === "idle" && <EmptyAuditState />}
+          </div>
+        </details>
+      </form>
+      <div className="audit-stage" aria-live="polite">
         {auditStatus === "loading" && <LoadingAuditState message={auditMessage} />}
         {auditStatus === "error" && <ErrorAuditState message={auditMessage} />}
-        {report && auditStatus === "success" && <ReportView report={report} />}
-      </section>
-    </main>
+      </div>
+    </>
+  );
+
+  return shell(
+    <Overview accountData={accountData} auditPanel={auditPanel} message={accountMessage} status={accountStatus} />
   );
 }

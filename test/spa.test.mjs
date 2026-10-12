@@ -242,16 +242,21 @@ function accountSummary({ sites = [], schedules = [], jobs = [], reports = [] } 
   };
 }
 
-const dashboardHandlers = {
-  "POST /api/beta/login": ({ body }) => ({
-    ok: true,
-    status: "unlocked",
-    ownerEmail: body.email,
-    accessMode: "invite"
-  }),
-  "GET /api/beta/session": () => ({ ok: true, status: "active", ownerEmail: OWNER, accessMode: "invite" }),
-  "GET /api/developer": () => ({ ok: true, tokens: [], webhooks: [] })
-};
+// A browser with no session until the invite-code login sets one.
+function dashboardHandlers() {
+  let signedIn = false;
+  return {
+    "POST /api/beta/login": ({ body }) => {
+      signedIn = true;
+      return { ok: true, status: "unlocked", ownerEmail: body.email, accessMode: "invite" };
+    },
+    "GET /api/beta/session": () =>
+      signedIn
+        ? { ok: true, status: "active", ownerEmail: OWNER, accessMode: "invite" }
+        : { status: 401, body: { error: "Sign in to continue." } },
+    "GET /api/developer": () => ({ ok: true, tokens: [], webhooks: [] })
+  };
+}
 
 function repairBoard(page) {
   return page.getByRole("heading", { name: /safe action drafts/i }).locator("xpath=ancestor::section[1]");
@@ -259,10 +264,11 @@ function repairBoard(page) {
 
 async function signIn(page) {
   await page.goto(`${baseUrl}/beta`);
-  await page.getByLabel("Invite email").fill(OWNER);
+  await page.getByRole("button", { name: "Have an invite code?" }).click();
+  await page.getByLabel("Email").fill(OWNER);
   await page.getByLabel("Invite code").fill("beta-invite");
-  await page.getByRole("button", { name: "Enter" }).click();
-  await visible(page.getByLabel("Website URL"));
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await visible(page.getByLabel("Page or site URL"));
 }
 
 // --- Homepage ---------------------------------------------------------------
@@ -284,19 +290,21 @@ test("homepage renders the React app with the email access form beside a primary
 
   // The served index.html has an empty #root; this heading only exists once
   // the client bundle has mounted the app into it.
-  await visible(page.getByRole("heading", { level: 1, name: "SEO Fix Kit" }));
+  await visible(page.getByRole("heading", { level: 1, name: "SEO fixes you can prove." }));
   assert.ok(await page.locator("#root").getByRole("heading", { level: 1 }).count(), "app renders into #root");
 
-  const emailInput = await visible(page.getByLabel("Email address"));
-  const cta = await visible(page.getByRole("link", { name: "Check one page now" }));
-  assert.equal(await cta.getAttribute("href"), "/check", "primary CTA goes to the anonymous check");
+  const emailInput = await visible(page.getByLabel("Work email"));
+  const cta = await visible(page.getByRole("banner").getByRole("link", { name: "Check a page free" }));
+  assert.equal(await cta.getAttribute("href"), "/check", "primary header CTA goes to the anonymous check");
 
-  // Beside: the CTA sits in the same entry block as the email form.
-  const entry = page.locator("form").filter({ has: emailInput }).locator("xpath=..");
-  assert.equal(await entry.getByRole("link", { name: "Check one page now" }).count(), 1, "CTA sits beside the form");
+  // Beside: the email form carries its own link to the anonymous check.
+  const form = page.locator("form").filter({ has: emailInput });
+  const formCta = form.getByRole("link", { name: /Check one page without an account/ });
+  assert.equal(await formCta.count(), 1, "the anonymous check link sits beside the form");
+  assert.equal(await formCta.getAttribute("href"), "/check");
 
   await emailInput.fill("founder@example.com");
-  await page.getByRole("button", { name: "Email access link" }).click();
+  await page.getByRole("button", { name: "Get started free" }).click();
   await visible(page.getByText("Check your email for a secure access link."));
   const sent = requests.find((request) => request.path === "/api/access/request");
   assert.equal(sent.method, "POST");
@@ -307,29 +315,100 @@ test("homepage FAQ shows the buyer questions, the anonymous /check path, and no-
   const { page } = await openApp(t);
   await page.goto(baseUrl);
 
+  const faq = page.locator("details").filter({ has: page.locator("summary") });
   for (const question of [
     "What happens after I enter a URL?",
     "What does the paid Fix Pack include?",
     "How is AI or GEO readiness handled?",
-    "What is not live yet?"
+    "What doesn’t SEO Fix Kit do?"
   ]) {
-    await visible(page.getByRole("heading", { name: question }));
+    const summary = await visible(page.locator("summary", { hasText: question }));
+    await summary.click();
   }
+  assert.equal(await faq.count(), 4, "the FAQ lists the four buyer questions");
 
-  const anonymousAnswer = await visible(
-    page.locator("p").filter({ hasText: /Anyone can check one public page now at\s*\/check\s*with no account/ })
+  await visible(
+    page.locator("details p").filter({ hasText: "Anyone can check one public page right now with no account" })
   );
-  assert.equal(await anonymousAnswer.getByRole("link", { name: "/check" }).getAttribute("href"), "/check");
 
-  const notLive = await visible(
-    page.locator("article").filter({ has: page.getByRole("heading", { name: "What is not live yet?" }) })
-  );
-  const answer = (await notLive.innerText()).replace(/\s+/g, " ");
+  const limits = page
+    .locator("details")
+    .filter({ has: page.locator("summary", { hasText: "What doesn’t SEO Fix Kit do?" }) });
+  const answer = (await limits.innerText()).replace(/\s+/g, " ");
   assert.match(answer, /does not auto-publish content/);
   assert.match(answer, /guarantee rankings, traffic, indexing, AI citations, or revenue/);
 });
 
 // --- Beta workspace ---------------------------------------------------------
+
+test("a valid session opens the workspace even when the browser lost its stored sign-in hint", async (t) => {
+  const { page } = await openApp(t, {
+    "GET /api/beta/session": () => ({ ok: true, status: "active", ownerEmail: OWNER, accessMode: "invite" }),
+    "GET /api/account/summary": () => accountSummary(),
+    "GET /api/developer": () => ({ ok: true, tokens: [], webhooks: [] })
+  });
+  await page.goto(`${baseUrl}/beta`);
+  await visible(page.getByRole("heading", { name: "Overview" }));
+  assert.equal(await page.getByRole("button", { name: "Email me a sign-in link" }).count(), 0);
+});
+
+test("the Reports page lists every saved report, older ones on request", async (t) => {
+  const report = (index) => ({
+    id: `report-${index}`,
+    url: `https://example.com/page-${index}`,
+    targetHost: "example.com",
+    score: 80,
+    pagesScanned: 1,
+    totalFindings: 0,
+    reportPath: `/beta/reports/report-${index}`,
+    createdAt: isoFromNow(-index * 60_000),
+    expiresAt: isoFromNow(29 * 24 * 3600_000)
+  });
+  const { page, requests } = await openApp(t, {
+    "GET /api/beta/session": () => ({ ok: true, status: "active", ownerEmail: OWNER, accessMode: "invite" }),
+    "GET /api/account/summary": () => accountSummary(),
+    "GET /api/reports": ({ path }) => ({ ok: true, reports: [report(1), report(2)], nextCursor: "c1", path }),
+    "GET /api/developer": () => ({ ok: true, tokens: [], webhooks: [] })
+  });
+  await page.route("**/api/reports?cursor=*", (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({ ok: true, reports: [report(3)], nextCursor: "" })
+    })
+  );
+  await page.goto(`${baseUrl}/beta/reports`);
+  await visible(page.locator('a[href="/beta/reports/report-2"]').first());
+  await page.getByRole("button", { name: "Show older reports" }).click();
+  await visible(page.locator('a[href="/beta/reports/report-3"]').first());
+  assert.equal(await page.getByRole("button", { name: "Show older reports" }).count(), 0);
+  assert.ok(requests.some((request) => request.path === "/api/reports"));
+});
+
+test("a one-use sign-in link signs in once, cleans the address bar, and opens the dashboard", async (t) => {
+  const { page, requests } = await openApp(t, {
+    "POST /api/access/verify": () => ({ ok: true, status: "unlocked", ownerEmail: OWNER }),
+    "GET /api/beta/session": () => ({ ok: true, status: "active", ownerEmail: OWNER, accessMode: "invite" }),
+    "GET /api/account/summary": () => accountSummary(),
+    "GET /api/developer": () => ({ ok: true, tokens: [], webhooks: [] })
+  });
+  await page.goto(`${baseUrl}/beta?access=one-use-token&email=${encodeURIComponent(OWNER)}`);
+  await visible(page.getByRole("heading", { name: "Overview" }));
+  const url = new URL(page.url());
+  assert.equal(url.pathname, "/beta");
+  assert.equal(url.search, "", "the token and email are removed from the address bar");
+  const verifies = requests.filter((request) => request.path === "/api/access/verify");
+  assert.equal(verifies.length, 1, "the one-use token is spent exactly once");
+  assert.equal(verifies[0].body.token, "one-use-token");
+});
+
+test("an expired sign-in link shows the reason on the sign-in screen", async (t) => {
+  const { page } = await openApp(t, {
+    "POST /api/access/verify": () => ({ status: 401, body: { error: "This sign-in link has expired." } })
+  });
+  await page.goto(`${baseUrl}/beta?access=old-token`);
+  await visible(page.getByText("This sign-in link has expired."));
+  await visible(page.getByRole("button", { name: "Email me a sign-in link" }));
+});
 
 test("a queued audit polls /api/audit/jobs/:id until completed before the private report loads", async (t) => {
   assert.match(
@@ -348,8 +427,8 @@ test("a queued audit polls /api/audit/jobs/:id until completed before the privat
   };
   const jobStatuses = ["queued", "completed"];
   const { page, requests } = await openApp(t, {
-    ...dashboardHandlers,
     ...reportHandlers(report),
+    ...dashboardHandlers(),
     "GET /api/account/summary": () => accountSummary(),
     "POST /api/audit": () => ({
       status: 202,
@@ -369,7 +448,7 @@ test("a queued audit polls /api/audit/jobs/:id until completed before the privat
   });
   await signIn(page);
 
-  await page.getByLabel("Website URL").fill(report.url);
+  await page.getByLabel("Page or site URL").fill(report.url);
   await page.getByRole("button", { name: "Run audit" }).click();
   await visible(page.getByText("Audit queued. Waiting for proof collection to start."));
   await visible(page.getByRole("heading", { name: "example.com", level: 2 }));
@@ -397,7 +476,7 @@ test("the dashboard adds a weekly monitor for a verified host and pauses it", as
   });
   let schedules = [];
   const { page, requests } = await openApp(t, {
-    ...dashboardHandlers,
+    ...dashboardHandlers(),
     "GET /api/account/summary": () => accountSummary({ sites: [site], schedules }),
     "POST /api/audit/schedules": ({ body }) => {
       const schedule = auditScheduleResponse({
@@ -417,6 +496,7 @@ test("the dashboard adds a weekly monitor for a verified host and pauses it", as
     }
   });
   await signIn(page);
+  await page.getByRole("navigation", { name: "App" }).getByRole("link", { name: "Sites & monitoring" }).click();
 
   await (await visible(page.getByRole("button", { name: "Monitor weekly" }))).click();
   await visible(page.getByText("example.com will be checked weekly."));
@@ -425,7 +505,7 @@ test("the dashboard adds a weekly monitor for a verified host and pauses it", as
   assert.equal(add.body.intervalDays, 7, "monitor is weekly");
 
   const [schedule] = schedules;
-  await (await visible(page.getByRole("button", { name: "Pause monitor" }))).click();
+  await (await visible(page.getByRole("button", { name: "Pause monitoring" }))).click();
   await visible(page.getByText("Monitor paused."));
   await until(
     () =>
