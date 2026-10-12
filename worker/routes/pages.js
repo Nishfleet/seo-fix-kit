@@ -43,7 +43,7 @@ SEO Fix Kit is a private-beta, self-serve SEO audit and paid Fix Pack workflow.
 
 Live product claims:
 - Visitors can request a secure email access link.
-- Anyone can anonymously check one public page URL at /check and see rendered proof, guarded false positives, and actionable findings when present, with no account and no stored report.
+- Anyone can anonymously check one public page URL at /check and see real-browser evidence, the false alarms it rules out, and real problems with fixes, with no account and no stored report.
 - Verified sessions can run rate-limited private audits and save owner-only reports.
 - Verified sessions can choose self-serve crawl depth up to 1,000 pages per queued audit.
 - Reports include robots.txt and sitemap crawl inventory up to 50,000 discovered URLs.
@@ -275,9 +275,9 @@ ${pageSocialHead({ origin, title: "Proof-Backed SEO Repair Demo - SEO Fix Kit", 
     <main>
       ${siteHeader(origin)}
       <section>
-        <p class="kicker">Public sample · Proof loop</p>
-        <h1>Do not fix what is not broken.</h1>
-        <p>Weak SEO scanners read the raw app shell and invent work. SEO Fix Kit compares raw HTML with the rendered page, shows the proof, and only creates a repair when the browser-visible page is actually wrong.</p>
+        <p class="kicker">Sample report · Real output</p>
+        <h1>Fix only what is actually broken.</h1>
+        <p>Basic SEO scanners read a page’s raw code and flag problems that aren’t there. SEO Fix Kit loads the page in a real browser, shows the evidence, and only suggests a fix when something is actually wrong.</p>
       </section>
       <section class="grid" aria-label="Sample audit outcome">
         <article class="panel">
@@ -290,14 +290,14 @@ ${pageSocialHead({ origin, title: "Proof-Backed SEO Repair Demo - SEO Fix Kit", 
         </article>
         <article class="panel">
           <strong>Repair brief</strong>
-          <p>No thin-content fix is queued: the engine guards the warning with rendered-word evidence. Issues that are real still surface — noindex, a canonical conflict, a missing share image, missing schema — with a suggested fix and an exact snippet when the engine can generate one.</p>
+          <p>No thin-content fix is queued: the browser evidence rules that warning out. Issues that are real still surface — noindex, a canonical conflict, a missing share image, missing schema — with a suggested fix and an exact snippet when the engine can generate one.</p>
         </article>
       </section>
       <section class="panel proof">
         <h2>Real engine output for the public test page</h2>
         <p>The proof below is verbatim output from the SEO Fix Kit audit engine run against SEO Fix Kit's own <a href="${origin}${DEMO_FIXTURE_PATH}">public test page</a> — the same engine, the same page, and the same proof fields used for private reports. Every finding below is engine-generated, not hand-written demo copy.</p>
         <p><strong>Measured on the test page:</strong> ${DEMO_PROOF.measured.staticWordCount} visible words in the raw HTML response vs ${DEMO_PROOF.measured.renderedWordCount} words, one H1, and ${DEMO_PROOF.measured.renderedInternalLinkCount} internal links after browser render.</p>
-        <p><strong>Guarded false positives:</strong></p>
+        <p><strong>False alarms ruled out:</strong></p>
         <ul>
 ${DEMO_PROOF.guards
   .map(
@@ -337,7 +337,7 @@ ${DEMO_PROOF.repairPlan.map((item) => `          <li><strong>${escapeHtml(item.s
       </section>
       <section>
         <h2>What this sample does not claim</h2>
-        <p>This page is a sample, not an audit of your site. The proof excerpt above is the engine's real output for the test page, not a preview of your site's results. Anonymous one-page checks are live at ${origin}/check: paste a public URL and get rendered proof, guarded false positives, and actionable findings when present — with no account, no email, and no stored report. Full reports still run inside the private beta after secure email access and, for deeper crawls, site verification. Neither the sample nor the one-page check promises rankings, traffic, indexing, revenue, AI citations, or live answer-engine visibility. The product standard is the same everywhere: prove the issue, avoid false positives, ask for approval, then rerun the same measurement after the fix.</p>
+        <p>This page is a sample, not an audit of your site. The proof excerpt above is the engine's real output for the test page, not a preview of your site's results. Anonymous one-page checks are live at ${origin}/check: paste a public URL and get real-browser evidence, the false alarms it rules out, and real problems with fixes — with no account, no email, and no stored report. Full reports still run inside the private beta after secure email access and, for deeper crawls, site verification. Neither the sample nor the one-page check promises rankings, traffic, indexing, revenue, AI citations, or live answer-engine visibility. The product standard is the same everywhere: prove the issue, avoid false positives, ask for approval, then rerun the same measurement after the fix.</p>
       </section>
       <p><a class="cta" href="${origin}/check">Check one page now</a></p>
       ${siteFooter(origin)}
@@ -368,7 +368,7 @@ function methodologyHtml(origin) {
       <section class="band">
         <h2>What is live today</h2>
         <ul class="check-list">
-          <li>Anonymous one-page checks at <a href="${origin}/check">${origin}/check</a>: paste a public URL and get rendered proof, guarded false positives, and actionable findings when present, with no account and no stored report.</li>
+          <li>Anonymous one-page checks at <a href="${origin}/check">${origin}/check</a>: paste a public URL and get real-browser evidence, the false alarms it rules out, and real problems with fixes, with no account and no stored report.</li>
           <li>Private self-serve audits for authorized sites, with 1-page Lite checks and verified-host crawl depths up to 1,000 pages.</li>
           <li>Rendered page proof, sitemap inventory up to 50,000 discovered URLs, crawl intelligence, resource waterfall proof, platform SEO checks, proof-derived AI Answer Readiness, draft-only growth briefs, competitor homepage benchmarks, and supplied backlink/local/keyword imports.</li>
           <li>Private report repair queues with proof, status, safe drafts, approval state, owner-approved implementation packs, proof receipts after fixed reruns, teammate assignment, account-level next actions, and one Fix Pack checkout path when real fixes exist.</li>
@@ -641,7 +641,7 @@ function smallBusinessSeoAuditHtml(origin) {
         </ul>
       </section>
       <section class="grid three" aria-label="How to start">
-        <article class="panel proof"><strong>Free one-page check</strong><p>Paste a public URL at ${origin}/check. You get rendered proof, guarded false positives, and actionable findings when present — no account, no email, nothing stored.</p></article>
+        <article class="panel proof"><strong>Free one-page check</strong><p>Paste a public URL at ${origin}/check. You get real-browser evidence, the false alarms it rules out, and real problems with fixes — no account, no email, nothing stored.</p></article>
         <article class="panel"><strong>Private audit for your site</strong><p>Request a secure email access link for rate-limited private audits. Verified hosts unlock self-serve crawl depth up to 1,000 pages per queued audit.</p></article>
         <article class="panel"><strong>Fix Pack only when fixes exist</strong><p>The paid offer is one proof-backed repair pass tied to one report, plus one rerun after fixes. Dodo shows the checkout price before payment.</p></article>
       </section>
@@ -720,7 +720,7 @@ function renderedVsStaticAuditHtml(origin) {
         <h2>Where you can see it live</h2>
         <ul class="check-list">
           <li>${origin}/demo: the public sample shows a static scanner's false positive against the rendered proof, step by step.</li>
-          <li>${origin}/check: paste any public URL and get rendered proof, guarded false positives, and actionable findings when present — no account and nothing stored.</li>
+          <li>${origin}/check: paste any public URL and get real-browser evidence, the false alarms it rules out, and real problems with fixes — no account and nothing stored.</li>
           <li>Private reports for verified sites include rendered crawl intelligence, resource waterfall proof, and rerun deltas.</li>
         </ul>
       </section>
@@ -832,7 +832,7 @@ function aiAnswerReadinessHtml(origin) {
       <section class="band">
         <h2>How to get the check</h2>
         <ul class="check-list">
-          <li>Free: paste a public URL at ${origin}/check for rendered proof, guarded false positives, and actionable findings when present — no account and nothing stored.</li>
+          <li>Free: paste a public URL at ${origin}/check for real-browser evidence, the false alarms it rules out, and real problems with fixes — no account and nothing stored.</li>
           <li>Private reports for verified sites include proof-derived AI Answer Readiness checks beside the rendered crawl evidence. Import Search Console rows on the same audit to rank those faults by traffic.</li>
           <li>Read the exact boundaries on ${origin}/methodology before relying on any readiness signal.</li>
         </ul>

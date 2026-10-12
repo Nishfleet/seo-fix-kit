@@ -680,14 +680,14 @@ test("README anonymous one-page check claim matches the Worker, page, and rate l
   assert.match(liveSection, /Public anonymous one-page URL check at `\/check` and `POST \/api\/public-check`/i);
   assert.match(liveSection, /per-network and per-site rate limits with hashed, short-lived counters/i);
   assert.match(liveSection, /no stored report/i);
-  assert.match(liveSection, /handoff into private beta access with no ranking promise/i);
+  assert.match(liveSection, /handoff into a free account with no ranking promise/i);
   assert.ok(workerRoutes("/check", "GET"), "Worker must route /check");
   assert.ok(workerRoutes("/api/public-check", "POST"), "Worker must route /api/public-check");
   assert.match(liveSection, /real browser rendering of one public page/i);
   const page = visibleText(await publicPage("/check"));
   assert.match(
     page,
-    /opens the page in a real browser|open the page in a real browser/i,
+    /(?:opens|open|load) (?:the page|it) in a real browser/i,
     "the public check copy states real browser rendering"
   );
   assert.match(
@@ -2366,7 +2366,7 @@ test("README anonymous one-page check claim keeps browser proof, guards, rate wi
   assert.match(liveSection, /real browser rendering of one public page/i);
   assert.match(liveSection, /per-network and per-site rate limits/i);
   assert.match(liveSection, /no stored report/i);
-  assert.match(liveSection, /handoff into private beta access/i);
+  assert.match(liveSection, /handoff into a free account/i);
   // Browser proof, static/rendered word counts, and guarded false positives
   // come from a real engine run in worker/routes/public-check.test.mjs ("public
   // check output is verbatim engine output for the public test page").
@@ -2400,16 +2400,12 @@ test("README anonymous one-page check claim keeps browser proof, guards, rate wi
   assert.deepEqual(tablesWithRows, ["audit_usage"], "the check stores nothing beyond rate-limit counters");
   const page = visibleText(await publicPage("/check"));
   assert.match(page, /No report or URL from your check is stored/, "the page states nothing is stored");
-  assert.match(page, /Actionable findings|guarded false positive/i, "findings and guards render when present");
-  assert.match(
-    page,
-    /run in the private beta after secure email access/,
-    "the page hands off into private beta access"
-  );
+  assert.match(page, /Real problems only|False alarms ruled out/, "findings and guards render when present");
+  assert.match(page, /come with a free account/, "the page hands off into a free account");
   assert.match(
     buildPublicCheckResponse(await fixtureAudit()).nextStep,
-    /The full repair workflow runs in the private beta/,
-    "the check hands off into private beta access"
+    /create a free account/,
+    "the check hands off into a free account"
   );
 });
 
@@ -2568,7 +2564,7 @@ test("README anonymous-check claim keeps the deployed copy locked to the live sp
   for (const surface of [
     { path: "/check", copy: "Check One Page for SEO Proof" },
     { path: "/check", copy: "No account, no email, no stored report" },
-    { path: "/demo", copy: "Do not fix what is not broken." },
+    { path: "/demo", copy: "Fix only what is actually broken." },
     { path: "/demo", copy: "an exact snippet when the engine can generate one" },
     { path: "/methodology", copy: "Limits we state up front" },
     { path: "/pricing", copy: "Free to find it. Pay only to fix it." },

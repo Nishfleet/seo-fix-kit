@@ -684,12 +684,12 @@ test("public one-page check page is a truthful, searchable entry path", () => {
   assert.match(check, /id="check-form"/);
   assert.match(check, /Check this page/);
   assert.match(check, new RegExp(`${origin}/api/public-check`));
-  assert.match(check, /Rendered evidence/);
-  assert.match(check, /Guarded false positives/);
-  assert.match(check, /Findings when present/);
-  assert.match(check, /Measured handoff/);
+  assert.match(check, /What the browser sees/);
+  assert.match(check, /False alarms ruled out/);
+  assert.match(check, /Real problems only/);
+  assert.match(check, /Your whole site, next/);
   assert.match(check, /does not guarantee rankings, traffic, indexing, revenue, AI citations/i);
-  assert.match(check, /Request private access/);
+  assert.match(check, /Create a free account/);
   assert.match(check, /Rate-limited per network and per site/i);
   assert.match(check, /no report or URL is stored/i);
   assert.match(check, /Frequently asked questions/);

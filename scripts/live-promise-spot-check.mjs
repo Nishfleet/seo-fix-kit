@@ -128,7 +128,7 @@ export function publicPageSpotChecks(baseUrl) {
       isPage: true,
       acceptStatuses: [200],
       expectations: [
-        { reason: "proof-loop headline", match: "Do not fix what is not broken." },
+        { reason: "proof-loop headline", match: "Fix only what is actually broken." },
         { reason: "static-vs-rendered proof panels", match: "Rendered proof" },
         { reason: "no-overclaim section", match: "What this sample does not claim" },
         {
@@ -151,9 +151,9 @@ export function publicPageSpotChecks(baseUrl) {
         { reason: "URL check form", match: 'id="check-form"' },
         { reason: "no-account proof promise", match: "No account, no email, no stored report" },
         { reason: "no-storage disclosure", match: "short-lived anonymous rate-limit counters" },
-        { reason: "guarded false positives promise", match: "Guarded false positives" },
+        { reason: "false alarms ruled out promise", match: "False alarms ruled out" },
         { reason: "no-overclaim section", match: "What this check does not claim" },
-        { reason: "handoff into private access", match: "Request private access" }
+        { reason: "handoff into a free account", match: "Create a free account" }
       ]
     },
     {

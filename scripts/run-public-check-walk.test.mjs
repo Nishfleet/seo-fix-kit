@@ -85,7 +85,7 @@ test("walk passes against the exact payload shape the API returns for the fixtur
   assert.equal(result.proof.guards.length, 1);
   assert.equal(result.proof.guards[0].severity, "good");
   assert.equal(result.proof.findings.length, 2);
-  assert.ok(result.proof.nextStep.includes("private beta"), "access conversion hands into the private beta");
+  assert.ok(result.proof.nextStep.includes("create a free account"), "access conversion hands into a free account");
   assert.ok(result.proof.boundary.includes("does not guarantee rankings"), "boundary keeps the no-ranking promise");
 });
 
@@ -113,7 +113,7 @@ test("walk fails when measured word counts are not real numbers", async () => {
   assert.ok(failures.includes("measured word counts are not numbers"));
 });
 
-test("walk fails when the next step or boundary stops handing into private access", async () => {
+test("walk fails when the next step or boundary stops handing into a free account", async () => {
   const noHandoff = passingPayload();
   noHandoff.nextStep = "Nothing more to do.";
   const handoffFailures = validateWalkPayload(noHandoff);

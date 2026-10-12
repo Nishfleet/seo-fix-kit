@@ -18,8 +18,8 @@
 //   block as a proposed change, so the anonymous surface never presents
 //   generated repair markup as an unlabeled observed snippet.
 // - Full multi-page audits, saved proof reports, site verification, and the
-//   repair queue remain inside the private beta; this route only measures
-//   the handoff into that private access.
+//   repair queue need a signed-in account; this route only measures
+//   the handoff into that account.
 // - Engine failures are mapped through friendlyCheckError() into visitor
 //   copy; raw browser diagnostics (net::ERR_*) never leak into the response.
 import { VERSION, normalizeUrl, publicAuditUrlStatus } from "../../shared/audit-engine.js";
@@ -51,7 +51,7 @@ export const PUBLIC_CHECK_LIMITS = {
 };
 
 const NEXT_STEP_COPY =
-  "The full repair workflow runs in the private beta: secure email access, site verification for deeper crawls, a saved proof report, and a repair queue with acceptance checks and one rerun after fixes. No ranking promise is made.";
+  "To fix what this check found, create a free account: verify your site to audit up to 1,000 pages, save reports, and work through a repair checklist with one rerun to confirm the fixes. No ranking promise is made.";
 const BOUNDARY_COPY =
   "This check measured one public page at scan time. It is not a full site audit, and no report or URL is stored: only short-lived anonymous rate-limit counters (a hash of your network and a hash of the checked site) are kept and expire automatically. It does not guarantee rankings, traffic, indexing, revenue, AI citations, or live answer-engine visibility.";
 
@@ -255,7 +255,7 @@ export function checkJsonLd(origin) {
         "@id": `${url}#webpage`,
         name: "Check One Page for SEO Proof - SEO Fix Kit",
         description:
-          "Paste any public URL. A browser-rendered SEO audit proves measured evidence, guarded false positives, and actionable findings. No account, no ranking promises.",
+          "Check any public page in a real browser. See real SEO problems with fixes, plus the false alarms ruled out. No account needed, and no ranking promises.",
         url,
         isPartOf: { "@type": "WebSite", name: "SEO Fix Kit", url: origin },
         publisher: { "@type": "Organization", name: "SEO Fix Kit", url: origin },
@@ -270,7 +270,7 @@ export function checkJsonLd(origin) {
             name: "What does the one-page check measure?",
             acceptedAnswer: {
               "@type": "Answer",
-              text: "It opens one public page in a real browser and compares the raw HTML with the rendered page: static vs rendered word count, rendered H1, rendered title, and internal links. It also shows guarded false positives and actionable findings when the shared audit engine finds them. No account, no email, and no stored report."
+              text: "It opens one public page in a real browser and compares the raw HTML with the rendered page: static vs rendered word count, rendered H1, rendered title, and internal links. It also shows which common warnings the real page rules out, and any real problems it finds, each with a fix. No account, no email, and no stored report."
             }
           },
           {
@@ -286,7 +286,7 @@ export function checkJsonLd(origin) {
             name: "Is this a full site audit?",
             acceptedAnswer: {
               "@type": "Answer",
-              text: "No. This is one public page at one moment, not a full multi-page audit. Full reports, deeper crawls, saved proof reports, and the repair queue run in the private beta after secure email access."
+              text: "No. This is one public page at one moment, not a full multi-page audit. Full reports of up to 1,000 pages, saved reports, and the repair checklist come with a free account."
             }
           },
           {
@@ -311,7 +311,7 @@ export function checkHtml(origin) {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Check One Page for SEO Proof - SEO Fix Kit</title>
-    <meta name="description" content="Paste any public URL. A browser-rendered SEO audit proves measured evidence, guarded false positives, and actionable findings. No account, no ranking promises." />
+    <meta name="description" content="Check any public page in a real browser. See real SEO problems with fixes, plus the false alarms ruled out. No account needed, and no ranking promises." />
     <link rel="canonical" href="${origin}/check" />${publicAssetHead(origin)}
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="SEO Fix Kit" />
@@ -372,9 +372,9 @@ export function checkHtml(origin) {
     <main>
       ${siteHeader(origin)}
       <section class="box-min">
-        <p class="kicker">Anonymous one-page check · Proof before access</p>
-        <h1 class="box-min">See what a browser-visible audit proves about one page.</h1>
-        <p class="lead">Paste a public URL. We open the page in a real browser, compare the raw HTML with the rendered page, and show the evidence — guarded false positives included. No account, no email, no stored report.</p>
+        <p class="kicker">Free page check · No account needed</p>
+        <h1 class="box-min">Check any page the way a browser sees it.</h1>
+        <p class="lead">Paste a public URL. We load it in a real browser, compare it with the raw HTML that simple crawlers read, and show what is actually wrong, plus the warnings that don’t apply. No account, no email, no stored report.</p>
       </section>
       <form class="check-form" id="check-form" aria-label="One-page URL check">
         <label for="url-input">Public page URL</label>
@@ -387,20 +387,20 @@ export function checkHtml(origin) {
       <section class="result" id="result" aria-live="polite"></section>
       <section class="grid" aria-label="What the check returns">
         <article class="panel proof">
-          <strong>Rendered evidence</strong>
-          <p>Measured facts from the browser-visible page: static vs rendered word count, rendered H1, title, and internal links.</p>
+          <strong>What the browser sees</strong>
+          <p>Measured facts from the loaded page: word count before and after JavaScript, the main heading, the title, and internal links.</p>
         </article>
         <article class="panel proof">
-          <strong>Guarded false positives</strong>
-          <p>Static-only scanners invent work on app-shell pages. We show which warnings the rendered page disproves.</p>
+          <strong>False alarms ruled out</strong>
+          <p>Basic scanners flag problems on pages that load content with JavaScript. We show which of those warnings the real page proves wrong.</p>
         </article>
         <article class="panel proof">
-          <strong>Findings when present</strong>
-          <p>Only real, evidence-backed issues become findings, with a concrete fix and a proposed markup change when the engine has one.</p>
+          <strong>Real problems only</strong>
+          <p>Only issues backed by evidence are reported, each with a concrete fix and a proposed markup change when we can generate one.</p>
         </article>
         <article class="panel proof">
-          <strong>Measured handoff</strong>
-          <p>Full reports, deeper crawls, saved proof, and the repair queue run in the private beta after secure email access.</p>
+          <strong>Your whole site, next</strong>
+          <p>Create a free account to audit up to 1,000 pages, save reports, and track every fix.</p>
         </article>
       </section>
       <section class="band">
@@ -410,18 +410,18 @@ export function checkHtml(origin) {
       <section class="band" aria-label="Frequently asked questions">
         <h2>Frequently asked questions</h2>
         <h3>What does the one-page check measure?</h3>
-        <p>It opens one public page in a real browser and compares the raw HTML with the rendered page: static vs rendered word count, rendered H1, rendered title, and internal links. It also shows guarded false positives and actionable findings when the shared audit engine finds them. No account, no email, and no stored report.</p>
+        <p>It opens one public page in a real browser and compares the raw HTML with the rendered page: static vs rendered word count, rendered H1, rendered title, and internal links. It also shows which common warnings the real page rules out, and any real problems it finds, each with a fix. No account, no email, and no stored report.</p>
         <h3>Is anything about my check stored?</h3>
         <p>No report or URL from your check is stored. The only records are short-lived anonymous rate-limit counters: a hash of your network and a hash of the checked site, which expire automatically.</p>
         <h3>Is this a full site audit?</h3>
-        <p>No. This is one public page at one moment, not a full multi-page audit. Full reports, deeper crawls, saved proof reports, and the repair queue run in the private beta after secure email access.</p>
+        <p>No. This is one public page at one moment, not a full multi-page audit. Full reports of up to 1,000 pages, saved reports, and the repair checklist come with a free account.</p>
         <h3>Does this check promise rankings or traffic?</h3>
         <p>No. The one-page check does not guarantee rankings, traffic, indexing, revenue, AI citations, or live answer-engine visibility, and it does not replace a private multi-page report.</p>
       </section>
       <section class="band next-step">
         <h2>After the check</h2>
-        <p>To turn proof into a repair workflow, request a secure email access link: verified sessions get saved proof reports, crawl depth up to 1,000 pages per queued audit, and a repair queue with acceptance checks and one rerun after fixes.</p>
-        <p><a class="cta" href="${origin}/">Request private access</a></p>
+        <p>To fix what you found, create a free account. You get saved reports, audits of up to 1,000 pages, and a repair checklist with one rerun to confirm the fixes worked.</p>
+        <p><a class="cta" href="${origin}/beta">Create a free account</a></p>
       </section>
       ${siteFooter(origin)}
     </main>
@@ -536,9 +536,9 @@ export function checkHtml(origin) {
             section.appendChild(grid);
             result.appendChild(section);
 
-            const guardSection = resultSection("Guarded false positives");
+            const guardSection = resultSection("False alarms ruled out");
             if (payload.guards.length === 0) {
-              guardSection.appendChild(el("p", "No static-vs-rendered false positives were found on this page."));
+              guardSection.appendChild(el("p", "No false alarms to rule out on this page."));
             } else {
               for (const guard of payload.guards) {
                 guardSection.appendChild(findingNode(guard));
@@ -546,9 +546,9 @@ export function checkHtml(origin) {
             }
             result.appendChild(guardSection);
 
-            const findingSection = resultSection("Actionable findings");
+            const findingSection = resultSection("Problems to fix");
             if (payload.findings.length === 0) {
-              findingSection.appendChild(el("p", "No actionable findings on this one page from this scan."));
+              findingSection.appendChild(el("p", "No problems found on this page in this check."));
             } else {
               for (const finding of payload.findings) {
                 findingSection.appendChild(findingNode(finding));
@@ -559,8 +559,8 @@ export function checkHtml(origin) {
             result.appendChild(el("p", payload.nextStep));
             result.appendChild(el("p", payload.boundary));
             result.appendChild(el("p", ""));
-            const cta = el("a", "Continue to private access", "cta");
-            cta.href = "${origin}/";
+            const cta = el("a", "Create a free account", "cta");
+            cta.href = "${origin}/beta";
             result.appendChild(cta);
           } catch (error) {
             result.replaceChildren(el("div", "Could not reach the check service. Try again in a moment.", "error-box"));
