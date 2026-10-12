@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { DEFAULT_CRAWL_PAGES } from "../../../shared/crawl-depth.js";
 import { CopyButton } from "../../components/CopyButton.jsx";
 import { Metric } from "../../components/Metric.jsx";
@@ -25,6 +26,13 @@ export function ReportView({ report }) {
   const issues = useMemo(() => (report.findings || []).filter((finding) => finding.severity !== "good"), [report]);
   const guarded = useMemo(() => (report.findings || []).filter((finding) => finding.severity === "good"), [report]);
   const topFixes = report.repairPlan || [];
+  const [severityFilter, setSeverityFilter] = useState("all");
+  const severityFilters = SEVERITY_FILTERS.map((filter) => ({
+    ...filter,
+    count: filter.key === "all" ? issues.length : issues.filter((issue) => issue.severity === filter.key).length
+  }));
+  const showSeverityFilter = severityFilters.filter((filter) => filter.key !== "all" && filter.count).length > 1;
+  const visibleIssues = severityFilter === "all" ? issues : issues.filter((issue) => issue.severity === severityFilter);
   const competitorBenchmark = report.competitorBenchmark || null;
   const crawlInventory = report.crawlInventory || report.crawl_inventory || null;
   const renderedCrawlScale = report.renderedCrawlScale || report.rendered_crawl_scale || null;
@@ -142,10 +150,10 @@ export function ReportView({ report }) {
       )}
 
       <section className="app-stats report-stats" aria-label="Audit summary">
-        <Metric label="Critical" value={report.summary?.critical || 0} />
-        <Metric label="Warnings" value={report.summary?.warnings || 0} />
-        <Metric label="Notices" value={report.summary?.notices || 0} />
-        <Metric label="False alarms blocked" value={report.summary?.guardedFalsePositives || 0} />
+        <Metric label="Critical" tone="critical" value={report.summary?.critical || 0} />
+        <Metric label="Warnings" tone="warning" value={report.summary?.warnings || 0} />
+        <Metric label="Notices" tone="notice" value={report.summary?.notices || 0} />
+        <Metric label="False alarms blocked" tone="good" value={report.summary?.guardedFalsePositives || 0} />
       </section>
 
       <ReportTabs tabs={tabs}>
@@ -164,7 +172,13 @@ export function ReportView({ report }) {
                       return (
                         <li key={`${fix.priority || "ok"}-${fix.title}`}>
                           {anchor ? (
-                            <a href={`#${anchor}`} onClick={() => openFinding(anchor)}>
+                            <a
+                              href={`#${anchor}`}
+                              onClick={() => {
+                                flushSync(() => setSeverityFilter("all"));
+                                openFinding(anchor);
+                              }}
+                            >
                               {fix.title}
                             </a>
                           ) : (
@@ -187,9 +201,27 @@ export function ReportView({ report }) {
               <section className="findings-section" aria-labelledby="findings-title">
                 <div className="section-heading">
                   <h2 id="findings-title">{issues.length ? `All problems (${issues.length})` : "No problems found"}</h2>
+                  {showSeverityFilter && (
+                    <div className="severity-filter" role="group" aria-label="Filter problems by severity">
+                      {severityFilters
+                        .filter((filter) => filter.key === "all" || filter.count)
+                        .map((filter) => (
+                          <button
+                            aria-pressed={severityFilter === filter.key}
+                            data-tone={filter.key}
+                            key={filter.key}
+                            onClick={() => setSeverityFilter(filter.key)}
+                            type="button"
+                          >
+                            {filter.label}
+                            <span className="severity-filter-count">{filter.count}</span>
+                          </button>
+                        ))}
+                    </div>
+                  )}
                 </div>
                 <div className="finding-list">
-                  {issues.map((finding, index) => (
+                  {visibleIssues.map((finding, index) => (
                     <FindingItem
                       collapsible
                       defaultOpen={index === 0}
@@ -294,6 +326,13 @@ export function ReportView({ report }) {
 }
 
 // Opens a collapsed problem row before the browser scrolls to its anchor.
+const SEVERITY_FILTERS = [
+  { key: "all", label: "All" },
+  { key: "critical", label: "Critical" },
+  { key: "warning", label: "Warnings" },
+  { key: "notice", label: "Notices" }
+];
+
 function openFinding(anchor) {
   const row = document.getElementById(anchor);
   if (row && "open" in row) row.open = true;

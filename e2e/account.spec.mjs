@@ -90,7 +90,17 @@ test("a report lists every problem and jumps from the top fixes to the proof", a
   await expect(rows.first()).toHaveAttribute("open", "");
   await expect(rows.nth(1).getByText("Proof", { exact: true })).toBeHidden();
 
+  // The severity filter narrows the list; a top fix still jumps to its proof
+  // when the filter hides it.
+  const filters = page.getByRole("group", { name: "Filter problems by severity" });
+  await filters.getByRole("button", { name: /^Warnings/ }).click();
+  await expect(filters.getByRole("button", { name: /^Warnings/ })).toHaveAttribute("aria-pressed", "true");
+  await expect(rows).toHaveCount(2);
+  await expect(rows.filter({ hasText: "Missing H1 on /pricing" })).toHaveCount(0);
+
   await page.getByRole("link", { name: "Missing H1 on /pricing" }).click();
+  await expect(filters.getByRole("button", { name: /^All/ })).toHaveAttribute("aria-pressed", "true");
+  await expect(rows).toHaveCount(6);
   const target = page.locator("details", { has: page.getByRole("heading", { name: "Missing H1 on /pricing" }) });
   await expect(target).toHaveAttribute("open", "");
   await expect(target.getByText("Proof", { exact: true })).toBeInViewport();
