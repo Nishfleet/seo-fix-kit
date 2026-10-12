@@ -58,7 +58,17 @@ function record() {
 
 const EMAIL_MAX_LENGTH = 254;
 
-const emailSchema = z.string().trim().toLowerCase().max(EMAIL_MAX_LENGTH).pipe(z.email());
+// Deliberately permissive (anything@anything.tld, Unicode included): stored
+// invites and leads were accepted under this rule, so a stricter format would
+// lock existing holders out.
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
+
+const emailSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .max(EMAIL_MAX_LENGTH)
+  .pipe(z.email({ pattern: EMAIL_PATTERN }));
 
 // Required email field whose every failure reports `message`.
 function email(message = "Enter a valid email address.") {
@@ -67,7 +77,7 @@ function email(message = "Enter a valid email address.") {
     .trim()
     .toLowerCase()
     .max(EMAIL_MAX_LENGTH, { error: message })
-    .pipe(z.email({ error: message }));
+    .pipe(z.email({ pattern: EMAIL_PATTERN, error: message }));
 }
 
 // Optional email: "" when absent, blank, or not a valid address.
