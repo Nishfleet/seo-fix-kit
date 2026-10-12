@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import { DEFAULT_CRAWL_PAGES } from "../../../shared/crawl-depth.js";
 import { CopyButton } from "../../components/CopyButton.jsx";
 import { Metric } from "../../components/Metric.jsx";
-import { formatCount } from "../../lib/format.js";
+import { findingAnchor, formatCount } from "../../lib/format.js";
 import { summarizePages } from "../../lib/page-scoring.js";
 import { fetchBrief } from "../../lib/requests.js";
 import { AiAnswerReadinessPanel, GrowthOpportunitiesPanel, GeoReadinessPanel } from "./AiReadinessPanels.jsx";
@@ -158,12 +158,22 @@ export function ReportView({ report }) {
                 </div>
                 {topThree.length ? (
                   <ol className="verdict-list">
-                    {topThree.map((fix) => (
-                      <li key={`${fix.priority || "ok"}-${fix.title}`}>
-                        <strong>{fix.title}</strong>
-                        <span>{[fix.estimatedEffort, fix.workType].filter(Boolean).join(" · ")}</span>
-                      </li>
-                    ))}
+                    {topThree.map((fix) => {
+                      const finding = issues.find((issue) => issue.title === fix.title);
+                      const anchor = finding ? findingAnchor(finding) : "";
+                      return (
+                        <li key={`${fix.priority || "ok"}-${fix.title}`}>
+                          {anchor ? (
+                            <a href={`#${anchor}`} onClick={() => openFinding(anchor)}>
+                              {fix.title}
+                            </a>
+                          ) : (
+                            <strong>{fix.title}</strong>
+                          )}
+                          <span>{[fix.estimatedEffort, fix.workType].filter(Boolean).join(" · ")}</span>
+                        </li>
+                      );
+                    })}
                   </ol>
                 ) : (
                   <p className="app-card-text">Nothing urgent. Rerun after content or template changes.</p>
@@ -179,8 +189,10 @@ export function ReportView({ report }) {
                   <h2 id="findings-title">{issues.length ? `All problems (${issues.length})` : "No problems found"}</h2>
                 </div>
                 <div className="finding-list">
-                  {issues.slice(0, 10).map((finding) => (
+                  {issues.map((finding, index) => (
                     <FindingItem
+                      collapsible
+                      defaultOpen={index === 0}
                       key={finding.id}
                       finding={finding}
                       plan={topFixes.find((fix) => fix.title === finding.title)}
@@ -279,6 +291,12 @@ export function ReportView({ report }) {
       </ReportTabs>
     </div>
   );
+}
+
+// Opens a collapsed problem row before the browser scrolls to its anchor.
+function openFinding(anchor) {
+  const row = document.getElementById(anchor);
+  if (row && "open" in row) row.open = true;
 }
 
 function tabPanelProps(key) {

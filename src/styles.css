@@ -4836,3 +4836,157 @@ a.app-table-row:hover {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* Report problems as one scannable list (src/pages/report/FindingItems.jsx):
+   each row shows severity and title and opens to its proof and fix. */
+.finding-list:has(> .finding-row) {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  gap: 0;
+  overflow: hidden;
+}
+
+.report-layout .finding-item.finding-row {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  border-top: 1px solid var(--line);
+  padding: 0;
+  scroll-margin-top: 24px;
+}
+
+.report-layout .finding-item.finding-row:first-child {
+  border-top: 0;
+}
+
+.finding-row summary {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  gap: 12px;
+  list-style: none;
+  padding: 14px 18px;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+.finding-row summary::-webkit-details-marker {
+  display: none;
+}
+
+.finding-row summary::after {
+  border-bottom: 1.6px solid var(--ink-muted);
+  border-right: 1.6px solid var(--ink-muted);
+  content: "";
+  flex: none;
+  height: 7px;
+  margin: -4px 4px 0 0;
+  transform: rotate(45deg);
+  transition: transform var(--duration) var(--ease-out);
+  width: 7px;
+}
+
+.finding-row[open] summary::after {
+  margin-top: 4px;
+  transform: rotate(-135deg);
+}
+
+.finding-row summary:hover {
+  background: var(--surface);
+}
+
+.finding-row summary:focus-visible {
+  box-shadow: inset var(--focus-ring);
+  outline: none;
+}
+
+.report-layout .finding-row summary h3 {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 500;
+  min-width: 0;
+}
+
+.finding-row summary > span {
+  flex: none;
+  min-width: 74px;
+  text-align: center;
+}
+
+.finding-row-tag {
+  color: var(--accent);
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+}
+
+.finding-row-body {
+  animation: sfk-fade var(--duration) var(--ease-out);
+  border-top: 1px dashed var(--line);
+  padding: 16px 18px 20px;
+}
+
+.finding-row-body > p:first-child {
+  margin-top: 0;
+}
+
+.verdict-list a {
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.verdict-list a:hover {
+  color: var(--accent);
+}
+
+@media (max-width: 560px) {
+  .finding-row summary {
+    flex-wrap: wrap;
+    padding: 14px;
+  }
+
+  .finding-row summary > span {
+    min-width: 0;
+  }
+
+  .report-layout .finding-row summary h3 {
+    flex-basis: 100%;
+    order: 3;
+  }
+
+  .finding-row-tag {
+    margin-left: auto;
+  }
+
+  .finding-row-body {
+    padding: 14px;
+  }
+}
+
+/* Inside the app, the legacy light .action-link reads as a secondary button. */
+.app-page .action-link {
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+  min-height: 36px;
+  padding: 0 14px;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+.app-page .action-link:hover {
+  background: var(--surface-hover);
+}
+
+/* Notices are the quietest severity: neutral, so red and amber stand out. */
+.finding-item.notice span {
+  background: var(--surface-strong);
+  border-color: var(--line-strong);
+  color: var(--ink-soft);
+}

@@ -5,6 +5,9 @@
 //   - ASSETS serves dist/ with the production 404-page and HTML handling.
 //   - EMAIL records messages; GET /__e2e/emails?to=<address> returns them so a
 //     test can open the sign-in link a real user would click.
+//   - POST /__e2e/reports {ownerEmail} saves e2e/fixtures/report.json (real
+//     audit engine output, trimmed) as that owner's report, the way the audit
+//     pipeline stores inline reports, and returns its id.
 //   - Each browser context sends `x-e2e-client`; it becomes a stable fake
 //     client IP so per-IP rate limits stay per test, as they are per user.
 import { createHash } from "node:crypto";
@@ -65,6 +68,8 @@ const ASSETS = {
   }
 };
 
+const REPORT_FIXTURE = JSON.parse(fs.readFileSync(path.join(ROOT, "e2e/fixtures/report.json"), "utf8"));
+
 const sentEmails = [];
 const env = {
   WAITLIST_DB: createTestD1(),
@@ -98,6 +103,30 @@ const server = http.createServer(async (request, response) => {
       const to = url.searchParams.get("to");
       response.writeHead(200, { "content-type": "application/json" });
       response.end(JSON.stringify(sentEmails.filter((email) => !to || email.to === to)));
+      return;
+    }
+
+    if (url.pathname === "/__e2e/reports" && request.method === "POST") {
+      const { ownerEmail } = JSON.parse((await readBody(request)).toString());
+      const id = `acme-widgets-example-${createHash("sha256").update(ownerEmail).digest("hex").slice(0, 12)}`;
+      const report = { ...REPORT_FIXTURE, id, reportPath: `/beta/reports/${id}` };
+      const now = new Date().toISOString();
+      env.WAITLIST_DB.insert("audit_reports", {
+        id,
+        url: report.url,
+        origin: report.origin,
+        score: report.score,
+        summary_json: JSON.stringify(report.summary),
+        report_json: JSON.stringify(report),
+        created_at: now,
+        updated_at: now,
+        owner_email: ownerEmail,
+        owner_session_hash: "e2e",
+        target_host: new URL(report.url).hostname,
+        expires_at: new Date(Date.now() + 30 * 86_400_000).toISOString()
+      });
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end(JSON.stringify({ id }));
       return;
     }
 

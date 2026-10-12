@@ -66,3 +66,32 @@ test("a used sign-in link cannot sign anyone in again", async ({ page, request, 
   await expect(strangerPage.getByRole("heading", { level: 1, name: "Overview" })).toHaveCount(0);
   await stranger.close();
 });
+
+test("a report lists every problem and jumps from the top fixes to the proof", async ({ page, request }, testInfo) => {
+  const email = uniqueEmail(testInfo, "report");
+  await page.goto("/beta");
+  await page.getByLabel("Email").fill(email);
+  await typeLikeAPerson(page);
+  await page.getByRole("button", { name: "Email me a sign-in link" }).click();
+  await page.goto(await signInLinkFor(request, email));
+  await expect(page.getByRole("heading", { level: 1, name: "Overview" })).toBeVisible();
+
+  // The Fix Pack price comes live from Dodo, which the test server cannot reach.
+  await page.route("**/api/pricing-preview", (route) =>
+    route.fulfill({ json: { pricing: { displayPrice: "$49", currency: "USD" } } })
+  );
+  const { id } = await (await request.post("/__e2e/reports", { data: { ownerEmail: email } })).json();
+  await page.goto(`/beta/reports/${id}`);
+  await expect(page.getByRole("heading", { level: 1, name: "acme-widgets.example" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "All problems (6)" })).toBeVisible();
+
+  const rows = page.locator(".finding-list > details");
+  await expect(rows).toHaveCount(6);
+  await expect(rows.first()).toHaveAttribute("open", "");
+  await expect(rows.nth(1).getByText("Proof", { exact: true })).toBeHidden();
+
+  await page.getByRole("link", { name: "Missing H1 on /pricing" }).click();
+  const target = page.locator("details", { has: page.getByRole("heading", { name: "Missing H1 on /pricing" }) });
+  await expect(target).toHaveAttribute("open", "");
+  await expect(target.getByText("Proof", { exact: true })).toBeInViewport();
+});
