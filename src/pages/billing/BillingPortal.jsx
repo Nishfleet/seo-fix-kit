@@ -30,12 +30,8 @@ export function BillingPortal({ ownerEmail }) {
   const subscription = billing?.subscriptionState || {};
   const monitoring = billing?.monitoring || {};
   const monitoringOffer = monitoring.offer || {};
-  const priceLabel =
-    pricing.status === "available"
-      ? pricing.displayPrice
-      : status === "loading"
-        ? "Loading Dodo price"
-        : "Pricing unavailable";
+  const pricingUnavailable = pricing.status !== "available" && status !== "loading";
+  const priceLabel = pricing.status === "available" ? pricing.displayPrice : "Loading Dodo price";
   const monitoringDisabled = monitoringCheckoutDisabled({
     checkoutReady: Boolean(monitoring.checkoutReady),
     status: monitoringCheckoutStatus,
@@ -101,18 +97,23 @@ export function BillingPortal({ ownerEmail }) {
             <p className="beta-eyebrow">Dodo checkout</p>
             <h2>{billing?.product?.name || "SEO Fix Pack"}</h2>
           </div>
-          <div className={`price-preview ${pricing.status === "available" ? "available" : "error"}`}>
-            <strong>{priceLabel}</strong>
-            <span>
-              {pricing.status === "available"
-                ? "Pulled from Dodo before checkout."
-                : pricing.message || "Checkout waits until Dodo pricing is available."}
-            </span>
-          </div>
+          {pricingUnavailable ? (
+            // Customers get a neutral line; pricing/config detail stays on the admin ops page.
+            <p className="quiet-note">Checkout opens from a report with proven fixes.</p>
+          ) : (
+            <div className={`price-preview ${pricing.status === "available" ? "available" : "loading"}`}>
+              <strong>{priceLabel}</strong>
+              <span>
+                {pricing.status === "available" ? "Pulled from Dodo before checkout." : "Checking the live payment source."}
+              </span>
+            </div>
+          )}
           <p>{billing?.product?.description || "One proof-backed repair pass plus one rerun after fixes."}</p>
-          <p className="quiet-note">
-            {billing?.product?.checkoutNote || "Checkout starts from a report with proven fixes."}
-          </p>
+          {!pricingUnavailable && (
+            <p className="quiet-note">
+              {billing?.product?.checkoutNote || "Checkout starts from a report with proven fixes."}
+            </p>
+          )}
         </div>
 
         <div className="billing-panel">

@@ -2743,6 +2743,10 @@ h1 {
   color: #ffb6a6;
 }
 
+.price-preview.loading strong {
+  color: var(--ink-muted);
+}
+
 .fix-queue-panel {
   display: grid;
   gap: 16px;
