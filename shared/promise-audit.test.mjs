@@ -13,6 +13,7 @@ import {
 } from "./large-rendered-crawl.js";
 import { REPORT_RETENTION_DAYS } from "../worker/lib/report-data.js";
 import { app as workerApp } from "../worker/index.js";
+import { readSpaSource } from "../scripts/spa-source.mjs";
 
 const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
 const liveSection = readme.split("## What is live in this repo")[1]?.split("## Run locally")[0] || "";
@@ -59,7 +60,8 @@ const developerApiSource = readFileSync(new URL("../worker/routes/developer-api.
 const adminSource = readFileSync(new URL("../worker/routes/admin.js", import.meta.url), "utf8");
 const accountSource = readFileSync(new URL("../worker/routes/account.js", import.meta.url), "utf8");
 const fixPackCheckoutSource = readFileSync(new URL("../src/fix-pack-checkout.js", import.meta.url), "utf8");
-const appSource = readFileSync(new URL("../src/App.jsx", import.meta.url), "utf8");
+// Every SPA module under src/ (the UI is split across pages/, components/, lib/).
+const appSource = readSpaSource();
 const mainSource = readFileSync(new URL("../src/main.jsx", import.meta.url), "utf8");
 const reportsSource = readFileSync(new URL("../worker/routes/reports.js", import.meta.url), "utf8");
 const billingSource = readFileSync(new URL("../worker/routes/billing.js", import.meta.url), "utf8");
@@ -999,7 +1001,7 @@ test("README packages page claim keeps the config-gated Proof Monitoring price a
   assert.match(pagesSource, /Config-gated subscription/, "Proof Monitoring is labeled config-gated");
   assert.match(pagesSource, /No ranking or traffic guarantee/, "packages keeps the no-ranking promise");
   // 2026-08-15 audit: the monitoring offer stays visible in private billing as
-  // a config-gated card (shared/offers.js catalog + src/App.jsx offer panel);
+  // a config-gated card (shared/offers.js catalog + src/ offer panel);
   // only its checkout is gated. The public page must keep saying checkout is
   // gated, never that the offer "only appears" when configured.
   assert.match(
