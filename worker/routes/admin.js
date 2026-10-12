@@ -3,10 +3,10 @@ import {
 } from "../../shared/dodo.js";
 import {
   ADMIN_EDITABLE_FIX_REQUEST_STATUSES,
+  FIX_REQUEST_STATUSES,
   adminNotificationEmail,
   buildOpsDigestEmail,
   isEmailConfigured,
-  normalizeFixRequestStatus,
   repairDeliveryReadiness
 } from "../../shared/fulfillment.js";
 import {
@@ -28,14 +28,21 @@ import {
 import {
   cleanInviteCode,
   cleanIsoDateText,
-  cleanText,
   cleanUrlText,
   isSafeUuid,
   isoDaysFromNow,
   isoSecondsFromNow,
-  normalizeEmail,
   parseJson
 } from "../lib/text.js";
+import {
+  body,
+  isoDateSchema,
+  number,
+  optionalEmail,
+  parseJsonBody,
+  text,
+  z
+} from "../lib/validation.js";
 import {
   adminAccessStatus,
   adminDeniedJson,
@@ -74,6 +81,51 @@ import {
   notifyFixRequestStatus,
   validateFinalReportForFixRequest
 } from "./billing.js";
+
+// Blank form values mean "not sent".
+const blankToUndefined = (value) => (value === "" || value === null ? undefined : value);
+
+const AdminBetaSessionBody = body({ ownerEmail: optionalEmail() }, { email: "ownerEmail" });
+
+const InviteBody = body(
+  {
+    email: optionalEmail(),
+    code: z.union([z.string(), z.number()]).nullish(),
+    maxUses: number(),
+    expiresAt: z.preprocess(blankToUndefined, isoDateSchema.optional()),
+    ttlDays: number(),
+    label: text(120)
+  },
+  { ownerEmail: "email" }
+);
+
+// An absent status keeps the request's current status.
+const FixRequestAdminBody = body(
+  {
+    status: z.preprocess(
+      (value) => blankToUndefined(typeof value === "string" ? value.trim().toLowerCase() : value),
+      z.enum([...FIX_REQUEST_STATUSES], { error: "Choose a valid fulfillment status." }).optional()
+    ),
+    assignedTo: text(160),
+    adminNote: text(2000),
+    customerNote: text(2000),
+    deliveryUrl: text(600),
+    finalReportId: text(180),
+    dueAt: text(80),
+    nextUpdateAt: text(80),
+    statusReason: text(500)
+  },
+  {
+    assigned_to: "assignedTo",
+    admin_note: "adminNote",
+    customer_note: "customerNote",
+    delivery_url: "deliveryUrl",
+    final_report_id: "finalReportId",
+    due_at: "dueAt",
+    next_update_at: "nextUpdateAt",
+    status_reason: "statusReason"
+  }
+);
 
 async function exportLeadsCsv(request, env) {
   if (!env.WAITLIST_DB) {
@@ -145,8 +197,9 @@ async function createAdminBetaSession(request, env) {
   if (!admin.ok) return adminDeniedJson(admin);
   if (!env.WAITLIST_DB) return jsonNoStore({ error: "Private beta sessions are not configured." }, 503);
 
-  const body = await request.json().catch(() => ({}));
-  const ownerEmail = normalizeEmail(body.ownerEmail || body.email);
+  const parsed = await parseJsonBody(request, AdminBetaSessionBody);
+  if (parsed.error) return jsonNoStore(parsed.error, 400);
+  const { ownerEmail } = parsed.data;
   if (!ownerEmail) return jsonNoStore({ error: "Enter a valid owner email." }, 400);
 
   const session = await createBetaSession(request, env, {
@@ -361,8 +414,10 @@ async function createInvite(request, env) {
   if (!admin.ok) return adminDeniedJson(admin);
   if (!env.WAITLIST_DB) return json({ error: "Invite storage is not configured." }, 503);
 
-  const body = await request.json().catch(() => ({}));
-  const ownerEmail = normalizeEmail(body.email || body.ownerEmail);
+  const parsed = await parseJsonBody(request, InviteBody);
+  if (parsed.error) return json(parsed.error, 400);
+  const body = parsed.data;
+  const ownerEmail = body.email;
   if (!ownerEmail) return json({ error: "Enter a valid invite email." }, 400);
 
   const code = cleanInviteCode(body.code || randomInviteCode());
@@ -371,9 +426,9 @@ async function createInvite(request, env) {
   const now = new Date().toISOString();
   const id = crypto.randomUUID();
   const codeHash = await sha256Hex(code);
-  const maxUses = Math.min(Math.max(Number(body.maxUses || 1), 1), 10);
-  const expiresAt = body.expiresAt || isoDaysFromNow(Number(body.ttlDays || DEFAULT_INVITE_TTL_DAYS));
-  const label = cleanText(body.label || "Private beta invite", 120);
+  const maxUses = Math.min(Math.max(body.maxUses || 1, 1), 10);
+  const expiresAt = body.expiresAt || isoDaysFromNow(body.ttlDays || DEFAULT_INVITE_TTL_DAYS);
+  const label = body.label || "Private beta invite";
 
   await env.WAITLIST_DB.prepare(
     `INSERT INTO beta_invites
@@ -412,8 +467,10 @@ async function updateFixRequestAdmin(request, env) {
     .first();
   if (!existing?.id) return jsonNoStore({ error: "Fix request not found." }, 404);
 
-  const body = await request.json().catch(() => ({}));
-  const requestedStatus = normalizeFixRequestStatus(body.status, existing.status || "new");
+  const parsed = await parseJsonBody(request, FixRequestAdminBody);
+  if (parsed.error) return jsonNoStore(parsed.error, 400);
+  const body = parsed.data;
+  const requestedStatus = body.status || existing.status || "new";
   const unchangedWebhookStatus = requestedStatus === existing.status && requestedStatus === "paid";
   if (!ADMIN_EDITABLE_FIX_REQUEST_STATUSES.has(requestedStatus) && !unchangedWebhookStatus) {
     return jsonNoStore({ error: "Choose a valid fulfillment status." }, 400);
@@ -432,14 +489,10 @@ async function updateFixRequestAdmin(request, env) {
   }
 
   const now = new Date().toISOString();
-  const assignedTo = cleanText(body.assignedTo || body.assigned_to || "", 160);
-  const adminNote = cleanText(body.adminNote || body.admin_note || "", 2000);
-  const customerNote = cleanText(body.customerNote || body.customer_note || "", 2000);
-  let deliveryUrl = cleanUrlText(body.deliveryUrl || body.delivery_url || "", 600);
-  const finalReportId = cleanText(body.finalReportId || body.final_report_id || "", 180);
-  const dueAt = cleanIsoDateText(body.dueAt || body.due_at || existing.due_at || "");
-  const nextUpdateAt = cleanIsoDateText(body.nextUpdateAt || body.next_update_at || existing.next_update_at || "");
-  const statusReason = cleanText(body.statusReason || body.status_reason || "", 500);
+  const { assignedTo, adminNote, customerNote, finalReportId, statusReason } = body;
+  let deliveryUrl = cleanUrlText(body.deliveryUrl, 600);
+  const dueAt = cleanIsoDateText(body.dueAt || existing.due_at || "");
+  const nextUpdateAt = cleanIsoDateText(body.nextUpdateAt || existing.next_update_at || "");
   const finalReportStatus = finalReportId
     ? await validateFinalReportForFixRequest(env, existing, finalReportId)
     : { ok: true, beforeAfterSummary: null };

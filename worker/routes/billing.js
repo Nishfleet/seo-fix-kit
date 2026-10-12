@@ -61,6 +61,33 @@ import {
   parseJson,
   safeHostname
 } from "../lib/text.js";
+import { body, flag, parseJsonBody, text, z } from "../lib/validation.js";
+
+// Shared by the Fix Pack and Repair Sprint checkouts. `reportId` stays loose
+// text so an unknown or malformed id still answers 404 "Report not found.";
+// `testMode`/`isTest` only matter for founder-override sessions. The repair
+// selection fields are read, in this precedence, by selectFixPackRepair().
+const ReportCheckoutBody = body({
+  reportId: text(140),
+  note: text(1000),
+  testMode: flag(),
+  isTest: flag(),
+  issueId: text(160),
+  issue_id: text(160),
+  queueItemId: text(160),
+  queue_item_id: text(160),
+  selectedRepair: z.object({ issueId: text(160), queueItemId: text(160) }).nullish(),
+  selected_repair: z.object({ issue_id: text(160), queue_item_id: text(160) }).nullish()
+});
+
+// The site to monitor, by host (`targetHost`, then `host`) or by URL
+// (`targetUrl`, then `url`). URLs stay raw so new URL() sees them unaltered.
+const MonitoringCheckoutBody = body({
+  targetHost: text(500),
+  host: text(500),
+  targetUrl: z.string().nullish(),
+  url: z.string().nullish()
+});
 
 const FIX_PACK_OFFER = {
   name: "SEO Fix Pack",
@@ -109,8 +136,10 @@ async function requestFixPack(request, env) {
   if (!access.ok) return betaAccessResponse(access);
   if (!env.WAITLIST_DB) return json({ error: "Fix request storage is not configured." }, 503);
 
-  const body = await request.json().catch(() => ({}));
-  const reportId = cleanText(body.reportId || "", 140);
+  const parsed = await parseJsonBody(request, ReportCheckoutBody);
+  if (parsed.error) return json(parsed.error, 400);
+  const body = parsed.data;
+  const reportId = body.reportId;
   if (!isSafeReportId(reportId)) return json({ error: "Report not found." }, 404);
 
   const row = await env.WAITLIST_DB.prepare(
@@ -134,8 +163,8 @@ async function requestFixPack(request, env) {
   const summary = parseJson(row.summary_json, {});
   const report = parseJson(await reportJsonForRow(env, row), {});
   const now = new Date().toISOString();
-  const note = cleanText(body.note || "", 1000);
-  const isTest = Boolean(body.testMode || body.isTest) && access.accessMode === "founder-override";
+  const note = body.note;
+  const isTest = (body.testMode || body.isTest) && access.accessMode === "founder-override";
   const existingFixRequest = await latestFixRequestForReport(env, row.id, access.ownerEmail);
   const skippedProposalSeed = { status: "skipped", total: 0, created: 0, executable: 0 };
 
@@ -310,8 +339,10 @@ async function requestRepairSprintCheckout(request, env) {
   if (!access.ok) return betaAccessResponse(access);
   if (!env.WAITLIST_DB) return json({ error: "Repair Sprint storage is not configured." }, 503);
 
-  const body = await request.json().catch(() => ({}));
-  const reportId = cleanText(body.reportId || "", 140);
+  const parsed = await parseJsonBody(request, ReportCheckoutBody);
+  if (parsed.error) return json(parsed.error, 400);
+  const body = parsed.data;
+  const reportId = body.reportId;
   if (!isSafeReportId(reportId)) return json({ error: "Report not found." }, 404);
 
   const row = await env.WAITLIST_DB.prepare(
@@ -407,8 +438,8 @@ async function requestRepairSprintCheckout(request, env) {
 
   const report = parseJson(await reportJsonForRow(env, row), {});
   const summary = parseJson(row.summary_json, report.summary || {});
-  const note = cleanText(body.note || "", 1000);
-  const isTest = Boolean(body.testMode || body.isTest) && access.accessMode === "founder-override";
+  const note = body.note;
+  const isTest = (body.testMode || body.isTest) && access.accessMode === "founder-override";
   const fixRequest = existingFixRequest || await getOrCreateFixRequest(env, row, access, summary, note, now, {
     isTest
   });
@@ -501,7 +532,9 @@ async function requestMonitoringCheckout(request, env) {
   if (!access.ok) return betaAccessResponse(access);
   if (!env.WAITLIST_DB) return json({ error: "Monitoring storage is not configured." }, 503);
 
-  const body = await request.json().catch(() => ({}));
+  const parsed = await parseJsonBody(request, MonitoringCheckoutBody);
+  if (parsed.error) return json(parsed.error, 400);
+  const body = parsed.data;
   const config = dodoMonitoringCheckoutConfigStatus(env);
   if (!hasDodoMonitoringCheckoutConfig(env)) {
     const monitoring = await monitoringAccessForOwner(env, access.ownerEmail, 0);

@@ -43,15 +43,79 @@ import {
   parseJson,
   safeHostname
 } from "../lib/text.js";
+import { body, number, parseJsonBody, text, z } from "../lib/validation.js";
 import { deliverApiWebhooks } from "../lib/webhooks.js";
 
+const scalarInput = z.union([z.string(), z.number()]).nullish();
+// Imports accept either pasted text (CSV, one per line) or an array of rows.
+const listInput = z.union([z.string(), z.array(z.unknown())]).nullish();
+const objectInput = z.record(z.string(), z.unknown()).nullish();
+
+function fieldsOf(keys, schema) {
+  return Object.fromEntries(keys.map((key) => [key, schema]));
+}
+
+// Every key the audit-input parsers (competitors, backlinks, local SEO,
+// keywords) read; they keep their own precedence and error messages. Shared
+// with the v1 API's audit body.
+const auditInputFields = {
+  ...fieldsOf(["competitorUrls", "competitor_urls", "competitors"], listInput),
+  ...fieldsOf(["backlinks", "backlinkRows", "backlink_rows", "backlinkCsv", "backlink_csv"], listInput),
+  ...fieldsOf(["localSeo", "localSEO", "local_seo", "localSeoInput", "location"], objectInput),
+  ...fieldsOf(
+    [
+      "businessName", "localBusinessName", "business_name",
+      "phone", "localPhone", "phone_number",
+      "address", "localAddress", "business_address",
+      "googleBusinessProfileUrl", "gbpUrl", "gbp_url"
+    ],
+    scalarInput
+  ),
+  ...fieldsOf(
+    [
+      "localKeywords", "local_keywords",
+      "citations", "citationRows", "citation_rows", "citationUrls", "citation_urls", "citationCsv", "citation_csv"
+    ],
+    listInput
+  ),
+  ...fieldsOf(
+    [
+      "keywordRows", "keyword_rows", "keywordRankRows", "keyword_rank_rows", "keywordCsv", "keyword_csv",
+      "searchConsoleRows", "search_console_rows", "gscRows", "gsc_rows"
+    ],
+    listInput
+  )
+};
+
+// Starting an audit. `url` stays raw so normalizeUrl() sees it unaltered.
+const AuditRunBody = body({
+  url: z.string().nullish(),
+  maxPages: number(),
+  renderedCrawlTarget: number(),
+  rendered_crawl_target: number(),
+  crawlScaleTarget: number(),
+  funnelKey: text(64),
+  landingPath: text(500),
+  ...auditInputFields
+});
+
+// A recurring audit for `url` (or `targetUrl`).
+const AuditScheduleBody = body({
+  url: z.string().nullish(),
+  targetUrl: z.string().nullish(),
+  maxPages: number(),
+  intervalDays: number()
+});
+
 async function runPrivateAudit(request, env, ctx) {
-  const body = await request.json().catch(() => ({}));
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
   if (!env.WAITLIST_DB) {
     return json({ error: "Report storage is not configured." }, 503);
   }
+  const parsed = await parseJsonBody(request, AuditRunBody);
+  if (parsed.error) return json(parsed.error, 400);
+  const body = parsed.data;
 
   let targetUrl;
   try {
@@ -158,10 +222,10 @@ async function runPrivateAudit(request, env, ctx) {
   await enqueueAuditJob(env, ctx, job.id, new URL(request.url).origin);
   await recordAccessEvent(env, {
     step: "audit_started",
-    funnelKey: cleanText(body?.funnelKey || request.headers.get("x-seofixkit-funnel-key") || "", 64),
+    funnelKey: body.funnelKey || cleanText(request.headers.get("x-seofixkit-funnel-key") || "", 64),
     ownerEmail: access.ownerEmail || job.owner_email,
     source: access.accessMode === "founder-override" ? "founder-override" : "private-beta",
-    landingPath: cleanText(body?.landingPath || `/${job.target_host || "audit"}`, 500),
+    landingPath: body.landingPath || cleanText(`/${job.target_host || "audit"}`, 500),
     request,
     metadata: { jobId: job.id, targetHost: job.target_host, maxPages: job.max_pages }
   });
@@ -202,10 +266,12 @@ async function listAuditSchedules(request, env) {
 }
 
 async function createAuditSchedule(request, env) {
-  const body = await request.json().catch(() => ({}));
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
   if (!env.WAITLIST_DB) return json({ error: "Schedule storage is not configured." }, 503);
+  const parsed = await parseJsonBody(request, AuditScheduleBody);
+  if (parsed.error) return json(parsed.error, 400);
+  const body = parsed.data;
 
   let targetUrl;
   try {
@@ -984,6 +1050,7 @@ export {
   AUDIT_JOB_QUEUED_STALE_MINUTES,
   AUDIT_JOB_RUNNING_STALE_MINUTES,
   AUDIT_JOB_TIMEOUT_MESSAGE,
+  auditInputFields,
   activeAuditJobCount,
   activeAuditJobForTarget,
   auditQuotaStatus,

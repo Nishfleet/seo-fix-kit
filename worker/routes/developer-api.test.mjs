@@ -375,6 +375,29 @@ test("Developer API rejects unknown-only repair queue patches", async () => {
   assert.equal(env.queueItems[0].status, "drafted");
 });
 
+test("Developer API rejects wrong-typed body fields with the field name", async () => {
+  const env = await fakeDeveloperApiEnv({ queueItems: [], actions: [] });
+
+  const queueResponse = await apiSaveRepairQueue(apiRequest(
+    `/v1/audits/${env.auditId}/repair-queue`,
+    env.apiToken,
+    { method: "PATCH", body: JSON.stringify({ items: "issue-1" }) }
+  ), env);
+  assert.equal(queueResponse.status, 400);
+  assert.equal((await queueResponse.json()).field, "items");
+
+  const actionResponse = await apiCreateRepairAction(apiRequest(
+    `/v1/audits/${env.auditId}/repair-actions`,
+    env.apiToken,
+    { method: "POST", body: JSON.stringify({ issueId: "issue-1", proposedChange: { title: "x" } }) }
+  ), env);
+  assert.equal(actionResponse.status, 400);
+  const actionBody = await actionResponse.json();
+  assert.equal(actionBody.field, "proposedChange");
+  assert.match(actionBody.error, /proposedChange must be text/);
+  assert.equal(env.actions.length, 0);
+});
+
 test("Developer API rejects invalid explicit repair action options", async () => {
   const env = await fakeDeveloperApiEnv({ queueItems: [], actions: [] });
 

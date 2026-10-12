@@ -1,4 +1,15 @@
 import { normalizeUrl, publicAuditUrlStatus } from "../../shared/audit-engine.js";
+import {
+  accessTokenSchema,
+  cleanText,
+  emailSchema,
+  httpUrlSchema,
+  inviteCodeSchema,
+  isoDateSchema,
+  parsedOrEmpty,
+  reportIdSchema,
+  uuidSchema
+} from "./validation.js";
 
 function normalizeDnsTxt(value) {
   return String(value || "")
@@ -55,24 +66,15 @@ function claimHostFromInput(input) {
 }
 
 function normalizeEmail(input) {
-  const email = String(input || "").trim().toLowerCase();
-  if (email.length > 254) return "";
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "";
-  return email;
+  return parsedOrEmpty(emailSchema, String(input || ""));
 }
 
 function cleanInviteCode(input) {
-  const code = String(input || "").trim();
-  if (code.length < 8 || code.length > 120) return "";
-  if (!/^[A-Za-z0-9_-]+$/.test(code)) return "";
-  return code;
+  return parsedOrEmpty(inviteCodeSchema, String(input || ""));
 }
 
 function cleanAccessToken(input) {
-  const token = String(input || "").trim();
-  if (token.length < 32 || token.length > 160) return "";
-  if (!/^[A-Za-z0-9_-]+$/.test(token)) return "";
-  return token;
+  return parsedOrEmpty(accessTokenSchema, String(input || ""));
 }
 
 function cleanAccessMode(input) {
@@ -103,31 +105,14 @@ function scheduleCadenceLabel(value) {
   return "Monthly";
 }
 
-function cleanText(input, maxLength) {
-  return String(input || "")
-    .replace(/[\u0000-\u001f\u007f]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, maxLength);
-}
-
 function cleanUrlText(input, maxLength) {
-  const value = cleanText(input, maxLength);
-  if (!value) return "";
-  try {
-    const url = new URL(value);
-    if (!["http:", "https:"].includes(url.protocol)) return "";
-    return url.href.slice(0, maxLength);
-  } catch {
-    return "";
-  }
+  const url = parsedOrEmpty(httpUrlSchema, cleanText(input, maxLength));
+  return url ? new URL(url).href.slice(0, maxLength) : "";
 }
 
 function cleanIsoDateText(input) {
   const value = cleanText(input, 80);
-  if (!value) return "";
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "" : date.toISOString();
+  return value ? parsedOrEmpty(isoDateSchema, value) : "";
 }
 
 function safeHostname(value) {
@@ -139,7 +124,7 @@ function safeHostname(value) {
 }
 
 function isSafeUuid(input) {
-  return /^[a-f0-9-]{32,40}$/i.test(String(input || ""));
+  return uuidSchema.safeParse(String(input || "")).success;
 }
 
 function parseJson(value, fallback) {
@@ -185,7 +170,7 @@ function isoDaysFromDate(value, days) {
 }
 
 function isSafeReportId(value) {
-  return /^[a-z0-9][a-z0-9.-]{12,120}$/i.test(value);
+  return reportIdSchema.safeParse(value).success;
 }
 
 export {

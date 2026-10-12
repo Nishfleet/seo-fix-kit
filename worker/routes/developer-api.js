@@ -46,7 +46,6 @@ import {
 } from "../lib/serializers.js";
 import {
   claimHostFromInput,
-  cleanText,
   isSafeReportId,
   isSafeUuid,
   isoSecondsFromNow,
@@ -58,6 +57,9 @@ import {
   repairActionWebhookPayload
 } from "../../shared/repair-action-rules.js";
 import {
+  RepairActionCreateBody,
+  RepairActionPatchBody,
+  RepairQueuePatchBody,
   createRepairActionRecord,
   ensureRepairQueueRows,
   saveRepairQueueItems,
@@ -75,8 +77,32 @@ import {
   auditQuotaStatus,
   createAuditJob,
   enqueueAuditJob,
+  auditInputFields,
   failStaleRunningAuditJobs
 } from "./audits.js";
+import { body, number, parseJsonBody, text, z } from "../lib/validation.js";
+
+const DeveloperApiTokenBody = body({ label: text(80) });
+
+const DeveloperWebhookBody = body({
+  url: z.string().nullish(),
+  events: z.array(z.unknown()).optional()
+});
+
+const ApiProjectBody = body({ host: text(500) }, { url: "host" });
+
+const ApiAuditBody = body(
+  {
+    url: z.string().nullish(),
+    max_pages: number(),
+    maxPages: number(),
+    rendered_crawl_target: number(),
+    renderedCrawlTarget: number(),
+    crawlScaleTarget: number(),
+    ...auditInputFields
+  },
+  { targetUrl: "url" }
+);
 
 async function getDeveloperApiSummary(request, env) {
   const access = await betaAccessStatus(request, env);
@@ -142,10 +168,12 @@ async function getDeveloperApiSummary(request, env) {
 }
 
 async function createDeveloperApiToken(request, env) {
-  const body = await request.json().catch(() => ({}));
+  const parsed = await parseJsonBody(request, DeveloperApiTokenBody);
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
   if (!env.WAITLIST_DB) return json({ error: "Developer API storage is not configured." }, 503);
+  if (parsed.error) return jsonNoStore(parsed.error, 400);
+  const body = parsed.data;
 
   const count = await env.WAITLIST_DB.prepare(
     `SELECT COUNT(*) AS count
@@ -166,7 +194,7 @@ async function createDeveloperApiToken(request, env) {
     owner_email: access.ownerEmail,
     token_hash: await sha256Hex(tokenSecret),
     token_prefix: `${tokenSecret.slice(0, 12)}...${tokenSecret.slice(-4)}`,
-    label: cleanText(body.label || "API key", 80),
+    label: body.label || "API key",
     scopes_json: JSON.stringify(["audits:read", "audits:write", "large_crawls:read", "large_crawls:write", "projects:read", "projects:write"]),
     status: "active",
     created_at: now,
@@ -225,10 +253,12 @@ async function revokeDeveloperApiToken(request, env) {
 }
 
 async function createDeveloperWebhook(request, env) {
-  const body = await request.json().catch(() => ({}));
+  const parsed = await parseJsonBody(request, DeveloperWebhookBody);
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
   if (!env.WAITLIST_DB) return json({ error: "Developer API storage is not configured." }, 503);
+  if (parsed.error) return jsonNoStore(parsed.error, 400);
+  const body = parsed.data;
   const urlCheck = publicWebhookUrlStatus(body.url || "");
   if (!urlCheck.ok) return jsonNoStore({ error: urlCheck.error }, 400);
   const count = await env.WAITLIST_DB.prepare(
@@ -325,8 +355,9 @@ async function apiListProjects(request, env) {
 async function apiCreateProject(request, env) {
   const access = await apiAccessStatus(request, env);
   if (!access.ok) return apiAccessResponse(access);
-  const body = await request.json().catch(() => ({}));
-  const host = claimHostFromInput(body.host || body.url || "");
+  const parsed = await parseJsonBody(request, ApiProjectBody);
+  if (parsed.error) return jsonNoStore(parsed.error, 400);
+  const host = claimHostFromInput(parsed.data.host);
   if (!host) return jsonNoStore({ error: "Enter a public website host to verify." }, 400);
 
   const existing = await env.WAITLIST_DB.prepare(
@@ -368,10 +399,12 @@ async function apiCreateProject(request, env) {
 async function apiCreateAudit(request, env, ctx) {
   const access = await apiAccessStatus(request, env);
   if (!access.ok) return apiAccessResponse(access);
-  const body = await request.json().catch(() => ({}));
+  const parsed = await parseJsonBody(request, ApiAuditBody);
+  if (parsed.error) return jsonNoStore(parsed.error, 400);
+  const body = parsed.data;
   let targetUrl;
   try {
-    targetUrl = normalizeUrl(body.url || body.targetUrl || "");
+    targetUrl = normalizeUrl(body.url || "");
   } catch {
     return jsonNoStore({ error: "Enter a valid public website URL." }, 400);
   }
@@ -547,9 +580,11 @@ async function apiGetRepairQueue(request, env) {
 }
 
 async function apiSaveRepairQueue(request, env) {
-  const body = await request.json().catch(() => ({}));
+  const parsed = await parseJsonBody(request, RepairQueuePatchBody);
   const access = await apiAccessStatus(request, env);
   if (!access.ok) return apiAccessResponse(access);
+  if (parsed.error) return jsonNoStore(parsed.error, 400);
+  const body = parsed.data;
   const repairTables = await requireRepairTables(env);
   if (!repairTables.ok) return repairTables.response;
   const id = apiAuditIdFromPath(request.url, "/v1/audits/", "/repair-queue");
@@ -565,9 +600,11 @@ async function apiSaveRepairQueue(request, env) {
 }
 
 async function apiCreateRepairAction(request, env, ctx = null) {
-  const body = await request.json().catch(() => ({}));
+  const parsed = await parseJsonBody(request, RepairActionCreateBody);
   const access = await apiAccessStatus(request, env);
   if (!access.ok) return apiAccessResponse(access);
+  if (parsed.error) return jsonNoStore(parsed.error, 400);
+  const body = parsed.data;
   const repairTables = await requireRepairTables(env);
   if (!repairTables.ok) return repairTables.response;
   const id = apiAuditIdFromPath(request.url, "/v1/audits/", "/repair-actions");
@@ -593,9 +630,11 @@ async function apiCreateRepairAction(request, env, ctx = null) {
 }
 
 async function apiUpdateRepairAction(request, env, ctx = null) {
-  const body = await request.json().catch(() => ({}));
+  const parsed = await parseJsonBody(request, RepairActionPatchBody);
   const access = await apiAccessStatus(request, env);
   if (!access.ok) return apiAccessResponse(access);
+  if (parsed.error) return jsonNoStore(parsed.error, 400);
+  const body = parsed.data;
   const repairTables = await requireRepairTables(env);
   if (!repairTables.ok) return repairTables.response;
   const { auditId, actionId } = apiRepairActionPathParts(request.url);

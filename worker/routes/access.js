@@ -28,10 +28,73 @@ import {
   normalizeEmail
 } from "../lib/text.js";
 import { recordAccessEvent, isFunnelStep } from "../lib/access-events.js";
+import { body, email, number, optionalEmail, parseJsonBody, text, z } from "../lib/validation.js";
+
+// Funnel attribution every access form may send alongside its own fields.
+const trackingFields = {
+  funnelKey: text(64),
+  landingPath: text(500),
+  source: text(80)
+};
+const trackingAliases = { funnel_key: "funnelKey", landing_path: "landingPath" };
+
+// Bot traps: `company` is a hidden honeypot input and `timeToSubmitMs` is how
+// long the visitor took to submit the form.
+const botTrapFields = {
+  company: z.unknown().optional().transform(Boolean),
+  timeToSubmitMs: number().transform((ms) => Math.round(ms || 0))
+};
+
+// Campaign tags arrive either nested (`utm.source`) or flat (`utm_source`).
+const utmTag = { source: text(120), medium: text(120), campaign: text(180), term: text(180), content: text(180) };
+const utmFields = {
+  utm: z.object(utmTag).partial().nullish(),
+  ...Object.fromEntries(Object.entries(utmTag).map(([key, schema]) => [`utm_${key}`, schema]))
+};
+
+function utmTags(body) {
+  return Object.fromEntries(
+    Object.keys(utmTag).map((key) => [key, body.utm?.[key] || body[`utm_${key}`] || ""])
+  );
+}
+
+const WaitlistBody = body(
+  { ...trackingFields, ...botTrapFields, ...utmFields, email: z.unknown().optional() },
+  trackingAliases
+);
+
+const AccessLinkRequestBody = body(
+  {
+    ...trackingFields,
+    ...botTrapFields,
+    ...utmFields,
+    email: z.unknown().optional(),
+    returnTo: text(500)
+  },
+  { ...trackingAliases, ownerEmail: "email", return_to: "returnTo" }
+);
+
+const AccessLinkVerifyBody = body({ ...trackingFields, token: text(200) }, trackingAliases);
+
+const AccessBeaconBody = body(
+  { ...trackingFields, step: text(40), email: optionalEmail(), timeOnPageMs: number() },
+  trackingAliases
+);
+
+const BetaLoginBody = body(
+  {
+    ...trackingFields,
+    email: email("Enter your beta email address."),
+    inviteCode: text(200)
+  },
+  { ...trackingAliases, password: "inviteCode" }
+);
+
+const SiteClaimBody = body({ host: text(500), id: text(80) }, { url: "host", claimId: "id" });
 
 function funnelKeyFromRequest(request, body) {
   return cleanText(
-    (body && (body.funnelKey || body.funnel_key)) ||
+    body?.funnelKey ||
       request?.headers?.get?.("x-seofixkit-funnel-key") ||
       "",
     64
@@ -39,7 +102,7 @@ function funnelKeyFromRequest(request, body) {
 }
 
 function landingPathFromRequest(body, fallback = "/") {
-  return cleanText(body?.landingPath || body?.landing_path || fallback, 500) || fallback;
+  return cleanText(body?.landingPath || fallback, 500) || fallback;
 }
 
 const ACCESS_LINK_TTL_SECONDS = 60 * 15;
@@ -51,12 +114,14 @@ async function joinWaitlist(request, env) {
     return json({ error: "Waitlist storage is not configured." }, 503);
   }
 
-  const body = await request.json().catch(() => ({}));
+  const parsed = await parseJsonBody(request, WaitlistBody);
+  if (parsed.error) return json(parsed.error, 400);
+  const body = parsed.data;
   if (body.company) {
     return json({ ok: true, status: "joined" });
   }
 
-  const submitMs = Number(body.timeToSubmitMs || 0);
+  const submitMs = body.timeToSubmitMs;
   if (submitMs > 0 && submitMs < 1200) {
     return json({ ok: true, status: "joined" });
   }
@@ -72,14 +137,9 @@ async function joinWaitlist(request, env) {
   }
 
   const now = new Date().toISOString();
-  const utm = typeof body.utm === "object" && body.utm ? body.utm : {};
-  const source = cleanText(body.source || "locked-homepage", 80);
-  const utmSource = cleanText(utm.source || body.utm_source || "", 120);
-  const utmMedium = cleanText(utm.medium || body.utm_medium || "", 120);
-  const utmCampaign = cleanText(utm.campaign || body.utm_campaign || "", 180);
-  const utmTerm = cleanText(utm.term || body.utm_term || "", 180);
-  const utmContent = cleanText(utm.content || body.utm_content || "", 180);
-  const landingPath = cleanText(body.landingPath || "/", 500);
+  const utm = utmTags(body);
+  const source = body.source || "locked-homepage";
+  const landingPath = body.landingPath || "/";
   const referrer = cleanText(request.headers.get("referer") || "", 500);
   const userAgent = cleanText(request.headers.get("user-agent") || "", 500);
   const country = cleanText(request.cf?.country || "", 8);
@@ -105,13 +165,13 @@ async function joinWaitlist(request, env) {
     .bind(
       email,
       source,
-      utmSource,
-      utmMedium,
-      utmCampaign,
-      utmTerm,
-      utmContent,
+      utm.source,
+      utm.medium,
+      utm.campaign,
+      utm.term,
+      utm.content,
       landingPath,
-      Number.isFinite(submitMs) ? Math.round(submitMs) : null,
+      submitMs,
       referrer,
       userAgent,
       country,
@@ -127,7 +187,7 @@ async function joinWaitlist(request, env) {
     source,
     landingPath,
     request,
-    metadata: { submitMs: Number.isFinite(submitMs) ? Math.round(submitMs) : null }
+    metadata: { submitMs }
   });
 
   return json({ ok: true, status: "joined" });
@@ -138,15 +198,17 @@ async function requestAccessLink(request, env) {
     return jsonNoStore({ error: "Access link storage is not configured." }, 503);
   }
 
-  const body = await request.json().catch(() => ({}));
+  const parsed = await parseJsonBody(request, AccessLinkRequestBody);
+  if (parsed.error) return jsonNoStore(parsed.error, 400);
+  const body = parsed.data;
   if (body.company) return jsonNoStore({ ok: true, status: "requested" });
 
-  const submitMs = Number(body.timeToSubmitMs || 0);
+  const submitMs = body.timeToSubmitMs;
   if (submitMs > 0 && submitMs < 1200) {
     return jsonNoStore({ ok: true, status: "requested" });
   }
 
-  const ownerEmail = normalizeEmail(body.email || body.ownerEmail);
+  const ownerEmail = normalizeEmail(body.email);
   if (!ownerEmail) return jsonNoStore({ error: "Enter a valid email address." }, 400);
 
   const quota = await accessLinkQuotaStatus(request, env, ownerEmail);
@@ -168,7 +230,7 @@ async function requestAccessLink(request, env) {
     source: "self-serve-access",
     landingPath,
     request,
-    metadata: { submitMs: Number.isFinite(submitMs) ? Math.round(submitMs) : null }
+    metadata: { submitMs }
   });
 
   const token = randomToken();
@@ -190,7 +252,7 @@ async function requestAccessLink(request, env) {
     .run();
 
   const origin = new URL(request.url).origin;
-  const returnTo = safeBetaReturnPath(body.returnTo || body.return_to || "");
+  const returnTo = safeBetaReturnPath(body.returnTo);
   const accessUrl = `${origin}${returnTo}?access=${encodeURIComponent(token)}&email=${encodeURIComponent(ownerEmail)}`;
   try {
     await sendAccessLinkEmail(env, {
@@ -227,8 +289,10 @@ async function verifyAccessLink(request, env) {
     return jsonNoStore({ error: "Access link storage is not configured." }, 503);
   }
 
-  const body = await request.json().catch(() => ({}));
-  const token = cleanAccessToken(body.token || "");
+  const parsed = await parseJsonBody(request, AccessLinkVerifyBody);
+  if (parsed.error) return jsonNoStore(parsed.error, 400);
+  const body = parsed.data;
+  const token = cleanAccessToken(body.token);
   if (!token) return jsonNoStore({ error: "Access link is invalid." }, 400);
 
   const tokenHash = await sha256Hex(token);
@@ -334,8 +398,7 @@ async function sendAccessLinkEmail(env, { ownerEmail, accessUrl }) {
 }
 
 async function recordWaitlistLead(request, env, email, body = {}, sourceFallback = "locked-homepage", now = new Date().toISOString()) {
-  const utm = typeof body.utm === "object" && body.utm ? body.utm : {};
-  const submitMs = Number(body.timeToSubmitMs || 0);
+  const utm = utmTags(body);
   await env.WAITLIST_DB.prepare(
     `INSERT INTO waitlist_leads
       (email, source, utm_source, utm_medium, utm_campaign, utm_term, utm_content, landing_path, submit_ms, referrer, user_agent, country, created_at, updated_at)
@@ -356,14 +419,14 @@ async function recordWaitlistLead(request, env, email, body = {}, sourceFallback
   )
     .bind(
       email,
-      cleanText(body.source || sourceFallback, 80),
-      cleanText(utm.source || body.utm_source || "", 120),
-      cleanText(utm.medium || body.utm_medium || "", 120),
-      cleanText(utm.campaign || body.utm_campaign || "", 180),
-      cleanText(utm.term || body.utm_term || "", 180),
-      cleanText(utm.content || body.utm_content || "", 180),
-      cleanText(body.landingPath || "/", 500),
-      Number.isFinite(submitMs) ? Math.round(submitMs) : null,
+      body.source || sourceFallback,
+      utm.source,
+      utm.medium,
+      utm.campaign,
+      utm.term,
+      utm.content,
+      body.landingPath || "/",
+      body.timeToSubmitMs,
       cleanText(request.headers.get("referer") || "", 500),
       cleanText(request.headers.get("user-agent") || "", 500),
       cleanText(request.cf?.country || "", 8),
@@ -378,13 +441,12 @@ async function betaLogin(request, env) {
     return json({ error: "Private beta sessions are not configured." }, 503);
   }
 
-  const body = await request.json().catch(() => ({}));
-  const ownerEmail = normalizeEmail(body.email);
-  if (!ownerEmail) {
-    return json({ error: "Enter your beta email address." }, 400);
-  }
+  const parsed = await parseJsonBody(request, BetaLoginBody);
+  if (parsed.error) return json(parsed.error, 400);
+  const body = parsed.data;
+  const ownerEmail = body.email;
 
-  const rawInviteCode = cleanInviteCode(body.inviteCode || body.password || "");
+  const rawInviteCode = cleanInviteCode(body.inviteCode);
   const inviteCodeHash = rawInviteCode ? await sha256Hex(rawInviteCode) : "";
   const loginQuota = await loginQuotaStatus(request, env, ownerEmail, inviteCodeHash);
   if (!loginQuota.ok) {
@@ -478,8 +540,9 @@ async function createSiteClaim(request, env) {
   if (!access.ok) return betaAccessResponse(access);
   if (!env.WAITLIST_DB) return json({ error: "Site claim storage is not configured." }, 503);
 
-  const body = await request.json().catch(() => ({}));
-  const host = claimHostFromInput(body.host || body.url || "");
+  const parsed = await parseJsonBody(request, SiteClaimBody);
+  if (parsed.error) return jsonNoStore(parsed.error, 400);
+  const host = claimHostFromInput(parsed.data.host);
   if (!host) return jsonNoStore({ error: "Enter a public website host to verify." }, 400);
 
   const existing = await env.WAITLIST_DB.prepare(
@@ -517,9 +580,10 @@ async function verifySiteClaim(request, env) {
   if (!access.ok) return betaAccessResponse(access);
   if (!env.WAITLIST_DB) return json({ error: "Site claim storage is not configured." }, 503);
 
-  const body = await request.json().catch(() => ({}));
-  const claimId = cleanText(body.id || body.claimId || "", 80);
-  const host = claimHostFromInput(body.host || body.url || "");
+  const parsed = await parseJsonBody(request, SiteClaimBody);
+  if (parsed.error) return jsonNoStore(parsed.error, 400);
+  const claimId = parsed.data.id;
+  const host = claimHostFromInput(parsed.data.host);
   const row = claimId
     ? await env.WAITLIST_DB.prepare(
         `SELECT *
@@ -783,13 +847,10 @@ async function inviteAccessStatus(request, env, ownerEmail, inviteCode, inviteCo
 // funnel. Rate-limited per network so it cannot be abused as a free
 // analytics sink. Always returns 204 so the SPA beacon never throws.
 async function recordAccessBeacon(request, env) {
-  let body;
-  try {
-    body = await request.json();
-  } catch {
-    body = {};
-  }
-  const step = cleanText(body.step || "", 40);
+  const parsed = await parseJsonBody(request, AccessBeaconBody);
+  if (parsed.error) return new Response(null, { status: 204 });
+  const body = parsed.data;
+  const step = body.step;
   if (!isFunnelStep(step)) {
     return new Response(null, { status: 204 });
   }
@@ -797,17 +858,17 @@ async function recordAccessBeacon(request, env) {
   if (!quota.ok) {
     return new Response(null, { status: 204 });
   }
-  const ownerEmail = normalizeEmail(body.email || "");
+  const ownerEmail = body.email;
   await recordAccessEvent(env, {
     step,
     funnelKey: funnelKeyFromRequest(request, body),
     ownerEmail,
-    source: cleanText(body.source || "spa-beacon", 80),
+    source: body.source || "spa-beacon",
     landingPath: landingPathFromRequest(body, "/"),
     request,
     metadata: {
       beacon: true,
-      timeOnPageMs: Number.isFinite(Number(body.timeOnPageMs)) ? Math.round(Number(body.timeOnPageMs)) : null
+      timeOnPageMs: body.timeOnPageMs === undefined ? null : Math.round(body.timeOnPageMs)
     }
   });
   return new Response(null, { status: 204 });

@@ -19,11 +19,15 @@ import {
   repairActionWebhookPayload
 } from "../../shared/repair-action-rules.js";
 import {
+  RepairActionCreateBody,
+  RepairActionPatchBody,
+  RepairQueuePatchBody,
   createRepairActionRecord,
   ensureRepairQueueRows,
   saveRepairQueueItems,
   updateRepairActionRecord
 } from "../lib/repair-agent-actions.js";
+import { parseJsonBody } from "../lib/validation.js";
 
 async function getRepairQueue(request, env) {
   const context = await repairContext(request, env, "/repair-queue");
@@ -32,11 +36,13 @@ async function getRepairQueue(request, env) {
 }
 
 async function saveRepairQueue(request, env) {
-  const body = await request.json().catch(() => ({}));
   const context = await repairContext(request, env, "/repair-queue");
   if (!context.ok) return context.response;
   const repairTables = await requireRepairTables(context.env);
   if (!repairTables.ok) return repairTables.response;
+  const parsed = await parseJsonBody(request, RepairQueuePatchBody);
+  if (parsed.error) return jsonNoStore(parsed.error, 400);
+  const body = parsed.data;
 
   const saved = await saveRepairQueueItems(context.env, context.access, context.reportId, context.report, body);
   if (!saved.ok) return jsonNoStore({ error: saved.error }, saved.status || 400);
@@ -45,11 +51,13 @@ async function saveRepairQueue(request, env) {
 }
 
 async function createRepairAction(request, env, ctx = null) {
-  const body = await request.json().catch(() => ({}));
   const context = await repairContext(request, env, "/repair-actions", ctx);
   if (!context.ok) return context.response;
   const repairTables = await requireRepairTables(context.env);
   if (!repairTables.ok) return repairTables.response;
+  const parsed = await parseJsonBody(request, RepairActionCreateBody);
+  if (parsed.error) return jsonNoStore(parsed.error, 400);
+  const body = parsed.data;
 
   const created = await createRepairActionRecord(context.env, context.access, context.reportId, context.report, body);
   if (!created.ok) return jsonNoStore({ error: created.error }, created.status || 400);
@@ -67,13 +75,15 @@ async function createRepairAction(request, env, ctx = null) {
 }
 
 async function updateRepairAction(request, env, ctx = null) {
-  const body = await request.json().catch(() => ({}));
   const actionId = repairActionIdFromPath(request.url);
   if (!isSafeUuid(actionId)) return json({ error: "Action not found." }, 404);
   const context = await repairContext(request, env, `/repair-actions/${actionId}`, ctx);
   if (!context.ok) return context.response;
   const repairTables = await requireRepairTables(context.env);
   if (!repairTables.ok) return repairTables.response;
+  const parsed = await parseJsonBody(request, RepairActionPatchBody);
+  if (parsed.error) return jsonNoStore(parsed.error, 400);
+  const body = parsed.data;
 
   const updated = await updateRepairActionRecord(context.env, context.access, context.reportId, context.report, actionId, body);
   if (!updated.ok) {
