@@ -586,81 +586,84 @@ export function BetaApp({ mountKey }) {
             ))}
           </select>
           <p className="field-note">Early access: large targets create a staged batch plan that renders gradually in the background over days to weeks. No full-coverage claim is made until every batch completes.</p>
-          <label htmlFor="competitor-urls">Competitors</label>
-          <textarea
-            id="competitor-urls"
-            onChange={(event) => setCompetitorUrls(event.target.value)}
-            placeholder="https://competitor.com"
-            rows="3"
-            value={competitorUrls}
-          />
-          <label htmlFor="backlink-rows">Backlinks</label>
-          <textarea
-            id="backlink-rows"
-            onChange={(event) => setBacklinkRows(event.target.value)}
-            placeholder="https://source.com/page,https://example.com/page,anchor text"
-            rows="4"
-            value={backlinkRows}
-          />
-          <label htmlFor="keyword-rows">Keyword rows</label>
-          <textarea
-            id="keyword-rows"
-            onChange={(event) => setKeywordRows(event.target.value)}
-            placeholder="query,page,clicks,impressions,ctr,position,previous_clicks,previous_position"
-            rows="4"
-            value={keywordRows}
-          />
-          <div className="local-seo-fields">
-            <label htmlFor="local-business-name">Local business</label>
-            <input
-              id="local-business-name"
-              onChange={(event) => setLocalBusinessName(event.target.value)}
-              placeholder="Bright Dental Austin"
-              type="text"
-              value={localBusinessName}
-            />
-            <label htmlFor="local-phone">Phone</label>
-            <input
-              id="local-phone"
-              onChange={(event) => setLocalPhone(event.target.value)}
-              placeholder="+1 512 555 0199"
-              type="tel"
-              value={localPhone}
-            />
-            <label htmlFor="local-address">Address</label>
+          <details className="advanced-inputs">
+            <summary>Advanced inputs (optional)</summary>
+            <label htmlFor="competitor-urls">Competitors</label>
             <textarea
-              id="local-address"
-              onChange={(event) => setLocalAddress(event.target.value)}
-              placeholder="123 Main St, Austin, TX 78701"
-              rows="2"
-              value={localAddress}
-            />
-            <label htmlFor="google-business-profile-url">Google Business Profile</label>
-            <input
-              id="google-business-profile-url"
-              inputMode="url"
-              onChange={(event) => setGoogleBusinessProfileUrl(event.target.value)}
-              placeholder="https://maps.google.com/?cid=..."
-              type="url"
-              value={googleBusinessProfileUrl}
-            />
-            <label htmlFor="local-keywords">Local keywords</label>
-            <textarea
-              id="local-keywords"
-              onChange={(event) => setLocalKeywords(event.target.value)}
-              placeholder="dentist Austin"
+              id="competitor-urls"
+              onChange={(event) => setCompetitorUrls(event.target.value)}
+              placeholder="https://competitor.com"
               rows="3"
-              value={localKeywords}
+              value={competitorUrls}
             />
-            <label htmlFor="local-citations">Citations</label>
+            <label htmlFor="backlink-rows">Backlinks</label>
             <textarea
-              id="local-citations"
-              onChange={(event) => setLocalCitations(event.target.value)}
-              placeholder="https://directory.com/profile,Bright Dental Austin,+1 512 555 0199,123 Main St Austin TX"
-              rows="3"
-              value={localCitations}
+              id="backlink-rows"
+              onChange={(event) => setBacklinkRows(event.target.value)}
+              placeholder="https://source.com/page,https://example.com/page,anchor text"
+              rows="4"
+              value={backlinkRows}
             />
-          </div>
+            <label htmlFor="keyword-rows">Keyword rows</label>
+            <textarea
+              id="keyword-rows"
+              onChange={(event) => setKeywordRows(event.target.value)}
+              placeholder="query,page,clicks,impressions,ctr,position,previous_clicks,previous_position"
+              rows="4"
+              value={keywordRows}
+            />
+            <div className="local-seo-fields">
+              <label htmlFor="local-business-name">Local business</label>
+              <input
+                id="local-business-name"
+                onChange={(event) => setLocalBusinessName(event.target.value)}
+                placeholder="Bright Dental Austin"
+                type="text"
+                value={localBusinessName}
+              />
+              <label htmlFor="local-phone">Phone</label>
+              <input
+                id="local-phone"
+                onChange={(event) => setLocalPhone(event.target.value)}
+                placeholder="+1 512 555 0199"
+                type="tel"
+                value={localPhone}
+              />
+              <label htmlFor="local-address">Address</label>
+              <textarea
+                id="local-address"
+                onChange={(event) => setLocalAddress(event.target.value)}
+                placeholder="123 Main St, Austin, TX 78701"
+                rows="2"
+                value={localAddress}
+              />
+              <label htmlFor="google-business-profile-url">Google Business Profile</label>
+              <input
+                id="google-business-profile-url"
+                inputMode="url"
+                onChange={(event) => setGoogleBusinessProfileUrl(event.target.value)}
+                placeholder="https://maps.google.com/?cid=..."
+                type="url"
+                value={googleBusinessProfileUrl}
+              />
+              <label htmlFor="local-keywords">Local keywords</label>
+              <textarea
+                id="local-keywords"
+                onChange={(event) => setLocalKeywords(event.target.value)}
+                placeholder="dentist Austin"
+                rows="3"
+                value={localKeywords}
+              />
+              <label htmlFor="local-citations">Citations</label>
+              <textarea
+                id="local-citations"
+                onChange={(event) => setLocalCitations(event.target.value)}
+                placeholder="https://directory.com/profile,Bright Dental Austin,+1 512 555 0199,123 Main St Austin TX"
+                rows="3"
+                value={localCitations}
+              />
+            </div>
+          </details>
         </form>
       </section>
 
