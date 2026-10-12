@@ -2,9 +2,7 @@ import { pathLabel } from "./format.js";
 
 export function summarizePages(pages, findings, startUrl) {
   return pages.map((page) => {
-    const pageFindings = findings.filter(
-      (finding) => finding.pageUrl === page.url && finding.severity !== "good"
-    );
+    const pageFindings = findings.filter((finding) => finding.pageUrl === page.url && finding.severity !== "good");
     const facts = page.rendered || {};
     const staticFacts = page.static || {};
     return {

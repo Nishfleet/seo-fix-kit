@@ -12,8 +12,12 @@ function buildRepairProposalsFromReport(report = {}, context = {}) {
   const targetUrl = context.targetUrl || report.url || "";
   const targetHost = context.targetHost || safeHost(targetUrl);
   const items = [
-    ...(Array.isArray(report.findings) ? report.findings.map((item, index) => normalizeRepairItem(item, index, report, context, "finding")) : []),
-    ...(Array.isArray(report.repairPlan) ? report.repairPlan.map((item, index) => normalizeRepairItem(item, index, report, context, "repair-plan")) : [])
+    ...(Array.isArray(report.findings)
+      ? report.findings.map((item, index) => normalizeRepairItem(item, index, report, context, "finding"))
+      : []),
+    ...(Array.isArray(report.repairPlan)
+      ? report.repairPlan.map((item, index) => normalizeRepairItem(item, index, report, context, "repair-plan"))
+      : [])
   ]
     .filter((item) => item.title && item.severity !== "good")
     .sort((a, b) => severityRank(a.severity) - severityRank(b.severity) || a.priority - b.priority);
@@ -97,7 +101,19 @@ function classifyRepairItem(item = {}) {
       reason: "Platform evidence exists, so this can become a CMS edit after owner approval and integration review."
     };
   }
-  if (item.snippet && hasAny(haystack, ["schema", "canonical", "viewport", "doctype", "charset", "social share", "og:image", "twitter:image"])) {
+  if (
+    item.snippet &&
+    hasAny(haystack, [
+      "schema",
+      "canonical",
+      "viewport",
+      "doctype",
+      "charset",
+      "social share",
+      "og:image",
+      "twitter:image"
+    ])
+  ) {
     return {
       mode: "github_pr_candidate",
       workType: item.workType || "code",
@@ -150,13 +166,14 @@ function classifyRepairItem(item = {}) {
 }
 
 function generatedProposalTitle(item, classification) {
-  const prefix = {
-    generated_proposal: "Approve generated fix",
-    cms_candidate: "Review CMS edit candidate",
-    github_pr_candidate: "Review code change candidate",
-    manual_task: "Assign manual repair",
-    unsupported: "Needs unsupported-work review"
-  }[classification.mode] || "Review repair";
+  const prefix =
+    {
+      generated_proposal: "Approve generated fix",
+      cms_candidate: "Review CMS edit candidate",
+      github_pr_candidate: "Review code change candidate",
+      manual_task: "Assign manual repair",
+      unsupported: "Needs unsupported-work review"
+    }[classification.mode] || "Review repair";
   return `${prefix}: ${item.title}`;
 }
 
@@ -166,13 +183,16 @@ function generatedProposalSummary(item, classification) {
 }
 
 function acceptanceForMode(item, classification) {
-  if (classification.mode === "unsupported") return "Do not sell execution for this item until a safe repair path exists.";
+  if (classification.mode === "unsupported")
+    return "Do not sell execution for this item until a safe repair path exists.";
   if (item.snippet) return "Owner approves the proposed change, then a rerun confirms the finding no longer appears.";
   return "Owner approves the task, execution is documented, and a rerun confirms the finding is gone or intentionally accepted.";
 }
 
 function normalizeRepairExecutionMode(value, fallback = "manual_task") {
-  const mode = String(value || "").trim().toLowerCase();
+  const mode = String(value || "")
+    .trim()
+    .toLowerCase();
   return REPAIR_EXECUTION_MODES.has(mode) ? mode : fallback;
 }
 
@@ -193,7 +213,10 @@ function safeHost(value = "") {
 }
 
 function compactText(value = "", max = 500) {
-  return String(value || "").replace(/\s+/g, " ").trim().slice(0, max);
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, max);
 }
 
 function slugify(value = "") {

@@ -18,23 +18,23 @@ function repairActionProofReceiptUrl(reportId, actionId) {
   return `/api/reports/${encodeURIComponent(reportId)}/repair-actions/${encodeURIComponent(actionId)}/proof.md`;
 }
 
-function repairActionImplementationPackAvailable(action = {}) {
+function repairActionImplementationPackAvailable(maybeAction) {
+  // Queue items without an agent action carry `latestAction: null`.
+  const action = maybeAction || {};
   const approvalState = action.approvalState || action.approval_state || "";
   const executionState = action.executionState || action.execution_state || "";
   return Boolean(action.id && (approvalState === "approved" || executionState === "applied"));
 }
 
-function repairActionProofReceiptAvailable(action = {}) {
+function repairActionProofReceiptAvailable(maybeAction) {
+  // Queue items without an agent action carry `latestAction: null`.
+  const action = maybeAction || {};
   const approvalState = action.approvalState || action.approval_state || "";
   const executionState = action.executionState || action.execution_state || "";
   const rerunState = action.rerunState || action.rerun_state || "";
   const rerunReportId = action.rerunReportId || action.rerun_report_id || "";
   return Boolean(
-    action.id &&
-    approvalState === "approved" &&
-    executionState === "applied" &&
-    rerunState === "fixed" &&
-    rerunReportId
+    action.id && approvalState === "approved" && executionState === "applied" && rerunState === "fixed" && rerunReportId
   );
 }
 

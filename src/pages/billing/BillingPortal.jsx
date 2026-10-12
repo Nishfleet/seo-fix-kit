@@ -114,12 +114,19 @@ export function BillingPortal() {
           <h2 id="fixpack-title">{billing?.product?.name || "SEO Fix Pack"}</h2>
           {!pricingUnavailable && <strong className="billing-price">{priceLabel}</strong>}
         </div>
-        <p className="app-card-text">One proof-backed repair pass for a report, plus one rerun to confirm the fixes worked.</p>
-        <p className="app-footnote">One-time payment per report. Start a Fix Pack from any report that finds real problems; the final price is shown at checkout.</p>
+        <p className="app-card-text">
+          One proof-backed repair pass for a report, plus one rerun to confirm the fixes worked.
+        </p>
+        <p className="app-footnote">
+          One-time payment per report. Start a Fix Pack from any report that finds real problems; the final price is
+          shown at checkout.
+        </p>
       </section>
 
       <section className="app-card" aria-labelledby="requests-title">
-        <div className="app-card-head"><h2 id="requests-title">Fix Packs</h2></div>
+        <div className="app-card-head">
+          <h2 id="requests-title">Fix Packs</h2>
+        </div>
         <div className="billing-list">
           {requests.map((request) => {
             const readiness = request.deliveryReadiness || {};
@@ -128,7 +135,9 @@ export function BillingPortal() {
                 <div>
                   <span className="status-pill">{request.statusLabel || statusLabel(request.status)}</span>
                   <h3>{request.targetHost || request.targetUrl}</h3>
-                  <p>{request.issueCount || 0} problems · score {request.score ?? "–"}</p>
+                  <p>
+                    {request.issueCount || 0} problems · score {request.score ?? "–"}
+                  </p>
                   {readiness.status && (
                     <div className={`delivery-readiness ${readiness.status}`}>
                       <strong>{deliveryReadinessLabel(readiness)}</strong>
@@ -143,23 +152,37 @@ export function BillingPortal() {
                   {request.deliveredAt && <span>Delivered {formatDate(request.deliveredAt)}</span>}
                 </div>
                 <div className="queue-links">
-                  {request.reportPath && <Link discover="none" to={request.reportPath}>Report</Link>}
+                  {request.reportPath && (
+                    <Link discover="none" to={request.reportPath}>
+                      Report
+                    </Link>
+                  )}
                   {request.briefPath && <a href={request.briefPath}>Brief</a>}
-                  {request.deliveryUrl && <a href={request.deliveryUrl} target="_blank" rel="noreferrer">Delivery</a>}
+                  {request.deliveryUrl && (
+                    <a href={request.deliveryUrl} target="_blank" rel="noreferrer">
+                      Delivery
+                    </a>
+                  )}
                 </div>
               </article>
             );
           })}
           {!requests.length && (
             <p className="app-empty">
-              No Fix Packs yet. <Link discover="none" className="inline-link" to="/beta#new-audit">Run an audit</Link> and start one from a report with real problems.
+              No Fix Packs yet.{" "}
+              <Link discover="none" className="inline-link" to="/beta#new-audit">
+                Run an audit
+              </Link>{" "}
+              and start one from a report with real problems.
             </p>
           )}
         </div>
       </section>
 
       <section className="app-card" aria-labelledby="payments-title">
-        <div className="app-card-head"><h2 id="payments-title">Payment history</h2></div>
+        <div className="app-card-head">
+          <h2 id="payments-title">Payment history</h2>
+        </div>
         <div className="billing-list">
           {payments.map((payment) => (
             <article className={`billing-row ${payment.type}`} key={`${payment.id}-${payment.type}`}>
@@ -176,7 +199,11 @@ export function BillingPortal() {
                 {payment.disputedAt && <span>Disputed {formatDate(payment.disputedAt)}</span>}
               </div>
               <div className="queue-links">
-                {payment.reportPath && <Link discover="none" to={payment.reportPath}>Report</Link>}
+                {payment.reportPath && (
+                  <Link discover="none" to={payment.reportPath}>
+                    Report
+                  </Link>
+                )}
               </div>
             </article>
           ))}

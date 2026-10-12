@@ -53,9 +53,10 @@ test("founder password fails loud when the configured password file is unreadabl
 
 function withEnv(overrides, run) {
   const saved = Object.fromEntries(
-    ["SEOFIXKIT_FOUNDER_PASSWORD", "BETA_ACCESS_PASSWORD", "SEOFIXKIT_FOUNDER_PASSWORD_FILE"].map(
-      (name) => [name, process.env[name]]
-    )
+    ["SEOFIXKIT_FOUNDER_PASSWORD", "BETA_ACCESS_PASSWORD", "SEOFIXKIT_FOUNDER_PASSWORD_FILE"].map((name) => [
+      name,
+      process.env[name]
+    ])
   );
   for (const [name, value] of Object.entries(overrides)) {
     process.env[name] = value;
@@ -112,12 +113,13 @@ test("audit fails queued job with returned error", async () => {
   };
 
   await assert.rejects(
-    () => audit("https://example.com", "beta=1", {
-      baseUrl: "https://seofixkit.test",
-      fetcher,
-      pollIntervalMs: 0,
-      pollTimeoutMs: 1000
-    }),
+    () =>
+      audit("https://example.com", "beta=1", {
+        baseUrl: "https://seofixkit.test",
+        fetcher,
+        pollIntervalMs: 0,
+        pollTimeoutMs: 1000
+      }),
     /Browser render failed/
   );
 });
@@ -135,12 +137,13 @@ test("audit times out queued job that never completes", async () => {
   };
 
   await assert.rejects(
-    () => audit("https://example.com", "beta=1", {
-      baseUrl: "https://seofixkit.test",
-      fetcher,
-      pollIntervalMs: 1,
-      pollTimeoutMs: 5
-    }),
+    () =>
+      audit("https://example.com", "beta=1", {
+        baseUrl: "https://seofixkit.test",
+        fetcher,
+        pollIntervalMs: 1,
+        pollTimeoutMs: 5
+      }),
     /timed out while running/
   );
 });
@@ -164,23 +167,26 @@ test("audit bounds a hung status fetch by the poll timeout", async () => {
   };
 
   await assert.rejects(
-    () => audit("https://example.com", "beta=1", {
-      baseUrl: "https://seofixkit.test",
-      fetcher,
-      auditTimeoutMs: 1000,
-      pollIntervalMs: 1,
-      pollTimeoutMs: 5
-    }),
+    () =>
+      audit("https://example.com", "beta=1", {
+        baseUrl: "https://seofixkit.test",
+        fetcher,
+        auditTimeoutMs: 1000,
+        pollIntervalMs: 1,
+        pollTimeoutMs: 5
+      }),
     /timed out after/
   );
 });
 
 test("batch recommendation does not sell Fix Pack when audits have no findings", () => {
   const recommendation = recommendOffer({
-    targets: [{
-      status: "audited",
-      report: { findings: 0 }
-    }],
+    targets: [
+      {
+        status: "audited",
+        report: { findings: 0 }
+      }
+    ],
     repeatedIssues: []
   });
 
@@ -191,15 +197,19 @@ test("batch recommendation does not sell Fix Pack when audits have no findings",
 
 test("batch recommendation sells Fix Pack only when proven findings exist", () => {
   const recommendation = recommendOffer({
-    targets: [{
-      status: "audited",
-      report: { findings: 2 }
-    }],
-    repeatedIssues: [{
-      issue: "meta description",
-      count: 2,
-      projects: ["Example"]
-    }]
+    targets: [
+      {
+        status: "audited",
+        report: { findings: 2 }
+      }
+    ],
+    repeatedIssues: [
+      {
+        issue: "meta description",
+        count: 2,
+        projects: ["Example"]
+      }
+    ]
   });
 
   assert.equal(recommendation.offer, "SEO Fix Pack");
@@ -209,16 +219,20 @@ test("batch recommendation sells Fix Pack only when proven findings exist", () =
 
 test("Fix Pack proof skips reports with no actionable findings", async () => {
   const calls = [];
-  const result = await proveFixPackForReport({
-    ...sampleReport("clean-report"),
-    findings: [{ severity: "good", title: "False positive guarded" }]
-  }, "beta=1", {
-    baseUrl: "https://seofixkit.test",
-    fetcher: async (url) => {
-      calls.push(String(url));
-      return jsonResponse({ error: "should not call" }, 500);
+  const result = await proveFixPackForReport(
+    {
+      ...sampleReport("clean-report"),
+      findings: [{ severity: "good", title: "False positive guarded" }]
+    },
+    "beta=1",
+    {
+      baseUrl: "https://seofixkit.test",
+      fetcher: async (url) => {
+        calls.push(String(url));
+        return jsonResponse({ error: "should not call" }, 500);
+      }
     }
-  });
+  );
 
   assert.equal(result.status, "skipped");
   assert.match(result.reason, /No actionable findings/);
@@ -259,11 +273,13 @@ test("Fix Pack proof stores checkout boundary without raw checkout URL", async (
     }
   });
 
-  assert.deepEqual(calls, [{
-    pathname: "/api/beta/fix-request",
-    cookie: "beta=1",
-    body: { reportId: "finding-report" }
-  }]);
+  assert.deepEqual(calls, [
+    {
+      pathname: "/api/beta/fix-request",
+      cookie: "beta=1",
+      body: { reportId: "finding-report" }
+    }
+  ]);
   assert.equal(result.ok, true);
   assert.equal(result.status, "checkout");
   assert.equal(result.checkoutUrlPresent, true);
@@ -285,38 +301,45 @@ test("admin proof session helper returns only the beta cookie", async () => {
         authorization: options.headers?.authorization || "",
         body: JSON.parse(options.body || "{}")
       });
-      return new Response(JSON.stringify({
-        ok: true,
-        ownerEmail: "proof@example.com",
-        accessMode: "founder-override",
-        token: "must-not-be-used"
-      }), {
-        headers: {
-          "content-type": "application/json",
-          "set-cookie": "sfk_beta_session=proof-cookie; Path=/; HttpOnly; Secure"
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          ownerEmail: "proof@example.com",
+          accessMode: "founder-override",
+          token: "must-not-be-used"
+        }),
+        {
+          headers: {
+            "content-type": "application/json",
+            "set-cookie": "sfk_beta_session=proof-cookie; Path=/; HttpOnly; Secure"
+          }
         }
-      });
+      );
     }
   });
 
   assert.equal(cookie, "sfk_beta_session=proof-cookie");
-  assert.deepEqual(calls, [{
-    pathname: "/admin/beta-session",
-    authorization: "Bearer admin-secret",
-    body: { ownerEmail: "proof@example.com" }
-  }]);
+  assert.deepEqual(calls, [
+    {
+      pathname: "/admin/beta-session",
+      authorization: "Bearer admin-secret",
+      body: { ownerEmail: "proof@example.com" }
+    }
+  ]);
 });
 
 test("admin proof session helper fails closed without beta cookie", async () => {
   await assert.rejects(
-    () => createAdminBetaSession("proof@example.com", "admin-secret", {
-      baseUrl: "https://seofixkit.test",
-      fetcher: async () => jsonResponse({
-        ok: true,
-        ownerEmail: "proof@example.com",
-        accessMode: "founder-override"
-      })
-    }),
+    () =>
+      createAdminBetaSession("proof@example.com", "admin-secret", {
+        baseUrl: "https://seofixkit.test",
+        fetcher: async () =>
+          jsonResponse({
+            ok: true,
+            ownerEmail: "proof@example.com",
+            accessMode: "founder-override"
+          })
+      }),
     /did not return a beta session cookie/
   );
 });
@@ -349,9 +372,11 @@ test("Fix Pack webhook drill runs only through a sanitized test checkout proof",
       calls.push({
         pathname: url.pathname,
         body,
-        headers: Object.fromEntries(Object.entries(options.headers || {}).filter(([key]) =>
-          ["webhook-id", "webhook-timestamp", "webhook-signature"].includes(key)
-        ))
+        headers: Object.fromEntries(
+          Object.entries(options.headers || {}).filter(([key]) =>
+            ["webhook-id", "webhook-timestamp", "webhook-signature"].includes(key)
+          )
+        )
       });
       if (url.pathname === "/api/beta/fix-request" && body.testMode) {
         const paid = calls.filter((call) => call.pathname === "/api/webhooks/dodo").length > 0;
@@ -410,11 +435,10 @@ test("Fix Pack webhook drill runs only through a sanitized test checkout proof",
     created: 2,
     executable: 2
   });
-  assert.deepEqual(calls.map((call) => call.pathname), [
-    "/api/beta/fix-request",
-    "/api/webhooks/dodo",
-    "/api/beta/fix-request"
-  ]);
+  assert.deepEqual(
+    calls.map((call) => call.pathname),
+    ["/api/beta/fix-request", "/api/webhooks/dodo", "/api/beta/fix-request"]
+  );
   assert.deepEqual(calls[0].body, { reportId: "finding-report", testMode: true });
   assert.doesNotMatch(
     JSON.stringify(result),

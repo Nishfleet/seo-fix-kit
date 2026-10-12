@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import http from "node:http";
-import path from "node:path";
 import test from "node:test";
-import { fileURLToPath } from "node:url";
 import { auditUrl } from "../../server/audit/engine.js";
+import {
+  currentPublicPageFingerprints,
+  recordedPublicPageFingerprints
+} from "../../scripts/public-page-fingerprints.mjs";
 import { ROOT_PUBLIC_LASTMODS, ROOT_PUBLIC_PATHS, escapeHtml, rootSitemap } from "../../shared/audit-engine.js";
 import { DEMO_PROOF, DEMO_FIXTURE_PATH, demoProofSnippet } from "./demo-proof.js";
 import { renderedFixture } from "./audits.js";
@@ -65,18 +66,42 @@ test("every worker-rendered public page ships the PNG share image as og:image an
       new RegExp(`<meta name="twitter:image" content="${imageUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`),
       `${name} must ship twitter:image pointing at the PNG share image`
     );
-    assert.match(html, /<meta name="twitter:card" content="summary_large_image" \/>/, `${name} must keep the large-image card so the share image renders`);
-    assert.match(html, new RegExp(`<meta property="og:image:width" content="${SOCIAL_IMAGE_WIDTH}" />`), `${name} must declare the share image width`);
-    assert.match(html, new RegExp(`<meta property="og:image:height" content="${SOCIAL_IMAGE_HEIGHT}" />`), `${name} must declare the share image height`);
-    assert.match(html, /<link rel="apple-touch-icon" href="https:\/\/seofixkit\.com\/apple-touch-icon\.png"/, `${name} must point apple-touch-icon at the PNG`);
-    assert.match(html, /<link rel="icon" href="\/favicon\.svg" type="image\/svg\+xml" \/>/, `${name} must ship the favicon`);
+    assert.match(
+      html,
+      /<meta name="twitter:card" content="summary_large_image" \/>/,
+      `${name} must keep the large-image card so the share image renders`
+    );
+    assert.match(
+      html,
+      new RegExp(`<meta property="og:image:width" content="${SOCIAL_IMAGE_WIDTH}" />`),
+      `${name} must declare the share image width`
+    );
+    assert.match(
+      html,
+      new RegExp(`<meta property="og:image:height" content="${SOCIAL_IMAGE_HEIGHT}" />`),
+      `${name} must declare the share image height`
+    );
+    assert.match(
+      html,
+      /<link rel="apple-touch-icon" href="https:\/\/seofixkit\.com\/apple-touch-icon\.png"/,
+      `${name} must point apple-touch-icon at the PNG`
+    );
+    assert.match(
+      html,
+      /<link rel="icon" href="\/favicon\.svg" type="image\/svg\+xml" \/>/,
+      `${name} must ship the favicon`
+    );
   }
 });
 
 // Reads width/height from a PNG's IHDR chunk (bytes 16-23, big-endian).
 function pngDimensions(path) {
   const bytes = readFileSync(path);
-  assert.deepEqual([...bytes.subarray(0, 8)], [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], `${path} must be a PNG file`);
+  assert.deepEqual(
+    [...bytes.subarray(0, 8)],
+    [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
+    `${path} must be a PNG file`
+  );
   assert.equal(bytes.subarray(12, 16).toString("ascii"), "IHDR", `${path} must start with an IHDR chunk`);
   return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
 }
@@ -137,7 +162,11 @@ test("public proof pages expose methodology and pricing without overclaims", () 
     );
   }
   assert.match(methodology, /Why not just use a free AI SEO agent skill\?/);
-  assert.match(methodology, /Open-source SEO tooling is good at that/, "the free-skill answer must not disparage open source");
+  assert.match(
+    methodology,
+    /Open-source SEO tooling is good at that/,
+    "the free-skill answer must not disparage open source"
+  );
   assert.match(methodology, /no live AI-engine sampling, no AI citation monitoring, and no ranking guarantees/i);
   assert.match(
     methodology,
@@ -154,7 +183,8 @@ test("public proof pages expose methodology and pricing without overclaims", () 
   // stay inside the page's no-overclaim boundary: repair queue + rerun proof
   // is the wedge, never an AI-visibility parity claim.
   {
-    const seomator = (methodology.match(/<h2>Why not just use SEOmator's free audits\?<\/h2>[\s\S]*?<\/section>/) || [])[0];
+    const seomator = (methodology.match(/<h2>Why not just use SEOmator's free audits\?<\/h2>[\s\S]*?<\/section>/) ||
+      [])[0];
     assert.ok(seomator, "methodology must carry a dedicated SEOmator competitor answer");
     assert.match(seomator, /39 free SEO tools/);
     assert.match(seomator, /251-check rule engine/);
@@ -174,20 +204,32 @@ test("public proof pages expose methodology and pricing without overclaims", () 
   // SEOmator and agentic answers, with the repair queue + rerun proof wedge
   // and the standing no-overclaim boundary.
   {
-    const volnine = (methodology.match(/<h2>Why not just use Volume Nine's GEO Grader\?<\/h2>[\s\S]*?<\/section>/) || [])[0];
+    const volnine = (methodology.match(/<h2>Why not just use Volume Nine's GEO Grader\?<\/h2>[\s\S]*?<\/section>/) ||
+      [])[0];
     const seomatorH2 = methodology.indexOf("<h2>Why not just use SEOmator's free audits?</h2>");
     const volnineH2 = methodology.indexOf("<h2>Why not just use Volume Nine's GEO Grader?</h2>");
-    const agenticH2 = methodology.indexOf("<h2>Why not just use an agentic SEO auditor that files its own GitHub issues?</h2>");
+    const agenticH2 = methodology.indexOf(
+      "<h2>Why not just use an agentic SEO auditor that files its own GitHub issues?</h2>"
+    );
     assert.ok(volnine, "methodology must carry a dedicated Volume Nine GEO Grader competitor answer");
-    assert.ok(seomatorH2 > -1 && seomatorH2 < volnineH2 && volnineH2 < agenticH2, "Volume Nine section must sit between the SEOmator and agentic sections");
+    assert.ok(
+      seomatorH2 > -1 && seomatorH2 < volnineH2 && volnineH2 < agenticH2,
+      "Volume Nine section must sit between the SEOmator and agentic sections"
+    );
     assert.match(volnine, /Denver-based digital marketing agency/);
     assert.match(volnine, /launched in January 2026/);
     assert.match(volnine, /totally free/);
     assert.match(volnine, /60\+ signals across six categories/);
-    assert.match(volnine, /discoverability, structured data, AI readiness, performance, reputation and trust, and LLM-ready content/);
+    assert.match(
+      volnine,
+      /discoverability, structured data, AI readiness, performance, reputation and trust, and LLM-ready content/
+    );
     assert.match(volnine, /reads robots\.txt rules/);
     assert.match(volnine, /ChatGPT, Claude, Gemini, Perplexity, and Grok/);
-    assert.match(volnine, /<a href="https:\/\/www\.v9digital\.com\/geo-grader\/" rel="nofollow noopener" target="_blank">/);
+    assert.match(
+      volnine,
+      /<a href="https:\/\/www\.v9digital\.com\/geo-grader\/" rel="nofollow noopener" target="_blank">/
+    );
     assert.match(volnine, /<a href="https:\/\/geo\.v9digital\.com\/grader\/" rel="nofollow noopener" target="_blank">/);
     assert.match(volnine, /emails a detailed report with actionable to-dos/);
     assert.match(volnine, /repair queue plus rerun proof/);
@@ -201,13 +243,19 @@ test("public proof pages expose methodology and pricing without overclaims", () 
   // answers, with the repair queue + rerun proof wedge and the standing no-overclaim
   // boundary.
   {
-    const juma = (methodology.match(/<h2>Why not just use Juma\.ai's free GEO Audit\?<\/h2>[\s\S]*?<\/section>/) || [])[0];
+    const juma = (methodology.match(/<h2>Why not just use Juma\.ai's free GEO Audit\?<\/h2>[\s\S]*?<\/section>/) ||
+      [])[0];
     const seomatorH2 = methodology.indexOf("<h2>Why not just use SEOmator's free audits?</h2>");
     const volnineH2 = methodology.indexOf("<h2>Why not just use Volume Nine's GEO Grader?</h2>");
     const jumaH2 = methodology.indexOf("<h2>Why not just use Juma.ai's free GEO Audit?</h2>");
-    const agenticH2 = methodology.indexOf("<h2>Why not just use an agentic SEO auditor that files its own GitHub issues?</h2>");
+    const agenticH2 = methodology.indexOf(
+      "<h2>Why not just use an agentic SEO auditor that files its own GitHub issues?</h2>"
+    );
     assert.ok(juma, "methodology must carry a dedicated Juma.ai GEO Audit competitor answer");
-    assert.ok(seomatorH2 < volnineH2 && volnineH2 < jumaH2 && jumaH2 < agenticH2, "Juma section must sit between the Volume Nine and agentic sections");
+    assert.ok(
+      seomatorH2 < volnineH2 && volnineH2 < jumaH2 && jumaH2 < agenticH2,
+      "Juma section must sit between the Volume Nine and agentic sections"
+    );
     assert.match(juma, /no signup/);
     assert.match(juma, /ten weighted dimensions/);
     assert.match(juma, /impact × effort matrix/);
@@ -224,7 +272,8 @@ test("public proof pages expose methodology and pricing without overclaims", () 
   }
   // AEO Engine GEO Audit regression guard
   {
-    const aeo = (methodology.match(/<h2>Why not just use AEO Engine's free GEO audit\?<\/h2>[\s\S]*?<\/section>/) || [])[0];
+    const aeo = (methodology.match(/<h2>Why not just use AEO Engine's free GEO audit\?<\/h2>[\s\S]*?<\/section>/) ||
+      [])[0];
     const jumaH2 = methodology.indexOf("<h2>Why not just use Juma.ai's free GEO Audit?</h2>");
     const aeoH2 = methodology.indexOf("<h2>Why not just use AEO Engine's free GEO audit?</h2>");
     const trackerH2 = methodology.indexOf("<h2>Why not just use a tracker like Otterly.ai or Peec.ai?</h2>");
@@ -239,7 +288,10 @@ test("public proof pages expose methodology and pricing without overclaims", () 
     assert.match(aeo, /embeddable GEO audit widget/);
     assert.match(aeo, /<a href="https:\/\/aeoengine\.ai" rel="nofollow noopener" target="_blank">/);
     assert.match(aeo, /<a href="https:\/\/aeoengine\.ai\/geo-audit"/);
-    assert.match(aeo, /<a href="https:\/\/aeoengine\.ai\/embed\/geo-audit\?utm_source=embed&utm_medium=widget&utm_campaign=aeo_tools"/);
+    assert.match(
+      aeo,
+      /<a href="https:\/\/aeoengine\.ai\/embed\/geo-audit\?utm_source=embed&utm_medium=widget&utm_campaign=aeo_tools"/
+    );
     assert.match(aeo, /repair queue plus rerun proof/);
     assert.match(aeo, /approval-first/);
     assert.match(aeo, /publish CMS changes, open pull requests, merge code, or call provider admin APIs/);
@@ -250,12 +302,19 @@ test("public proof pages expose methodology and pricing without overclaims", () 
   }
   // Funded AI-visibility tracker (Otterly.ai + Peec.ai) regression guard
   {
-    const tracker = (methodology.match(/<h2>Why not just use a tracker like Otterly\.ai or Peec\.ai\?<\/h2>[\s\S]*?<\/section>/) || [])[0];
+    const tracker = (methodology.match(
+      /<h2>Why not just use a tracker like Otterly\.ai or Peec\.ai\?<\/h2>[\s\S]*?<\/section>/
+    ) || [])[0];
     const jumaH2 = methodology.indexOf("<h2>Why not just use Juma.ai's free GEO Audit?</h2>");
     const trackerH2 = methodology.indexOf("<h2>Why not just use a tracker like Otterly.ai or Peec.ai?</h2>");
-    const agenticH2 = methodology.indexOf("<h2>Why not just use an agentic SEO auditor that files its own GitHub issues?</h2>");
+    const agenticH2 = methodology.indexOf(
+      "<h2>Why not just use an agentic SEO auditor that files its own GitHub issues?</h2>"
+    );
     assert.ok(tracker, "methodology must carry a dedicated funded-tracker competitor answer");
-    assert.ok(jumaH2 < trackerH2 && trackerH2 < agenticH2, "tracker section must sit between the Juma and agentic sections");
+    assert.ok(
+      jumaH2 < trackerH2 && trackerH2 < agenticH2,
+      "tracker section must sit between the Juma and agentic sections"
+    );
     assert.match(tracker, /Otterly\.ai/);
     assert.match(tracker, /Peec AI/);
     assert.match(tracker, /Peec\.ai/);
@@ -280,11 +339,16 @@ test("public proof pages expose methodology and pricing without overclaims", () 
     assert.match(tracker, /<a href="https:\/\/otterly\.ai\/pricing" rel="nofollow noopener" target="_blank">/);
     assert.match(tracker, /<a href="https:\/\/peec\.ai" rel="nofollow noopener" target="_blank">/);
     assert.match(tracker, /<a href="https:\/\/peec\.ai\/pricing" rel="nofollow noopener" target="_blank">/);
-    assert.match(tracker, /<a href="https:\/\/peec\.ai\/blog\/we-raised-21m-series-a-to-help-brands-win-in-ai-search" rel="nofollow noopener" target="_blank">/);
+    assert.match(
+      tracker,
+      /<a href="https:\/\/peec\.ai\/blog\/we-raised-21m-series-a-to-help-brands-win-in-ai-search" rel="nofollow noopener" target="_blank">/
+    );
   }
   // Agentic SEO auditor (SEO Automation Club) regression guard
   {
-    const agentic = (methodology.match(/<h2>Why not just use an agentic SEO auditor that files its own GitHub issues\?<\/h2>[\s\S]*?<\/section>/) || [])[0];
+    const agentic = (methodology.match(
+      /<h2>Why not just use an agentic SEO auditor that files its own GitHub issues\?<\/h2>[\s\S]*?<\/section>/
+    ) || [])[0];
     assert.ok(agentic, "methodology must carry a dedicated agentic SEO auditor competitor answer");
     assert.match(agentic, /SEO Automation Club/);
     assert.match(agentic, /seoautomationclub\.com\/agentic-seo-autonomous-technical-audit-claude-code-github-issues/);
@@ -296,7 +360,10 @@ test("public proof pages expose methodology and pricing without overclaims", () 
     assert.match(agentic, /rerun|re-measure/);
     assert.match(agentic, /No live AI-engine sampling, no AI citation monitoring, and no ranking guarantees/);
     assert.match(agentic, /issue-filing|edit.*code|AST/i, "must distinguish issue-filers from code-editing agents");
-    assert.doesNotMatch(agentic, /73 issues|41 closed|6 days|guaranteed rankings|live AI-engine sampling is live|we apply your fixes/i);
+    assert.doesNotMatch(
+      agentic,
+      /73 issues|41 closed|6 days|guaranteed rankings|live AI-engine sampling is live|we apply your fixes/i
+    );
   }
   assert.match(packages, /Fix Pack/);
   assert.match(packages, /\$99\.00 one-time/);
@@ -309,9 +376,15 @@ test("public proof pages expose methodology and pricing without overclaims", () 
   assert.doesNotMatch(packages, /\$49-\$99\/mo/);
   // Every plan card leads somewhere: no dead-end tiles.
   for (const plan of ["Page check", "Site audit", "Fix Pack"]) {
-    const card = (packages.match(new RegExp(`<article class="plan[^"]*">[\\s\\S]*?<h2>${plan}</h2>[\\s\\S]*?</article>`)) || [])[0];
+    const card = (packages.match(
+      new RegExp(`<article class="plan[^"]*">[\\s\\S]*?<h2>${plan}</h2>[\\s\\S]*?</article>`)
+    ) || [])[0];
     assert.ok(card, `the ${plan} card must exist`);
-    assert.match(card, /<a class="btn [^"]+" href="https:\/\/seofixkit\.com\/[^"]*">/, `the ${plan} card must carry a call to action`);
+    assert.match(
+      card,
+      /<a class="btn [^"]+" href="https:\/\/seofixkit\.com\/[^"]*">/,
+      `the ${plan} card must carry a call to action`
+    );
   }
   assert.doesNotMatch(combined, /completed 50K rendered validation/i);
   assert.doesNotMatch(combined, /guaranteed rankings/i);
@@ -378,7 +451,15 @@ test("machine-readable public surfaces list proof pages and limits", () => {
   const sitemap = rootSitemap(origin);
 
   assert.deepEqual(parseSitemapUrls(sitemap), expectedSitemapUrls);
-  for (const path of ["/demo", "/methodology", "/pricing", "/check", "/small-business-seo-audit", "/rendered-vs-static-seo-audit", "/ai-answer-readiness"]) {
+  for (const path of [
+    "/demo",
+    "/methodology",
+    "/pricing",
+    "/check",
+    "/small-business-seo-audit",
+    "/rendered-vs-static-seo-audit",
+    "/ai-answer-readiness"
+  ]) {
     assert.match(llms, new RegExp(`${origin}${path}`));
     assert.match(markdown, new RegExp(`${origin}${path}`));
     assert.match(sitemap, new RegExp(`${origin}${path}`));
@@ -397,7 +478,11 @@ test("machine-readable public surfaces list proof pages and limits", () => {
       new RegExp(`<loc>${origin}${path}</loc><lastmod>${ROOT_PUBLIC_LASTMODS[path]}</lastmod>`),
       `sitemap must carry the truthful lastmod for ${path}`
     );
-    assert.match(ROOT_PUBLIC_LASTMODS[path], /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/, `${path} lastmod must be a UTC W3C datetime`);
+    assert.match(
+      ROOT_PUBLIC_LASTMODS[path],
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/,
+      `${path} lastmod must be a UTC W3C datetime`
+    );
   }
   assert.match(llms, /Does not provide live AI-engine visibility tracking/);
   assert.match(llms, /Proof Monitoring checkout is config-gated/);
@@ -418,153 +503,47 @@ test("machine-readable public surfaces list proof pages and limits", () => {
   assert.match(llms, /robots\.txt and sitemap crawl inventory up to 50,000 discovered URLs/);
   assert.match(llms, /staged large rendered crawl jobs for 50,000-page targets \(early access/);
   assert.match(llms, /never sold as completed 50K rendered validation/);
-  assert.match(llms, /Persistent repair queue: proven issues stay tracked across saved reports with approval state, acceptance checks, status, and fixed-rerun proof receipts/);
-  assert.match(llms, /Owner-approved implementation packs: private handoff documents with source proof and approval state/);
+  assert.match(
+    llms,
+    /Persistent repair queue: proven issues stay tracked across saved reports with approval state, acceptance checks, status, and fixed-rerun proof receipts/
+  );
+  assert.match(
+    llms,
+    /Owner-approved implementation packs: private handoff documents with source proof and approval state/
+  );
   assert.match(llms, /Paid Fix Pack fulfillment: one proof-backed repair pass per report plus one rerun after fixes/);
   assert.match(llms, new RegExp(`The plain answer is on ${origin}/methodology`));
   assert.match(llms, /no live AI-engine sampling, no AI citation monitoring, and no ranking guarantees/);
   assert.match(markdown, new RegExp(`Anonymous one-page check: ${origin}/check`));
 });
 
-// Sitemap freshness discipline (lane 1: "Establish full search-index coverage").
-//
-// The <lastmod> every URL ships in /sitemap.xml is the re-crawl freshness
-// hint search engines use to decide whether a page has changed. If a
-// lastmod is older than the actual change to the rendered HTML, the
-// crawlers under-recrawl the truth and the indexing coverage gap this
-// item exists to close widens silently. This test pins the discipline so
-// future page edits cannot ship without refreshing the matching lastmod.
-//
-// Both timestamps are compared in the existing sitemap convention (commit
-// local IST time, formatted as Z-suffixed UTC in the published sitemap).
-// That is technically wrong (the Z should be UTC), but it is what the
-// current sitemap and IndexNow payload use, and the discipline test must
-// agree with the published artefact rather than redefine the convention.
-const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-// Renderer pieces are located by name, not by hard-coded line numbers, so
-// edits elsewhere in a file never shift another page's tracked range.
-// rendererBlock(file, marker) spans from the line that starts with `marker`
-// to the next line that is exactly "}" or "};" (the end of that top-level
-// function or constant).
-function rendererBlock(file, marker) {
-  const lines = readFileSync(path.join(REPO_ROOT, file), "utf8").split("\n");
-  const start = lines.findIndex((line) => line.startsWith(marker));
-  assert.ok(start >= 0, `${file}: renderer marker not found: ${marker}`);
-  const end = lines.findIndex((line, index) => index > start && (line === "}" || line === "};"));
-  assert.ok(end > start, `${file}: renderer end not found after: ${marker}`);
-  return { file, lineStart: start + 1, lineEnd: end + 1 };
-}
-const PAGES_FILE = "worker/routes/pages.js";
-const fnBlock = (name) => rendererBlock(PAGES_FILE, `function ${name}(`);
-// Shared renderer pieces every worker-rendered page pulls in: the share-image
-// constants/meta (pages.js top) and ldBlock/publicAssetHead/siteHeader/
-// siteFooter/pageSocialHead. A change there changes every page's HTML.
-const SHARED_PUBLIC_HEAD = [
-  { file: PAGES_FILE, lineStart: 1, lineEnd: 24 },
-  fnBlock("ldBlock"),
-  fnBlock("publicAssetHead"),
-  fnBlock("siteHeader"),
-  fnBlock("siteFooter"),
-  fnBlock("pageSocialHead")
-];
-const PRODUCT_PAGE_SHELL = fnBlock("publicProductPageHtml");
-const POLICY_PAGE_SHELL = fnBlock("policyPageHtml");
-const PUBLIC_PAGE_RENDERERS = {
-  "/": [
-    // The SPA landing page component and the logo it renders.
-    { file: "src/pages/LandingPage.jsx", lineStart: 1, lineEnd: 400 },
-    { file: "index.html", lineStart: 1, lineEnd: 100 }
-  ],
-  "/demo": [...SHARED_PUBLIC_HEAD, fnBlock("demoHtml")],
-  "/check": [...SHARED_PUBLIC_HEAD, rendererBlock("worker/routes/public-check.js", "export function checkHtml(")],
-  "/methodology": [...SHARED_PUBLIC_HEAD, fnBlock("methodologyHtml"), PRODUCT_PAGE_SHELL],
-  "/pricing": [
-    ...SHARED_PUBLIC_HEAD,
-    rendererBlock(PAGES_FILE, "const PRICING_PLANS = ["),
-    rendererBlock(PAGES_FILE, "const PRICING_FEATURES = ["),
-    rendererBlock(PAGES_FILE, "const PRICING_FAQ = ["),
-    fnBlock("pricingCheck"),
-    fnBlock("pricingHtml"),
-    PRODUCT_PAGE_SHELL
-  ],
-  "/small-business-seo-audit": [...SHARED_PUBLIC_HEAD, fnBlock("smallBusinessSeoAuditHtml"), PRODUCT_PAGE_SHELL],
-  "/rendered-vs-static-seo-audit": [...SHARED_PUBLIC_HEAD, fnBlock("renderedVsStaticAuditHtml"), PRODUCT_PAGE_SHELL],
-  "/ai-answer-readiness": [...SHARED_PUBLIC_HEAD, fnBlock("aiAnswerReadinessHtml"), PRODUCT_PAGE_SHELL],
-  "/proof": [...SHARED_PUBLIC_HEAD, rendererBlock(PAGES_FILE, "const PROOF_CASE = {"), fnBlock("proofCaseHtml")],
-  "/privacy": [...SHARED_PUBLIC_HEAD, fnBlock("privacyHtml")],
-  "/support": [...SHARED_PUBLIC_HEAD, fnBlock("supportHtml"), POLICY_PAGE_SHELL],
-  "/terms": [...SHARED_PUBLIC_HEAD, fnBlock("termsHtml"), POLICY_PAGE_SHELL]
-};
-
-let lastGitLogOutput = "";
-
-function latestCommitIsoIst(renderer) {
-  const output = execFileSync(
-    "git",
-    // --no-merges: on pull_request runs CI checks out GitHub's synthetic merge
-    // commit, which authors no renderer change of its own; newer git versions
-    // can surface it (with an empty diff) ahead of the real change.
-    ["log", "-1", "--no-merges", "--format=%aI", "-L", `${renderer.lineStart},${renderer.lineEnd}:${renderer.file}`],
-    { cwd: REPO_ROOT, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 }
+// Sitemap freshness discipline: a page's <lastmod> is the re-crawl hint
+// search engines use, so it must move whenever what the page serves changes.
+// The fingerprints hash each page's served HTML (and the SPA landing files for
+// "/"); `npm run sitemap:refresh` bumps lastmods and records new hashes.
+test("sitemap lastmod is refreshed whenever a public page's content changes", async () => {
+  const current = await currentPublicPageFingerprints();
+  const recorded = recordedPublicPageFingerprints();
+  const stale = ROOT_PUBLIC_PATHS.filter((path) => current[path] !== recorded[path]);
+  assert.deepEqual(
+    stale,
+    [],
+    `Public page content changed for ${stale.join(", ")}. Run \`npm run sitemap:refresh\` to bump its sitemap lastmod.`
   );
-  // %aI is strict ISO 8601 with offset (e.g. 2026-08-19T13:36:30+05:30); the
-  // -L flag then appends the diff hunk. Take the first non-empty line so
-  // trailing diff hunks cannot leak into the timestamp. Convert any non-IST
-  // offset to IST YYYY-MM-DDTHH:MM:SS so the comparison can match the
-  // published lastmod convention (Z-suffixed IST).
-  lastGitLogOutput = output;
-  const firstLine = output.split("\n").find((line) => line.trim()) || "";
-  // Git 2.5x prints a UTC offset as "Z" (2026-10-12T09:25:32Z); older git
-  // prints "+00:00". Accept both.
-  const match = firstLine.trim().match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(Z|[+-]\d{2}:?\d{2})?$/);
-  if (!match) return "";
-  const [, base, tz] = match;
-  if (!tz || tz === "+05:30" || tz === "+0530") return base;
-  // Date.parse honours the offset, so this is the true UTC instant; IST is
-  // UTC+05:30.
-  const istMs = Date.parse(`${base}${tz}`) + 5.5 * 60 * 60 * 1000;
-  return new Date(istMs).toISOString().slice(0, 19);
-}
-
-
-test("sitemap lastmod stays truthful relative to the page renderer (freshness discipline)", () => {
-  const failures = [];
   for (const path of ROOT_PUBLIC_PATHS) {
-    const ranges = PUBLIC_PAGE_RENDERERS[path];
-    if (!ranges) {
-      failures.push(`${path}: missing renderer locator in PUBLIC_PAGE_RENDERERS (refresh the map when adding a new public path)`);
-      continue;
-    }
-
-    const lastmod = ROOT_PUBLIC_LASTMODS[path];
-    if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(lastmod)) {
-      failures.push(`${path}: lastmod ${lastmod} is not a UTC W3C datetime (existing convention uses Z-suffixed IST time)`);
-      continue;
-    }
-    const lastmodIst = lastmod.slice(0, 19);
-    let latestRendererCommitIst = "";
-    let missingCommit = false;
-    for (const renderer of ranges) {
-      const commitIst = latestCommitIsoIst(renderer);
-      if (!commitIst) {
-        failures.push(
-          `${path}: unable to read latest commit for ${renderer.file}:${renderer.lineStart}-${renderer.lineEnd} (git log began: ${JSON.stringify(lastGitLogOutput.slice(0, 160))})`
-        );
-        missingCommit = true;
-        break;
-      }
-      if (commitIst > latestRendererCommitIst) latestRendererCommitIst = commitIst;
-    }
-    if (missingCommit) continue;
-    if (lastmodIst < latestRendererCommitIst) {
-      failures.push(
-        `${path}: lastmod ${lastmod} (IST ${lastmodIst}) is older than the latest renderer commit (${latestRendererCommitIst} IST in ${ranges
-          .map((r) => `${r.file}:${r.lineStart}-${r.lineEnd}`)
-          .join(", ")}). Refresh ROOT_PUBLIC_LASTMODS[${path}] and the mirror in public/sitemap.xml so the re-crawl freshness hint stays truthful.`
-      );
-    }
+    assert.match(
+      ROOT_PUBLIC_LASTMODS[path],
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/,
+      `${path} lastmod must be a W3C datetime`
+    );
   }
-  assert.deepEqual(failures, [], failures.length === 1 ? failures[0] : failures.join("\n"));
+  const staticSitemap = readFileSync(new URL("../../public/sitemap.xml", import.meta.url), "utf8");
+  for (const path of ROOT_PUBLIC_PATHS) {
+    assert.ok(
+      staticSitemap.includes(`<loc>https://seofixkit.com${path}</loc><lastmod>${ROOT_PUBLIC_LASTMODS[path]}</lastmod>`),
+      `public/sitemap.xml must mirror the lastmod for ${path} (run npm run sitemap:refresh)`
+    );
+  }
 });
 
 test("intent-matching landing pages carry unique, truthful, machine-readable proof", () => {
@@ -591,7 +570,11 @@ test("intent-matching landing pages carry unique, truthful, machine-readable pro
     assert.match(html, /What this page does not claim/, `${name} must carry an explicit no-overclaim section`);
     assert.match(html, new RegExp(`href="${origin}/check"`), `${name} must link the anonymous one-page check`);
     assert.match(html, new RegExp(`href="${origin}/demo"`), `${name} must link the proof sample`);
-    assert.match(html, /does not guarantee rankings|never guarantees rankings/, `${name} must keep the no-ranking promise`);
+    assert.match(
+      html,
+      /does not guarantee rankings|never guarantees rankings/,
+      `${name} must keep the no-ranking promise`
+    );
     assert.ok(visibleWordCount(html) >= 250, `${name} must not look thin to rendered audits`);
   }
 
@@ -656,16 +639,8 @@ test("policy pages cross-link each other and the live anonymous check", () => {
       "policy pages must carry a path to the live anonymous one-page check"
     );
   }
-  assert.match(
-    privacy,
-    new RegExp(`href="${origin}/methodology"`),
-    "the privacy page must not be a dead end"
-  );
-  assert.match(
-    privacy,
-    new RegExp(`href="${origin}/pricing"`),
-    "the privacy page must reach pricing"
-  );
+  assert.match(privacy, new RegExp(`href="${origin}/methodology"`), "the privacy page must not be a dead end");
+  assert.match(privacy, new RegExp(`href="${origin}/pricing"`), "the privacy page must reach pricing");
 });
 
 test("public demo and support pages carry enough buyer-facing detail", () => {
@@ -678,11 +653,24 @@ test("public demo and support pages carry enough buyer-facing detail", () => {
   assert.match(demo, /What this sample does not claim/);
   assert.match(demo, new RegExp(`Anonymous one-page checks are live at ${origin}/check`));
   assert.match(demo, /Check one page now/);
-  assert.match(demo, /Neither the sample nor the one-page check promises rankings, traffic, indexing, revenue, AI citations/i);
-  assert.doesNotMatch(demo, /not a public anonymous audit/i, "the demo no longer claims anonymous checks are unavailable");
+  assert.match(
+    demo,
+    /Neither the sample nor the one-page check promises rankings, traffic, indexing, revenue, AI citations/i
+  );
+  assert.doesNotMatch(
+    demo,
+    /not a public anonymous audit/i,
+    "the demo no longer claims anonymous checks are unavailable"
+  );
   assert.match(support, /Delivery expectations/);
-  assert.match(support, /do not send secrets, private keys, passwords, payment card numbers, or production credentials/i);
-  assert.match(support, /We do not log into private CMS accounts, publish changes, merge code, or call provider admin APIs/i);
+  assert.match(
+    support,
+    /do not send secrets, private keys, passwords, payment card numbers, or production credentials/i
+  );
+  assert.match(
+    support,
+    /We do not log into private CMS accounts, publish changes, merge code, or call provider admin APIs/i
+  );
   assert.match(support, /Ownership and deletion/);
   assert.match(support, /sites you own or are authorized to audit/i);
 });
@@ -722,7 +710,9 @@ test("demo brief is verbatim real engine output for the public test page", async
     }
     if (req.url === "/llms.txt") {
       res.writeHead(200, { "content-type": "text/plain; charset=utf-8" });
-      res.end(`# SEO Fix Kit\n\nPublic proof pages:\n- ${fixtureOrigin}/demo\n- ${fixtureOrigin}/methodology\n- ${fixtureOrigin}/pricing\n`);
+      res.end(
+        `# SEO Fix Kit\n\nPublic proof pages:\n- ${fixtureOrigin}/demo\n- ${fixtureOrigin}/methodology\n- ${fixtureOrigin}/pricing\n`
+      );
       return;
     }
     res.writeHead(404, { "content-type": "text/plain" });
@@ -739,7 +729,10 @@ test("demo brief is verbatim real engine output for the public test page", async
       appOrigin: fixtureOrigin
     });
 
-    assert.ok(report.findings.length >= DEMO_PROOF.guards.length + 1, "the engine must emit guarded findings plus real issues for the test page");
+    assert.ok(
+      report.findings.length >= DEMO_PROOF.guards.length + 1,
+      "the engine must emit guarded findings plus real issues for the test page"
+    );
     for (const guard of DEMO_PROOF.guards) {
       const live = report.findings.find((finding) => finding.type === "guard" && finding.title === guard.title);
       assert.ok(live, `guarded finding missing from live engine output: ${guard.title}`);
@@ -762,7 +755,11 @@ test("demo brief is verbatim real engine output for the public test page", async
       const live = report.repairPlan.find((item) => item.title === entry.title);
       assert.ok(live, `repair plan entry missing from live engine output: ${entry.title}`);
       assert.equal(live.fix, entry.fix, `fix drifted for: ${entry.title}`);
-      assert.equal(live.snippet || "", entry.snippet.replaceAll("{ORIGIN}", fixtureOrigin), `snippet drifted for: ${entry.title}`);
+      assert.equal(
+        live.snippet || "",
+        entry.snippet.replaceAll("{ORIGIN}", fixtureOrigin),
+        `snippet drifted for: ${entry.title}`
+      );
     }
 
     const demo = demoHtml(origin);
@@ -770,8 +767,7 @@ test("demo brief is verbatim real engine output for the public test page", async
     assert.match(demo, /verbatim output from the SEO Fix Kit audit engine/i);
     assert.match(demo, new RegExp(`${origin}${DEMO_FIXTURE_PATH}`));
     for (const guard of DEMO_PROOF.guards) {
-      const renderedEvidence = escapeHtml(guard.evidence)
-        .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const renderedEvidence = escapeHtml(guard.evidence).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       assert.match(demo, new RegExp(renderedEvidence), `demo must render live evidence: ${guard.title}`);
     }
     assert.doesNotMatch(demo, /Sample developer brief/, "the demo must not show the hand-written brief anymore");
@@ -787,11 +783,9 @@ test("demo proof list reflows at 320px and 390px without hiding evidence", async
   const html = demoHtml(origin);
   const expectedProofStrings = [
     ...DEMO_PROOF.guards.flatMap((guard) => [guard.title, guard.evidence, guard.why, guard.fix]),
-    ...DEMO_PROOF.repairPlan.flatMap((item) => [
-      item.title,
-      item.fix,
-      demoProofSnippet(item.snippet, origin)
-    ].filter(Boolean))
+    ...DEMO_PROOF.repairPlan.flatMap((item) =>
+      [item.title, item.fix, demoProofSnippet(item.snippet, origin)].filter(Boolean)
+    )
   ].map((value) => String(value).replace(/\s+/g, " ").trim());
 
   assert.doesNotMatch(html, /overflow-x\s*:\s*hidden/i, "must wrap proof tokens instead of hiding document overflow");
@@ -803,7 +797,10 @@ test("demo proof list reflows at 320px and 390px without hiding evidence", async
       await page.setContent(html, { waitUntil: "domcontentloaded" });
       const measured = await page.evaluate(() => {
         const root = document.documentElement;
-        const compact = (value) => String(value || "").replace(/\s+/g, " ").trim();
+        const compact = (value) =>
+          String(value || "")
+            .replace(/\s+/g, " ")
+            .trim();
         return {
           scrollWidth: root.scrollWidth,
           clientWidth: root.clientWidth,
@@ -832,10 +829,7 @@ test("demo proof list reflows at 320px and 390px without hiding evidence", async
         `proof list items overflow at ${width}px: ${JSON.stringify(measured.overflowingItems)}`
       );
       for (const proof of expectedProofStrings) {
-        assert.ok(
-          measured.text.includes(proof),
-          `proof string missing at ${width}px: ${proof.slice(0, 160)}`
-        );
+        assert.ok(measured.text.includes(proof), `proof string missing at ${width}px: ${proof.slice(0, 160)}`);
       }
       await page.close();
     }
@@ -872,8 +866,9 @@ test("shared public-product shell reflows at narrow viewports without a 320px fl
             htmlOverflowX: getComputedStyle(root).overflowX,
             bodyOverflowX: getComputedStyle(document.body).overflowX,
             bodyMinWidth: getComputedStyle(document.body).minWidth,
-            wideCount: [...document.querySelectorAll("*")]
-              .filter((el) => el.getBoundingClientRect().right > root.clientWidth + 1).length
+            wideCount: [...document.querySelectorAll("*")].filter(
+              (el) => el.getBoundingClientRect().right > root.clientWidth + 1
+            ).length
           };
         });
         assert.notEqual(measured.htmlOverflowX, "hidden", `${name} html overflow-x must stay visible at ${width}px`);
@@ -883,7 +878,11 @@ test("shared public-product shell reflows at narrow viewports without a 320px fl
           measured.scrollWidth <= measured.clientWidth,
           `${name} overflow at ${width}px: scrollWidth=${measured.scrollWidth}/clientWidth=${measured.clientWidth}`
         );
-        assert.equal(measured.wideCount, 0, `${name} has ${measured.wideCount} elements wider than the viewport at ${width}px`);
+        assert.equal(
+          measured.wideCount,
+          0,
+          `${name} has ${measured.wideCount} elements wider than the viewport at ${width}px`
+        );
         await page.close();
       }
     }
@@ -897,7 +896,18 @@ test("static public skill and sitemap files keep buyer-facing boundaries", () =>
   const sitemap = readFileSync(new URL("../../public/sitemap.xml", import.meta.url), "utf8");
 
   assert.deepEqual(parseSitemapUrls(sitemap), expectedSitemapUrls);
-  for (const path of ["/demo", "/methodology", "/pricing", "/check", "/proof", "/support", "/terms", "/small-business-seo-audit", "/rendered-vs-static-seo-audit", "/ai-answer-readiness"]) {
+  for (const path of [
+    "/demo",
+    "/methodology",
+    "/pricing",
+    "/check",
+    "/proof",
+    "/support",
+    "/terms",
+    "/small-business-seo-audit",
+    "/rendered-vs-static-seo-audit",
+    "/ai-answer-readiness"
+  ]) {
     assert.match(skill, new RegExp(`${origin}${path}`));
     assert.match(sitemap, new RegExp(`${origin}${path}`));
   }
@@ -921,8 +931,14 @@ test("static public skill and sitemap files keep buyer-facing boundaries", () =>
   assert.match(skill, /robots\.txt and sitemap crawl inventory up to 50,000 discovered URLs/);
   assert.match(skill, /staged large rendered crawl jobs for 50,000-page targets \(early access/);
   assert.match(skill, /never sold as completed 50K rendered validation/);
-  assert.match(skill, /Persistent repair queue: proven issues stay tracked across saved reports with approval state, acceptance checks, status, and fixed-rerun proof receipts/);
-  assert.match(skill, /Owner-approved implementation packs: private handoff documents with source proof and approval state/);
+  assert.match(
+    skill,
+    /Persistent repair queue: proven issues stay tracked across saved reports with approval state, acceptance checks, status, and fixed-rerun proof receipts/
+  );
+  assert.match(
+    skill,
+    /Owner-approved implementation packs: private handoff documents with source proof and approval state/
+  );
   assert.match(skill, /Paid Fix Pack fulfillment: one proof-backed repair pass per report plus one rerun after fixes/);
   assert.match(skill, new RegExp(`The plain answer is on the methodology page: ${origin}/methodology`));
   assert.match(skill, /no live AI-engine sampling, no AI citation monitoring, and no ranking guarantees/);
@@ -948,7 +964,19 @@ test("Cloudflare asset routing sends public proof pages through the Worker", () 
   );
   if (Array.isArray(runWorkerFirst)) {
     const covered = new Set(runWorkerFirst);
-    for (const path of ["/demo", "/methodology", "/pricing", "/check", "/proof", "/support", "/terms", "/privacy", "/small-business-seo-audit", "/rendered-vs-static-seo-audit", "/ai-answer-readiness"]) {
+    for (const path of [
+      "/demo",
+      "/methodology",
+      "/pricing",
+      "/check",
+      "/proof",
+      "/support",
+      "/terms",
+      "/privacy",
+      "/small-business-seo-audit",
+      "/rendered-vs-static-seo-audit",
+      "/ai-answer-readiness"
+    ]) {
       assert.equal(covered.has(path), true, `${path} must be served by the Worker before SPA assets`);
     }
   }

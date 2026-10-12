@@ -52,8 +52,4 @@ async function repairProposalSummaryForFixRequest(env, fixRequestId, ownerEmail 
   return summaries.get(fixRequestId) || emptyRepairProposalSummary("unavailable");
 }
 
-export {
-  emptyRepairProposalSummary,
-  repairProposalSummariesForFixRequests,
-  repairProposalSummaryForFixRequest
-};
+export { emptyRepairProposalSummary, repairProposalSummariesForFixRequests, repairProposalSummaryForFixRequest };

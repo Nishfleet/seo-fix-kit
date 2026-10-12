@@ -8,11 +8,31 @@ import { VERSION } from "../../shared/audit-engine.js";
 import { jsonNoStore } from "../lib/http.js";
 
 const SCHEMA_CHECKS = [
-  { key: "accessLinks", label: "self-serve access links", sql: "SELECT 1 AS ok FROM access_tokens LIMIT 1", critical: true },
-  { key: "siteClaims", label: "site ownership verification", sql: "SELECT 1 AS ok FROM site_claims LIMIT 1", critical: true },
-  { key: "auditReports", label: "saved private reports", sql: "SELECT 1 AS ok FROM audit_reports LIMIT 1", critical: true },
+  {
+    key: "accessLinks",
+    label: "self-serve access links",
+    sql: "SELECT 1 AS ok FROM access_tokens LIMIT 1",
+    critical: true
+  },
+  {
+    key: "siteClaims",
+    label: "site ownership verification",
+    sql: "SELECT 1 AS ok FROM site_claims LIMIT 1",
+    critical: true
+  },
+  {
+    key: "auditReports",
+    label: "saved private reports",
+    sql: "SELECT 1 AS ok FROM audit_reports LIMIT 1",
+    critical: true
+  },
   { key: "auditJobs", label: "queued audit jobs", sql: "SELECT 1 AS ok FROM audit_jobs LIMIT 1", critical: true },
-  { key: "auditSchedules", label: "recurring audit monitors", sql: "SELECT 1 AS ok FROM audit_schedules LIMIT 1", critical: false },
+  {
+    key: "auditSchedules",
+    label: "recurring audit monitors",
+    sql: "SELECT 1 AS ok FROM audit_schedules LIMIT 1",
+    critical: false
+  },
   { key: "fixRequests", label: "Fix Pack requests", sql: "SELECT 1 AS ok FROM fix_requests LIMIT 1", critical: true },
   {
     key: "fixPackCheckoutColumns",
@@ -38,18 +58,78 @@ const SCHEMA_CHECKS = [
     sql: "SELECT webhook_id, event_type, payment_id, fix_request_id, status, payload_hash FROM dodo_webhook_events LIMIT 1",
     critical: true
   },
-  { key: "repairProposals", label: "repair proposal approval", sql: "SELECT 1 AS ok FROM repair_proposals LIMIT 1", critical: true },
-  { key: "repairProposalEvents", label: "repair proposal events", sql: "SELECT 1 AS ok FROM repair_proposal_events LIMIT 1", critical: false },
-  { key: "repairQueueItems", label: "agent repair queue", sql: "SELECT 1 AS ok FROM repair_queue_items LIMIT 1", critical: true },
-  { key: "repairAgentActions", label: "approval-safe repair actions", sql: "SELECT 1 AS ok FROM repair_agent_actions LIMIT 1", critical: true },
-  { key: "offerEntitlements", label: "staged offer entitlements", sql: "SELECT 1 AS ok FROM offer_entitlements LIMIT 1", critical: false },
-  { key: "offerEntitlementEvents", label: "offer entitlement lifecycle events", sql: "SELECT 1 AS ok FROM offer_entitlement_events LIMIT 1", critical: false },
-  { key: "developerTokens", label: "Developer API tokens", sql: "SELECT 1 AS ok FROM api_tokens LIMIT 1", critical: false },
-  { key: "developerWebhooks", label: "Developer API webhooks", sql: "SELECT 1 AS ok FROM api_webhooks LIMIT 1", critical: false },
-  { key: "whiteLabelShares", label: "white-label report links", sql: "SELECT 1 AS ok FROM report_share_links LIMIT 1", critical: false },
-  { key: "teamMembers", label: "team repair workspace", sql: "SELECT 1 AS ok FROM team_members LIMIT 1", critical: false },
-  { key: "reportDomains", label: "verified report domains", sql: "SELECT 1 AS ok FROM report_domains LIMIT 1", critical: false },
-  { key: "largeCrawlJobs", label: "large crawl jobs", sql: "SELECT 1 AS ok FROM large_crawl_jobs LIMIT 1", critical: false }
+  {
+    key: "repairProposals",
+    label: "repair proposal approval",
+    sql: "SELECT 1 AS ok FROM repair_proposals LIMIT 1",
+    critical: true
+  },
+  {
+    key: "repairProposalEvents",
+    label: "repair proposal events",
+    sql: "SELECT 1 AS ok FROM repair_proposal_events LIMIT 1",
+    critical: false
+  },
+  {
+    key: "repairQueueItems",
+    label: "agent repair queue",
+    sql: "SELECT 1 AS ok FROM repair_queue_items LIMIT 1",
+    critical: true
+  },
+  {
+    key: "repairAgentActions",
+    label: "approval-safe repair actions",
+    sql: "SELECT 1 AS ok FROM repair_agent_actions LIMIT 1",
+    critical: true
+  },
+  {
+    key: "offerEntitlements",
+    label: "staged offer entitlements",
+    sql: "SELECT 1 AS ok FROM offer_entitlements LIMIT 1",
+    critical: false
+  },
+  {
+    key: "offerEntitlementEvents",
+    label: "offer entitlement lifecycle events",
+    sql: "SELECT 1 AS ok FROM offer_entitlement_events LIMIT 1",
+    critical: false
+  },
+  {
+    key: "developerTokens",
+    label: "Developer API tokens",
+    sql: "SELECT 1 AS ok FROM api_tokens LIMIT 1",
+    critical: false
+  },
+  {
+    key: "developerWebhooks",
+    label: "Developer API webhooks",
+    sql: "SELECT 1 AS ok FROM api_webhooks LIMIT 1",
+    critical: false
+  },
+  {
+    key: "whiteLabelShares",
+    label: "white-label report links",
+    sql: "SELECT 1 AS ok FROM report_share_links LIMIT 1",
+    critical: false
+  },
+  {
+    key: "teamMembers",
+    label: "team repair workspace",
+    sql: "SELECT 1 AS ok FROM team_members LIMIT 1",
+    critical: false
+  },
+  {
+    key: "reportDomains",
+    label: "verified report domains",
+    sql: "SELECT 1 AS ok FROM report_domains LIMIT 1",
+    critical: false
+  },
+  {
+    key: "largeCrawlJobs",
+    label: "large crawl jobs",
+    sql: "SELECT 1 AS ok FROM large_crawl_jobs LIMIT 1",
+    critical: false
+  }
 ];
 
 async function getDeepHealth(_request, env = {}) {
@@ -87,26 +167,29 @@ async function getDeepHealth(_request, env = {}) {
   ];
   const ok = criticalChecks.every(Boolean);
 
-  const response = jsonNoStore({
-    ok,
-    status: ok ? "ready" : "degraded",
-    service: "seo-fix-kit",
-    runtime: "cloudflare-worker",
-    version: VERSION,
-    checkedAt: new Date().toISOString(),
-    scope: "runtime_config_and_schema_readiness",
-    limits: [
-      "Ready means required bindings, provider config, and D1 schema checks passed.",
-      "Ready does not prove a real paid card transaction, Dodo paid webhook delivery, completed repair delivery, or final rerun proof.",
-      "Proof Monitoring checkout readiness is reported separately and only becomes paid-active after subscription webhook entitlement sync.",
-      "Repair Sprint checkout readiness is reported separately and still requires approved executable proposals before checkout can start.",
-      "Agency workspace, large crawl, and offer entitlement checks are storage/config readiness checks, not paid offer activation claims."
-    ],
-    bindings,
-    billing,
-    schema,
-    capabilities
-  }, ok ? 200 : 503);
+  const response = jsonNoStore(
+    {
+      ok,
+      status: ok ? "ready" : "degraded",
+      service: "seo-fix-kit",
+      runtime: "cloudflare-worker",
+      version: VERSION,
+      checkedAt: new Date().toISOString(),
+      scope: "runtime_config_and_schema_readiness",
+      limits: [
+        "Ready means required bindings, provider config, and D1 schema checks passed.",
+        "Ready does not prove a real paid card transaction, Dodo paid webhook delivery, completed repair delivery, or final rerun proof.",
+        "Proof Monitoring checkout readiness is reported separately and only becomes paid-active after subscription webhook entitlement sync.",
+        "Repair Sprint checkout readiness is reported separately and still requires approved executable proposals before checkout can start.",
+        "Agency workspace, large crawl, and offer entitlement checks are storage/config readiness checks, not paid offer activation claims."
+      ],
+      bindings,
+      billing,
+      schema,
+      capabilities
+    },
+    ok ? 200 : 503
+  );
 
   if (_request.method === "HEAD") {
     return new Response(null, {
@@ -190,7 +273,13 @@ function summarizeSchemaChecks(checks) {
 function capabilityStatus({ bindings, schema, billing }) {
   const hasSchema = (key) => schema.checks.some((check) => check.key === key && check.ok);
   return {
-    selfServeAudit: bindings.waitlistDb && bindings.browserRun && bindings.auditQueue && hasSchema("accessLinks") && hasSchema("siteClaims") && hasSchema("auditJobs"),
+    selfServeAudit:
+      bindings.waitlistDb &&
+      bindings.browserRun &&
+      bindings.auditQueue &&
+      hasSchema("accessLinks") &&
+      hasSchema("siteClaims") &&
+      hasSchema("auditJobs"),
     fixPackCheckout:
       billing.checkoutReady &&
       hasSchema("fixRequests") &&
@@ -228,9 +317,4 @@ function safeHealthError(error) {
   return "schema check failed";
 }
 
-export {
-  bindingStatus,
-  capabilityStatus,
-  getDeepHealth,
-  schemaStatus
-};
+export { bindingStatus, capabilityStatus, getDeepHealth, schemaStatus };

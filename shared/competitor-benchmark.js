@@ -23,10 +23,9 @@ export function buildCompetitorBenchmark(targetReport = {}, competitorReports = 
   const ranked = [target, ...competitors]
     .filter((site) => site.host)
     .sort((a, b) => Number(b.score || 0) - Number(a.score || 0));
-  const targetRank = ranked.findIndex((site) => site.host === target.host && site.url === target.url) + 1 || ranked.length;
-  const bestCompetitor = competitors
-    .slice()
-    .sort((a, b) => Number(b.score || 0) - Number(a.score || 0))[0];
+  const targetRank =
+    ranked.findIndex((site) => site.host === target.host && site.url === target.url) + 1 || ranked.length;
+  const bestCompetitor = competitors.slice().sort((a, b) => Number(b.score || 0) - Number(a.score || 0))[0];
   const competitorAverageScore = Math.round(
     competitors.reduce((total, site) => total + Number(site.score || 0), 0) / competitors.length
   );
@@ -132,7 +131,9 @@ function benchmarkSite(report = {}, targetReport = {}) {
 function benchmarkRepairOpportunities(targetReport = {}, competitors = []) {
   const targetFindings = (targetReport.findings || [])
     .filter((finding) => finding?.severity && finding.severity !== "good")
-    .filter((finding) => findingArea(finding) !== "performance" || competitors.some((site) => site.performanceScore !== null));
+    .filter(
+      (finding) => findingArea(finding) !== "performance" || competitors.some((site) => site.performanceScore !== null)
+    );
   const opportunities = [];
   const seen = new Set();
 
@@ -158,7 +159,10 @@ function benchmarkRepairOpportunities(targetReport = {}, competitors = []) {
   }
 
   return opportunities
-    .sort((a, b) => severityRank(a.severity) - severityRank(b.severity) || b.competitorHosts.length - a.competitorHosts.length)
+    .sort(
+      (a, b) =>
+        severityRank(a.severity) - severityRank(b.severity) || b.competitorHosts.length - a.competitorHosts.length
+    )
     .slice(0, MAX_COMPETITOR_REPAIRS)
     .map((item, index) => ({ ...item, priority: index + 1 }));
 }
@@ -174,17 +178,45 @@ function targetIssueAreas(report = {}) {
 
 function findingArea(finding = {}) {
   const text = `${finding.title || ""} ${finding.why || ""} ${finding.fix || ""}`.toLowerCase();
-  if (text.includes("pagespeed") || text.includes("largest contentful paint") || text.includes("total blocking time") || text.includes("layout shift") || text.includes("render-blocking") || text.includes("unused javascript") || text.includes("speed index")) return "performance";
-  if (text.includes("structured data") || text.includes("schema") || text.includes("json-ld") || text.includes("microdata") || text.includes("rdfa")) return "structured-data";
+  if (
+    text.includes("pagespeed") ||
+    text.includes("largest contentful paint") ||
+    text.includes("total blocking time") ||
+    text.includes("layout shift") ||
+    text.includes("render-blocking") ||
+    text.includes("unused javascript") ||
+    text.includes("speed index")
+  )
+    return "performance";
+  if (
+    text.includes("structured data") ||
+    text.includes("schema") ||
+    text.includes("json-ld") ||
+    text.includes("microdata") ||
+    text.includes("rdfa")
+  )
+    return "structured-data";
   if (text.includes("canonical")) return "canonical";
   if (text.includes("hreflang")) return "hreflang";
-  if (text.includes("broken internal link") || text.includes("redirecting internal link") || text.includes("internal links")) return "internal-links";
+  if (
+    text.includes("broken internal link") ||
+    text.includes("redirecting internal link") ||
+    text.includes("internal links")
+  )
+    return "internal-links";
   if (text.includes("broken image") || text.includes("image")) return "images";
   if (text.includes("meta description") || text.includes("snippet")) return "meta-description";
   if (text.includes("title")) return "title";
   if (text.includes("h1") || text.includes("heading")) return "headings";
   if (text.includes("robots") || text.includes("sitemap")) return "crawl-discovery";
-  if (text.includes("https") || text.includes("ssl") || text.includes("mixed content") || text.includes("hsts") || text.includes("security header")) return "security";
+  if (
+    text.includes("https") ||
+    text.includes("ssl") ||
+    text.includes("mixed content") ||
+    text.includes("hsts") ||
+    text.includes("security header")
+  )
+    return "security";
   if (text.includes("thin") || text.includes("word count") || text.includes("content")) return "content-depth";
   if (text.includes("viewport") || text.includes("mobile")) return "mobile";
   if (text.includes("social")) return "social";
@@ -211,7 +243,8 @@ function estimatedEffortForArea(area = "") {
 }
 
 function workTypeForArea(area = "") {
-  if (["title", "meta-description", "content-depth", "images", "internal-links", "social"].includes(area)) return "content";
+  if (["title", "meta-description", "content-depth", "images", "internal-links", "social"].includes(area))
+    return "content";
   if (["structured-data", "canonical", "mobile"].includes(area)) return "code";
   if (["performance", "security", "crawl-discovery", "hreflang"].includes(area)) return "technical";
   return "review";

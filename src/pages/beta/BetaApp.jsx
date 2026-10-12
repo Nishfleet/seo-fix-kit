@@ -1,10 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
-import {
-  CRAWL_DEPTH_TIERS,
-  DEFAULT_CRAWL_PAGES,
-  SELF_SERVE_MAX_CRAWL_PAGES
-} from "../../../shared/crawl-depth.js";
+import { CRAWL_DEPTH_TIERS, DEFAULT_CRAWL_PAGES, SELF_SERVE_MAX_CRAWL_PAGES } from "../../../shared/crawl-depth.js";
 import { RENDERED_CRAWL_TARGETS } from "../../../shared/rendered-crawl-scale.js";
 import { apiFetch, isAbortError } from "../../api.js";
 import { storageGet, storageRemove, storageSet } from "../../storage.js";
@@ -49,14 +45,10 @@ export function BetaApp({ mountKey }) {
   // this BetaApp mounted; see BetaRoute in App.jsx.
   const replaceUrl = (path) => navigate(path, { replace: true, state: { betaMountKey: mountKey } });
   const accessToken = inviteParams.get("access") || "";
-  const [ownerEmail, setOwnerEmail] = useState(
-    () => inviteParams.get("email") || storageGet(BETA_EMAIL_KEY) || ""
-  );
+  const [ownerEmail, setOwnerEmail] = useState(() => inviteParams.get("email") || storageGet(BETA_EMAIL_KEY) || "");
   const [loginEmail, setLoginEmail] = useState(ownerEmail || inviteParams.get("email") || "");
   const [inviteCode, setInviteCode] = useState(inviteParams.get("invite") || "");
-  const [isAuthed, setIsAuthed] = useState(
-    () => storageGet(BETA_SESSION_KEY) === "1"
-  );
+  const [isAuthed, setIsAuthed] = useState(() => storageGet(BETA_SESSION_KEY) === "1");
   const [loginStatus, setLoginStatus] = useState(accessToken ? "submitting" : "idle");
   const [loginMessage, setLoginMessage] = useState("");
   const [targetUrl, setTargetUrl] = useState("");
@@ -253,7 +245,11 @@ export function BetaApp({ mountKey }) {
     try {
       const payload = await postSiteVerify(claimId);
       setSiteStatus(payload.verified ? "success" : "error");
-      setSiteMessage(payload.verified ? `${payload.site.host} is verified.` : payload.message || "Verification proof was not found yet.");
+      setSiteMessage(
+        payload.verified
+          ? `${payload.site.host} is verified.`
+          : payload.message || "Verification proof was not found yet."
+      );
       await loadAccountSummary(setAccountData, setAccountStatus, setAccountMessage);
     } catch (error) {
       setSiteStatus("error");
@@ -363,7 +359,10 @@ export function BetaApp({ mountKey }) {
       citations: localCitations
     };
     setAuditMessage(
-      competitorUrls.trim() || backlinkRows.trim() || keywordRows.trim() || Object.values(localSeo).some((value) => String(value || "").trim())
+      competitorUrls.trim() ||
+        backlinkRows.trim() ||
+        keywordRows.trim() ||
+        Object.values(localSeo).some((value) => String(value || "").trim())
         ? "Rendering the site, checking comparison inputs, and collecting proof."
         : "Rendering the site, crawling same-site links, and collecting proof."
     );
@@ -375,7 +374,15 @@ export function BetaApp({ mountKey }) {
     try {
       const payload = await apiFetch("/api/audit", {
         method: "POST",
-        body: { url: targetUrl, maxPages: Number(maxPages), renderedCrawlTarget: Number(renderedCrawlTarget), competitorUrls, backlinkRows, keywordRows, localSeo },
+        body: {
+          url: targetUrl,
+          maxPages: Number(maxPages),
+          renderedCrawlTarget: Number(renderedCrawlTarget),
+          competitorUrls,
+          backlinkRows,
+          keywordRows,
+          localSeo
+        },
         requireOkFlag: false,
         fallbackError: "The audit failed."
       });
@@ -483,16 +490,16 @@ export function BetaApp({ mountKey }) {
   }
 
   if (isBillingRoute) {
-    return shell(
-      <BillingPortal />
-    );
+    return shell(<BillingPortal />);
   }
 
   if (section === "report") {
     return shell(
       <div className="app-page app-page-wide">
         <nav className="app-breadcrumb" aria-label="Breadcrumb">
-          <Link discover="none" to="/beta/reports">Reports</Link>
+          <Link discover="none" to="/beta/reports">
+            Reports
+          </Link>
           <span aria-hidden="true">/</span>
           <span>{report?.url ? safeHostnameLabel(report.url) : "Report"}</span>
         </nav>
@@ -574,11 +581,7 @@ export function BetaApp({ mountKey }) {
         <div className="audit-options">
           <div>
             <label htmlFor="crawl-depth">How many pages</label>
-            <select
-              id="crawl-depth"
-              onChange={(event) => setMaxPages(event.target.value)}
-              value={maxPages}
-            >
+            <select id="crawl-depth" onChange={(event) => setMaxPages(event.target.value)} value={maxPages}>
               {CRAWL_DEPTH_TIERS.map((tier) => (
                 <option key={tier.id} value={tier.pages}>
                   {tier.label} - {tier.pages} pages
@@ -603,7 +606,10 @@ export function BetaApp({ mountKey }) {
               </option>
             ))}
           </select>
-          <p className="field-note">Large sites are audited in batches in the background over days to weeks. Results say clearly how much has been covered so far.</p>
+          <p className="field-note">
+            Large sites are audited in batches in the background over days to weeks. Results say clearly how much has
+            been covered so far.
+          </p>
           <label htmlFor="competitor-urls">Competitors</label>
           <textarea
             id="competitor-urls"
@@ -689,11 +695,6 @@ export function BetaApp({ mountKey }) {
   );
 
   return shell(
-    <Overview
-      accountData={accountData}
-      auditPanel={auditPanel}
-      message={accountMessage}
-      status={accountStatus}
-    />
+    <Overview accountData={accountData} auditPanel={auditPanel} message={accountMessage} status={accountStatus} />
   );
 }

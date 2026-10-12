@@ -87,9 +87,7 @@ export async function spotCheckPublicPages({
     const contentType = response.headers.get("content-type") || "";
     const failures = [];
     if (!check.acceptStatuses.includes(status)) {
-      failures.push(
-        `returned HTTP ${status} instead of ${check.acceptStatuses.join(" or ")}`
-      );
+      failures.push(`returned HTTP ${status} instead of ${check.acceptStatuses.join(" or ")}`);
     }
     if (check.contentType && !new RegExp(check.contentType, "i").test(contentType)) {
       failures.push(`served as ${contentType || "no content-type"} instead of ${check.contentType}`);
@@ -97,7 +95,9 @@ export async function spotCheckPublicPages({
     for (const { name, value, reason } of check.expectedHeaders || []) {
       const header = response.headers.get(name) || "";
       if (!hasContent(header, value)) {
-        failures.push(reason || `missing ${name} header matching ${typeof value === "string" ? value : value.toString()}`);
+        failures.push(
+          reason || `missing ${name} header matching ${typeof value === "string" ? value : value.toString()}`
+        );
       }
     }
     for (const { reason, match } of check.expectations || []) {
@@ -131,7 +131,10 @@ export function publicPageSpotChecks(baseUrl) {
         { reason: "proof-loop headline", match: "Do not fix what is not broken." },
         { reason: "static-vs-rendered proof panels", match: "Rendered proof" },
         { reason: "no-overclaim section", match: "What this sample does not claim" },
-        { reason: "snippet qualifier stays engine-capable", match: "an exact snippet when the engine can generate one" },
+        {
+          reason: "snippet qualifier stays engine-capable",
+          match: "an exact snippet when the engine can generate one"
+        },
         { reason: "link to methodology limits", match: `href="${baseUrl}/methodology"` },
         { reason: "link to pricing", match: `href="${baseUrl}/pricing"` },
         { reason: "link to terms", match: `href="${baseUrl}/terms"` },
@@ -178,7 +181,10 @@ export function publicPageSpotChecks(baseUrl) {
         { reason: "pricing headline", match: "Free to find it. Pay only to fix it." },
         { reason: "fix pack offer", match: "Fix Pack" },
         { reason: "public fix pack price", match: "$99.00 one-time" },
-        { reason: "final price shown at checkout", match: "the final price including any local tax is shown at checkout before you pay" },
+        {
+          reason: "final price shown at checkout",
+          match: "the final price including any local tax is shown at checkout before you pay"
+        },
         { reason: "Proof Monitoring not on sale", match: "a paid plan is not on sale yet" },
         { reason: "no ranking promise", match: "No ranking or traffic guarantee is made" },
         { reason: "names the $29 Agent Fix Mode trade-off", match: "Agent Fix Mode" },
@@ -207,16 +213,28 @@ export function publicPageSpotChecks(baseUrl) {
       isPage: true,
       acceptStatuses: [200],
       expectations: [
-        { reason: "static-vs-rendered headline", match: "Static scanners invent work. AI crawlers miss content. Rendered proof handles both." },
+        {
+          reason: "static-vs-rendered headline",
+          match: "Static scanners invent work. AI crawlers miss content. Rendered proof handles both."
+        },
         { reason: "static scanner vs rendered proof panels", match: "Rendered proof" },
         { reason: "AI crawler visibility framing", match: "The same diff is your AI crawler visibility check" },
-        { reason: "names the JavaScript-blind AI crawlers", match: "GPTBot (OpenAI), ClaudeBot (Anthropic), PerplexityBot, and CCBot" },
-        { reason: "cites the SEJ-confirmed no-JavaScript behavior", match: "fetch raw HTML and do not execute JavaScript" },
+        {
+          reason: "names the JavaScript-blind AI crawlers",
+          match: "GPTBot (OpenAI), ClaudeBot (Anthropic), PerplexityBot, and CCBot"
+        },
+        {
+          reason: "cites the SEJ-confirmed no-JavaScript behavior",
+          match: "fetch raw HTML and do not execute JavaScript"
+        },
         { reason: "names free static-vs-rendered checkers", match: "Compared with free static-vs-rendered checkers" },
         { reason: "names LLM Pulse GEO Crawlability Checker", match: "LLM Pulse GEO Crawlability Checker" },
         { reason: "names Free SEO Auditor", match: "Free SEO Auditor" },
         { reason: "names geo-crawl-audit", match: "geo-crawl-audit" },
-        { reason: "repair-queue wedge after the free-tool names", match: "persistent repair queue only receives proven findings" },
+        {
+          reason: "repair-queue wedge after the free-tool names",
+          match: "persistent repair queue only receives proven findings"
+        },
         { reason: "no-overclaim section", match: "What this page does not claim" },
         { reason: "clickable CTA into the anonymous check", match: `href="${baseUrl}/check"` },
         { reason: "link to the proof sample", match: `href="${baseUrl}/demo"` },
@@ -235,15 +253,27 @@ export function publicPageSpotChecks(baseUrl) {
         { reason: "llms.txt stays optional", match: "llms.txt stays optional" },
         { reason: "names CrawlRaven comparison", match: "Compared with CrawlRaven" },
         { reason: "names free AI visibility checkers", match: "Compared with free AI visibility checkers" },
-        { reason: "states no citation checking", match: "SEO Fix Kit does not check AI-engine citations or visibility scores." },
+        {
+          reason: "states no citation checking",
+          match: "SEO Fix Kit does not check AI-engine citations or visibility scores."
+        },
         { reason: "names DefiniteSEO", match: "DefiniteSEO" },
         { reason: "names RevSurge Digital", match: "RevSurge Digital" },
         { reason: "names Answer Visibility Lab", match: "Answer Visibility Lab" },
         { reason: "names Website AEO GEO Checker", match: "Website AEO GEO Checker" },
-        { reason: "names imported traffic ranking", match: "ranked by the clicks and impressions on the affected pages" },
+        {
+          reason: "names imported traffic ranking",
+          match: "ranked by the clicks and impressions on the affected pages"
+        },
         { reason: "names no auto-join gap", match: "does not connect to Search Console or GA4 automatically" },
-        { reason: "challenges the r=0.009 headline directly", match: 'On "technical readiness predicts nothing (r=0.009)"' },
-        { reason: "keeps the r=0.009 challenge truth-safe", match: "441 domains, Perplexity-only citations, cross-sectional" },
+        {
+          reason: "challenges the r=0.009 headline directly",
+          match: 'On "technical readiness predicts nothing (r=0.009)"'
+        },
+        {
+          reason: "keeps the r=0.009 challenge truth-safe",
+          match: "441 domains, Perplexity-only citations, cross-sectional"
+        },
         { reason: "keeps the no-citation-prediction boundary", match: "never claims to predict citations" },
         { reason: "no-overclaim section", match: "What this page does not claim" },
         { reason: "clickable CTA into the anonymous check", match: `href="${baseUrl}/check"` },
@@ -256,7 +286,10 @@ export function publicPageSpotChecks(baseUrl) {
       isPage: true,
       acceptStatuses: [200],
       expectations: [
-        { reason: "real before/after headline", match: "One real repair, with the same measurement path before and after." },
+        {
+          reason: "real before/after headline",
+          match: "One real repair, with the same measurement path before and after."
+        },
         { reason: "before score 85", match: "Score <strong>85</strong>/100" },
         { reason: "intermediate score 99", match: "Score <strong>99</strong>/100" },
         { reason: "after score 100", match: "Score <strong>100</strong>/100" },
@@ -265,8 +298,14 @@ export function publicPageSpotChecks(baseUrl) {
         { reason: "final rerun id pinned", match: "tinystudio-in-0a45637f-1354-4d26-ace3-d3b594162961" },
         { reason: "owner-approved PR #4 linked", match: "github.com/nish3451/tinystudio-in/pull/4" },
         { reason: "owner-approved PR #5 linked", match: "github.com/nish3451/tinystudio-in/pull/5" },
-        { reason: "no-ranking boundary stated", match: "No ranking, traffic, indexing, citation, or revenue promise is made" },
-        { reason: "no CMS/GitHub-publishing boundary", match: "SEO Fix Kit did not publish CMS changes, open GitHub pull requests, merge code" },
+        {
+          reason: "no-ranking boundary stated",
+          match: "No ranking, traffic, indexing, citation, or revenue promise is made"
+        },
+        {
+          reason: "no CMS/GitHub-publishing boundary",
+          match: "SEO Fix Kit did not publish CMS changes, open GitHub pull requests, merge code"
+        },
         { reason: "markdown receipt CTA", match: `href="${baseUrl}/proof.md"` },
         { reason: "link to methodology limits", match: `href="${baseUrl}/methodology"` },
         { reason: "link to pricing", match: `href="${baseUrl}/pricing"` }
@@ -284,7 +323,10 @@ export function publicPageSpotChecks(baseUrl) {
         { reason: "after score 100", match: "100/100" },
         { reason: "owner-approved PR #4 referenced", match: "github.com/nish3451/tinystudio-in/pull/4" },
         { reason: "owner-approved PR #5 referenced", match: "github.com/nish3451/tinystudio-in/pull/5" },
-        { reason: "no-ranking boundary stated", match: "No ranking, traffic, indexing, citation, or revenue promise is made" }
+        {
+          reason: "no-ranking boundary stated",
+          match: "No ranking, traffic, indexing, citation, or revenue promise is made"
+        }
       ]
     },
     {
@@ -294,8 +336,14 @@ export function publicPageSpotChecks(baseUrl) {
       acceptStatuses: [200],
       expectations: [
         { reason: "no-ranking promise", match: "No ranking, traffic, or revenue promise is made." },
-        { reason: "one repair pass plus rerun", match: "one proof-backed repair pass for one report plus one rerun after fixes" },
-        { reason: "refund guard when the queue cannot start", match: "If payment succeeds but the repair queue cannot start, you are entitled to a full refund" },
+        {
+          reason: "one repair pass plus rerun",
+          match: "one proof-backed repair pass for one report plus one rerun after fixes"
+        },
+        {
+          reason: "refund guard when the queue cannot start",
+          match: "If payment succeeds but the repair queue cannot start, you are entitled to a full refund"
+        },
         { reason: "link to privacy", match: `href="${baseUrl}/privacy"` },
         { reason: "link to the anonymous check", match: `href="${baseUrl}/check"` }
       ]
@@ -306,7 +354,10 @@ export function publicPageSpotChecks(baseUrl) {
       isPage: true,
       acceptStatuses: [200],
       expectations: [
-        { reason: "no-ranking promise", match: "No ranking, indexing, traffic, revenue, or search-engine outcome is promised" },
+        {
+          reason: "no-ranking promise",
+          match: "No ranking, indexing, traffic, revenue, or search-engine outcome is promised"
+        },
         { reason: "Dodo is merchant of record", match: "processed by Dodo Payments as merchant of record" },
         { reason: "refund window", match: "full refund within 14 days of payment" },
         { reason: "link to privacy", match: `href="${baseUrl}/privacy"` },
@@ -322,7 +373,10 @@ export function publicPageSpotChecks(baseUrl) {
       expectations: [
         { reason: "data controller statement", match: "We are the data controller for this information" },
         { reason: "30-day report retention", match: "reports expire after 30 days" },
-        { reason: "no advertising or tracking cookies", match: "No advertising, analytics, or cross-site tracking cookies are set." },
+        {
+          reason: "no advertising or tracking cookies",
+          match: "No advertising, analytics, or cross-site tracking cookies are set."
+        },
         { reason: "link to terms", match: `href="${baseUrl}/terms"` },
         { reason: "link to support", match: `href="${baseUrl}/support"` },
         { reason: "link to the anonymous check", match: `href="${baseUrl}/check"` }
@@ -348,7 +402,10 @@ export function publicSurfaceSpotChecks(baseUrl) {
         { reason: "llms.txt lists the anonymous check", match: `${baseUrl}/check` },
         { reason: "llms.txt lists the proof-loop pages", match: `${baseUrl}/demo` },
         { reason: "llms.txt lists the before/after receipt", match: `${baseUrl}/proof` },
-        { reason: "llms.txt keeps the no-live-AI-tracking boundary", match: "Does not provide live AI-engine visibility tracking" }
+        {
+          reason: "llms.txt keeps the no-live-AI-tracking boundary",
+          match: "Does not provide live AI-engine visibility tracking"
+        }
       ]
     },
     {
@@ -369,9 +426,7 @@ export function publicSurfaceSpotChecks(baseUrl) {
       name: "robots.txt stays served and points at the sitemap",
       acceptStatuses: [200],
       contentType: "text/plain",
-      expectations: [
-        { reason: "robots.txt points at the sitemap", match: `Sitemap: ${baseUrl}/sitemap.xml` }
-      ]
+      expectations: [{ reason: "robots.txt points at the sitemap", match: `Sitemap: ${baseUrl}/sitemap.xml` }]
     },
     {
       path: "/api/health",
@@ -400,9 +455,7 @@ export function publicSurfaceSpotChecks(baseUrl) {
       body: "",
       acceptStatuses: [400],
       contentType: "application/json",
-      expectations: [
-        { reason: "route rejects invalid input with a JSON error", match: '"error"' }
-      ]
+      expectations: [{ reason: "route rejects invalid input with a JSON error", match: '"error"' }]
     },
     {
       path: "/api/public-check",
@@ -412,7 +465,10 @@ export function publicSurfaceSpotChecks(baseUrl) {
       acceptStatuses: [400],
       contentType: "application/json",
       expectations: [
-        { reason: "route rejects unsupported schemes before any browser render", match: "Enter a valid public website URL." }
+        {
+          reason: "route rejects unsupported schemes before any browser render",
+          match: "Enter a valid public website URL."
+        }
       ]
     }
   ];
@@ -427,8 +483,14 @@ export function publicSurfaceSpotChecks(baseUrl) {
 function landingPageLdExpectations(path, pageName) {
   return [
     { reason: "WebPage JSON-LD names the page", match: `"@type":"WebPage","name":"${pageName} - SEO Fix Kit"` },
-    { reason: "WebPage JSON-LD points at the page URL", match: `"@type":"WebPage","name":"${pageName} - SEO Fix Kit","description":` },
-    { reason: "SoftwareApplication JSON-LD describes the tool truthfully", match: '"@type":"SoftwareApplication","name":"SEO Fix Kit"' },
+    {
+      reason: "WebPage JSON-LD points at the page URL",
+      match: `"@type":"WebPage","name":"${pageName} - SEO Fix Kit","description":`
+    },
+    {
+      reason: "SoftwareApplication JSON-LD describes the tool truthfully",
+      match: '"@type":"SoftwareApplication","name":"SEO Fix Kit"'
+    },
     { reason: "FAQPage JSON-LD exists", match: '"@type":"FAQPage"' },
     { reason: "visible FAQ matches the FAQPage JSON-LD source", match: "Frequently asked questions" }
   ];
@@ -453,9 +515,7 @@ export function canonicalHostSpotChecks(baseUrl) {
       url: `${wwwOrigin}/`,
       redirectManual: true,
       acceptStatuses: [301],
-      expectedHeaders: [
-        { name: "location", value: `${baseUrl}/`, reason: "redirects to the apex root" }
-      ]
+      expectedHeaders: [{ name: "location", value: `${baseUrl}/`, reason: "redirects to the apex root" }]
     },
     {
       path: "www.seofixkit.com/check",

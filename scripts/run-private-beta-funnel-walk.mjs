@@ -239,7 +239,12 @@ export async function runPrivateBetaFunnelWalk({
   }
 
   if (consoleErrors.length > 0) {
-    failures.push(`console/page errors on ${consoleErrors.length} event(s): ${consoleErrors.map((entry) => entry.message).slice(0, 3).join(" | ")}`);
+    failures.push(
+      `console/page errors on ${consoleErrors.length} event(s): ${consoleErrors
+        .map((entry) => entry.message)
+        .slice(0, 3)
+        .join(" | ")}`
+    );
   }
   if (requestFailures.length > 0) {
     failures.push(
@@ -276,10 +281,12 @@ function mobileUserAgent() {
 // access form; the access request check is inspect-only.
 async function walkStop({ baseUrl, stop, page, timeoutMs, viewport, appliedViewport = null }) {
   const path = stop.path;
-  const response = await page.goto(`${baseUrl}${path}`, {
-    waitUntil: "networkidle",
-    timeout: timeoutMs
-  }).catch((error) => ({ status: () => 0, error: String(error?.message || error) }));
+  const response = await page
+    .goto(`${baseUrl}${path}`, {
+      waitUntil: "networkidle",
+      timeout: timeoutMs
+    })
+    .catch((error) => ({ status: () => 0, error: String(error?.message || error) }));
 
   await page.waitForTimeout(500);
 
@@ -379,7 +386,12 @@ async function walkStop({ baseUrl, stop, page, timeoutMs, viewport, appliedViewp
     copyChecks,
     expectedLinks,
     brokenLinks,
-    horizontalOverflow: { scrollWidth: pageState.scrollWidth, clientWidth: pageState.clientWidth, innerWidth: pageState.innerWidth, overflow: horizontalOverflow },
+    horizontalOverflow: {
+      scrollWidth: pageState.scrollWidth,
+      clientWidth: pageState.clientWidth,
+      innerWidth: pageState.innerWidth,
+      overflow: horizontalOverflow
+    },
     accessForm,
     walkerError: pageState.walkerError || (response.error ? response.error : null)
   };
@@ -471,7 +483,11 @@ export function evaluateStopEvidence(evidence) {
       failures.push("access request form not found");
     } else {
       const form = evidence.accessForm;
-      if (form.emailPresent !== true || form.emailType !== ACCESS_FORM_EXPECTATIONS.emailType || form.emailRequired !== true) {
+      if (
+        form.emailPresent !== true ||
+        form.emailType !== ACCESS_FORM_EXPECTATIONS.emailType ||
+        form.emailRequired !== true
+      ) {
         failures.push("access request email input missing or not a required email field");
       }
       if (form.companyPresent !== true || form.companyTabIndex !== "-1" || form.companyAutocomplete !== "off") {
@@ -517,7 +533,9 @@ export function funnelWalkSummary(result) {
   } else {
     lines.push("  non-benign request failures: none");
   }
-  lines.push(`  stops: ${result.stops.length} (${[...new Set(result.stops.map((stop) => stop.name))].join(" → ")}) across viewports ${(result.viewports || []).join(", ")}`);
+  lines.push(
+    `  stops: ${result.stops.length} (${[...new Set(result.stops.map((stop) => stop.name))].join(" → ")}) across viewports ${(result.viewports || []).join(", ")}`
+  );
   return lines.join("\n");
 }
 

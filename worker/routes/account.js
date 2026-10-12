@@ -1,15 +1,6 @@
-import {
-  json,
-  jsonNoStore
-} from "../lib/http.js";
-import {
-  parseJson,
-  safeHostname
-} from "../lib/text.js";
-import {
-  betaAccessResponse,
-  betaAccessStatus
-} from "../lib/auth.js";
+import { json, jsonNoStore } from "../lib/http.js";
+import { parseJson, safeHostname } from "../lib/text.js";
+import { betaAccessResponse, betaAccessStatus } from "../lib/auth.js";
 import { repairTableAll } from "../lib/repair-tables.js";
 import { agencyWorkspaceAccessForOwner, monitoringAccessForOwner, offerCatalogForOwner } from "../lib/offers.js";
 import {
@@ -77,7 +68,7 @@ async function getAccountSummary(request, env) {
        LIMIT 20`
     )
       .bind(access.ownerEmail)
-      .all(),
+      .all()
   ]);
   const reportRows = reports.results || [];
   const [repairQueueRows, repairActionRows] = await Promise.all([
@@ -91,9 +82,9 @@ async function getAccountSummary(request, env) {
     repairQueueRows.results || [],
     auditSchedules.results || []
   );
-  const fallbackReportById = new Map(await Promise.all(
-    fallbackReports.map(async (row) => [row.id, parseJson(await reportJsonForRow(env, row), {})])
-  ));
+  const fallbackReportById = new Map(
+    await Promise.all(fallbackReports.map(async (row) => [row.id, parseJson(await reportJsonForRow(env, row), {})]))
+  );
 
   const reportContexts = reportRows.map((row) => {
     const summary = parseJson(row.summary_json, {});
@@ -170,14 +161,14 @@ async function accountRepairQueueRowsForReports(env, access, reports = []) {
   const reportIds = accountReportIds(reports);
   if (!reportIds.length) return { results: [] };
   const placeholders = reportIds.map(() => "?").join(", ");
-  return repairTableAll(env.WAITLIST_DB.prepare(
-    `SELECT *
+  return repairTableAll(
+    env.WAITLIST_DB.prepare(
+      `SELECT *
      FROM repair_queue_items
      WHERE owner_email = ?
        AND report_id IN (${placeholders})
      ORDER BY updated_at DESC`
-  )
-    .bind(access.ownerEmail, ...reportIds)
+    ).bind(access.ownerEmail, ...reportIds)
   );
 }
 
@@ -185,14 +176,14 @@ async function accountRepairActionRowsForReports(env, access, reports = []) {
   const reportIds = accountReportIds(reports);
   if (!reportIds.length) return { results: [] };
   const placeholders = reportIds.map(() => "?").join(", ");
-  return repairTableAll(env.WAITLIST_DB.prepare(
-    `SELECT *
+  return repairTableAll(
+    env.WAITLIST_DB.prepare(
+      `SELECT *
      FROM repair_agent_actions
      WHERE owner_email = ?
        AND report_id IN (${placeholders})
      ORDER BY updated_at DESC`
-  )
-    .bind(access.ownerEmail, ...reportIds)
+    ).bind(access.ownerEmail, ...reportIds)
   );
 }
 
@@ -228,40 +219,86 @@ async function accountFallbackRepairReports(env, access, reports = [], queueRows
 
 function accountNextActions(reports, requests, sites = [], jobs = [], repairAgent = {}) {
   if (jobs.some((job) => ["queued", "running"].includes(job.status))) {
-    return [{ id: "audit-running", label: "Audit running", detail: "The report will appear as soon as rendering and proof collection finish." }];
+    return [
+      {
+        id: "audit-running",
+        label: "Audit running",
+        detail: "The report will appear as soon as rendering and proof collection finish."
+      }
+    ];
   }
   if (!reports.length) {
     if (!sites.some((site) => site.status === "verified")) {
-      return [{ id: "verify-site", label: "Verify your site", detail: "Add a DNS TXT record or HTTPS file before self-serve audits run." }];
+      return [
+        {
+          id: "verify-site",
+          label: "Verify your site",
+          detail: "Add a DNS TXT record or HTTPS file before self-serve audits run."
+        }
+      ];
     }
-    return [{ id: "run-audit", label: "Run your first audit", detail: "Start with your homepage or highest-value product page." }];
+    return [
+      {
+        id: "run-audit",
+        label: "Run your first audit",
+        detail: "Start with your homepage or highest-value product page."
+      }
+    ];
   }
   const nextRepair = repairAgent.nextItems?.[0];
   if (repairAgent.unavailable && nextRepair) {
-    return [{
-      id: "repair-queue-unavailable",
-      label: "Repair queue unavailable",
-      detail: "Repair actions are temporarily unavailable while repair storage is being updated."
-    }];
+    return [
+      {
+        id: "repair-queue-unavailable",
+        label: "Repair queue unavailable",
+        detail: "Repair actions are temporarily unavailable while repair storage is being updated."
+      }
+    ];
   }
   if (nextRepair) {
-    return [{
-      id: nextRepair.nextActionId,
-      label: nextRepair.nextActionLabel,
-      detail: nextRepair.nextActionDetail,
-      href: nextRepair.reportPath
-    }];
+    return [
+      {
+        id: nextRepair.nextActionId,
+        label: nextRepair.nextActionLabel,
+        detail: nextRepair.nextActionDetail,
+        href: nextRepair.reportPath
+      }
+    ];
   }
   if (!sites.some((site) => site.status === "verified")) {
-    return [{ id: "verify-site", label: "Verify your site", detail: "Add a DNS TXT record or HTTPS file before self-serve audits run." }];
+    return [
+      {
+        id: "verify-site",
+        label: "Verify your site",
+        detail: "Add a DNS TXT record or HTTPS file before self-serve audits run."
+      }
+    ];
   }
   if (reports.some((report) => Number(report.totalFindings || 0) > 0) && !requests.length) {
-    return [{ id: "review-fixes", label: "Review proven fixes", detail: "Open a report and start a Fix Pack only when the findings are real." }];
+    return [
+      {
+        id: "review-fixes",
+        label: "Review proven fixes",
+        detail: "Open a report and start a Fix Pack only when the findings are real."
+      }
+    ];
   }
   if (requests.some((request) => ["paid", "in_progress"].includes(request.status))) {
-    return [{ id: "watch-delivery", label: "Watch delivery status", detail: "Your billing page shows due dates, notes, delivery links, and rerun proof." }];
+    return [
+      {
+        id: "watch-delivery",
+        label: "Watch delivery status",
+        detail: "Your billing page shows due dates, notes, delivery links, and rerun proof."
+      }
+    ];
   }
-  return [{ id: "rerun-later", label: "Keep the report handy", detail: "Rerun after meaningful content, template, or metadata changes." }];
+  return [
+    {
+      id: "rerun-later",
+      label: "Keep the report handy",
+      detail: "Rerun after meaningful content, template, or metadata changes."
+    }
+  ];
 }
 
 function accountRepairAgentSummary(reportContexts = [], queueRows = [], actionRows = [], schedules = []) {

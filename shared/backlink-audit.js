@@ -1,8 +1,4 @@
-import {
-  fetchPublicUrl,
-  isPrivateHost,
-  normalizeHttpUrl
-} from "./url-safety.js";
+import { fetchPublicUrl, isPrivateHost, normalizeHttpUrl } from "./url-safety.js";
 
 const MAX_BACKLINK_ROWS = 100;
 const FETCH_TIMEOUT_MS = 7000;
@@ -29,7 +25,8 @@ const RISKY_SOURCE_PATTERNS = [
 ];
 
 export function parseBacklinkRows(input = {}, targetUrl = "", options = {}) {
-  const raw = input.backlinks ?? input.backlinkRows ?? input.backlink_rows ?? input.backlinkCsv ?? input.backlink_csv ?? "";
+  const raw =
+    input.backlinks ?? input.backlinkRows ?? input.backlink_rows ?? input.backlinkCsv ?? input.backlink_csv ?? "";
   const rows = Array.isArray(raw) ? raw : parseBacklinkText(raw);
   const normalized = [];
   const seen = new Set();
@@ -37,9 +34,13 @@ export function parseBacklinkRows(input = {}, targetUrl = "", options = {}) {
 
   for (const row of rows) {
     if (normalized.length >= limit) break;
-    const sourceUrl = normalizeHttpUrl(row.sourceUrl || row.source_url || row.source || row.url || row.referringPage || row.referring_page || "");
+    const sourceUrl = normalizeHttpUrl(
+      row.sourceUrl || row.source_url || row.source || row.url || row.referringPage || row.referring_page || ""
+    );
     if (!sourceUrl) continue;
-    const linkTarget = normalizeHttpUrl(row.targetUrl || row.target_url || row.target || row.linkTarget || row.link_target || targetUrl);
+    const linkTarget = normalizeHttpUrl(
+      row.targetUrl || row.target_url || row.target || row.linkTarget || row.link_target || targetUrl
+    );
     if (!linkTarget) {
       return { ok: false, error: "Each backlink row needs a valid target URL or audit target URL." };
     }
@@ -91,13 +92,15 @@ export async function buildBacklinkAudit(report = {}, input = [], options = {}) 
   const rows = [];
 
   for (const row of parsed.rows) {
-    rows.push(await inspectBacklinkRow(row, {
-      fetcher: options.fetcher || fetch,
-      privateAddressResolver: options.privateAddressResolver,
-      targetOrigin,
-      targetHost,
-      targetPageMap
-    }));
+    rows.push(
+      await inspectBacklinkRow(row, {
+        fetcher: options.fetcher || fetch,
+        privateAddressResolver: options.privateAddressResolver,
+        targetOrigin,
+        targetHost,
+        targetPageMap
+      })
+    );
   }
 
   const anchorRisks = anchorTextRisks(rows, targetHost);
@@ -153,7 +156,9 @@ function parseBacklinkText(input = "") {
     .filter(Boolean);
   if (!lines.length) return [];
   const first = splitDelimitedLine(lines[0]);
-  const hasHeader = first.some((cell) => /^(source|source_url|referring_page|url|target|target_url|anchor|anchor_text|status)$/i.test(cell));
+  const hasHeader = first.some((cell) =>
+    /^(source|source_url|referring_page|url|target|target_url|anchor|anchor_text|status)$/i.test(cell)
+  );
   const headers = hasHeader ? first.map(normalizeHeader) : ["sourceUrl", "targetUrl", "anchorText", "statusHint"];
   const dataLines = hasHeader ? lines.slice(1) : lines;
   return dataLines.map((line) => {
@@ -193,7 +198,11 @@ function splitDelimitedLine(line = "") {
 }
 
 function normalizeHeader(value = "") {
-  const key = String(value).trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+  const key = String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_|_$/g, "");
   const aliases = {
     source: "sourceUrl",
     source_url: "sourceUrl",
@@ -222,7 +231,10 @@ async function inspectBacklinkRow(row, context) {
   const riskySignals = riskySourceSignals(row.sourceUrl);
   const live = source.ok && matchingLinks.length > 0;
   const lost = !live;
-  const rel = matchingLinks.map((link) => link.rel).join(" ").trim();
+  const rel = matchingLinks
+    .map((link) => link.rel)
+    .join(" ")
+    .trim();
   const anchorText = row.anchorText || matchingLinks[0]?.anchorText || "";
 
   return {
@@ -264,9 +276,10 @@ async function fetchSource(url, fetcher, privateAddressResolver) {
       { privateAddressResolver }
     );
     const contentType = response.headers?.get?.("content-type") || "";
-    const body = contentType.includes("text/html") || contentType.includes("application/xhtml")
-      ? (await response.text()).slice(0, MAX_SOURCE_HTML_BYTES)
-      : "";
+    const body =
+      contentType.includes("text/html") || contentType.includes("application/xhtml")
+        ? (await response.text()).slice(0, MAX_SOURCE_HTML_BYTES)
+        : "";
     return {
       ok: response.ok,
       status: response.status,
@@ -398,7 +411,12 @@ function anchorTextRisks(rows = [], targetHost = "") {
   const total = anchors.length;
   if (total < 3) return [];
   const counts = anchors.reduce((map, anchor) => map.set(anchor, (map.get(anchor) || 0) + 1), new Map());
-  const brandTokens = new Set(String(targetHost || "").replace(/^www\./, "").split(/[.-]/).filter((part) => part.length > 2));
+  const brandTokens = new Set(
+    String(targetHost || "")
+      .replace(/^www\./, "")
+      .split(/[.-]/)
+      .filter((part) => part.length > 2)
+  );
   return [...counts.entries()]
     .map(([anchor, count]) => ({ anchor, count, share: count / total }))
     .filter((item) => item.count >= 3 && item.share >= 0.4 && !brandTokens.has(item.anchor))
@@ -441,7 +459,8 @@ function backlinkRepairOpportunities(rows = [], anchorRisks = []) {
       title: "Toxic backlink risk needs review",
       proof: `${risky.length} source URL${risky.length === 1 ? "" : "s"} matched risky source patterns. Example: ${risky[0].sourceUrl} (${risky[0].riskySignals.join(", ")})`,
       fix: "Review these links in Google Search Console or another backlink source. Remove manipulative links where possible and consider disavow only for clear spam at scale.",
-      acceptance: "Risky imported backlinks are marked reviewed, removed, or added to a documented disavow candidate list.",
+      acceptance:
+        "Risky imported backlinks are marked reviewed, removed, or added to a documented disavow candidate list.",
       estimatedEffort: "45-120 min",
       workType: "review"
     });
@@ -486,7 +505,8 @@ function backlinkSummary(rows, anchorRisks, repairOpportunities) {
 
 function backlinkProof({ row, source, matchingLinks, targetStatus, riskySignals }) {
   if (!source.ok) return `Source ${row.sourceUrl} returned ${source.status || source.error || "no response"}.`;
-  if (!matchingLinks.length) return `Source ${row.sourceUrl} returned ${source.status}, but no link to ${row.targetUrl} was found in the HTML.`;
+  if (!matchingLinks.length)
+    return `Source ${row.sourceUrl} returned ${source.status}, but no link to ${row.targetUrl} was found in the HTML.`;
   if (!targetStatus.ok) return targetStatus.evidence;
   if (riskySignals.length) return `Source URL matched risky patterns: ${riskySignals.join(", ")}.`;
   return `Source ${row.sourceUrl} links to ${matchingLinks[0].href} with anchor "${matchingLinks[0].anchorText || row.anchorText || "unknown"}".`;

@@ -10,54 +10,18 @@ import { escapeHtml } from "./html.js";
 // - allowLocalAudits: false in production (SSRF guard rejects private hosts);
 //   true only for the local dev server and smoke tests so 127.0.0.1 fixtures
 //   can be crawled, rendered, and resource-checked.
-import {
-  aiAnswerReadinessBriefLines,
-  buildAiAnswerReadiness
-} from "./ai-answer-readiness.js";
-import {
-  backlinkAuditBriefLines,
-  buildBacklinkAudit
-} from "./backlink-audit.js";
-import {
-  buildCompetitorBenchmark,
-  competitorBenchmarkBriefLines
-} from "./competitor-benchmark.js";
-import {
-  crawlDepthSummary,
-  normalizeCrawlLimit
-} from "./crawl-depth.js";
-import {
-  buildCrawlIntelligence,
-  crawlIntelligenceBriefLines
-} from "./crawl-intelligence.js";
-import {
-  buildCrawlInventory,
-  crawlInventoryBriefLines
-} from "./crawl-inventory.js";
-import {
-  buildGrowthOpportunities,
-  growthOpportunitiesBriefLines
-} from "./growth-opportunities.js";
-import {
-  buildKeywordRankAudit,
-  keywordRankAuditBriefLines
-} from "./keyword-rank-audit.js";
-import {
-  buildGeoReadinessAudit,
-  geoReadinessBriefLines
-} from "./geo-readiness.js";
-import {
-  buildLocalSeoAudit,
-  localSeoAuditBriefLines
-} from "./local-seo-audit.js";
-import {
-  buildPlatformSeoAudit,
-  platformSeoAuditBriefLines
-} from "./platform-seo-audit.js";
-import {
-  buildRenderedCrawlScalePlan,
-  renderedCrawlScaleBriefLines
-} from "./rendered-crawl-scale.js";
+import { aiAnswerReadinessBriefLines, buildAiAnswerReadiness } from "./ai-answer-readiness.js";
+import { backlinkAuditBriefLines, buildBacklinkAudit } from "./backlink-audit.js";
+import { buildCompetitorBenchmark, competitorBenchmarkBriefLines } from "./competitor-benchmark.js";
+import { crawlDepthSummary, normalizeCrawlLimit } from "./crawl-depth.js";
+import { buildCrawlIntelligence, crawlIntelligenceBriefLines } from "./crawl-intelligence.js";
+import { buildCrawlInventory, crawlInventoryBriefLines } from "./crawl-inventory.js";
+import { buildGrowthOpportunities, growthOpportunitiesBriefLines } from "./growth-opportunities.js";
+import { buildKeywordRankAudit, keywordRankAuditBriefLines } from "./keyword-rank-audit.js";
+import { buildGeoReadinessAudit, geoReadinessBriefLines } from "./geo-readiness.js";
+import { buildLocalSeoAudit, localSeoAuditBriefLines } from "./local-seo-audit.js";
+import { buildPlatformSeoAudit, platformSeoAuditBriefLines } from "./platform-seo-audit.js";
+import { buildRenderedCrawlScalePlan, renderedCrawlScaleBriefLines } from "./rendered-crawl-scale.js";
 import {
   buildResourceWaterfall,
   resourceWaterfallBriefLines,
@@ -66,12 +30,10 @@ import {
 import { isPrivateHost, isPrivateHostname } from "./url-safety.js";
 
 const DOCS = {
-  javascript:
-    "https://developers.google.com/search/docs/crawling-indexing/javascript/javascript-seo-basics",
+  javascript: "https://developers.google.com/search/docs/crawling-indexing/javascript/javascript-seo-basics",
   title: "https://developers.google.com/search/docs/appearance/title-link",
   snippets: "https://developers.google.com/search/docs/appearance/snippet",
-  structuredData:
-    "https://developers.google.com/search/docs/appearance/structured-data/intro-structured-data",
+  structuredData: "https://developers.google.com/search/docs/appearance/structured-data/intro-structured-data",
   hreflang: "https://developers.google.com/search/docs/specialty/international/localized-versions",
   coreWebVitals: "https://developers.google.com/search/docs/appearance/core-web-vitals",
   linkBestPractices: "https://developers.google.com/search/docs/crawling-indexing/links-crawlable"
@@ -114,9 +76,8 @@ export function createAuditEngine({
   }
   const fetch = (...args) => fetchImpl(...args);
   const urlGuard = allowLocalAudits ? localAuditUrlStatus : publicAuditUrlStatus;
-  const privateDnsGuard = allowLocalAudits || typeof privateAddressResolver !== "function"
-    ? null
-    : privateAddressResolver;
+  const privateDnsGuard =
+    allowLocalAudits || typeof privateAddressResolver !== "function" ? null : privateAddressResolver;
 
   async function auditUrl(inputUrl, options = {}) {
     const startedAt = Date.now();
@@ -127,7 +88,12 @@ export function createAuditEngine({
 
     const robots =
       origin === (options.appOrigin || appOrigin)
-        ? { ok: true, status: 200, url: `${origin}/robots.txt`, body: `User-agent: *\nAllow: /\n\nSitemap: ${origin}/sitemap.xml\n` }
+        ? {
+            ok: true,
+            status: 200,
+            url: `${origin}/robots.txt`,
+            body: `User-agent: *\nAllow: /\n\nSitemap: ${origin}/sitemap.xml\n`
+          }
         : await fetchText(`${origin}/robots.txt`);
     const sitemap =
       origin === (options.appOrigin || appOrigin)
@@ -138,7 +104,9 @@ export function createAuditEngine({
     try {
       browser = await launchBrowser();
     } catch (error) {
-      const busyError = new Error("Audit capacity is busy right now. Your audit stays queued and retries automatically.");
+      const busyError = new Error(
+        "Audit capacity is busy right now. Your audit stays queued and retries automatically."
+      );
       busyError.code = "BROWSER_BUSY";
       busyError.cause = error;
       throw busyError;
@@ -357,14 +325,14 @@ export function createAuditEngine({
     const isHtml = isHtmlResponse(staticFetch, url);
     const finalUrl = staticFetch.url || url;
     const finalUrlCheck = urlGuard(finalUrl);
-    const renderPrivateDnsBlocked = finalUrlCheck.ok && privateDnsGuard
-      ? await privateDnsGuard(new URL(finalUrl).hostname)
-      : false;
+    const renderPrivateDnsBlocked =
+      finalUrlCheck.ok && privateDnsGuard ? await privateDnsGuard(new URL(finalUrl).hostname) : false;
     const safeToRender = finalUrlCheck.ok && !renderPrivateDnsBlocked;
     const staticFacts = extractStaticFacts(staticFetch.body || "", finalUrl, staticFetch);
-    const rendered = isHtml && safeToRender
-      ? await extractRenderedFacts(browser, finalUrl, { urlGuard, privateDnsGuard })
-      : staticFacts;
+    const rendered =
+      isHtml && safeToRender
+        ? await extractRenderedFacts(browser, finalUrl, { urlGuard, privateDnsGuard })
+        : staticFacts;
     const shouldValidateResources = isHtml && consumeResourceValidationBudget(options.resourceValidationBudget);
     const resources = shouldValidateResources ? await validatePageResources(rendered) : emptyResourceChecks();
     const resourceWaterfall = buildResourceWaterfall({
@@ -377,11 +345,12 @@ export function createAuditEngine({
       url,
       finalUrl,
       redirected: stripHash(finalUrl) !== stripHash(url),
-      renderSkippedReason: isHtml && !safeToRender
-        ? renderPrivateDnsBlocked
-          ? "This URL points at a private or internal address and cannot be audited."
-          : finalUrlCheck.error || "Final URL left the audited origin."
-        : "",
+      renderSkippedReason:
+        isHtml && !safeToRender
+          ? renderPrivateDnsBlocked
+            ? "This URL points at a private or internal address and cannot be audited."
+            : finalUrlCheck.error || "Final URL left the audited origin."
+          : "",
       status: staticFetch.status,
       ok: staticFetch.ok,
       contentType: staticFetch.contentType,
@@ -503,17 +472,13 @@ export function createAuditEngine({
         kind: "image"
       }));
 
-    const canonicalOrigin = rendered.canonical
-      ? safeOrigin(rendered.canonical)
-      : "";
+    const canonicalOrigin = rendered.canonical ? safeOrigin(rendered.canonical) : "";
     // A canonical pointing at the site's own apex↔www twin is still the
     // customer's own infrastructure: transient origin errors there must be
     // guarded exactly like a same-origin canonical, so it gets kind
     // "internal" too. Only genuinely third-party canonicals stay "canonical".
     const canonicalKind =
-      canonicalOrigin && pageOrigin && isSameSiteOrigin(canonicalOrigin, pageOrigin)
-        ? "internal"
-        : "canonical";
+      canonicalOrigin && pageOrigin && isSameSiteOrigin(canonicalOrigin, pageOrigin) ? "internal" : "canonical";
 
     const [linkChecks, imageChecks, canonicalCheck] = await Promise.all([
       Promise.all(links.map(checkResource)),
@@ -541,10 +506,7 @@ export function createAuditEngine({
 
   async function fetchResourceResult(url) {
     const checked = await fetchResource(url, "HEAD");
-    const result =
-      checked.status === 403 || checked.status === 405
-        ? await fetchResource(url, "GET")
-        : checked;
+    const result = checked.status === 403 || checked.status === 405 ? await fetchResource(url, "GET") : checked;
     return result;
   }
 
@@ -599,9 +561,7 @@ export function createAuditEngine({
       });
       const iconAlreadyOk =
         declaredIcon?.ok ||
-        results.some(
-          (check) => check.key === "apple-touch-icon" && check.ok && check.url === rendered.appleTouchIcon
-        );
+        results.some((check) => check.key === "apple-touch-icon" && check.ok && check.url === rendered.appleTouchIcon);
       if (iconAlreadyOk) continue;
       let pageOrigin;
       try {
@@ -640,7 +600,7 @@ export function createAuditEngine({
       let response = null;
       const redirectChain = [];
       for (let redirectCount = 0; redirectCount <= RESOURCE_LIMITS.maxRedirects; redirectCount += 1) {
-        if (privateDnsGuard && await privateDnsGuard(new URL(currentUrl).hostname)) {
+        if (privateDnsGuard && (await privateDnsGuard(new URL(currentUrl).hostname))) {
           return {
             ok: false,
             status: null,
@@ -730,7 +690,7 @@ export function createAuditEngine({
             error: status.error
           };
         }
-        if (privateDnsGuard && await privateDnsGuard(new URL(currentUrl).hostname)) {
+        if (privateDnsGuard && (await privateDnsGuard(new URL(currentUrl).hostname))) {
           return {
             ok: false,
             status: null,
@@ -765,9 +725,7 @@ export function createAuditEngine({
 
       const contentType = response.headers.get("content-type") || "";
       const body =
-        contentType.includes("text") ||
-        contentType.includes("html") ||
-        contentType.includes("xml")
+        contentType.includes("text") || contentType.includes("html") || contentType.includes("xml")
           ? await readTextLimited(response, MAX_HTML_BYTES)
           : "";
       return {
@@ -847,9 +805,7 @@ async function extractRenderedFacts(browser, url, options = {}) {
     // site with analytics beacons, polling, or a websocket. aiconverter.app
     // failed its entire audit this way — the customer gets nothing rather than a
     // slightly less settled page. Fall back instead of throwing away the run.
-    const navigationTimeoutMs = Number(options.navigationTimeoutMs) > 0
-      ? Number(options.navigationTimeoutMs)
-      : 25_000;
+    const navigationTimeoutMs = Number(options.navigationTimeoutMs) > 0 ? Number(options.navigationTimeoutMs) : 25_000;
     // Whether the page actually settled (network idle reached). When the idle
     // wait times out and we fall back, loadDurationMs is dominated by our own
     // navigation timeout — reporting that number as the page's load time, or as
@@ -883,14 +839,14 @@ async function extractRenderedFacts(browser, url, options = {}) {
           return value || null;
         }
       };
-      const metaByName = (name) =>
-        document.querySelector(`meta[name="${name}"]`)?.getAttribute("content") || null;
+      const metaByName = (name) => document.querySelector(`meta[name="${name}"]`)?.getAttribute("content") || null;
       const metaByProperty = (property) =>
         document.querySelector(`meta[property="${property}"]`)?.getAttribute("content") || null;
       const text = (node) => (node?.textContent || "").trim().replace(/\s+/g, " ");
-      const headings = [...document.querySelectorAll("h1,h2,h3,h4,h5,h6")].map(
-        (node) => ({ level: node.tagName.toLowerCase(), text: text(node) })
-      );
+      const headings = [...document.querySelectorAll("h1,h2,h3,h4,h5,h6")].map((node) => ({
+        level: node.tagName.toLowerCase(),
+        text: text(node)
+      }));
       const links = [...document.querySelectorAll("a[href]")]
         .map((node) => ({
           text: text(node),
@@ -927,7 +883,16 @@ async function extractRenderedFacts(browser, url, options = {}) {
           const type = item["@type"];
           if (Array.isArray(type)) types.push(...type.filter(Boolean));
           else if (type) types.push(type);
-          for (const key of ["@graph", "itemListElement", "mainEntity", "hasPart", "review", "offers", "aggregateRating", "breadcrumb"]) {
+          for (const key of [
+            "@graph",
+            "itemListElement",
+            "mainEntity",
+            "hasPart",
+            "review",
+            "offers",
+            "aggregateRating",
+            "breadcrumb"
+          ]) {
             const child = item[key];
             if (Array.isArray(child)) child.forEach(visit);
             else visit(child);
@@ -937,23 +902,22 @@ async function extractRenderedFacts(browser, url, options = {}) {
         else visit(value);
         return types;
       };
-      const schemaResults = [...document.querySelectorAll('script[type="application/ld+json"]')]
-        .map((node, index) => {
-          try {
-            const parsed = JSON.parse(node.textContent || "{}");
-            const values = Array.isArray(parsed) ? parsed : [parsed];
-            return {
-              index: index + 1,
-              types: schemaTypesFor(parsed),
-              missingContext: values.some((item) => item && !item["@context"])
-            };
-          } catch {
-            return {
-              index: index + 1,
-              types: ["invalid-json"],
-              error: "JSON-LD could not be parsed."
-            };
-          }
+      const schemaResults = [...document.querySelectorAll('script[type="application/ld+json"]')].map((node, index) => {
+        try {
+          const parsed = JSON.parse(node.textContent || "{}");
+          const values = Array.isArray(parsed) ? parsed : [parsed];
+          return {
+            index: index + 1,
+            types: schemaTypesFor(parsed),
+            missingContext: values.some((item) => item && !item["@context"])
+          };
+        } catch {
+          return {
+            index: index + 1,
+            types: ["invalid-json"],
+            error: "JSON-LD could not be parsed."
+          };
+        }
       });
       const bodyText = text(document.body);
       const origin = location.origin;
@@ -977,7 +941,8 @@ async function extractRenderedFacts(browser, url, options = {}) {
             protocol: navigation.nextHopProtocol || ""
           }
         : {};
-      const allResourceTimings = performance.getEntriesByType("resource")
+      const allResourceTimings = performance
+        .getEntriesByType("resource")
         .map((entry) => ({
           name: entry.name,
           initiatorType: entry.initiatorType || "",
@@ -1006,12 +971,10 @@ async function extractRenderedFacts(browser, url, options = {}) {
         viewport: metaByName("viewport"),
         charset: document.characterSet || null,
         doctype: document.doctype ? document.doctype.name : null,
-        hreflangs: [...document.querySelectorAll('link[rel="alternate"][hreflang]')].map(
-          (node) => ({
-            hreflang: node.getAttribute("hreflang"),
-            href: absolute(node.getAttribute("href"))
-          })
-        ),
+        hreflangs: [...document.querySelectorAll('link[rel="alternate"][hreflang]')].map((node) => ({
+          hreflang: node.getAttribute("hreflang"),
+          href: absolute(node.getAttribute("href"))
+        })),
         h1s: headings.filter((heading) => heading.level === "h1").map((h) => h.text),
         headings,
         links,
@@ -1104,9 +1067,10 @@ async function isAllowedRenderRequest(requestUrl = "", options = {}) {
     return ["about:", "blob:", "data:"].includes(parsed.protocol);
   }
 
-  const status = typeof options.urlGuard === "function" ? options.urlGuard(parsed.href) : publicAuditUrlStatus(parsed.href);
+  const status =
+    typeof options.urlGuard === "function" ? options.urlGuard(parsed.href) : publicAuditUrlStatus(parsed.href);
   if (!status.ok) return false;
-  if (options.privateDnsGuard && await options.privateDnsGuard(parsed.hostname)) return false;
+  if (options.privateDnsGuard && (await options.privateDnsGuard(parsed.hostname))) return false;
   return true;
 }
 
@@ -1126,9 +1090,7 @@ function extractStaticFacts(html, url, fetchResult = {}) {
   // solely inside script or style strings (no static crawler sees that), while
   // preserving <noscript> fallback markup, which is real crawlable content for
   // crawlers that do not run JavaScript.
-  const staticMarkup = html
-    .replace(/<script[\s\S]*?<\/script>/gi, "")
-    .replace(/<style[\s\S]*?<\/style>/gi, "");
+  const staticMarkup = html.replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<style[\s\S]*?<\/style>/gi, "");
   // Word count intentionally keeps the prior behavior: script, style, and
   // noscript bodies are all removed before body-text extraction.
   const withoutScripts = html
@@ -1162,7 +1124,9 @@ function extractStaticFacts(html, url, fetchResult = {}) {
     async: attr(match[0], "async") !== null,
     defer: attr(match[0], "defer") !== null
   }));
-  const stylesheets = [...html.matchAll(/<link\b(?=[^>]*rel=["'][^"']*stylesheet[^"']*["'])(?=[^>]*href=["']([^"']+)["'])[^>]*>/gi)].map((match) => ({
+  const stylesheets = [
+    ...html.matchAll(/<link\b(?=[^>]*rel=["'][^"']*stylesheet[^"']*["'])(?=[^>]*href=["']([^"']+)["'])[^>]*>/gi)
+  ].map((match) => ({
     href: absolute(match[1], base.href),
     media: attr(match[0], "media") || ""
   }));
@@ -1173,7 +1137,16 @@ function extractStaticFacts(html, url, fetchResult = {}) {
       const type = item["@type"];
       if (Array.isArray(type)) types.push(...type.filter(Boolean));
       else if (type) types.push(type);
-      for (const key of ["@graph", "itemListElement", "mainEntity", "hasPart", "review", "offers", "aggregateRating", "breadcrumb"]) {
+      for (const key of [
+        "@graph",
+        "itemListElement",
+        "mainEntity",
+        "hasPart",
+        "review",
+        "offers",
+        "aggregateRating",
+        "breadcrumb"
+      ]) {
         const child = item[key];
         if (Array.isArray(child)) child.forEach(visit);
         else visit(child);
@@ -1190,24 +1163,25 @@ function extractStaticFacts(html, url, fetchResult = {}) {
       text: decodeEntities(stripTags(match[2])).replace(/\s+/g, " ").trim()
     });
   }
-  const schemaResults = [...html.matchAll(/<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)]
-    .map((match, index) => {
-      try {
-        const parsed = JSON.parse(match[1] || "{}");
-        const values = Array.isArray(parsed) ? parsed : [parsed];
-        return {
-          index: index + 1,
-          types: schemaTypesFor(parsed),
-          missingContext: values.some((item) => item && !item["@context"])
-        };
-      } catch {
-        return {
-          index: index + 1,
-          types: ["invalid-json"],
-          error: "JSON-LD could not be parsed."
-        };
-      }
-    });
+  const schemaResults = [
+    ...html.matchAll(/<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)
+  ].map((match, index) => {
+    try {
+      const parsed = JSON.parse(match[1] || "{}");
+      const values = Array.isArray(parsed) ? parsed : [parsed];
+      return {
+        index: index + 1,
+        types: schemaTypesFor(parsed),
+        missingContext: values.some((item) => item && !item["@context"])
+      };
+    } catch {
+      return {
+        index: index + 1,
+        types: ["invalid-json"],
+        error: "JSON-LD could not be parsed."
+      };
+    }
+  });
 
   return {
     source: "static-html",
@@ -1225,12 +1199,14 @@ function extractStaticFacts(html, url, fetchResult = {}) {
       (meta(head, "http-equiv", "content-type") || "").match(/charset=([^;]+)/i)?.[1] ||
       null,
     doctype: html.trimStart().toLowerCase().startsWith("<!doctype html") ? "html" : null,
-    hreflangs: [...head.matchAll(/<link\b(?=[^>]*rel=["'][^"']*alternate[^"']*["'])(?=[^>]*hreflang=["']([^"']+)["'])(?=[^>]*href=["']([^"']+)["'])[^>]*>/gi)].map(
-      (match) => ({
-        hreflang: match[1],
-        href: absolute(match[2], base.href)
-      })
-    ),
+    hreflangs: [
+      ...head.matchAll(
+        /<link\b(?=[^>]*rel=["'][^"']*alternate[^"']*["'])(?=[^>]*hreflang=["']([^"']+)["'])(?=[^>]*href=["']([^"']+)["'])[^>]*>/gi
+      )
+    ].map((match) => ({
+      hreflang: match[1],
+      href: absolute(match[2], base.href)
+    })),
     h1s: headings.filter((heading) => heading.level === "h1").map((h) => h.text),
     headings,
     links,
@@ -1299,19 +1275,14 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
     // the customer's link graph — it is where their rate limiter sent our crawler.
     const redirectedInternalLinks = linkChecks.filter(
       (check) =>
-        check.kind === "internal" &&
-        !isBrokenResource(check) &&
-        !isThrottledResource(check) &&
-        check.redirected
+        check.kind === "internal" && !isBrokenResource(check) && !isThrottledResource(check) && check.redirected
     );
     const brokenImages = imageChecks.filter(isBrokenResource);
     const oversizedImages = imageChecks.filter(
       (check) => !isBrokenResource(check) && check.contentLength > RESOURCE_LIMITS.largeImageBytes
     );
     const nonHttpsResources = [...(rendered.links || []), ...(rendered.images || [])].filter(
-      (resource) =>
-        finalUrlObject.protocol === "https:" &&
-        (resource.href || resource.src || "").startsWith("http:")
+      (resource) => finalUrlObject.protocol === "https:" && (resource.href || resource.src || "").startsWith("http:")
     );
     const addRenderedGuard = ({ title, evidence, fix, source }) =>
       add({
@@ -1526,7 +1497,11 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
       });
     }
 
-    if ((!staticFacts.openGraph.image || !staticFacts.twitter.image) && rendered.openGraph.image && rendered.twitter.image) {
+    if (
+      (!staticFacts.openGraph.image || !staticFacts.twitter.image) &&
+      rendered.openGraph.image &&
+      rendered.twitter.image
+    ) {
       addRenderedGuard({
         title: "social images exist after render",
         evidence: `Rendered og:image: ${rendered.openGraph.image}; twitter:image: ${rendered.twitter.image}`,
@@ -1574,7 +1549,12 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
     // scan-time hiccup, not the customer's defect: neither an "unreachable"
     // warning nor a "redirects" notice may be built on top of it.
     const canonicalProbeFailedTransiently = isTransientCanonicalProbeFailure(page.canonicalCheck);
-    if (rendered.canonical && page.canonicalCheck && isBrokenResource(page.canonicalCheck) && !canonicalProbeFailedTransiently) {
+    if (
+      rendered.canonical &&
+      page.canonicalCheck &&
+      isBrokenResource(page.canonicalCheck) &&
+      !canonicalProbeFailedTransiently
+    ) {
       add({
         type: "issue",
         severity: "warning",
@@ -1595,7 +1575,11 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
       });
     }
 
-    if (rendered.canonical && rendered.openGraph?.url && canonicalKey(rendered.canonical) !== canonicalKey(rendered.openGraph.url)) {
+    if (
+      rendered.canonical &&
+      rendered.openGraph?.url &&
+      canonicalKey(rendered.canonical) !== canonicalKey(rendered.openGraph.url)
+    ) {
       add({
         type: "issue",
         severity: "notice",
@@ -1658,8 +1642,7 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "issue",
         severity: "warning",
         title: `Meta description needs tightening on ${label}`,
-        why:
-          "Google may rewrite snippets, but a clear page-specific description gives it better source material.",
+        why: "Google may rewrite snippets, but a clear page-specific description gives it better source material.",
         evidence: `${rendered.description.length} characters: "${rendered.description}"`,
         fix: "Rewrite it as one clear value proposition.",
         source: DOCS.snippets,
@@ -1707,8 +1690,7 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "issue",
         severity: "warning",
         title: `Thin rendered content on ${label}`,
-        why:
-          "This is a heuristic, not a ranking rule. Thin pages often fail to answer the query well.",
+        why: "This is a heuristic, not a ranking rule. Thin pages often fail to answer the query well.",
         evidence: `${rendered.wordCount} rendered words found.`,
         fix: "Add useful page-specific detail, proof, examples, and next steps.",
         confidence: "needs-review"
@@ -1813,10 +1795,7 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
       });
     } else {
       const brokenSocialImages = declaredImages.filter(
-        (check) =>
-          check.pageUrl === page.url &&
-          (check.key === "og" || check.key === "twitter") &&
-          !check.ok
+        (check) => check.pageUrl === page.url && (check.key === "og" || check.key === "twitter") && !check.ok
       );
       if (brokenSocialImages.length) {
         const reasons = brokenSocialImages
@@ -1847,9 +1826,7 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
     // home-screen tile as no tag at all, so the declared file is fetched and
     // verified before the page is treated as covered.
     const declaredAppleIcon = rendered.appleTouchIcon
-      ? declaredImages.find(
-          (check) => check.key === "apple-touch-icon" && check.url === rendered.appleTouchIcon
-        )
+      ? declaredImages.find((check) => check.key === "apple-touch-icon" && check.url === rendered.appleTouchIcon)
       : null;
     if (!rendered.appleTouchIcon) {
       add({
@@ -1886,7 +1863,7 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         title: `Images missing alt attributes on ${label}`,
         why: "Informative images need alt text for accessibility and image search context.",
         evidence: `${rendered.imagesMissingAlt.length}/${rendered.images.length} images have no alt attribute. Intentionally empty alt="" images are treated as decorative, not scored.`,
-        fix: "Add useful alt text to informative images. Leave decorative images as alt=\"\" intentionally.",
+        fix: 'Add useful alt text to informative images. Leave decorative images as alt="" intentionally.',
         confidence: "needs-review"
       });
     }
@@ -1994,7 +1971,26 @@ function mergeRepairPlans(basePlan = [], extraItems = []) {
   }));
 }
 
-function buildRepairBrief({ startUrl, score, summary, pages, findings, repairPlan, performance, competitorBenchmark, crawlInventory, renderedCrawlScale, crawlIntelligence, backlinkAudit, localSeoAudit, keywordRankAudit, platformSeoAudit, aiAnswerReadiness, growthOpportunities, geoReadiness }) {
+function buildRepairBrief({
+  startUrl,
+  score,
+  summary,
+  pages,
+  findings,
+  repairPlan,
+  performance,
+  competitorBenchmark,
+  crawlInventory,
+  renderedCrawlScale,
+  crawlIntelligence,
+  backlinkAudit,
+  localSeoAudit,
+  keywordRankAudit,
+  platformSeoAudit,
+  aiAnswerReadiness,
+  growthOpportunities,
+  geoReadiness
+}) {
   const lines = [
     "# SEO Fix Kit repair brief",
     "",
@@ -2062,7 +2058,9 @@ function buildRepairBrief({ startUrl, score, summary, pages, findings, repairPla
       lines.push(`- Field data category: ${performance.fieldData.overallCategory}`);
     }
     if (performance.opportunities?.length) {
-      lines.push(`- Top opportunity: ${performance.opportunities[0].title} (${performanceOpportunityEvidence(performance.opportunities[0])})`);
+      lines.push(
+        `- Top opportunity: ${performance.opportunities[0].title} (${performanceOpportunityEvidence(performance.opportunities[0])})`
+      );
     }
     if (performance.reason) lines.push(`- Note: ${performance.reason}`);
     lines.push("");
@@ -2161,7 +2159,12 @@ function acceptanceCheck(finding) {
   if (title.includes("https") || title.includes("hsts") || title.includes("security")) {
     return "The page loads over HTTPS and sends the expected security headers without mixed-content resources.";
   }
-  if (title.includes("pagespeed") || title.includes("largest contentful paint") || title.includes("total blocking time") || title.includes("layout shift")) {
+  if (
+    title.includes("pagespeed") ||
+    title.includes("largest contentful paint") ||
+    title.includes("total blocking time") ||
+    title.includes("layout shift")
+  ) {
     return "A rerun shows PageSpeed lab metrics back in the acceptable range and the repair evidence no longer appears.";
   }
   if (title.includes("slow") || title.includes("large image") || title.includes("large html")) {
@@ -2233,7 +2236,8 @@ function buildSocialSnippet(url, facts, declaredImages = []) {
     `<meta name="twitter:title" content="${title}" />`,
     `<meta name="twitter:description" content="${description}" />`,
     `<meta name="twitter:image" content="${image}" />`
-  ].join("\n")
+  ]
+    .join("\n")
     .replace(/^/, placeholderNote);
 }
 
@@ -2261,7 +2265,8 @@ function buildAppleTouchIconSnippet(url, declaredImages = []) {
   return `${note}<link rel="apple-touch-icon" href="${href}" />`;
 }
 
-function buildSchemaSnippet(url, facts) {  const origin = new URL(url).origin;
+function buildSchemaSnippet(url, facts) {
+  const origin = new URL(url).origin;
   return `<script type="application/ld+json">\n${JSON.stringify(
     {
       "@context": "https://schema.org",
@@ -2331,8 +2336,7 @@ function parseFieldMetrics(loadingExperience = {}) {
 
 function fieldMetric(metric, unit) {
   if (!metric) return null;
-  const percentile =
-    unit === "ratio" ? Number(metric.percentile || 0) / 100 : Number(metric.percentile || 0);
+  const percentile = unit === "ratio" ? Number(metric.percentile || 0) / 100 : Number(metric.percentile || 0);
   return {
     percentile,
     display: unit === "ratio" ? percentile.toFixed(2) : `${Math.round(percentile)}ms`,
@@ -2414,7 +2418,10 @@ function addPerformanceFindings(add, performance = {}, label) {
     return;
   }
 
-  if (Number.isFinite(performance.performanceScore) && performance.performanceScore < PERFORMANCE_LIMITS.needsImprovementScore) {
+  if (
+    Number.isFinite(performance.performanceScore) &&
+    performance.performanceScore < PERFORMANCE_LIMITS.needsImprovementScore
+  ) {
     add({
       type: "performance",
       severity: performance.performanceScore < PERFORMANCE_LIMITS.poorScore ? "critical" : "warning",
@@ -2494,13 +2501,19 @@ function performanceOpportunityEvidence(opportunity) {
 
 function performanceOpportunityFix(opportunity) {
   const id = opportunity.id || "";
-  if (id.includes("render-blocking")) return "Inline critical CSS, defer non-critical CSS/JS, and remove blocking assets from the initial render path.";
-  if (id.includes("unused-javascript")) return "Delete unused scripts, split the bundle by route, and defer code that is not needed for the first view.";
+  if (id.includes("render-blocking"))
+    return "Inline critical CSS, defer non-critical CSS/JS, and remove blocking assets from the initial render path.";
+  if (id.includes("unused-javascript"))
+    return "Delete unused scripts, split the bundle by route, and defer code that is not needed for the first view.";
   if (id.includes("unused-css")) return "Remove unused CSS rules and ship only the styles needed for this route.";
-  if (id.includes("image") || id.includes("offscreen")) return "Compress images, serve WebP/AVIF where safe, lazy-load below-the-fold images, and size assets to their rendered dimensions.";
-  if (id.includes("total-byte-weight")) return "Reduce total transfer weight by compressing assets, pruning unused code, and removing heavy third-party payloads.";
-  if (id.includes("server-response")) return "Improve server response time with caching, faster backend work, or edge delivery.";
-  if (id.includes("largest-contentful-paint")) return "Optimize the LCP element directly: preload it, compress it, and avoid hiding it behind client-side rendering.";
+  if (id.includes("image") || id.includes("offscreen"))
+    return "Compress images, serve WebP/AVIF where safe, lazy-load below-the-fold images, and size assets to their rendered dimensions.";
+  if (id.includes("total-byte-weight"))
+    return "Reduce total transfer weight by compressing assets, pruning unused code, and removing heavy third-party payloads.";
+  if (id.includes("server-response"))
+    return "Improve server response time with caching, faster backend work, or edge delivery.";
+  if (id.includes("largest-contentful-paint"))
+    return "Optimize the LCP element directly: preload it, compress it, and avoid hiding it behind client-side rendering.";
   return "Review the PageSpeed opportunity and apply the smallest code or content change that removes the measured bottleneck.";
 }
 
@@ -2646,12 +2659,7 @@ export function isThrottledResource(check) {
 }
 
 export function isSameOriginInfraFailure(check) {
-  return Boolean(
-    check &&
-      check.kind === "internal" &&
-      check.status &&
-      CLOUDFLARE_ORIGIN_ERRORS.has(check.status)
-  );
+  return Boolean(check && check.kind === "internal" && check.status && CLOUDFLARE_ORIGIN_ERRORS.has(check.status));
 }
 
 // The canonical probe is a second request to the customer's own site seconds
@@ -2806,12 +2814,8 @@ async function readTextLimited(response, maxBytes) {
 
 function buildPageSummaries(pages, findings, startUrl) {
   return pages.map((page) => {
-    const pageFindings = findings.filter(
-      (finding) => finding.pageUrl === page.url && finding.severity !== "good"
-    );
-    const guards = findings.filter(
-      (finding) => finding.pageUrl === page.url && finding.severity === "good"
-    );
+    const pageFindings = findings.filter((finding) => finding.pageUrl === page.url && finding.severity !== "good");
+    const guards = findings.filter((finding) => finding.pageUrl === page.url && finding.severity === "good");
     const facts = page.rendered || {};
     const staticFacts = page.static || {};
     return {
@@ -2925,7 +2929,13 @@ function headingHierarchyIssue(headings = []) {
 function estimatedEffort(finding) {
   const title = finding.title.toLowerCase();
   if (title.includes("broken link") || title.includes("broken image")) return "15-45 min";
-  if (title.includes("pagespeed") || title.includes("largest contentful paint") || title.includes("total blocking time") || title.includes("layout shift")) return "45-120 min";
+  if (
+    title.includes("pagespeed") ||
+    title.includes("largest contentful paint") ||
+    title.includes("total blocking time") ||
+    title.includes("layout shift")
+  )
+    return "45-120 min";
   if (title.includes("robots") || title.includes("sitemap")) return "15-30 min";
   if (title.includes("title") || title.includes("description") || title.includes("canonical")) return "5-15 min";
   if (title.includes("social") || title.includes("schema") || title.includes("viewport")) return "15-45 min";
@@ -2940,13 +2950,31 @@ function workType(finding) {
   if (title.includes("title") || title.includes("description") || title.includes("thin") || title.includes("alt")) {
     return "content";
   }
-  if (title.includes("schema") || title.includes("canonical") || title.includes("viewport") || title.includes("social")) {
+  if (
+    title.includes("schema") ||
+    title.includes("canonical") ||
+    title.includes("viewport") ||
+    title.includes("social")
+  ) {
     return "code";
   }
   if (title.includes("broken link") || title.includes("broken image")) {
     return "content";
   }
-  if (title.includes("robots") || title.includes("sitemap") || title.includes("redirect") || title.includes("hreflang") || title.includes("https") || title.includes("security") || title.includes("slow") || title.includes("large") || title.includes("pagespeed") || title.includes("largest contentful paint") || title.includes("total blocking time") || title.includes("layout shift")) {
+  if (
+    title.includes("robots") ||
+    title.includes("sitemap") ||
+    title.includes("redirect") ||
+    title.includes("hreflang") ||
+    title.includes("https") ||
+    title.includes("security") ||
+    title.includes("slow") ||
+    title.includes("large") ||
+    title.includes("pagespeed") ||
+    title.includes("largest contentful paint") ||
+    title.includes("total blocking time") ||
+    title.includes("layout shift")
+  ) {
     return "technical";
   }
   return "review";
@@ -3130,14 +3158,14 @@ function suggestTitle(url, facts) {
 
 function suggestDescription(facts = {}) {
   const base =
-    facts.bodySample ||
-    facts.title ||
-    "Clear page summary that explains the offer, audience, and next action.";
+    facts.bodySample || facts.title || "Clear page summary that explains the offer, audience, and next action.";
   return trimSentence(base.replace(/\s+/g, " "), 150);
 }
 
 function trimSentence(value, max) {
-  const cleaned = String(value || "").replace(/\s+/g, " ").trim();
+  const cleaned = String(value || "")
+    .replace(/\s+/g, " ")
+    .trim();
   if (cleaned.length <= max) return cleaned;
   return `${cleaned.slice(0, max - 1).trim()}...`;
 }
@@ -3149,7 +3177,20 @@ function wait(ms) {
 // The canonical public route set for the apex host, shared by the sitemap,
 // IndexNow submissions, and any future search-submission surface. Keep in sync
 // with the public page routes in worker/index.js and worker/routes/pages.js.
-export const ROOT_PUBLIC_PATHS = ["/", "/demo", "/check", "/methodology", "/pricing", "/small-business-seo-audit", "/rendered-vs-static-seo-audit", "/ai-answer-readiness", "/privacy", "/proof", "/support", "/terms"];
+export const ROOT_PUBLIC_PATHS = [
+  "/",
+  "/demo",
+  "/check",
+  "/methodology",
+  "/pricing",
+  "/small-business-seo-audit",
+  "/rendered-vs-static-seo-audit",
+  "/ai-answer-readiness",
+  "/privacy",
+  "/proof",
+  "/support",
+  "/terms"
+];
 
 // Truthful per-page last modification times (W3C datetime, Z-suffixed): the
 // commit timestamp of the last change to the code that renders each page —
@@ -3164,18 +3205,18 @@ export const ROOT_PUBLIC_PATHS = ["/", "/demo", "/check", "/methodology", "/pric
 // worker/routes/pages.test.mjs refuses a stale lastmod so the update
 // cannot silently ship.
 export const ROOT_PUBLIC_LASTMODS = {
-  "/": "2026-10-12T17:35:06Z",
-  "/demo": "2026-10-12T17:35:06Z",
-  "/check": "2026-10-12T17:35:06Z",
-  "/methodology": "2026-10-12T17:35:06Z",
-  "/pricing": "2026-10-12T17:35:06Z",
-  "/small-business-seo-audit": "2026-10-12T17:35:06Z",
-  "/rendered-vs-static-seo-audit": "2026-10-12T17:35:06Z",
-  "/ai-answer-readiness": "2026-10-12T17:35:06Z",
-  "/privacy": "2026-10-12T17:35:06Z",
-  "/proof": "2026-10-12T17:35:06Z",
-  "/support": "2026-10-12T17:35:06Z",
-  "/terms": "2026-10-12T17:35:06Z"
+  "/": "2026-10-12T17:35:07Z",
+  "/demo": "2026-10-12T17:35:07Z",
+  "/check": "2026-10-12T17:35:07Z",
+  "/methodology": "2026-10-12T17:35:07Z",
+  "/pricing": "2026-10-12T17:35:07Z",
+  "/small-business-seo-audit": "2026-10-12T17:35:07Z",
+  "/rendered-vs-static-seo-audit": "2026-10-12T17:35:07Z",
+  "/ai-answer-readiness": "2026-10-12T17:35:07Z",
+  "/privacy": "2026-10-12T17:35:07Z",
+  "/proof": "2026-10-12T17:35:07Z",
+  "/support": "2026-10-12T17:35:07Z",
+  "/terms": "2026-10-12T17:35:07Z"
 };
 
 export function rootSitemap(origin) {

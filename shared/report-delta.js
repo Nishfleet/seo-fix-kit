@@ -22,14 +22,16 @@ export function buildReportDelta(currentReport = {}, previousReport = null) {
   const previousByKey = mapByIssueKey(previousIssues);
   const fixedIssues = previousIssues.filter((issue) => !currentByKey.has(issue.key)).map(deltaIssue);
   const newIssues = currentIssues.filter((issue) => !previousByKey.has(issue.key)).map(deltaIssue);
-  const persistentIssues = currentIssues.filter((issue) => previousByKey.has(issue.key)).map((issue) => {
-    const before = previousByKey.get(issue.key);
-    return deltaIssue({
-      ...issue,
-      previousSeverity: before?.severity || "",
-      previousEvidence: before?.evidence || ""
+  const persistentIssues = currentIssues
+    .filter((issue) => previousByKey.has(issue.key))
+    .map((issue) => {
+      const before = previousByKey.get(issue.key);
+      return deltaIssue({
+        ...issue,
+        previousSeverity: before?.severity || "",
+        previousEvidence: before?.evidence || ""
+      });
     });
-  });
 
   const scoreBefore = numberOrZero(previousReport.score);
   const scoreNow = numberOrZero(currentReport.score);
@@ -195,7 +197,10 @@ function signed(value) {
 }
 
 function normalizeText(value = "") {
-  return String(value || "").toLowerCase().replace(/\s+/g, " ").trim();
+  return String(value || "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function normalizeUrlKey(value = "") {

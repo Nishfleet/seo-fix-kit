@@ -89,17 +89,19 @@ test("account summary derives unmaterialized repairs beside existing queue rows"
         url: "https://example.com/new",
         report_json: reportJson({
           id: "report-new",
-          findings: [{
-            id: "issue-new",
-            severity: "critical",
-            title: "New unmaterialized issue",
-            pageUrl: "https://example.com/new",
-            pageLabel: "new",
-            evidence: "Rendered title is missing.",
-            fix: "Add a descriptive title.",
-            confidence: "verified",
-            source: "rendered"
-          }],
+          findings: [
+            {
+              id: "issue-new",
+              severity: "critical",
+              title: "New unmaterialized issue",
+              pageUrl: "https://example.com/new",
+              pageLabel: "new",
+              evidence: "Rendered title is missing.",
+              fix: "Add a descriptive title.",
+              confidence: "verified",
+              source: "rendered"
+            }
+          ],
           repairPlan: []
         })
       }),
@@ -113,19 +115,18 @@ test("account summary derives unmaterialized repairs beside existing queue rows"
   const body = await response.json();
 
   assert.equal(body.metrics.repairItems, 2);
-  assert.deepEqual(
-    body.repairAgent.nextItems.map((item) => item.issueId).sort(),
-    ["issue-1", "issue-new"]
-  );
+  assert.deepEqual(body.repairAgent.nextItems.map((item) => item.issueId).sort(), ["issue-1", "issue-new"]);
 });
 
 test("account summary keeps capped-out saved repairs from reopening", async () => {
-  const olderRows = Array.from({ length: 220 }, (_, index) => repairQueueRow({
-    id: `old-queue-${index}`,
-    report_id: `old-report-${index}`,
-    issue_id: `old-issue-${index}`,
-    status: "open"
-  }));
+  const olderRows = Array.from({ length: 220 }, (_, index) =>
+    repairQueueRow({
+      id: `old-queue-${index}`,
+      report_id: `old-report-${index}`,
+      issue_id: `old-issue-${index}`,
+      status: "open"
+    })
+  );
   const env = fakeAccountEnv({
     reports: [reportRow()],
     queueItems: [
@@ -231,8 +232,17 @@ test("account summary does not count regressed rerun proof as applied awaiting r
 
 test("account summary treats still-open rerun proof as review work, not rerun-needed", async () => {
   const env = fakeAccountEnv({
-    queueItems: [repairQueueRow({ status: "applied", rerun_status: "still_open", last_rerun_report_id: "rerun-report-1" })],
-    actions: [repairActionRow({ approval_state: "approved", execution_state: "applied", rerun_state: "still_open", rerun_report_id: "rerun-report-1" })]
+    queueItems: [
+      repairQueueRow({ status: "applied", rerun_status: "still_open", last_rerun_report_id: "rerun-report-1" })
+    ],
+    actions: [
+      repairActionRow({
+        approval_state: "approved",
+        execution_state: "applied",
+        rerun_state: "still_open",
+        rerun_report_id: "rerun-report-1"
+      })
+    ]
   });
 
   const response = await getAccountSummary(sessionRequest("/api/account"), env);
@@ -248,36 +258,42 @@ test("account summary treats still-open rerun proof as review work, not rerun-ne
 
 test("account summary surfaces monitor regressions ahead of ordinary repairs", async () => {
   const env = fakeAccountEnv({
-    reports: [reportRow({
-      report_json: reportJson({
-        reportDelta: {
-          status: "ready",
-          note: "Compares this saved report with the earlier run.",
-          summary: {
-            newIssuesCount: 1,
-            criticalDelta: 1,
-            warningDelta: 0
-          },
-          newIssues: [{
-            severity: "critical",
-            title: "Canonical changed after deploy",
-            evidence: "Latest rendered canonical points to a staging URL.",
-            fix: "Restore the production canonical."
-          }]
-        }
+    reports: [
+      reportRow({
+        report_json: reportJson({
+          reportDelta: {
+            status: "ready",
+            note: "Compares this saved report with the earlier run.",
+            summary: {
+              newIssuesCount: 1,
+              criticalDelta: 1,
+              warningDelta: 0
+            },
+            newIssues: [
+              {
+                severity: "critical",
+                title: "Canonical changed after deploy",
+                evidence: "Latest rendered canonical points to a staging URL.",
+                fix: "Restore the production canonical."
+              }
+            ]
+          }
+        })
       })
-    })],
-    schedules: [{
-      id: "schedule-1",
-      owner_email: "owner@example.com",
-      status: "active",
-      target_url: "https://example.com/",
-      target_host: "example.com",
-      interval_days: 7,
-      last_report_id: "report-1",
-      last_error: "",
-      updated_at: nowIso()
-    }]
+    ],
+    schedules: [
+      {
+        id: "schedule-1",
+        owner_email: "owner@example.com",
+        status: "active",
+        target_url: "https://example.com/",
+        target_host: "example.com",
+        interval_days: 7,
+        last_report_id: "report-1",
+        last_error: "",
+        updated_at: nowIso()
+      }
+    ]
   });
 
   const response = await getAccountSummary(sessionRequest("/api/account"), env);
@@ -291,14 +307,16 @@ test("account summary surfaces monitor regressions ahead of ordinary repairs", a
 
 test("account summary does not invent delivery readiness without proposal state", async () => {
   const env = fakeAccountEnv({
-    fixRequests: [fixRequestRow({
-      status: "paid",
-      paid_at: nowIso(),
-      payment_id: "payment-1",
-      customer_note: "Ready for review",
-      delivery_url: "https://seofixkit.com/beta/reports/final",
-      final_report_id: "final-report-1"
-    })]
+    fixRequests: [
+      fixRequestRow({
+        status: "paid",
+        paid_at: nowIso(),
+        payment_id: "payment-1",
+        customer_note: "Ready for review",
+        delivery_url: "https://seofixkit.com/beta/reports/final",
+        final_report_id: "final-report-1"
+      })
+    ]
   });
 
   const response = await getAccountSummary(sessionRequest("/api/account"), env);
@@ -325,18 +343,20 @@ function fakeAccountEnv(overrides = {}) {
     reports: overrides.reports || [reportRow()],
     fixRequests: overrides.fixRequests || [],
     auditJobs: overrides.auditJobs || [],
-    siteClaims: overrides.siteClaims || [{
-      id: "site-1",
-      owner_email: "owner@example.com",
-      host: "example.com",
-      status: "verified",
-      verification_method: "dns",
-      verification_token: "token",
-      created_at: nowIso(),
-      updated_at: nowIso(),
-      verified_at: nowIso(),
-      revoked_at: null
-    }],
+    siteClaims: overrides.siteClaims || [
+      {
+        id: "site-1",
+        owner_email: "owner@example.com",
+        host: "example.com",
+        status: "verified",
+        verification_method: "dns",
+        verification_token: "token",
+        created_at: nowIso(),
+        updated_at: nowIso(),
+        verified_at: nowIso(),
+        revoked_at: null
+      }
+    ],
     schedules: overrides.schedules || [],
     queueItems: overrides.queueItems || [repairQueueRow()],
     actions: overrides.actions || [],
@@ -469,29 +489,33 @@ function reportJson(overrides = {}) {
   return JSON.stringify({
     id: "report-1",
     url: "https://example.com/",
-    findings: [{
-      id: "issue-1",
-      severity: "critical",
-      title: "Missing title",
-      pageUrl: "https://example.com/",
-      pageLabel: "home",
-      evidence: "Rendered title is missing.",
-      fix: "Add a descriptive title.",
-      confidence: "verified",
-      source: "rendered"
-    }],
-    repairPlan: [{
-      priority: 1,
-      severity: "critical",
-      title: "Missing title",
-      pageUrl: "https://example.com/",
-      pageLabel: "home",
-      proof: "Rendered title is missing.",
-      fix: "Add a descriptive title.",
-      acceptance: "Rendered title exists.",
-      confidence: "verified",
-      source: "rendered"
-    }],
+    findings: [
+      {
+        id: "issue-1",
+        severity: "critical",
+        title: "Missing title",
+        pageUrl: "https://example.com/",
+        pageLabel: "home",
+        evidence: "Rendered title is missing.",
+        fix: "Add a descriptive title.",
+        confidence: "verified",
+        source: "rendered"
+      }
+    ],
+    repairPlan: [
+      {
+        priority: 1,
+        severity: "critical",
+        title: "Missing title",
+        pageUrl: "https://example.com/",
+        pageLabel: "home",
+        proof: "Rendered title is missing.",
+        fix: "Add a descriptive title.",
+        acceptance: "Rendered title exists.",
+        confidence: "verified",
+        source: "rendered"
+      }
+    ],
     ...overrides
   });
 }

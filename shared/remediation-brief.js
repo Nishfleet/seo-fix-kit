@@ -47,7 +47,8 @@ export function buildRemediationBrief(report = {}) {
     nextActions: nextActions(priorityQueue, delta),
     support: {
       fixPackEligible: priorityQueue.length > 0,
-      safeHandoff: "Share the report URL, issue title, proof, requested fix, and acceptance checks. Do not claim rankings, traffic, or revenue outcomes.",
+      safeHandoff:
+        "Share the report URL, issue title, proof, requested fix, and acceptance checks. Do not claim rankings, traffic, or revenue outcomes.",
       handoffRules: [
         "Use rendered proof and stored findings only.",
         "Every repair needs a human-approved change and a rerun acceptance check.",
@@ -104,7 +105,9 @@ function hasIssue(issue = {}) {
 }
 
 function clean(value = "") {
-  return String(value || "").trim().toLowerCase();
+  return String(value || "")
+    .trim()
+    .toLowerCase();
 }
 
 function acceptanceChecksFor(issue = {}, plan = {}, report = {}) {

@@ -1,7 +1,4 @@
-import {
-  CRAWLRAVEN_PUBLIC_CRAWL_PAGES,
-  SELF_SERVE_MAX_CRAWL_PAGES
-} from "./crawl-depth.js";
+import { CRAWLRAVEN_PUBLIC_CRAWL_PAGES, SELF_SERVE_MAX_CRAWL_PAGES } from "./crawl-depth.js";
 
 export const LARGE_RENDERED_CRAWL_TARGET_PAGES = CRAWLRAVEN_PUBLIC_CRAWL_PAGES;
 export const LARGE_RENDERED_CRAWL_BATCH_SIZE = SELF_SERVE_MAX_CRAWL_PAGES;
@@ -14,10 +11,22 @@ export const LARGE_RENDERED_CRAWL_RETENTION_DAYS = 30;
 export function normalizeLargeRenderedCrawlRequest(input = {}, targetUrl = "") {
   const normalizedTarget = normalizeHttpUrl(input.url || input.targetUrl || input.target_url || targetUrl || "");
   const targetHost = safeHost(normalizedTarget);
-  const targetPages = clampNumber(input.targetPages || input.target_pages || input.maxPages || input.max_pages || LARGE_RENDERED_CRAWL_TARGET_PAGES, 1, LARGE_RENDERED_CRAWL_TARGET_PAGES);
+  const targetPages = clampNumber(
+    input.targetPages || input.target_pages || input.maxPages || input.max_pages || LARGE_RENDERED_CRAWL_TARGET_PAGES,
+    1,
+    LARGE_RENDERED_CRAWL_TARGET_PAGES
+  );
   const batchSize = LARGE_RENDERED_CRAWL_BATCH_SIZE;
-  const maxConcurrency = clampNumber(input.maxConcurrency || input.max_concurrency || LARGE_RENDERED_CRAWL_DEFAULT_CONCURRENCY, 1, LARGE_RENDERED_CRAWL_MAX_CONCURRENCY);
-  const crawlDelayMs = clampNumber(input.crawlDelayMs || input.crawl_delay_ms || LARGE_RENDERED_CRAWL_MIN_DELAY_MS, LARGE_RENDERED_CRAWL_MIN_DELAY_MS, 10_000);
+  const maxConcurrency = clampNumber(
+    input.maxConcurrency || input.max_concurrency || LARGE_RENDERED_CRAWL_DEFAULT_CONCURRENCY,
+    1,
+    LARGE_RENDERED_CRAWL_MAX_CONCURRENCY
+  );
+  const crawlDelayMs = clampNumber(
+    input.crawlDelayMs || input.crawl_delay_ms || LARGE_RENDERED_CRAWL_MIN_DELAY_MS,
+    LARGE_RENDERED_CRAWL_MIN_DELAY_MS,
+    10_000
+  );
   const seedUrls = normalizeSeedUrls(input.seedUrls || input.seed_urls || [], normalizedTarget);
 
   return {
@@ -129,15 +138,22 @@ export function largeRenderedCrawlResponse(job = {}, batches = [], frontierRows 
 
 export function largeRenderedCrawlProgress(job = {}, batches = [], frontierRows = [], proofRows = []) {
   const totalBatches = Number(job.totalBatchCount || job.total_batch_count || batches.length || 0);
-  const completedBatches = Number(job.completedBatchCount || job.completed_batch_count || 0) || batches.filter((batch) => batch.status === "completed").length;
+  const completedBatches =
+    Number(job.completedBatchCount || job.completed_batch_count || 0) ||
+    batches.filter((batch) => batch.status === "completed").length;
   const failedBatches = batches.filter((batch) => batch.status === "failed").length;
   const runningBatches = batches.filter((batch) => batch.status === "running").length;
   const frontierUrlCount = Number(job.frontierUrlCount || job.frontier_url_count || frontierRows.length || 0);
   const renderedUrlCount = Number(job.renderedUrlCount || job.rendered_url_count || 0) || proofRows.length;
-  const failedUrlCount = Number(job.failedUrlCount || job.failed_url_count || 0) || frontierRows.filter((row) => row.status === "failed").length;
+  const failedUrlCount =
+    Number(job.failedUrlCount || job.failed_url_count || 0) ||
+    frontierRows.filter((row) => row.status === "failed").length;
   const pendingUrlCount = Math.max(frontierUrlCount - renderedUrlCount - failedUrlCount, 0);
-  const frontierIngestionComplete = ["", "complete"].includes(job.frontierIngestionStatus || job.frontier_ingestion_status || "complete");
-  const readyToMerge = frontierIngestionComplete && frontierUrlCount > 0 && completedBatches === totalBatches && failedBatches === 0;
+  const frontierIngestionComplete = ["", "complete"].includes(
+    job.frontierIngestionStatus || job.frontier_ingestion_status || "complete"
+  );
+  const readyToMerge =
+    frontierIngestionComplete && frontierUrlCount > 0 && completedBatches === totalBatches && failedBatches === 0;
 
   return {
     totalBatches,
@@ -162,7 +178,11 @@ export function claimNextLargeRenderedCrawlBatch(job = {}, batches = [], now = n
   }
   const batch = (batches || [])
     .sort((a, b) => Number(a.batchIndex || 0) - Number(b.batchIndex || 0))
-    .find((item) => item.status === "queued" || (item.status === "failed" && Number(item.retryCount || 0) < LARGE_RENDERED_CRAWL_MAX_RETRIES));
+    .find(
+      (item) =>
+        item.status === "queued" ||
+        (item.status === "failed" && Number(item.retryCount || 0) < LARGE_RENDERED_CRAWL_MAX_RETRIES)
+    );
   if (!batch) return { ok: false, error: "No runnable batch is available." };
   return {
     ok: true,
@@ -184,7 +204,14 @@ export function claimNextLargeRenderedCrawlBatch(job = {}, batches = [], now = n
   };
 }
 
-export function completeLargeRenderedCrawlBatch(job = {}, batch = {}, batches = [], frontierRows = [], proofRows = [], now = new Date().toISOString()) {
+export function completeLargeRenderedCrawlBatch(
+  job = {},
+  batch = {},
+  batches = [],
+  frontierRows = [],
+  proofRows = [],
+  now = new Date().toISOString()
+) {
   const batchFrontier = (frontierRows || []).filter((row) => row.batchId === batch.id);
   const batchProof = (proofRows || []).filter((row) => row.batchId === batch.id);
   const failedRows = batchFrontier.filter((row) => row.status === "failed").length;
@@ -197,7 +224,7 @@ export function completeLargeRenderedCrawlBatch(job = {}, batch = {}, batches = 
     updatedAt: now,
     error: failedRows ? `${failedRows} URL proofs failed in this batch.` : ""
   };
-  const allBatches = [completedBatch, ...((batches || job.batches || []).filter((item) => item.id !== batch.id))];
+  const allBatches = [completedBatch, ...(batches || job.batches || []).filter((item) => item.id !== batch.id)];
   const progress = largeRenderedCrawlProgress(job, allBatches, frontierRows, proofRows);
   return {
     job: {
@@ -214,19 +241,24 @@ export function completeLargeRenderedCrawlBatch(job = {}, batch = {}, batches = 
   };
 }
 
-export function retryLargeRenderedCrawlFailures(job = {}, batches = [], frontierRows = [], now = new Date().toISOString()) {
+export function retryLargeRenderedCrawlFailures(
+  job = {},
+  batches = [],
+  frontierRows = [],
+  now = new Date().toISOString()
+) {
   const retryableBatches = new Set(
     (batches || [])
       .filter((batch) => batch.status === "failed" && Number(batch.retryCount || 0) < LARGE_RENDERED_CRAWL_MAX_RETRIES)
       .map((batch) => batch.id)
   );
   const updatedBatches = (batches || []).map((batch) =>
-    retryableBatches.has(batch.id)
-      ? { ...batch, status: "queued", error: "", updatedAt: now }
-      : batch
+    retryableBatches.has(batch.id) ? { ...batch, status: "queued", error: "", updatedAt: now } : batch
   );
   const updatedFrontier = (frontierRows || []).map((row) =>
-    retryableBatches.has(row.batchId) && row.status === "failed" && Number(row.retryCount || 0) < LARGE_RENDERED_CRAWL_MAX_RETRIES
+    retryableBatches.has(row.batchId) &&
+    row.status === "failed" &&
+    Number(row.retryCount || 0) < LARGE_RENDERED_CRAWL_MAX_RETRIES
       ? { ...row, status: "queued", lastError: "", updatedAt: now }
       : row
   );
@@ -242,7 +274,13 @@ export function retryLargeRenderedCrawlFailures(job = {}, batches = [], frontier
   };
 }
 
-export function largeRenderedCrawlProofFromPage(job = {}, batch = {}, frontierRow = {}, page = {}, now = new Date().toISOString()) {
+export function largeRenderedCrawlProofFromPage(
+  job = {},
+  batch = {},
+  frontierRow = {},
+  page = {},
+  now = new Date().toISOString()
+) {
   const rendered = page.rendered || page.static || {};
   return {
     id: defaultIdFactory("lcp"),
@@ -283,8 +321,10 @@ export function largeRenderedCrawlMergeReadiness(job = {}, batches = [], frontie
   if (!progress.frontierUrlCount) blockers.push("No URL frontier is stored.");
   if (progress.runningBatches) blockers.push("Rendered batches are still running.");
   if (progress.queuedBatches) blockers.push("Rendered batches are still queued.");
-  if (progress.failedBatches || progress.failedUrlCount) blockers.push("Failed batches or URLs need retry or explicit exclusion.");
-  if (progress.renderedUrlCount < progress.frontierUrlCount) blockers.push("Not every frontier URL has lightweight render proof.");
+  if (progress.failedBatches || progress.failedUrlCount)
+    blockers.push("Failed batches or URLs need retry or explicit exclusion.");
+  if (progress.renderedUrlCount < progress.frontierUrlCount)
+    blockers.push("Not every frontier URL has lightweight render proof.");
   return {
     ready: blockers.length === 0,
     blockers,
@@ -292,12 +332,18 @@ export function largeRenderedCrawlMergeReadiness(job = {}, batches = [], frontie
   };
 }
 
-function buildLargeCrawlFrontier({ jobId, targetUrl, inventoryUrls = [], seedUrls = [], targetPages, batchSize, now, idFactory }) {
+function buildLargeCrawlFrontier({
+  jobId,
+  targetUrl,
+  inventoryUrls = [],
+  seedUrls = [],
+  targetPages,
+  batchSize,
+  now,
+  idFactory
+}) {
   const targetHost = safeHost(targetUrl);
-  const sources = [
-    ...normalizeSeedUrls(seedUrls, targetUrl),
-    ...normalizeInventoryUrls(inventoryUrls)
-  ];
+  const sources = [...normalizeSeedUrls(seedUrls, targetUrl), ...normalizeInventoryUrls(inventoryUrls)];
   if (targetUrl) sources.unshift(targetUrl);
   const seen = new Set();
   const rows = [];
@@ -466,7 +512,10 @@ function clampNumber(value, min, max) {
 }
 
 function cleanText(value = "", maxLength = 240) {
-  return String(value || "").replace(/\s+/g, " ").trim().slice(0, maxLength);
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxLength);
 }
 
 function isoDaysFromDate(value, days) {

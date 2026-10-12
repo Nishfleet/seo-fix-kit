@@ -2,10 +2,7 @@ import { crawlDepthSummary } from "../../shared/crawl-depth.js";
 import { fixRequestStatusLabel, repairDeliveryReadiness } from "../../shared/fulfillment.js";
 import { keywordRowsSummary } from "../../shared/keyword-rank-audit.js";
 import { localSeoInputSummary } from "../../shared/local-seo-audit.js";
-import {
-  apiRepairQueueStatusResponse,
-  apiRepairQueueSummary
-} from "../../shared/repair-queue.js";
+import { apiRepairQueueStatusResponse, apiRepairQueueSummary } from "../../shared/repair-queue.js";
 import { renderedCrawlTargetSummary } from "../../shared/rendered-crawl-scale.js";
 import { parseJson, safeHostname, scheduleCadenceLabel } from "./text.js";
 
@@ -148,9 +145,11 @@ function apiReportResponse(report = {}, options = {}) {
     ai_answer_readiness: report.aiAnswerReadiness || null,
     growth_opportunities: report.growthOpportunities || null,
     geo_readiness: report.geoReadiness || null,
-    findings: (report.findings || []).map((finding) => apiIssueResponse(finding, queueByIssue.get(finding.id), {
-      repairQueueUnavailable
-    })),
+    findings: (report.findings || []).map((finding) =>
+      apiIssueResponse(finding, queueByIssue.get(finding.id), {
+        repairQueueUnavailable
+      })
+    ),
     repair_queue: repairQueue,
     repair_plan: report.repairPlan || [],
     repair_brief: report.repairBrief || "",

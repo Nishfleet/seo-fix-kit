@@ -1,29 +1,26 @@
-import {
-  agentActionResponse
-} from "../../shared/repair-queue.js";
+import { agentActionResponse } from "../../shared/repair-queue.js";
 import {
   buildRepairImplementationPack,
   repairImplementationItemForAction
 } from "../../shared/repair-implementation-pack.js";
-import {
-  buildRepairProofReceipt
-} from "../../shared/repair-proof-receipt.js";
+import { buildRepairProofReceipt } from "../../shared/repair-proof-receipt.js";
 import { betaAccessResponse, betaAccessStatus } from "../lib/auth.js";
 import { json, jsonNoStore, secureHeaders } from "../lib/http.js";
 import { requireRepairTables } from "../lib/repair-tables.js";
 import { ownerReportRow } from "../lib/report-data.js";
 import { isSafeUuid, parseJson } from "../lib/text.js";
 import { deliverApiWebhooks } from "../lib/webhooks.js";
+import { reportWithAuditRow, repairActionWebhookPayload } from "../../shared/repair-action-rules.js";
 import {
-  reportWithAuditRow,
-  repairActionWebhookPayload
-} from "../../shared/repair-action-rules.js";
-import {
+  RepairActionCreateBody,
+  RepairActionPatchBody,
+  RepairQueuePatchBody,
   createRepairActionRecord,
   ensureRepairQueueRows,
   saveRepairQueueItems,
   updateRepairActionRecord
 } from "../lib/repair-agent-actions.js";
+import { parseJsonBody } from "../lib/validation.js";
 
 async function getRepairQueue(request, env) {
   const context = await repairContext(request, env, "/repair-queue");
@@ -32,11 +29,13 @@ async function getRepairQueue(request, env) {
 }
 
 async function saveRepairQueue(request, env) {
-  const body = await request.json().catch(() => ({}));
   const context = await repairContext(request, env, "/repair-queue");
   if (!context.ok) return context.response;
   const repairTables = await requireRepairTables(context.env);
   if (!repairTables.ok) return repairTables.response;
+  const parsed = await parseJsonBody(request, RepairQueuePatchBody);
+  if (parsed.error) return jsonNoStore(parsed.error, 400);
+  const body = parsed.data;
 
   const saved = await saveRepairQueueItems(context.env, context.access, context.reportId, context.report, body);
   if (!saved.ok) return jsonNoStore({ error: saved.error }, saved.status || 400);
@@ -45,11 +44,13 @@ async function saveRepairQueue(request, env) {
 }
 
 async function createRepairAction(request, env, ctx = null) {
-  const body = await request.json().catch(() => ({}));
   const context = await repairContext(request, env, "/repair-actions", ctx);
   if (!context.ok) return context.response;
   const repairTables = await requireRepairTables(context.env);
   if (!repairTables.ok) return repairTables.response;
+  const parsed = await parseJsonBody(request, RepairActionCreateBody);
+  if (parsed.error) return jsonNoStore(parsed.error, 400);
+  const body = parsed.data;
 
   const created = await createRepairActionRecord(context.env, context.access, context.reportId, context.report, body);
   if (!created.ok) return jsonNoStore({ error: created.error }, created.status || 400);
@@ -59,23 +60,35 @@ async function createRepairAction(request, env, ctx = null) {
 
   const queue = await repairQueueResponse(context.env, context.access, context.reportId, context.report);
 
-  return jsonNoStore({
-    ok: true,
-    action: agentActionResponse(created.action),
-    queue
-  }, created.status || 201);
+  return jsonNoStore(
+    {
+      ok: true,
+      action: agentActionResponse(created.action),
+      queue
+    },
+    created.status || 201
+  );
 }
 
 async function updateRepairAction(request, env, ctx = null) {
-  const body = await request.json().catch(() => ({}));
   const actionId = repairActionIdFromPath(request.url);
   if (!isSafeUuid(actionId)) return json({ error: "Action not found." }, 404);
   const context = await repairContext(request, env, `/repair-actions/${actionId}`, ctx);
   if (!context.ok) return context.response;
   const repairTables = await requireRepairTables(context.env);
   if (!repairTables.ok) return repairTables.response;
+  const parsed = await parseJsonBody(request, RepairActionPatchBody);
+  if (parsed.error) return jsonNoStore(parsed.error, 400);
+  const body = parsed.data;
 
-  const updated = await updateRepairActionRecord(context.env, context.access, context.reportId, context.report, actionId, body);
+  const updated = await updateRepairActionRecord(
+    context.env,
+    context.access,
+    context.reportId,
+    context.report,
+    actionId,
+    body
+  );
   if (!updated.ok) {
     const respond = updated.status === 404 ? json : jsonNoStore;
     return respond({ error: updated.error }, updated.status || 400);
@@ -178,7 +191,8 @@ async function getRepairActionProofReceipt(request, env, ctx = null) {
 }
 
 async function ownerProofReport(context, reportId = "") {
-  if (!reportId) return { ok: false, status: 409, error: "Attach the fixed rerun report before creating a proof receipt." };
+  if (!reportId)
+    return { ok: false, status: 409, error: "Attach the fixed rerun report before creating a proof receipt." };
   const row = await ownerReportRow(context.env, reportId, context.access);
   if (!row) return { ok: false, status: 404, error: "Rerun proof report not found." };
   const parsedReport = parseJson(row.report_json, null);
@@ -268,23 +282,26 @@ function repairActionProofPathParts(rawUrl) {
 }
 
 function queueCounts(items = []) {
-  return items.reduce((counts, item) => {
-    counts.total += 1;
-    counts[item.status] = (counts[item.status] || 0) + 1;
-    if (item.latestAction) counts.withActions += 1;
-    return counts;
-  }, {
-    total: 0,
-    open: 0,
-    in_progress: 0,
-    drafted: 0,
-    approved: 0,
-    applied: 0,
-    fixed: 0,
-    ignored: 0,
-    regressed: 0,
-    withActions: 0
-  });
+  return items.reduce(
+    (counts, item) => {
+      counts.total += 1;
+      counts[item.status] = (counts[item.status] || 0) + 1;
+      if (item.latestAction) counts.withActions += 1;
+      return counts;
+    },
+    {
+      total: 0,
+      open: 0,
+      in_progress: 0,
+      drafted: 0,
+      approved: 0,
+      applied: 0,
+      fixed: 0,
+      ignored: 0,
+      regressed: 0,
+      withActions: 0
+    }
+  );
 }
 
 function scheduleRepairActionWebhook(context, eventType, action = {}) {

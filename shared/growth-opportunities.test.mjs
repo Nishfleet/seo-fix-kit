@@ -8,14 +8,16 @@ test("low-CTR keyword proof creates a draft-only page refresh brief", () => {
     keywordRankAudit: {
       status: "ready",
       checks: {
-        lowCtrRows: [{
-          query: "seo audit checklist",
-          pageUrl: "https://example.com/checklist",
-          pageLabel: "/checklist",
-          impressions: 1200,
-          ctr: 0.01,
-          position: 4.8
-        }],
+        lowCtrRows: [
+          {
+            query: "seo audit checklist",
+            pageUrl: "https://example.com/checklist",
+            pageLabel: "/checklist",
+            impressions: 1200,
+            ctr: 0.01,
+            position: 4.8
+          }
+        ],
         pageTwoRows: [],
         zeroClickRows: []
       }
@@ -36,12 +38,14 @@ test("competitor gap proof creates a comparison outline brief", () => {
   const growth = buildGrowthOpportunities({
     competitorBenchmark: {
       status: "ready",
-      repairOpportunities: [{
-        title: "Competitor gap: Content depth",
-        proof: "rival.example did not show this issue. Your audit proof: 82 rendered words found.",
-        pageUrl: "https://example.com/",
-        pageLabel: "home"
-      }]
+      repairOpportunities: [
+        {
+          title: "Competitor gap: Content depth",
+          proof: "rival.example did not show this issue. Your audit proof: 82 rendered words found.",
+          pageUrl: "https://example.com/",
+          pageLabel: "home"
+        }
+      ]
     }
   });
 
@@ -67,36 +71,45 @@ test("growth copy stays draft-only without autopublish or ranking promises", () 
     keywordRankAudit: {
       status: "ready",
       checks: {
-        lowCtrRows: [{
-          query: "best seo fixes",
-          pageLabel: "/seo-fixes",
-          impressions: 900,
-          ctr: 0.012,
-          position: 6
-        }],
-        pageTwoRows: [{
-          query: "seo repair template",
-          pageLabel: "/templates",
-          impressions: 400,
-          clicks: 0,
-          position: 14
-        }],
+        lowCtrRows: [
+          {
+            query: "best seo fixes",
+            pageLabel: "/seo-fixes",
+            impressions: 900,
+            ctr: 0.012,
+            position: 6
+          }
+        ],
+        pageTwoRows: [
+          {
+            query: "seo repair template",
+            pageLabel: "/templates",
+            impressions: 400,
+            clicks: 0,
+            position: 14
+          }
+        ],
         zeroClickRows: []
       }
     },
     aiAnswerReadiness: {
       status: "ready",
-      repairOpportunities: [{
-        title: "AI Answer Readiness: question-led sections are missing",
-        proof: "The rendered crawl did not prove FAQ or question-style headings.",
-        fix: "Add visible sections that answer common buyer questions."
-      }]
+      repairOpportunities: [
+        {
+          title: "AI Answer Readiness: question-led sections are missing",
+          proof: "The rendered crawl did not prove FAQ or question-style headings.",
+          fix: "Add visible sections that answer common buyer questions."
+        }
+      ]
     }
   });
   const copy = JSON.stringify(growth);
 
   assert.ok(growth.opportunities.length >= 2);
-  assert.doesNotMatch(copy, /auto-?publish|publish automatically|ranking gains|guaranteed rankings|will rank|traffic guarantee/i);
+  assert.doesNotMatch(
+    copy,
+    /auto-?publish|publish automatically|ranking gains|guaranteed rankings|will rank|traffic guarantee/i
+  );
   assert.match(copy, /draft_only/);
 });
 
@@ -105,13 +118,15 @@ test("white-label report renders growth briefs with draft-only guardrails", () =
     keywordRankAudit: {
       status: "ready",
       checks: {
-        lowCtrRows: [{
-          query: "seo audit checklist",
-          pageLabel: "/checklist",
-          impressions: 1200,
-          ctr: 0.01,
-          position: 4.8
-        }],
+        lowCtrRows: [
+          {
+            query: "seo audit checklist",
+            pageLabel: "/checklist",
+            impressions: 1200,
+            ctr: 0.01,
+            position: 4.8
+          }
+        ],
         pageTwoRows: [],
         zeroClickRows: []
       }
@@ -132,7 +147,10 @@ test("white-label report renders growth briefs with draft-only guardrails", () =
   assert.match(html, /Draft-only growth/);
   assert.match(html, /proof-backed brief/);
   assert.match(html, /They do not publish content/);
-  assert.doesNotMatch(html, /auto-?publish|publish automatically|ranking gains|guaranteed rankings|will rank|traffic guarantee/i);
+  assert.doesNotMatch(
+    html,
+    /auto-?publish|publish automatically|ranking gains|guaranteed rankings|will rank|traffic guarantee/i
+  );
 
   const publicHtml = buildWhiteLabelReportHtml({
     report: {
@@ -145,5 +163,8 @@ test("white-label report renders growth briefs with draft-only guardrails", () =
     origin: "https://seofixkit.com"
   });
 
-  assert.doesNotMatch(publicHtml, /Draft-only growth|proof-backed brief|They do not publish content|Draft a reviewed content brief/i);
+  assert.doesNotMatch(
+    publicHtml,
+    /Draft-only growth|proof-backed brief|They do not publish content|Draft a reviewed content brief/i
+  );
 });

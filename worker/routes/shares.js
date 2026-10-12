@@ -10,13 +10,7 @@ import { betaAccessResponse, betaAccessStatus } from "../lib/auth.js";
 import { cookieValue, json, jsonNoStore, secureHeaders } from "../lib/http.js";
 import { agencyWorkspaceAccessForOwner } from "../lib/offers.js";
 import { ownerReportRow, reportJsonForRow } from "../lib/report-data.js";
-import {
-  checkQuotaSet,
-  constantTimeEqual,
-  hmacSha256Hex,
-  requestIpHash,
-  sha256Hex
-} from "../lib/security.js";
+import { checkQuotaSet, constantTimeEqual, hmacSha256Hex, requestIpHash, sha256Hex } from "../lib/security.js";
 import {
   cleanReportDomain,
   cleanText,
@@ -30,9 +24,52 @@ import {
   safeHostname,
   workerAppHost
 } from "../lib/text.js";
+import { body, number, parseJsonBody, text, z } from "../lib/validation.js";
 import { reportIdFromSuffixPath } from "./reports.js";
 
 const REPORT_SHARE_PASSWORD_MIN_LENGTH = 10;
+
+// Passwords are compared byte for byte, so they are never cleaned.
+const passwordField = z
+  .union([z.string(), z.number()])
+  .nullish()
+  .transform((value) => String(value || ""));
+
+// normalizeBrandingInput resolves camelCase over snake_case and falls back to
+// the saved branding for absent fields, so both spellings stay raw here.
+const brandingField = z.string().nullish();
+const ReportBrandingBody = body(
+  Object.fromEntries(
+    [
+      "agencyName",
+      "agency_name",
+      "logoUrl",
+      "logo_url",
+      "brandColor",
+      "brand_color",
+      "accentColor",
+      "accent_color",
+      "customDomain",
+      "custom_domain",
+      "footerText",
+      "footer_text"
+    ].map((key) => [key, brandingField])
+  )
+);
+
+const ReportShareBody = body(
+  {
+    password: passwordField.transform((password) => password.trim()),
+    expiresDays: number(),
+    clientName: text(120),
+    passwordHint: text(120)
+  },
+  { expires_days: "expiresDays", client_name: "clientName", password_hint: "passwordHint" }
+);
+
+const ReportDomainBody = body({ domain: z.string().nullish() }, { customDomain: "domain" });
+
+const ClientReportUnlockBody = body({ password: passwordField });
 
 const REPORT_SHARE_PASSWORD_PBKDF2_ITERATIONS = 120_000;
 
@@ -47,13 +84,14 @@ async function getReportBranding(request, env) {
 }
 
 async function saveReportBranding(request, env) {
-  const body = await request.json().catch(() => ({}));
+  const parsed = await parseJsonBody(request, ReportBrandingBody);
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
   if (!env.WAITLIST_DB) return json({ error: "Client report storage is not configured." }, 503);
+  if (parsed.error) return jsonNoStore(parsed.error, 400);
 
   const current = await reportBrandingForOwner(env, access.ownerEmail);
-  const branding = normalizeBrandingInput(body, current);
+  const branding = normalizeBrandingInput(parsed.data, current);
   const now = new Date().toISOString();
   await env.WAITLIST_DB.prepare(
     `INSERT INTO report_branding
@@ -115,10 +153,12 @@ async function listReportShares(request, env) {
 }
 
 async function createReportShare(request, env) {
-  const body = await request.json().catch(() => ({}));
+  const parsed = await parseJsonBody(request, ReportShareBody);
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
   if (!env.WAITLIST_DB) return json({ error: "Client report storage is not configured." }, 503);
+  if (parsed.error) return jsonNoStore(parsed.error, 400);
+  const body = parsed.data;
   const url = new URL(request.url);
   const reportId = decodeURIComponent(url.pathname.slice("/api/reports/".length, -"/share".length));
   const row = await ownerReportRow(env, reportId, access);
@@ -148,19 +188,22 @@ async function createReportShare(request, env) {
 
   const report = parseJson(row.report_json, {});
   const now = new Date().toISOString();
-  const password = String(body.password || "").trim();
+  const { password } = body;
   if (password && password.length < REPORT_SHARE_PASSWORD_MIN_LENGTH) {
-    return jsonNoStore({ error: `Client report passwords must be at least ${REPORT_SHARE_PASSWORD_MIN_LENGTH} characters.` }, 400);
+    return jsonNoStore(
+      { error: `Client report passwords must be at least ${REPORT_SHARE_PASSWORD_MIN_LENGTH} characters.` },
+      400
+    );
   }
-  const expiresDays = Number(body.expiresDays || body.expires_days || 0);
+  const expiresDays = body.expiresDays || 0;
   const share = {
     id: crypto.randomUUID(),
     report_id: reportId,
     owner_email: access.ownerEmail,
-    client_name: cleanText(body.clientName || body.client_name || safeHostname(report.url || row.url || ""), 120),
+    client_name: body.clientName || cleanText(safeHostname(report.url || row.url || ""), 120),
     status: "active",
     password_hash: password ? await hashReportSharePassword(password) : "",
-    password_hint: cleanText(body.passwordHint || body.password_hint || "", 120),
+    password_hint: body.passwordHint,
     expires_at: expiresDays > 0 ? isoDaysFromNow(Math.min(Math.max(expiresDays, 1), 180)) : "",
     created_at: now,
     updated_at: now,
@@ -272,15 +315,24 @@ async function getClientReportPdf(request, env) {
 }
 
 async function getClientReport(request, env) {
-  if (!env.WAITLIST_DB) return clientReportLockedResponse(request, defaultBranding(), { id: "" }, 503, "Client reports are not configured.");
+  if (!env.WAITLIST_DB)
+    return clientReportLockedResponse(
+      request,
+      defaultBranding(),
+      { id: "" },
+      503,
+      "Client reports are not configured."
+    );
   const url = new URL(request.url);
   const id = clientReportShareId(url.pathname);
-  if (!isSafeUuid(id)) return clientReportLockedResponse(request, defaultBranding(), { id }, 404, "Report link not found or expired.");
+  if (!isSafeUuid(id))
+    return clientReportLockedResponse(request, defaultBranding(), { id }, 404, "Report link not found or expired.");
 
   const share = await activeReportShare(env, id);
   const domainCheck = await clientReportHostAccess(env, request, share);
   if (!domainCheck.ok) return clientReportLockedResponse(request, defaultBranding(), { id }, 404, domainCheck.error);
-  if (!share) return clientReportLockedResponse(request, defaultBranding(), { id }, 404, "Report link not found or expired.");
+  if (!share)
+    return clientReportLockedResponse(request, defaultBranding(), { id }, 404, "Report link not found or expired.");
   const branding = await reportBrandingForOwner(env, share.owner_email);
   const reportRow = await env.WAITLIST_DB.prepare(
     `SELECT report_json, expires_at
@@ -326,24 +378,35 @@ async function getClientReport(request, env) {
 }
 
 async function unlockClientReport(request, env) {
-  if (!env.WAITLIST_DB) return clientReportLockedResponse(request, defaultBranding(), { id: "" }, 503, "Client reports are not configured.");
+  if (!env.WAITLIST_DB)
+    return clientReportLockedResponse(
+      request,
+      defaultBranding(),
+      { id: "" },
+      503,
+      "Client reports are not configured."
+    );
   const url = new URL(request.url);
   const id = clientReportShareId(url.pathname, "/unlock");
-  if (!isSafeUuid(id)) return clientReportLockedResponse(request, defaultBranding(), { id }, 404, "Report link not found or expired.");
+  if (!isSafeUuid(id))
+    return clientReportLockedResponse(request, defaultBranding(), { id }, 404, "Report link not found or expired.");
   const share = await activeReportShare(env, id);
   const domainCheck = await clientReportHostAccess(env, request, share);
   if (!domainCheck.ok) return clientReportLockedResponse(request, defaultBranding(), { id }, 404, domainCheck.error);
-  if (!share) return clientReportLockedResponse(request, defaultBranding(), { id }, 404, "Report link not found or expired.");
+  if (!share)
+    return clientReportLockedResponse(request, defaultBranding(), { id }, 404, "Report link not found or expired.");
   const branding = await reportBrandingForOwner(env, share.owner_email);
-  const password = await passwordFromRequest(request);
+  const parsed = await passwordFromRequest(request);
+  if (parsed.error) return clientReportLockedResponse(request, branding, shareToCamel(share), 400, parsed.error.error);
+  const { password } = parsed.data;
   const quota = await clientReportUnlockQuotaStatus(request, env, share);
   if (!quota.ok) return clientReportLockedResponse(request, branding, shareToCamel(share), 429, quota.error);
-  if (!share.password_hash || await verifyReportSharePassword(password, share.password_hash)) {
+  if (!share.password_hash || (await verifyReportSharePassword(password, share.password_hash))) {
     return new Response("", {
       status: 303,
       headers: secureHeaders({
         "cache-control": "no-store",
-        "location": `/r/${encodeURIComponent(share.id)}`,
+        location: `/r/${encodeURIComponent(share.id)}`,
         "set-cookie": await clientReportCookie(request, env, share)
       })
     });
@@ -398,8 +461,9 @@ async function createReportDomain(request, env) {
   if (!access.ok) return betaAccessResponse(access);
   if (!env.WAITLIST_DB) return json({ error: "Report domain storage is not configured." }, 503);
   if (!reportDomainsEnabled(env)) return jsonNoStore({ error: "Report custom domains are not configured yet." }, 503);
-  const body = await request.json().catch(() => ({}));
-  const domainName = cleanReportDomain(body.domain || body.customDomain || "");
+  const parsed = await parseJsonBody(request, ReportDomainBody);
+  if (parsed.error) return jsonNoStore(parsed.error, 400);
+  const domainName = cleanReportDomain(parsed.data.domain);
   if (!domainName) return jsonNoStore({ error: "Enter a valid report subdomain, like reports.example.com." }, 400);
   if (workerAppHost(domainName, env)) {
     return jsonNoStore({ error: "Use a customer-controlled report subdomain, not an app-owned hostname." }, 400);
@@ -459,7 +523,19 @@ async function createReportDomain(request, env) {
       (id, owner_email, domain, verification_token, status, created_at, updated_at, verified_at, last_checked_at, last_error, revoked_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   )
-    .bind(row.id, row.owner_email, row.domain, row.verification_token, row.status, row.created_at, row.updated_at, null, null, null, null)
+    .bind(
+      row.id,
+      row.owner_email,
+      row.domain,
+      row.verification_token,
+      row.status,
+      row.created_at,
+      row.updated_at,
+      null,
+      null,
+      null,
+      null
+    )
     .run();
   return jsonNoStore({ ok: true, domain: reportDomainResponse(row, env) }, 201);
 }
@@ -497,11 +573,14 @@ async function verifyReportDomain(request, env) {
     )
       .bind(now, result.error, now, id)
       .run();
-    return jsonNoStore({
-      ok: false,
-      error: result.error,
-      domain: reportDomainResponse({ ...row, last_checked_at: now, last_error: result.error, updated_at: now }, env)
-    }, 400);
+    return jsonNoStore(
+      {
+        ok: false,
+        error: result.error,
+        domain: reportDomainResponse({ ...row, last_checked_at: now, last_error: result.error, updated_at: now }, env)
+      },
+      400
+    );
   }
 
   await env.WAITLIST_DB.prepare(
@@ -514,7 +593,17 @@ async function verifyReportDomain(request, env) {
   return jsonNoStore({
     ok: true,
     verified: true,
-    domain: reportDomainResponse({ ...row, status: "verified", verified_at: row.verified_at || now, last_checked_at: now, last_error: "", updated_at: now }, env)
+    domain: reportDomainResponse(
+      {
+        ...row,
+        status: "verified",
+        verified_at: row.verified_at || now,
+        last_checked_at: now,
+        last_error: "",
+        updated_at: now
+      },
+      env
+    )
   });
 }
 
@@ -591,10 +680,9 @@ async function verifyReportDomainTxt(domain = "", token = "") {
   const dnsName = reportDomainDnsName(domain);
   if (!expected || !dnsName) return { ok: false, error: "Report domain verification is not configured." };
   try {
-    const response = await fetch(
-      `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(dnsName)}&type=TXT`,
-      { headers: { accept: "application/dns-json" } }
-    );
+    const response = await fetch(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(dnsName)}&type=TXT`, {
+      headers: { accept: "application/dns-json" }
+    });
     if (!response.ok) return { ok: false, error: "DNS verification lookup failed." };
     const payload = await response.json().catch(() => ({}));
     const answers = Array.isArray(payload.Answer) ? payload.Answer : [];
@@ -666,7 +754,8 @@ async function clientReportHostAccess(env, request, share) {
   if (!host || workerAppHost(host, env)) return { ok: true };
   const domain = await reportDomainForHost(env, host, { verifiedOnly: true });
   if (!domain) return { ok: false, error: "Report domain not verified." };
-  if (share && domain.owner_email !== share.owner_email) return { ok: false, error: "Report link not found on this domain." };
+  if (share && domain.owner_email !== share.owner_email)
+    return { ok: false, error: "Report link not found on this domain." };
   return { ok: true, domain };
 }
 
@@ -728,9 +817,7 @@ async function activeReportShare(env, id) {
     .first();
   if (!row?.id || row.status !== "active") return null;
   if (row.expires_at && row.expires_at <= new Date().toISOString()) {
-    await env.WAITLIST_DB.prepare(
-      `UPDATE report_share_links SET status = 'expired', updated_at = ? WHERE id = ?`
-    )
+    await env.WAITLIST_DB.prepare(`UPDATE report_share_links SET status = 'expired', updated_at = ? WHERE id = ?`)
       .bind(new Date().toISOString(), row.id)
       .run();
     return null;
@@ -789,7 +876,10 @@ async function renderWorkerWhiteLabelPdf(env, { report, branding, share, origin,
     });
     const headers = secureHeaders();
     headers.set("cache-control", "no-store");
-    headers.set("content-disposition", `attachment; filename="${whiteLabelReportFilename({ report, branding, share })}"`);
+    headers.set(
+      "content-disposition",
+      `attachment; filename="${whiteLabelReportFilename({ report, branding, share })}"`
+    );
     headers.set("content-type", "application/pdf");
     headers.set("x-robots-tag", "noindex, nofollow");
     return new Response(pdf, { headers });
@@ -801,7 +891,9 @@ async function renderWorkerWhiteLabelPdf(env, { report, branding, share, origin,
 }
 
 function clientReportCookieName(share) {
-  return `sfk_report_${String(share.id || "").replace(/[^a-z0-9]/gi, "").slice(0, 36)}`;
+  return `sfk_report_${String(share.id || "")
+    .replace(/[^a-z0-9]/gi, "")
+    .slice(0, 36)}`;
 }
 
 async function clientReportCookieValue(env, share) {
@@ -829,25 +921,30 @@ async function clientReportUnlocked(request, env, share) {
   return Boolean(value) && constantTimeEqual(value, await clientReportCookieValue(env, share));
 }
 
+// The unlock form posts as a form; API clients may post JSON. Both go through
+// the same schema and resolve to `{ data }` or `{ error: { error, field } }`.
 async function passwordFromRequest(request) {
   const contentType = request.headers.get("content-type") || "";
-  if (contentType.includes("application/json")) {
-    const body = await request.json().catch(() => ({}));
-    return String(body.password || "");
-  }
+  if (contentType.includes("application/json")) return parseJsonBody(request, ClientReportUnlockBody);
+  let fields;
   if (contentType.includes("form")) {
     const form = await request.formData().catch(() => null);
-    return String(form?.get("password") || "");
+    fields = form ? Object.fromEntries(form) : {};
+  } else {
+    fields = Object.fromEntries(new URLSearchParams(await request.text().catch(() => "")));
   }
-  const text = await request.text().catch(() => "");
-  return String(new URLSearchParams(text).get("password") || "");
+  const result = ClientReportUnlockBody.safeParse(fields);
+  if (result.success) return { data: result.data };
+  return { error: { error: "password must be text.", field: "password" } };
 }
 
 async function clientReportUnlockQuotaStatus(request, env, share = {}) {
   if (!env.WAITLIST_DB) return { ok: true };
   const hour = hourWindow(new Date());
   const ipHash = await requestIpHash(request);
-  const shareKey = String(share.id || "").replace(/[^a-f0-9-]/gi, "").slice(0, 40);
+  const shareKey = String(share.id || "")
+    .replace(/[^a-f0-9-]/gi, "")
+    .slice(0, 40);
   return checkQuotaSet(env, [
     {
       bucket: `client-report-unlock:ip:${hour.key}:${shareKey}:${ipHash}`,
@@ -884,14 +981,14 @@ async function verifyReportSharePassword(password = "", storedHash = "") {
   return constantTimeEqual(await sha256Hex(password), stored);
 }
 
-async function deriveReportSharePasswordHash(password = "", saltHex = "", iterations = REPORT_SHARE_PASSWORD_PBKDF2_ITERATIONS) {
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(String(password || "")),
-    "PBKDF2",
-    false,
-    ["deriveBits"]
-  );
+async function deriveReportSharePasswordHash(
+  password = "",
+  saltHex = "",
+  iterations = REPORT_SHARE_PASSWORD_PBKDF2_ITERATIONS
+) {
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(String(password || "")), "PBKDF2", false, [
+    "deriveBits"
+  ]);
   const bits = await crypto.subtle.deriveBits(
     {
       name: "PBKDF2",

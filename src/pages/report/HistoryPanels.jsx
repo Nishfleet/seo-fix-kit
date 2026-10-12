@@ -22,7 +22,11 @@ export function ReportDeltaPanel({ delta }) {
                 ? `Score dropped by ${Math.abs(scoreDelta)} points.`
                 : "Score held steady since the last audit."}
         </h2>
-        <p>{firstRun ? "Future reruns will show fixed, new, and still-open issues here." : "Compares this report with the previous saved audit for the same owner and host."}</p>
+        <p>
+          {firstRun
+            ? "Future reruns will show fixed, new, and still-open issues here."
+            : "Compares this report with the previous saved audit for the same owner and host."}
+        </p>
       </div>
 
       <div className="report-delta-metrics" aria-label="Audit history delta">
@@ -35,8 +39,18 @@ export function ReportDeltaPanel({ delta }) {
 
       {!firstRun && (
         <div className="report-delta-grid">
-          <DeltaIssueColumn title="Fixed since last audit" empty="No proven issues disappeared yet." issues={fixedIssues} tone="fixed" />
-          <DeltaIssueColumn title="New since last audit" empty="No new proven issues appeared." issues={newIssues} tone="new" />
+          <DeltaIssueColumn
+            title="Fixed since last audit"
+            empty="No proven issues disappeared yet."
+            issues={fixedIssues}
+            tone="fixed"
+          />
+          <DeltaIssueColumn
+            title="New since last audit"
+            empty="No new proven issues appeared."
+            issues={newIssues}
+            tone="new"
+          />
         </div>
       )}
     </section>

@@ -23,6 +23,55 @@ import {
 import { repairTableAll } from "./repair-tables.js";
 import { reportJsonForRow } from "./report-data.js";
 import { cleanText, parseJson } from "./text.js";
+import { body, text, z } from "./validation.js";
+
+// Request bodies for the repair queue and repair actions, shared by the beta
+// app routes and the public v1 API. The state, mode, and type fields stay
+// `unknown` because the shared repair rules check whether each key is present
+// and answer an unknown value with their own message. Both camelCase and
+// snake_case keys are kept since those rules read both.
+const repairQueueItemFields = {
+  issueId: text(160),
+  issue_id: text(160),
+  status: z.unknown().optional(),
+  actionMode: z.unknown().optional(),
+  action_mode: z.unknown().optional(),
+  rerunStatus: z.unknown().optional(),
+  rerun_status: z.unknown().optional()
+};
+
+// One queue item, either as `items: [item]` or as the body itself.
+const RepairQueuePatchBody = body({
+  ...repairQueueItemFields,
+  items: z.array(body(repairQueueItemFields)).nullish()
+});
+
+const RepairActionCreateBody = body({
+  issueId: text(160),
+  issue_id: text(160),
+  proposedChange: text(4000),
+  proposed_change: text(4000),
+  acceptance: text(1000),
+  actionMode: z.unknown().optional(),
+  action_mode: z.unknown().optional(),
+  actionType: z.unknown().optional(),
+  action_type: z.unknown().optional()
+});
+
+// The rerun report id keys are read with `??`, so an absent key must stay
+// absent rather than become "".
+const RepairActionPatchBody = body({
+  approvalState: z.unknown().optional(),
+  approval_state: z.unknown().optional(),
+  executionState: z.unknown().optional(),
+  execution_state: z.unknown().optional(),
+  rerunState: z.unknown().optional(),
+  rerun_state: z.unknown().optional(),
+  rerunReportId: z.string().nullish(),
+  rerun_report_id: z.string().nullish(),
+  lastRerunReportId: z.string().nullish(),
+  last_rerun_report_id: z.string().nullish()
+});
 
 async function saveRepairQueueItems(env, access, reportId, report, body = {}) {
   const ensured = await ensureRepairQueueRows(env, access, reportId, report);
@@ -41,18 +90,17 @@ async function saveRepairQueueItems(env, access, reportId, report, body = {}) {
      WHERE id = ?
        AND report_id = ?
        AND owner_email = ?`
-  )
-    .bind(
-      update.status,
-      update.actionMode,
-      update.rerunStatus,
-      update.rerunReportId || null,
-      now,
-      access.ownerEmail,
-      update.existing.id,
-      reportId,
-      access.ownerEmail
-    );
+  ).bind(
+    update.status,
+    update.actionMode,
+    update.rerunStatus,
+    update.rerunReportId || null,
+    now,
+    access.ownerEmail,
+    update.existing.id,
+    reportId,
+    access.ownerEmail
+  );
   const mutation = await runRepairMutationStatements(env.WAITLIST_DB, [statement]);
   if (mutationChangeCount(mutation, 0) !== 1) {
     return repairActionError("Repair item no longer exists in this report.", 409);
@@ -67,7 +115,10 @@ async function createRepairActionRecord(env, access, reportId, report, body = {}
   const item = ensured.items.find((candidate) => candidate.issueId === issueId);
   if (!item?.id) return repairActionError("Repair item no longer exists in this report.", 400);
 
-  const proposedChange = cleanText(body.proposedChange || body.proposed_change || defaultProposedChangeForItem(item), 4000);
+  const proposedChange = cleanText(
+    body.proposedChange || body.proposed_change || defaultProposedChangeForItem(item),
+    4000
+  );
   if (!proposedChange) return repairActionError("Draft action needs a proposed change.", 400);
   const normalized = normalizeRepairActionCreateInput(body, item);
   if (!normalized.ok) return repairActionError(normalized.error, normalized.status || 400);
@@ -106,31 +157,30 @@ async function createRepairActionRecord(env, access, reportId, report, body = {}
          AND report_id = ?
          AND owner_email = ?
      )`
-  )
-    .bind(
-      action.id,
-      action.report_id,
-      action.owner_email,
-      action.queue_item_id,
-      action.issue_id,
-      action.action_mode,
-      action.action_type,
-      action.approval_state,
-      action.execution_state,
-      action.rerun_state,
-      action.source_proof || null,
-      action.proposed_change,
-      action.acceptance || null,
-      null,
-      action.created_at,
-      action.updated_at,
-      null,
-      null,
-      action.updated_by_email,
-      item.id,
-      reportId,
-      access.ownerEmail
-    );
+  ).bind(
+    action.id,
+    action.report_id,
+    action.owner_email,
+    action.queue_item_id,
+    action.issue_id,
+    action.action_mode,
+    action.action_type,
+    action.approval_state,
+    action.execution_state,
+    action.rerun_state,
+    action.source_proof || null,
+    action.proposed_change,
+    action.acceptance || null,
+    null,
+    action.created_at,
+    action.updated_at,
+    null,
+    null,
+    action.updated_by_email,
+    item.id,
+    reportId,
+    access.ownerEmail
+  );
   const updateQueue = env.WAITLIST_DB.prepare(
     `UPDATE repair_queue_items
      SET status = 'drafted',
@@ -142,8 +192,7 @@ async function createRepairActionRecord(env, access, reportId, report, body = {}
      WHERE id = ?
        AND report_id = ?
        AND owner_email = ?`
-  )
-    .bind(action.action_mode, now, access.ownerEmail, item.id, reportId, access.ownerEmail);
+  ).bind(action.action_mode, now, access.ownerEmail, item.id, reportId, access.ownerEmail);
   const mutation = await runRepairMutationStatements(env.WAITLIST_DB, [insertAction, updateQueue]);
   if (mutationChangeCount(mutation, 0) !== 1 || mutationChangeCount(mutation, 1) !== 1) {
     return repairActionError("Repair item no longer exists in this report.", 409);
@@ -172,23 +221,22 @@ async function updateRepairActionRecord(env, access, reportId, report, actionId,
   if (rerunProofBlockedByNewApply(action, executionState, rerunState)) {
     return repairActionError("Rerun repair states require a later rerun after the action is applied.", 400);
   }
-  const proofFreshAfterMs = proofBackedRerunState(rerunState)
-    ? rerunProofFreshAfterMs(action, report)
-    : 0;
-  if (rerunReportId && !(await ownerHasReport(env, access, rerunReportId, report, reportId, {
-    freshAfterMs: proofFreshAfterMs,
-    issue: repairProofIssueForAction(report, action),
-    rerunState
-  }))) {
+  const proofFreshAfterMs = proofBackedRerunState(rerunState) ? rerunProofFreshAfterMs(action, report) : 0;
+  if (
+    rerunReportId &&
+    !(await ownerHasReport(env, access, rerunReportId, report, reportId, {
+      freshAfterMs: proofFreshAfterMs,
+      issue: repairProofIssueForAction(report, action),
+      rerunState
+    }))
+  ) {
     return repairActionError("Rerun report not found.", 404);
   }
 
-  const approvedAt = approvalState === "approved" && action.approval_state !== "approved"
-    ? now
-    : action.approved_at || null;
-  const appliedAt = executionState === "applied" && action.execution_state !== "applied"
-    ? now
-    : action.applied_at || null;
+  const approvedAt =
+    approvalState === "approved" && action.approval_state !== "approved" ? now : action.approved_at || null;
+  const appliedAt =
+    executionState === "applied" && action.execution_state !== "applied" ? now : action.applied_at || null;
   const patchedAction = {
     ...action,
     approval_state: approvalState,
@@ -221,23 +269,22 @@ async function updateRepairActionRecord(env, access, reportId, report, actionId,
            AND report_id = ?
            AND owner_email = ?
        )`
-  )
-    .bind(
-      approvalState,
-      executionState,
-      rerunState,
-      rerunReportId || null,
-      now,
-      approvedAt,
-      appliedAt,
-      access.ownerEmail,
-      actionId,
-      reportId,
-      access.ownerEmail,
-      action.queue_item_id,
-      reportId,
-      access.ownerEmail
-    );
+  ).bind(
+    approvalState,
+    executionState,
+    rerunState,
+    rerunReportId || null,
+    now,
+    approvedAt,
+    appliedAt,
+    access.ownerEmail,
+    actionId,
+    reportId,
+    access.ownerEmail,
+    action.queue_item_id,
+    reportId,
+    access.ownerEmail
+  );
 
   const updateQueue = queueUpdateFromActionStateStatement(env.WAITLIST_DB, access, reportId, action.queue_item_id, {
     approvalState,
@@ -260,23 +307,23 @@ async function updateRepairActionRecord(env, access, reportId, report, actionId,
 
 async function ensureRepairQueueRows(env, access, reportId, report) {
   const [savedRows, actionRows] = await Promise.all([
-    repairTableAll(env.WAITLIST_DB.prepare(
-      `SELECT *
+    repairTableAll(
+      env.WAITLIST_DB.prepare(
+        `SELECT *
        FROM repair_queue_items
        WHERE report_id = ?
          AND owner_email = ?`
-    )
-      .bind(reportId, access.ownerEmail)
+      ).bind(reportId, access.ownerEmail)
     ),
-    repairTableAll(env.WAITLIST_DB.prepare(
-      `SELECT *
+    repairTableAll(
+      env.WAITLIST_DB.prepare(
+        `SELECT *
        FROM repair_agent_actions
        WHERE report_id = ?
          AND owner_email = ?
        ORDER BY updated_at DESC
        LIMIT 200`
-    )
-      .bind(reportId, access.ownerEmail)
+      ).bind(reportId, access.ownerEmail)
     )
   ]);
 
@@ -294,56 +341,55 @@ async function ensureRepairQueueRows(env, access, reportId, report) {
           (id, report_id, owner_email, issue_id, title, severity, page_url, page_label, proof, fix, snippet, acceptance, confidence, source, source_kind, estimated_effort, work_type, action_mode, status, rerun_status, last_rerun_report_id, created_at, updated_at, updated_by_email)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(report_id, issue_id) DO NOTHING`
+      ).bind(
+        crypto.randomUUID(),
+        reportId,
+        access.ownerEmail,
+        item.issueId,
+        item.title,
+        item.severity,
+        item.pageUrl || null,
+        item.pageLabel || null,
+        item.proof || null,
+        item.fix || null,
+        item.snippet || null,
+        item.acceptance || null,
+        item.confidence || null,
+        item.source || null,
+        item.sourceKind || "finding",
+        item.estimatedEffort || null,
+        item.workType || null,
+        item.actionMode,
+        item.status,
+        item.rerunStatus,
+        item.lastRerunReportId || null,
+        now,
+        now,
+        access.ownerEmail
       )
-        .bind(
-          crypto.randomUUID(),
-          reportId,
-          access.ownerEmail,
-          item.issueId,
-          item.title,
-          item.severity,
-          item.pageUrl || null,
-          item.pageLabel || null,
-          item.proof || null,
-          item.fix || null,
-          item.snippet || null,
-          item.acceptance || null,
-          item.confidence || null,
-          item.source || null,
-          item.sourceKind || "finding",
-          item.estimatedEffort || null,
-          item.workType || null,
-          item.actionMode,
-          item.status,
-          item.rerunStatus,
-          item.lastRerunReportId || null,
-          now,
-          now,
-          access.ownerEmail
-        )
     );
     await runRepairMutationStatements(env.WAITLIST_DB, statements);
   }
 
   const [freshRows, freshActions] = await Promise.all([
-    repairTableAll(env.WAITLIST_DB.prepare(
-      `SELECT *
+    repairTableAll(
+      env.WAITLIST_DB.prepare(
+        `SELECT *
        FROM repair_queue_items
        WHERE report_id = ?
          AND owner_email = ?
        ORDER BY updated_at DESC`
-    )
-      .bind(reportId, access.ownerEmail)
+      ).bind(reportId, access.ownerEmail)
     ),
-    repairTableAll(env.WAITLIST_DB.prepare(
-      `SELECT *
+    repairTableAll(
+      env.WAITLIST_DB.prepare(
+        `SELECT *
        FROM repair_agent_actions
        WHERE report_id = ?
          AND owner_email = ?
        ORDER BY updated_at DESC
        LIMIT 200`
-    )
-      .bind(reportId, access.ownerEmail)
+      ).bind(reportId, access.ownerEmail)
     )
   ]);
 
@@ -355,8 +401,9 @@ async function ensureRepairQueueRows(env, access, reportId, report) {
 
 function queueUpdateFromActionStateStatement(db, access, reportId, queueItemId, state) {
   const status = queueStatusFromActionState(state);
-  return db.prepare(
-    `UPDATE repair_queue_items
+  return db
+    .prepare(
+      `UPDATE repair_queue_items
      SET status = ?,
          rerun_status = ?,
          last_rerun_report_id = ?,
@@ -365,7 +412,7 @@ function queueUpdateFromActionStateStatement(db, access, reportId, queueItemId, 
      WHERE id = ?
        AND report_id = ?
        AND owner_email = ?`
-  )
+    )
     .bind(
       status,
       state.rerunState,
@@ -391,7 +438,9 @@ function mutationChangeCount(results = [], index = 0) {
 
 async function ownerHasReport(env, access, reportId, referenceReport = {}, sourceReportId = "", options = {}) {
   if (!cleanRerunReportId(reportId)) return false;
-  const referenceReportId = cleanRerunReportId(referenceReport.id || referenceReport.reportId || referenceReport.report_id);
+  const referenceReportId = cleanRerunReportId(
+    referenceReport.id || referenceReport.reportId || referenceReport.report_id
+  );
   if (reportId === sourceReportId || (referenceReportId && reportId === referenceReportId)) return false;
   const row = await env.WAITLIST_DB.prepare(
     `SELECT id, url, target_host, created_at, updated_at, report_json
@@ -415,7 +464,10 @@ async function ownerHasReport(env, access, reportId, referenceReport = {}, sourc
   const referenceHost = comparableReportHost(referenceReport);
   const proofHost = comparableReportHost(row);
   if (!referenceHost || !proofHost || referenceHost !== proofHost) return false;
-  if (proofBackedRerunState(options.rerunState || "") && !rerunReportProvesIssue(proofReport, options.issue, options.rerunState)) {
+  if (
+    proofBackedRerunState(options.rerunState || "") &&
+    !rerunReportProvesIssue(proofReport, options.issue, options.rerunState)
+  ) {
     return false;
   }
   return true;
@@ -426,6 +478,9 @@ function repairActionError(error, status = 400) {
 }
 
 export {
+  RepairActionCreateBody,
+  RepairActionPatchBody,
+  RepairQueuePatchBody,
   createRepairActionRecord,
   ensureRepairQueueRows,
   saveRepairQueueItems,

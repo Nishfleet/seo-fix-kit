@@ -64,21 +64,27 @@ test("Developer API report response includes per-page scores", async () => {
 test("Developer API exposes owner-only repair action workflow for API agents", async () => {
   const env = await fakeDeveloperApiEnv({ queueItems: [], actions: [] });
 
-  const createResponse = await apiCreateRepairAction(apiRequest(`/v1/audits/${env.auditId}/repair-actions`, env.apiToken, {
-    method: "POST",
-    body: JSON.stringify({
-      issueId: "issue-1",
-      actionMode: "cms_draft",
-      actionType: "metadata_copy",
-      proposedChange: "Draft the fixed title for review."
-    })
-  }), env);
+  const createResponse = await apiCreateRepairAction(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions`, env.apiToken, {
+      method: "POST",
+      body: JSON.stringify({
+        issueId: "issue-1",
+        actionMode: "cms_draft",
+        actionType: "metadata_copy",
+        proposedChange: "Draft the fixed title for review."
+      })
+    }),
+    env
+  );
   assert.equal(createResponse.status, 201);
   const createBody = await createResponse.json();
   assert.equal(createBody.action.proposed_change, "Draft the fixed title for review.");
   assert.equal(env.queueItems[0].status, "drafted");
 
-  const queueResponse = await apiGetRepairQueue(apiRequest(`/v1/audits/${env.auditId}/repair-queue`, env.apiToken), env);
+  const queueResponse = await apiGetRepairQueue(
+    apiRequest(`/v1/audits/${env.auditId}/repair-queue`, env.apiToken),
+    env
+  );
   assert.equal(queueResponse.status, 200);
   const queueBody = await queueResponse.json();
   assert.equal(queueBody.items[0].latest_action.id, env.actions[0].id);
@@ -88,41 +94,45 @@ test("Developer API exposes owner-only repair action workflow for API agents", a
   assert.equal(queueBody.items[0].latest_action.source_proof, undefined);
   assert.doesNotMatch(JSON.stringify(queueBody), /Draft the fixed title for review|source_proof|proposed_change/i);
 
-  const rejectedFixedResponse = await apiUpdateRepairAction(apiRequest(
-    `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`,
-    env.apiToken,
-    {
+  const rejectedFixedResponse = await apiUpdateRepairAction(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`, env.apiToken, {
       method: "PATCH",
       body: JSON.stringify({ approvalState: "approved", executionState: "applied", rerunState: "fixed" })
-    }
-  ), env);
+    }),
+    env
+  );
   assert.equal(rejectedFixedResponse.status, 400);
 
-  const appliedResponse = await apiUpdateRepairAction(apiRequest(
-    `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`,
-    env.apiToken,
-    {
+  const appliedResponse = await apiUpdateRepairAction(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`, env.apiToken, {
       method: "PATCH",
       body: JSON.stringify({ approvalState: "approved", executionState: "applied" })
-    }
-  ), env);
+    }),
+    env
+  );
   assert.equal(appliedResponse.status, 200);
   const appliedBody = await appliedResponse.json();
   assert.equal(appliedBody.action.execution_state, "applied");
   assert.equal(appliedBody.queue.summary.needs_rerun, 1);
 
-  const latestQueueResponse = await apiGetRepairQueue(apiRequest(`/v1/audits/${env.auditId}/repair-queue`, env.apiToken), env);
+  const latestQueueResponse = await apiGetRepairQueue(
+    apiRequest(`/v1/audits/${env.auditId}/repair-queue`, env.apiToken),
+    env
+  );
   assert.equal(latestQueueResponse.status, 200);
   const latestQueueBody = await latestQueueResponse.json();
   assert.equal(latestQueueBody.items[0].latest_action.action_type, "metadata_copy");
   assert.equal(latestQueueBody.items[0].latest_action.approval_state, "approved");
   assert.equal(latestQueueBody.items[0].latest_action.execution_state, "applied");
-  assert.doesNotMatch(JSON.stringify(latestQueueBody), /Draft the fixed title for review|source_proof|proposed_change/i);
+  assert.doesNotMatch(
+    JSON.stringify(latestQueueBody),
+    /Draft the fixed title for review|source_proof|proposed_change/i
+  );
 
-  const packResponse = await apiGetRepairActionImplementationPack(apiRequest(
-    `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}/implementation.md`,
-    env.apiToken
-  ), env);
+  const packResponse = await apiGetRepairActionImplementationPack(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}/implementation.md`, env.apiToken),
+    env
+  );
   assert.equal(packResponse.status, 200);
   assert.match(packResponse.headers.get("content-type") || "", /text\/markdown/);
   assert.equal(packResponse.headers.get("cache-control"), "no-store");
@@ -149,20 +159,19 @@ test("Developer API exposes owner-only repair action workflow for API agents", a
     target_host: "example.com",
     report_json: JSON.stringify(fixedRerunReport("rerun-fixed-report-1"))
   });
-  const fixedResponse = await apiUpdateRepairAction(apiRequest(
-    `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`,
-    env.apiToken,
-    {
+  const fixedResponse = await apiUpdateRepairAction(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`, env.apiToken, {
       method: "PATCH",
       body: JSON.stringify({ rerunState: "fixed", rerunReportId: "rerun-fixed-report-1" })
-    }
-  ), env);
+    }),
+    env
+  );
   assert.equal(fixedResponse.status, 200);
 
-  const receiptResponse = await apiGetRepairActionProofReceipt(apiRequest(
-    `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}/proof.md`,
-    env.apiToken
-  ), env);
+  const receiptResponse = await apiGetRepairActionProofReceipt(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}/proof.md`, env.apiToken),
+    env
+  );
   assert.equal(receiptResponse.status, 200);
   assert.match(receiptResponse.headers.get("content-type") || "", /text\/markdown/);
   assert.equal(receiptResponse.headers.get("cache-control"), "no-store");
@@ -175,127 +184,135 @@ test("Developer API exposes owner-only repair action workflow for API agents", a
   assert.doesNotMatch(receiptMarkdown, /sfk_live_|token_hash|DODO_SEOFIXKIT_API_KEY/i);
 
   env.tokens[0].owner_email = "other@example.com";
-  const otherOwnerProof = await apiGetRepairActionProofReceipt(apiRequest(
-    `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}/proof.md`,
-    env.apiToken
-  ), env);
+  const otherOwnerProof = await apiGetRepairActionProofReceipt(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}/proof.md`, env.apiToken),
+    env
+  );
   assert.equal(otherOwnerProof.status, 404);
 });
 
 test("Developer API implementation pack rejects drafts and other owners", async () => {
   const env = await fakeDeveloperApiEnv({ queueItems: [], actions: [] });
-  const createResponse = await apiCreateRepairAction(apiRequest(`/v1/audits/${env.auditId}/repair-actions`, env.apiToken, {
-    method: "POST",
-    body: JSON.stringify({
-      issueId: "issue-1",
-      proposedChange: "Draft the fixed title for review."
-    })
-  }), env);
+  const createResponse = await apiCreateRepairAction(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions`, env.apiToken, {
+      method: "POST",
+      body: JSON.stringify({
+        issueId: "issue-1",
+        proposedChange: "Draft the fixed title for review."
+      })
+    }),
+    env
+  );
   assert.equal(createResponse.status, 201);
 
-  const draftPack = await apiGetRepairActionImplementationPack(apiRequest(
-    `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}/implementation.md`,
-    env.apiToken
-  ), env);
+  const draftPack = await apiGetRepairActionImplementationPack(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}/implementation.md`, env.apiToken),
+    env
+  );
   assert.equal(draftPack.status, 409);
   assert.match((await draftPack.json()).error, /Approve the repair action/i);
 
-  await apiUpdateRepairAction(apiRequest(
-    `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`,
-    env.apiToken,
-    {
+  await apiUpdateRepairAction(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`, env.apiToken, {
       method: "PATCH",
       body: JSON.stringify({ approvalState: "approved" })
-    }
-  ), env);
+    }),
+    env
+  );
 
   env.tokens[0].owner_email = "other@example.com";
-  const otherOwnerPack = await apiGetRepairActionImplementationPack(apiRequest(
-    `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}/implementation.md`,
-    env.apiToken
-  ), env);
+  const otherOwnerPack = await apiGetRepairActionImplementationPack(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}/implementation.md`, env.apiToken),
+    env
+  );
   assert.equal(otherOwnerPack.status, 404);
 });
 
 test("Developer API implementation pack fails closed for auth and stale queue state", async () => {
   const env = await fakeDeveloperApiEnv({ queueItems: [], actions: [] });
-  const createResponse = await apiCreateRepairAction(apiRequest(`/v1/audits/${env.auditId}/repair-actions`, env.apiToken, {
-    method: "POST",
-    body: JSON.stringify({
-      issueId: "issue-1",
-      proposedChange: "Draft the fixed title for review."
-    })
-  }), env);
+  const createResponse = await apiCreateRepairAction(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions`, env.apiToken, {
+      method: "POST",
+      body: JSON.stringify({
+        issueId: "issue-1",
+        proposedChange: "Draft the fixed title for review."
+      })
+    }),
+    env
+  );
   assert.equal(createResponse.status, 201);
-  await apiUpdateRepairAction(apiRequest(
-    `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`,
-    env.apiToken,
-    {
+  await apiUpdateRepairAction(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`, env.apiToken, {
       method: "PATCH",
       body: JSON.stringify({ approvalState: "approved" })
-    }
-  ), env);
+    }),
+    env
+  );
 
   const missingToken = await apiGetRepairActionImplementationPack(
-    new Request(`https://seofixkit.test/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}/implementation.md`),
+    new Request(
+      `https://seofixkit.test/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}/implementation.md`
+    ),
     env
   );
   assert.equal(missingToken.status, 401);
 
   env.tokens[0].status = "revoked";
-  const revokedToken = await apiGetRepairActionImplementationPack(apiRequest(
-    `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}/implementation.md`,
-    env.apiToken
-  ), env);
+  const revokedToken = await apiGetRepairActionImplementationPack(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}/implementation.md`, env.apiToken),
+    env
+  );
   assert.equal(revokedToken.status, 401);
   env.tokens[0].status = "active";
 
   env.actions[0].action_mode = "unsupported";
-  const unsupportedResponse = await apiGetRepairActionImplementationPack(apiRequest(
-    `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}/implementation.md`,
-    env.apiToken
-  ), env);
+  const unsupportedResponse = await apiGetRepairActionImplementationPack(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}/implementation.md`, env.apiToken),
+    env
+  );
   assert.equal(unsupportedResponse.status, 409);
   assert.match((await unsupportedResponse.json()).error, /Unsupported repair actions/i);
   env.actions[0].action_mode = "self_serve";
 
   env.queueItems[0].status = "ignored";
-  const ignoredItemResponse = await apiGetRepairActionImplementationPack(apiRequest(
-    `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}/implementation.md`,
-    env.apiToken
-  ), env);
+  const ignoredItemResponse = await apiGetRepairActionImplementationPack(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}/implementation.md`, env.apiToken),
+    env
+  );
   assert.equal(ignoredItemResponse.status, 409);
   assert.match((await ignoredItemResponse.json()).error, /Ignored repair items/i);
   env.queueItems[0].status = "approved";
 
   env.actions[0].queue_item_id = "missing-queue-row";
-  const staleQueueResponse = await apiGetRepairActionImplementationPack(apiRequest(
-    `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}/implementation.md`,
-    env.apiToken
-  ), env);
+  const staleQueueResponse = await apiGetRepairActionImplementationPack(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}/implementation.md`, env.apiToken),
+    env
+  );
   assert.equal(staleQueueResponse.status, 409);
   assert.match((await staleQueueResponse.json()).error, /Repair item not found/i);
 });
 
 test("Developer API repair action ignored state closes the queue item", async () => {
   const env = await fakeDeveloperApiEnv({ queueItems: [], actions: [] });
-  const created = await apiCreateRepairAction(apiRequest(`/v1/audits/${env.auditId}/repair-actions`, env.apiToken, {
-    method: "POST",
-    body: JSON.stringify({
-      issueId: "issue-1",
-      proposedChange: "Draft the fixed title for review."
-    })
-  }), env);
+  const created = await apiCreateRepairAction(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions`, env.apiToken, {
+      method: "POST",
+      body: JSON.stringify({
+        issueId: "issue-1",
+        proposedChange: "Draft the fixed title for review."
+      })
+    }),
+    env
+  );
   assert.equal(created.status, 201);
 
-  const response = await apiUpdateRepairAction(apiRequest(
-    `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`,
-    env.apiToken,
-    {
+  const response = await apiUpdateRepairAction(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`, env.apiToken, {
       method: "PATCH",
       body: JSON.stringify({ approval_state: "ignored" })
-    }
-  ), env);
+    }),
+    env
+  );
 
   assert.equal(response.status, 200);
   const body = await response.json();
@@ -311,14 +328,13 @@ test("Developer API rejects unknown-only repair action patches", async () => {
   const actionUpdatedAt = env.actions[0].updated_at;
   const queueUpdatedAt = env.queueItems[0].updated_at;
 
-  const response = await apiUpdateRepairAction(apiRequest(
-    `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`,
-    env.apiToken,
-    {
+  const response = await apiUpdateRepairAction(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`, env.apiToken, {
       method: "PATCH",
       body: JSON.stringify({ note: "inspect draft" })
-    }
-  ), env);
+    }),
+    env
+  );
 
   assert.equal(response.status, 400);
   const body = await response.json();
@@ -331,42 +347,39 @@ test("Developer API rejects unknown-only repair queue patches", async () => {
   const env = await fakeDeveloperApiEnv();
   const queueUpdatedAt = env.queueItems[0].updated_at;
 
-  const emptyResponse = await apiSaveRepairQueue(apiRequest(
-    `/v1/audits/${env.auditId}/repair-queue`,
-    env.apiToken,
-    {
+  const emptyResponse = await apiSaveRepairQueue(
+    apiRequest(`/v1/audits/${env.auditId}/repair-queue`, env.apiToken, {
       method: "PATCH",
       body: JSON.stringify({ items: [] })
-    }
-  ), env);
+    }),
+    env
+  );
 
   assert.equal(emptyResponse.status, 400);
   const emptyBody = await emptyResponse.json();
   assert.match(emptyBody.error, /mutable field/i);
   assert.equal(env.queueItems[0].updated_at, queueUpdatedAt);
 
-  const badModeResponse = await apiSaveRepairQueue(apiRequest(
-    `/v1/audits/${env.auditId}/repair-queue`,
-    env.apiToken,
-    {
+  const badModeResponse = await apiSaveRepairQueue(
+    apiRequest(`/v1/audits/${env.auditId}/repair-queue`, env.apiToken, {
       method: "PATCH",
       body: JSON.stringify({ items: [{ issue_id: "issue-1", action_mode: "typo" }] })
-    }
-  ), env);
+    }),
+    env
+  );
 
   assert.equal(badModeResponse.status, 400);
   const badModeBody = await badModeResponse.json();
   assert.match(badModeBody.error, /mode/i);
   assert.equal(env.queueItems[0].updated_at, queueUpdatedAt);
 
-  const response = await apiSaveRepairQueue(apiRequest(
-    `/v1/audits/${env.auditId}/repair-queue`,
-    env.apiToken,
-    {
+  const response = await apiSaveRepairQueue(
+    apiRequest(`/v1/audits/${env.auditId}/repair-queue`, env.apiToken, {
       method: "PATCH",
       body: JSON.stringify({ items: [{ issue_id: "issue-1", note: "noop" }] })
-    }
-  ), env);
+    }),
+    env
+  );
 
   assert.equal(response.status, 400);
   const body = await response.json();
@@ -375,29 +388,62 @@ test("Developer API rejects unknown-only repair queue patches", async () => {
   assert.equal(env.queueItems[0].status, "drafted");
 });
 
+test("Developer API rejects wrong-typed body fields with the field name", async () => {
+  const env = await fakeDeveloperApiEnv({ queueItems: [], actions: [] });
+
+  const queueResponse = await apiSaveRepairQueue(
+    apiRequest(`/v1/audits/${env.auditId}/repair-queue`, env.apiToken, {
+      method: "PATCH",
+      body: JSON.stringify({ items: "issue-1" })
+    }),
+    env
+  );
+  assert.equal(queueResponse.status, 400);
+  assert.equal((await queueResponse.json()).field, "items");
+
+  const actionResponse = await apiCreateRepairAction(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions`, env.apiToken, {
+      method: "POST",
+      body: JSON.stringify({ issueId: "issue-1", proposedChange: { title: "x" } })
+    }),
+    env
+  );
+  assert.equal(actionResponse.status, 400);
+  const actionBody = await actionResponse.json();
+  assert.equal(actionBody.field, "proposedChange");
+  assert.match(actionBody.error, /proposedChange must be text/);
+  assert.equal(env.actions.length, 0);
+});
+
 test("Developer API rejects invalid explicit repair action options", async () => {
   const env = await fakeDeveloperApiEnv({ queueItems: [], actions: [] });
 
-  const badMode = await apiCreateRepairAction(apiRequest(`/v1/audits/${env.auditId}/repair-actions`, env.apiToken, {
-    method: "POST",
-    body: JSON.stringify({
-      issueId: "issue-1",
-      actionMode: "typo",
-      proposedChange: "Draft the fixed title for review."
-    })
-  }), env);
+  const badMode = await apiCreateRepairAction(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions`, env.apiToken, {
+      method: "POST",
+      body: JSON.stringify({
+        issueId: "issue-1",
+        actionMode: "typo",
+        proposedChange: "Draft the fixed title for review."
+      })
+    }),
+    env
+  );
   assert.equal(badMode.status, 400);
   const badModeBody = await badMode.json();
   assert.match(badModeBody.error, /mode/i);
 
-  const badType = await apiCreateRepairAction(apiRequest(`/v1/audits/${env.auditId}/repair-actions`, env.apiToken, {
-    method: "POST",
-    body: JSON.stringify({
-      issueId: "issue-1",
-      actionType: "typo",
-      proposedChange: "Draft the fixed title for review."
-    })
-  }), env);
+  const badType = await apiCreateRepairAction(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions`, env.apiToken, {
+      method: "POST",
+      body: JSON.stringify({
+        issueId: "issue-1",
+        actionType: "typo",
+        proposedChange: "Draft the fixed title for review."
+      })
+    }),
+    env
+  );
   assert.equal(badType.status, 400);
   const badTypeBody = await badType.json();
   assert.match(badTypeBody.error, /type/i);
@@ -433,21 +479,26 @@ test("Developer API overlays preserve old saved state before response caps", asy
         last_rerun_report_id: "rerun-report-1",
         updated_at: "2020-01-01T00:00:00.000Z"
       }),
-      ...Array.from({ length: 120 }, (_, index) => developerRepairQueueRow({
-        id: `queue-old-${index}`,
-        report_id: reportId,
-        issue_id: `old-issue-${index}`,
-        title: `Old saved repair ${index}`,
-        severity: "notice",
-        status: "ignored",
-        updated_at: new Date(Date.parse("2020-01-02T00:00:00.000Z") + index * 1000).toISOString()
-      }))
+      ...Array.from({ length: 120 }, (_, index) =>
+        developerRepairQueueRow({
+          id: `queue-old-${index}`,
+          report_id: reportId,
+          issue_id: `old-issue-${index}`,
+          title: `Old saved repair ${index}`,
+          severity: "notice",
+          status: "ignored",
+          updated_at: new Date(Date.parse("2020-01-02T00:00:00.000Z") + index * 1000).toISOString()
+        })
+      )
     ],
     actions: []
   });
   env.simulateRepairQueueSqlLimit = true;
 
-  const queueResponse = await apiGetRepairQueue(apiRequest(`/v1/audits/${env.auditId}/repair-queue`, env.apiToken), env);
+  const queueResponse = await apiGetRepairQueue(
+    apiRequest(`/v1/audits/${env.auditId}/repair-queue`, env.apiToken),
+    env
+  );
   assert.equal(queueResponse.status, 200);
   const queueBody = await queueResponse.json();
   assert.equal(queueBody.items[0].issue_id, "issue-1");
@@ -476,36 +527,33 @@ test("Developer API repair queue read falls back before migration while writes f
   assert.equal(readBody.items[0].issue_id, "issue-1");
   assert.equal(readBody.unavailable, true);
 
-  const saveResponse = await apiSaveRepairQueue(apiRequest(
-    `/v1/audits/${env.auditId}/repair-queue`,
-    env.apiToken,
-    {
+  const saveResponse = await apiSaveRepairQueue(
+    apiRequest(`/v1/audits/${env.auditId}/repair-queue`, env.apiToken, {
       method: "PATCH",
       body: JSON.stringify({ items: [{ issue_id: "issue-1", status: "ignored" }] })
-    }
-  ), env);
+    }),
+    env
+  );
   assert.equal(saveResponse.status, 503);
   assert.equal((await saveResponse.json()).code, "REPAIR_QUEUE_MIGRATION_MISSING");
 
-  const createResponse = await apiCreateRepairAction(apiRequest(
-    `/v1/audits/${env.auditId}/repair-actions`,
-    env.apiToken,
-    {
+  const createResponse = await apiCreateRepairAction(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions`, env.apiToken, {
       method: "POST",
       body: JSON.stringify({ issue_id: "issue-1", proposed_change: "Draft the fixed title for review." })
-    }
-  ), env);
+    }),
+    env
+  );
   assert.equal(createResponse.status, 503);
   assert.equal((await createResponse.json()).code, "REPAIR_QUEUE_MIGRATION_MISSING");
 
-  const updateResponse = await apiUpdateRepairAction(apiRequest(
-    `/v1/audits/${env.auditId}/repair-actions/77777777-7777-4777-8777-777777777777`,
-    env.apiToken,
-    {
+  const updateResponse = await apiUpdateRepairAction(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions/77777777-7777-4777-8777-777777777777`, env.apiToken, {
       method: "PATCH",
       body: JSON.stringify({ approval_state: "approved" })
-    }
-  ), env);
+    }),
+    env
+  );
   assert.equal(updateResponse.status, 503);
   assert.equal((await updateResponse.json()).code, "REPAIR_QUEUE_MIGRATION_MISSING");
 });
@@ -532,7 +580,10 @@ test("Developer API report and issue overlays fall back before repair migration"
   assert.equal(reportBody.report.findings[0].repair_queue.status, "open");
   assert.equal(reportBody.report.findings[0].repair_queue.latest_action, null);
   assert.equal(reportBody.report.findings[0].repair_queue.unavailable, true);
-  assert.doesNotMatch(JSON.stringify({ issuesBody, reportBody }), /Private draft title copy|source_proof|proposed_change/i);
+  assert.doesNotMatch(
+    JSON.stringify({ issuesBody, reportBody }),
+    /Private draft title copy|source_proof|proposed_change/i
+  );
 });
 
 test("Developer API action create clears stale rerun proof when reopening a fixed item", async () => {
@@ -541,13 +592,16 @@ test("Developer API action create clears stale rerun proof when reopening a fixe
   env.queueItems[0].rerun_status = "fixed";
   env.queueItems[0].last_rerun_report_id = "rerun-report-1";
 
-  const response = await apiCreateRepairAction(apiRequest(`/v1/audits/${env.auditId}/repair-actions`, env.apiToken, {
-    method: "POST",
-    body: JSON.stringify({
-      issueId: "issue-1",
-      proposedChange: "Draft the corrected title again."
-    })
-  }), env);
+  const response = await apiCreateRepairAction(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions`, env.apiToken, {
+      method: "POST",
+      body: JSON.stringify({
+        issueId: "issue-1",
+        proposedChange: "Draft the corrected title again."
+      })
+    }),
+    env
+  );
 
   assert.equal(response.status, 201);
   assert.equal(env.queueItems[0].status, "drafted");
@@ -558,21 +612,23 @@ test("Developer API action create clears stale rerun proof when reopening a fixe
 test("Developer API repair action webhooks deliver lifecycle transitions without private draft payload", async () => {
   const env = await fakeDeveloperApiEnv({ actions: [] });
   env.SEOFIXKIT_API_WEBHOOK_SECRET = "test-secret";
-  env.webhooks = [{
-    id: "webhook-1",
-    owner_email: "owner@example.com",
-    url: "https://hooks.example.com/seo",
-    events_json: JSON.stringify([
-      "repair_action.drafted",
-      "repair_action.approved",
-      "repair_action.applied",
-      "repair_action.fixed",
-      "repair_action.regressed"
-    ]),
-    status: "active",
-    revoked_at: null,
-    created_at: new Date().toISOString()
-  }];
+  env.webhooks = [
+    {
+      id: "webhook-1",
+      owner_email: "owner@example.com",
+      url: "https://hooks.example.com/seo",
+      events_json: JSON.stringify([
+        "repair_action.drafted",
+        "repair_action.approved",
+        "repair_action.applied",
+        "repair_action.fixed",
+        "repair_action.regressed"
+      ]),
+      status: "active",
+      revoked_at: null,
+      created_at: new Date().toISOString()
+    }
+  ];
   const waitUntilPromises = [];
   const sentPayloads = [];
   const sentHeaders = [];
@@ -591,31 +647,35 @@ test("Developer API repair action webhooks deliver lifecycle transitions without
   };
 
   try {
-    const created = await apiCreateRepairAction(apiRequest(`/v1/audits/${env.auditId}/repair-actions`, env.apiToken, {
-      method: "POST",
-      body: JSON.stringify({
-        issueId: "issue-1",
-        proposedChange: "Private draft title copy"
-      })
-    }), env, { waitUntil: (promise) => waitUntilPromises.push(promise) });
+    const created = await apiCreateRepairAction(
+      apiRequest(`/v1/audits/${env.auditId}/repair-actions`, env.apiToken, {
+        method: "POST",
+        body: JSON.stringify({
+          issueId: "issue-1",
+          proposedChange: "Private draft title copy"
+        })
+      }),
+      env,
+      { waitUntil: (promise) => waitUntilPromises.push(promise) }
+    );
     assert.equal(created.status, 201);
-    const approved = await apiUpdateRepairAction(apiRequest(
-      `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`,
-      env.apiToken,
-      {
+    const approved = await apiUpdateRepairAction(
+      apiRequest(`/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`, env.apiToken, {
         method: "PATCH",
         body: JSON.stringify({ approvalState: "approved" })
-      }
-    ), env, { waitUntil: (promise) => waitUntilPromises.push(promise) });
+      }),
+      env,
+      { waitUntil: (promise) => waitUntilPromises.push(promise) }
+    );
     assert.equal(approved.status, 200);
-    const applied = await apiUpdateRepairAction(apiRequest(
-      `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`,
-      env.apiToken,
-      {
+    const applied = await apiUpdateRepairAction(
+      apiRequest(`/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`, env.apiToken, {
         method: "PATCH",
         body: JSON.stringify({ executionState: "applied" })
-      }
-    ), env, { waitUntil: (promise) => waitUntilPromises.push(promise) });
+      }),
+      env,
+      { waitUntil: (promise) => waitUntilPromises.push(promise) }
+    );
     assert.equal(applied.status, 200);
     env.reports.push({
       id: "rerun-fixed-report-1",
@@ -627,14 +687,14 @@ test("Developer API repair action webhooks deliver lifecycle transitions without
       target_host: "example.com",
       report_json: JSON.stringify(fixedRerunReport("rerun-fixed-report-1"))
     });
-    const fixed = await apiUpdateRepairAction(apiRequest(
-      `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`,
-      env.apiToken,
-      {
+    const fixed = await apiUpdateRepairAction(
+      apiRequest(`/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`, env.apiToken, {
         method: "PATCH",
         body: JSON.stringify({ rerunState: "fixed", rerunReportId: "rerun-fixed-report-1" })
-      }
-    ), env, { waitUntil: (promise) => waitUntilPromises.push(promise) });
+      }),
+      env,
+      { waitUntil: (promise) => waitUntilPromises.push(promise) }
+    );
     assert.equal(fixed.status, 200);
     env.reports.push({
       id: "rerun-regressed-report-1",
@@ -646,27 +706,30 @@ test("Developer API repair action webhooks deliver lifecycle transitions without
       target_host: "example.com",
       report_json: JSON.stringify(stillOpenRerunReport("rerun-regressed-report-1"))
     });
-    const regressed = await apiUpdateRepairAction(apiRequest(
-      `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`,
-      env.apiToken,
-      {
+    const regressed = await apiUpdateRepairAction(
+      apiRequest(`/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`, env.apiToken, {
         method: "PATCH",
         body: JSON.stringify({ rerunState: "regressed", rerunReportId: "rerun-regressed-report-1" })
-      }
-    ), env, { waitUntil: (promise) => waitUntilPromises.push(promise) });
+      }),
+      env,
+      { waitUntil: (promise) => waitUntilPromises.push(promise) }
+    );
     assert.equal(regressed.status, 200);
     await Promise.all(waitUntilPromises);
   } finally {
     globalThis.fetch = originalFetch;
   }
 
-  assert.deepEqual(env.events.map((event) => event.event_type), [
-    "repair_action.drafted",
-    "repair_action.approved",
-    "repair_action.applied",
-    "repair_action.fixed",
-    "repair_action.regressed"
-  ]);
+  assert.deepEqual(
+    env.events.map((event) => event.event_type),
+    [
+      "repair_action.drafted",
+      "repair_action.approved",
+      "repair_action.applied",
+      "repair_action.fixed",
+      "repair_action.regressed"
+    ]
+  );
   assert.equal(sentPayloads.length, 5);
   assert.equal(sentPayloads[0].data.repair_action.approval_state, "drafted");
   assert.equal(sentPayloads[1].data.repair_action.approval_state, "approved");
@@ -704,17 +767,22 @@ test("Developer API rejects direct repair queue rerun closure", async () => {
     report_json: JSON.stringify(fixedRerunReport("rerun-report-1"))
   });
 
-  const response = await apiSaveRepairQueue(apiRequest(`/v1/audits/${env.auditId}/repair-queue`, env.apiToken, {
-    method: "PATCH",
-    body: JSON.stringify({
-      items: [{
-        issue_id: "issue-1",
-        status: "fixed",
-        rerun_status: "fixed",
-        rerun_report_id: "rerun-report-1"
-      }]
-    })
-  }), env);
+  const response = await apiSaveRepairQueue(
+    apiRequest(`/v1/audits/${env.auditId}/repair-queue`, env.apiToken, {
+      method: "PATCH",
+      body: JSON.stringify({
+        items: [
+          {
+            issue_id: "issue-1",
+            status: "fixed",
+            rerun_status: "fixed",
+            rerun_report_id: "rerun-report-1"
+          }
+        ]
+      })
+    }),
+    env
+  );
 
   assert.equal(response.status, 400);
   assert.match((await response.json()).error, /Use repair actions/i);
@@ -740,17 +808,22 @@ test("Developer API rejects queue rerun proof older than applied action", async 
     report_json: JSON.stringify(fixedRerunReport("rerun-report-1"))
   });
 
-  const response = await apiSaveRepairQueue(apiRequest(`/v1/audits/${env.auditId}/repair-queue`, env.apiToken, {
-    method: "PATCH",
-    body: JSON.stringify({
-      items: [{
-        issue_id: "issue-1",
-        status: "fixed",
-        rerun_status: "fixed",
-        rerun_report_id: "rerun-report-1"
-      }]
-    })
-  }), env);
+  const response = await apiSaveRepairQueue(
+    apiRequest(`/v1/audits/${env.auditId}/repair-queue`, env.apiToken, {
+      method: "PATCH",
+      body: JSON.stringify({
+        items: [
+          {
+            issue_id: "issue-1",
+            status: "fixed",
+            rerun_status: "fixed",
+            rerun_report_id: "rerun-report-1"
+          }
+        ]
+      })
+    }),
+    env
+  );
 
   assert.equal(response.status, 400);
   assert.equal(env.queueItems[0].status, "applied");
@@ -793,17 +866,22 @@ test("Developer API rejects queue proof when newer draft hides applied action", 
     report_json: JSON.stringify(fixedRerunReport("rerun-report-1"))
   });
 
-  const response = await apiSaveRepairQueue(apiRequest(`/v1/audits/${env.auditId}/repair-queue`, env.apiToken, {
-    method: "PATCH",
-    body: JSON.stringify({
-      items: [{
-        issue_id: "issue-1",
-        status: "fixed",
-        rerun_status: "fixed",
-        rerun_report_id: "rerun-report-1"
-      }]
-    })
-  }), env);
+  const response = await apiSaveRepairQueue(
+    apiRequest(`/v1/audits/${env.auditId}/repair-queue`, env.apiToken, {
+      method: "PATCH",
+      body: JSON.stringify({
+        items: [
+          {
+            issue_id: "issue-1",
+            status: "fixed",
+            rerun_status: "fixed",
+            rerun_report_id: "rerun-report-1"
+          }
+        ]
+      })
+    }),
+    env
+  );
 
   assert.equal(response.status, 400);
   assert.equal(env.queueItems[0].status, "drafted");
@@ -815,14 +893,17 @@ test("Developer API repair action create does not persist when the queue row dis
   const env = await fakeDeveloperApiEnv({ queueItems: [], actions: [] });
   env.dropQueueBeforeActionInsert = true;
 
-  const response = await apiCreateRepairAction(apiRequest(`/v1/audits/${env.auditId}/repair-actions`, env.apiToken, {
-    method: "POST",
-    body: JSON.stringify({
-      issueId: "issue-1",
-      actionMode: "cms_draft",
-      proposedChange: "Draft the fixed title for review."
-    })
-  }), env);
+  const response = await apiCreateRepairAction(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions`, env.apiToken, {
+      method: "POST",
+      body: JSON.stringify({
+        issueId: "issue-1",
+        actionMode: "cms_draft",
+        proposedChange: "Draft the fixed title for review."
+      })
+    }),
+    env
+  );
 
   assert.equal(response.status, 409);
   assert.equal(env.actions.length, 0);
@@ -834,14 +915,13 @@ test("Developer API repair action update does not persist when the queue row dis
   env.actions[0].id = "22222222-2222-4222-8222-222222222222";
   env.dropQueueBeforeActionUpdate = true;
 
-  const response = await apiUpdateRepairAction(apiRequest(
-    `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`,
-    env.apiToken,
-    {
+  const response = await apiUpdateRepairAction(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`, env.apiToken, {
       method: "PATCH",
       body: JSON.stringify({ approvalState: "approved" })
-    }
-  ), env);
+    }),
+    env
+  );
 
   assert.equal(response.status, 409);
   assert.equal(env.actions[0].approval_state, "drafted");
@@ -851,7 +931,10 @@ test("Developer API repair action update does not persist when the queue row dis
 test("Developer API audit delete removes report, repair rows, and audit job together", async () => {
   const env = await fakeDeveloperApiEnv();
 
-  const response = await apiDeleteAudit(apiRequest(`/v1/audits/${env.auditId}`, env.apiToken, { method: "DELETE" }), env);
+  const response = await apiDeleteAudit(
+    apiRequest(`/v1/audits/${env.auditId}`, env.apiToken, { method: "DELETE" }),
+    env
+  );
   assert.equal(response.status, 200);
   const body = await response.json();
   assert.equal(body.deleted, true);
@@ -864,20 +947,26 @@ test("Developer API audit delete removes report, repair rows, and audit job toge
 test("Developer API audit delete of a rerun-proof audit clears that proof from the source repair", async () => {
   const env = await fakeDeveloperApiEnv();
   env.actions[0].id = "99999999-9999-4999-8999-999999999999";
-  const applied = await apiUpdateRepairAction(apiRequest(
-    `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`,
-    env.apiToken,
-    {
+  const applied = await apiUpdateRepairAction(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`, env.apiToken, {
       method: "PATCH",
       body: JSON.stringify({ approvalState: "approved", executionState: "applied" })
-    }
-  ), env);
+    }),
+    env
+  );
   assert.equal(applied.status, 200);
 
   const rerunAuditId = "22222222-2222-4222-8222-222222222222";
   const rerunReportId = "rerun-proof-report-1";
   const later = new Date(Date.now() + 60_000).toISOString();
-  env.jobs.push({ ...env.jobs[0], id: rerunAuditId, report_id: rerunReportId, created_at: later, updated_at: later, completed_at: later });
+  env.jobs.push({
+    ...env.jobs[0],
+    id: rerunAuditId,
+    report_id: rerunReportId,
+    created_at: later,
+    updated_at: later,
+    completed_at: later
+  });
   env.reports.push({
     id: rerunReportId,
     owner_email: "owner@example.com",
@@ -889,24 +978,32 @@ test("Developer API audit delete of a rerun-proof audit clears that proof from t
     report_json: JSON.stringify(stillOpenRerunReport(rerunReportId))
   });
 
-  const stillOpen = await apiUpdateRepairAction(apiRequest(
-    `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`,
-    env.apiToken,
-    {
+  const stillOpen = await apiUpdateRepairAction(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`, env.apiToken, {
       method: "PATCH",
       body: JSON.stringify({ rerunState: "still_open", rerunReportId })
-    }
-  ), env);
+    }),
+    env
+  );
   assert.equal(stillOpen.status, 200);
   const stillOpenBody = await stillOpen.json();
   assert.equal(stillOpenBody.queue.items[0].rerun_status, "still_open");
   assert.equal(stillOpenBody.queue.items[0].last_rerun_report_id, rerunReportId);
 
-  const deleted = await apiDeleteAudit(apiRequest(`/v1/audits/${rerunAuditId}`, env.apiToken, { method: "DELETE" }), env);
+  const deleted = await apiDeleteAudit(
+    apiRequest(`/v1/audits/${rerunAuditId}`, env.apiToken, { method: "DELETE" }),
+    env
+  );
   assert.equal(deleted.status, 200);
-  assert.equal(env.reports.some((row) => row.id === rerunReportId), false);
+  assert.equal(
+    env.reports.some((row) => row.id === rerunReportId),
+    false
+  );
 
-  const queueResponse = await apiGetRepairQueue(apiRequest(`/v1/audits/${env.auditId}/repair-queue`, env.apiToken), env);
+  const queueResponse = await apiGetRepairQueue(
+    apiRequest(`/v1/audits/${env.auditId}/repair-queue`, env.apiToken),
+    env
+  );
   assert.equal(queueResponse.status, 200);
   const queueBody = await queueResponse.json();
   assert.equal(queueBody.items[0].status, "applied");
@@ -934,7 +1031,10 @@ test("Developer API audit delete keeps job when report becomes protected", async
     fixRequests: [{ id: "fix-1", status: "paid", report_id: "example-report-1", final_report_id: "" }]
   });
 
-  const response = await apiDeleteAudit(apiRequest(`/v1/audits/${env.auditId}`, env.apiToken, { method: "DELETE" }), env);
+  const response = await apiDeleteAudit(
+    apiRequest(`/v1/audits/${env.auditId}`, env.apiToken, { method: "DELETE" }),
+    env
+  );
   assert.equal(response.status, 409);
   const body = await response.json();
   assert.equal(body.code, "FIX_PACK_REPORT_LOCKED");
@@ -955,29 +1055,32 @@ test("Developer API rejects same-owner rerun proof from another host", async () 
     updated_at: new Date(Date.now() + 60_000).toISOString(),
     url: "https://other.example/",
     target_host: "other.example",
-    report_json: JSON.stringify({ id: "rerun-other-host-1", url: "https://other.example/", findings: [], repairPlan: [] })
+    report_json: JSON.stringify({
+      id: "rerun-other-host-1",
+      url: "https://other.example/",
+      findings: [],
+      repairPlan: []
+    })
   });
-  const applied = await apiUpdateRepairAction(apiRequest(
-    `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`,
-    env.apiToken,
-    {
+  const applied = await apiUpdateRepairAction(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`, env.apiToken, {
       method: "PATCH",
       body: JSON.stringify({ approvalState: "approved", executionState: "applied" })
-    }
-  ), env);
+    }),
+    env
+  );
   assert.equal(applied.status, 200);
 
-  const response = await apiUpdateRepairAction(apiRequest(
-    `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`,
-    env.apiToken,
-    {
+  const response = await apiUpdateRepairAction(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`, env.apiToken, {
       method: "PATCH",
       body: JSON.stringify({
         rerunState: "fixed",
         rerunReportId: "rerun-other-host-1"
       })
-    }
-  ), env);
+    }),
+    env
+  );
 
   assert.equal(response.status, 404);
   assert.equal(env.queueItems[0].status, "applied");
@@ -986,27 +1089,25 @@ test("Developer API rejects same-owner rerun proof from another host", async () 
 test("Developer API rejects source report as rerun proof", async () => {
   const env = await fakeDeveloperApiEnv();
   env.actions[0].id = "66666666-6666-4666-8666-666666666666";
-  const applied = await apiUpdateRepairAction(apiRequest(
-    `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`,
-    env.apiToken,
-    {
+  const applied = await apiUpdateRepairAction(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`, env.apiToken, {
       method: "PATCH",
       body: JSON.stringify({ approvalState: "approved", executionState: "applied" })
-    }
-  ), env);
+    }),
+    env
+  );
   assert.equal(applied.status, 200);
 
-  const response = await apiUpdateRepairAction(apiRequest(
-    `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`,
-    env.apiToken,
-    {
+  const response = await apiUpdateRepairAction(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`, env.apiToken, {
       method: "PATCH",
       body: JSON.stringify({
         rerunState: "fixed",
         rerunReportId: env.reportId
       })
-    }
-  ), env);
+    }),
+    env
+  );
 
   assert.equal(response.status, 404);
   assert.equal(env.actions[0].rerun_state, "not_run");
@@ -1016,17 +1117,16 @@ test("Developer API rejects source report as rerun proof", async () => {
 test("Developer API clears stale rerun proof when a fixed repair is reopened", async () => {
   const env = await fakeDeveloperApiEnv();
   env.actions[0].id = "44444444-4444-4444-8444-444444444444";
-  const applied = await apiUpdateRepairAction(apiRequest(
-    `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`,
-    env.apiToken,
-    {
+  const applied = await apiUpdateRepairAction(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`, env.apiToken, {
       method: "PATCH",
       body: JSON.stringify({
         approvalState: "approved",
         executionState: "applied"
       })
-    }
-  ), env);
+    }),
+    env
+  );
   assert.equal(applied.status, 200);
   env.reports.push({
     id: "rerun-report-1",
@@ -1039,27 +1139,25 @@ test("Developer API clears stale rerun proof when a fixed repair is reopened", a
     report_json: JSON.stringify(fixedRerunReport("rerun-report-1"))
   });
 
-  const fixed = await apiUpdateRepairAction(apiRequest(
-    `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`,
-    env.apiToken,
-    {
+  const fixed = await apiUpdateRepairAction(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`, env.apiToken, {
       method: "PATCH",
       body: JSON.stringify({
         rerunState: "fixed",
         rerunReportId: "rerun-report-1"
       })
-    }
-  ), env);
+    }),
+    env
+  );
   assert.equal(fixed.status, 200);
 
-  const reopened = await apiUpdateRepairAction(apiRequest(
-    `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`,
-    env.apiToken,
-    {
+  const reopened = await apiUpdateRepairAction(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`, env.apiToken, {
       method: "PATCH",
       body: JSON.stringify({ rerunState: "not_run" })
-    }
-  ), env);
+    }),
+    env
+  );
 
   assert.equal(reopened.status, 200);
   assert.equal(env.actions[0].rerun_state, "not_run");
@@ -1082,10 +1180,8 @@ test("Developer API rejects fixed proof in the same request that first applies i
     report_json: JSON.stringify(fixedRerunReport("rerun-report-1"))
   });
 
-  const response = await apiUpdateRepairAction(apiRequest(
-    `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`,
-    env.apiToken,
-    {
+  const response = await apiUpdateRepairAction(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`, env.apiToken, {
       method: "PATCH",
       body: JSON.stringify({
         approvalState: "approved",
@@ -1093,8 +1189,9 @@ test("Developer API rejects fixed proof in the same request that first applies i
         rerunState: "fixed",
         rerunReportId: "rerun-report-1"
       })
-    }
-  ), env);
+    }),
+    env
+  );
 
   assert.equal(response.status, 400);
   assert.equal(env.actions[0].execution_state, "not_started");
@@ -1114,14 +1211,13 @@ test("Developer API rejects terminal queue statuses without matching rerun proof
   ];
 
   for (const item of cases) {
-    const response = await apiSaveRepairQueue(apiRequest(
-      `/v1/audits/${env.auditId}/repair-queue`,
-      env.apiToken,
-      {
+    const response = await apiSaveRepairQueue(
+      apiRequest(`/v1/audits/${env.auditId}/repair-queue`, env.apiToken, {
         method: "PATCH",
         body: JSON.stringify({ items: [{ issue_id: "issue-1", ...item }] })
-      }
-    ), env);
+      }),
+      env
+    );
 
     assert.equal(response.status, 400);
     assert.equal(env.queueItems[0].status, "drafted");
@@ -1133,14 +1229,13 @@ test("Developer API rejects terminal queue statuses without matching rerun proof
 test("Developer API rejects stale fixed proof after apply", async () => {
   const env = await fakeDeveloperApiEnv();
   env.actions[0].id = "88888888-8888-4888-8888-888888888888";
-  const applied = await apiUpdateRepairAction(apiRequest(
-    `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`,
-    env.apiToken,
-    {
+  const applied = await apiUpdateRepairAction(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`, env.apiToken, {
       method: "PATCH",
       body: JSON.stringify({ approvalState: "approved", executionState: "applied" })
-    }
-  ), env);
+    }),
+    env
+  );
   assert.equal(applied.status, 200);
   env.reports.push({
     id: "rerun-report-1",
@@ -1153,14 +1248,13 @@ test("Developer API rejects stale fixed proof after apply", async () => {
     report_json: JSON.stringify(fixedRerunReport("rerun-report-1"))
   });
 
-  const response = await apiUpdateRepairAction(apiRequest(
-    `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`,
-    env.apiToken,
-    {
+  const response = await apiUpdateRepairAction(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`, env.apiToken, {
       method: "PATCH",
       body: JSON.stringify({ rerunState: "fixed", rerunReportId: "rerun-report-1" })
-    }
-  ), env);
+    }),
+    env
+  );
 
   assert.equal(response.status, 404);
   assert.equal(env.actions[0].execution_state, "applied");
@@ -1171,14 +1265,13 @@ test("Developer API rejects stale fixed proof after apply", async () => {
 test("Developer API rejects stale still-open proof after apply", async () => {
   const env = await fakeDeveloperApiEnv();
   env.actions[0].id = "99999999-9999-4999-8999-999999999999";
-  const applied = await apiUpdateRepairAction(apiRequest(
-    `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`,
-    env.apiToken,
-    {
+  const applied = await apiUpdateRepairAction(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`, env.apiToken, {
       method: "PATCH",
       body: JSON.stringify({ approvalState: "approved", executionState: "applied" })
-    }
-  ), env);
+    }),
+    env
+  );
   assert.equal(applied.status, 200);
   env.reports.push({
     id: "rerun-report-1",
@@ -1191,14 +1284,13 @@ test("Developer API rejects stale still-open proof after apply", async () => {
     report_json: JSON.stringify(stillOpenRerunReport("rerun-report-1"))
   });
 
-  const response = await apiUpdateRepairAction(apiRequest(
-    `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`,
-    env.apiToken,
-    {
+  const response = await apiUpdateRepairAction(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`, env.apiToken, {
       method: "PATCH",
       body: JSON.stringify({ rerunState: "still_open", rerunReportId: "rerun-report-1" })
-    }
-  ), env);
+    }),
+    env
+  );
 
   assert.equal(response.status, 404);
   assert.equal(env.actions[0].execution_state, "applied");
@@ -1209,14 +1301,13 @@ test("Developer API rejects stale still-open proof after apply", async () => {
 test("Developer API rejects same issue id proof from a different page", async () => {
   const env = await fakeDeveloperApiEnv();
   env.actions[0].id = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
-  const applied = await apiUpdateRepairAction(apiRequest(
-    `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`,
-    env.apiToken,
-    {
+  const applied = await apiUpdateRepairAction(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`, env.apiToken, {
       method: "PATCH",
       body: JSON.stringify({ approvalState: "approved", executionState: "applied" })
-    }
-  ), env);
+    }),
+    env
+  );
   assert.equal(applied.status, 200);
   env.reports.push({
     id: "rerun-report-1",
@@ -1229,14 +1320,13 @@ test("Developer API rejects same issue id proof from a different page", async ()
     report_json: JSON.stringify(differentPageRerunReport("rerun-report-1"))
   });
 
-  const response = await apiUpdateRepairAction(apiRequest(
-    `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`,
-    env.apiToken,
-    {
+  const response = await apiUpdateRepairAction(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`, env.apiToken, {
       method: "PATCH",
       body: JSON.stringify({ rerunState: "still_open", rerunReportId: "rerun-report-1" })
-    }
-  ), env);
+    }),
+    env
+  );
 
   assert.equal(response.status, 404);
   assert.equal(env.actions[0].rerun_state, "not_run");
@@ -1246,14 +1336,13 @@ test("Developer API rejects same issue id proof from a different page", async ()
 test("Developer API rejects missing R2 rerun proof body", async () => {
   const env = await fakeDeveloperApiEnv();
   env.actions[0].id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
-  const applied = await apiUpdateRepairAction(apiRequest(
-    `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`,
-    env.apiToken,
-    {
+  const applied = await apiUpdateRepairAction(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`, env.apiToken, {
       method: "PATCH",
       body: JSON.stringify({ approvalState: "approved", executionState: "applied" })
-    }
-  ), env);
+    }),
+    env
+  );
   assert.equal(applied.status, 200);
   env.reports.push({
     id: "rerun-report-1",
@@ -1266,14 +1355,13 @@ test("Developer API rejects missing R2 rerun proof body", async () => {
     report_json: "r2:reports/missing.json"
   });
 
-  const response = await apiUpdateRepairAction(apiRequest(
-    `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`,
-    env.apiToken,
-    {
+  const response = await apiUpdateRepairAction(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`, env.apiToken, {
       method: "PATCH",
       body: JSON.stringify({ rerunState: "fixed", rerunReportId: "rerun-report-1" })
-    }
-  ), env);
+    }),
+    env
+  );
 
   assert.equal(response.status, 404);
   assert.equal(env.actions[0].rerun_state, "not_run");
@@ -1284,14 +1372,13 @@ test("Developer API still-open rerun state requires applied action and proof", a
   const env = await fakeDeveloperApiEnv();
   env.actions[0].id = "55555555-5555-4555-8555-555555555555";
 
-  const response = await apiUpdateRepairAction(apiRequest(
-    `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`,
-    env.apiToken,
-    {
+  const response = await apiUpdateRepairAction(
+    apiRequest(`/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`, env.apiToken, {
       method: "PATCH",
       body: JSON.stringify({ approvalState: "approved", rerunState: "still_open" })
-    }
-  ), env);
+    }),
+    env
+  );
 
   assert.equal(response.status, 400);
   assert.equal(env.actions[0].rerun_state, "not_run");
@@ -1320,12 +1407,14 @@ function fixedRerunReport(id) {
     repairPlan: [],
     reportDelta: {
       status: "ready",
-      fixedIssues: [{
-        id: "issue-1",
-        title: "Missing title",
-        pageUrl: "https://example.com/",
-        source: "rendered"
-      }]
+      fixedIssues: [
+        {
+          id: "issue-1",
+          title: "Missing title",
+          pageUrl: "https://example.com/",
+          source: "rendered"
+        }
+      ]
     }
   };
 }
@@ -1337,16 +1426,18 @@ function stillOpenRerunReport(id) {
     score: 75,
     summary: { pagesScanned: 1, totalFindings: 1 },
     pages: [{ url: "https://example.com/" }],
-    findings: [{
-      id: "issue-1",
-      severity: "critical",
-      title: "Missing title",
-      pageUrl: "https://example.com/",
-      evidence: "Rendered title is still missing.",
-      fix: "Add a descriptive title.",
-      confidence: "verified",
-      source: "rendered"
-    }],
+    findings: [
+      {
+        id: "issue-1",
+        severity: "critical",
+        title: "Missing title",
+        pageUrl: "https://example.com/",
+        evidence: "Rendered title is still missing.",
+        fix: "Add a descriptive title.",
+        confidence: "verified",
+        source: "rendered"
+      }
+    ],
     repairPlan: []
   };
 }
@@ -1358,16 +1449,18 @@ function differentPageRerunReport(id) {
     score: 75,
     summary: { pagesScanned: 1, totalFindings: 1 },
     pages: [{ url: "https://example.com/other" }],
-    findings: [{
-      id: "issue-1",
-      severity: "critical",
-      title: "Missing title",
-      pageUrl: "https://example.com/other",
-      evidence: "Rendered title is missing on another page.",
-      fix: "Add a descriptive title.",
-      confidence: "verified",
-      source: "rendered"
-    }],
+    findings: [
+      {
+        id: "issue-1",
+        severity: "critical",
+        title: "Missing title",
+        pageUrl: "https://example.com/other",
+        evidence: "Rendered title is missing on another page.",
+        fix: "Add a descriptive title.",
+        confidence: "verified",
+        source: "rendered"
+      }
+    ],
     repairPlan: []
   };
 }
@@ -1381,49 +1474,55 @@ async function fakeDeveloperApiEnv(overrides = {}) {
     id: reportId,
     url: "https://example.com/",
     createdAt: "2020-01-01T00:00:00.000Z",
-    findings: [{
-      id: "issue-1",
-      severity: "critical",
-      title: "Missing title",
-      pageUrl: "https://example.com/",
-      pageLabel: "home",
-      evidence: "Rendered title is missing.",
-      fix: "Add a descriptive title.",
-      acceptance: "Rendered title exists.",
-      confidence: "verified",
-      source: "rendered"
-    }],
-    repairPlan: [{
-      issueId: "issue-1",
-      priority: 1,
-      severity: "critical",
-      title: "Missing title",
-      pageUrl: "https://example.com/",
-      pageLabel: "home",
-      proof: "Rendered title is missing.",
-      fix: "Add a descriptive title.",
-      acceptance: "Rendered title exists.",
-      confidence: "verified",
-      source: "rendered"
-    }],
-    pageSummaries: [{
-      url: "https://example.com/",
-      path: "/",
-      status: 200,
-      score: 75,
-      critical: 1,
-      warnings: 0,
-      notices: 0,
-      guards: 1,
-      title: "Example",
-      h1: "Example",
-      wordCount: 320,
-      internalLinks: 2,
-      brokenLinks: 0,
-      brokenImages: 0,
-      loadDurationMs: 900,
-      schemaTypes: ["Organization"]
-    }]
+    findings: [
+      {
+        id: "issue-1",
+        severity: "critical",
+        title: "Missing title",
+        pageUrl: "https://example.com/",
+        pageLabel: "home",
+        evidence: "Rendered title is missing.",
+        fix: "Add a descriptive title.",
+        acceptance: "Rendered title exists.",
+        confidence: "verified",
+        source: "rendered"
+      }
+    ],
+    repairPlan: [
+      {
+        issueId: "issue-1",
+        priority: 1,
+        severity: "critical",
+        title: "Missing title",
+        pageUrl: "https://example.com/",
+        pageLabel: "home",
+        proof: "Rendered title is missing.",
+        fix: "Add a descriptive title.",
+        acceptance: "Rendered title exists.",
+        confidence: "verified",
+        source: "rendered"
+      }
+    ],
+    pageSummaries: [
+      {
+        url: "https://example.com/",
+        path: "/",
+        status: 200,
+        score: 75,
+        critical: 1,
+        warnings: 0,
+        notices: 0,
+        guards: 1,
+        title: "Example",
+        h1: "Example",
+        wordCount: 320,
+        internalLinks: 2,
+        brokenLinks: 0,
+        brokenImages: 0,
+        loadDurationMs: 900,
+        schemaTypes: ["Organization"]
+      }
+    ]
   };
 
   const env = {
@@ -1431,88 +1530,98 @@ async function fakeDeveloperApiEnv(overrides = {}) {
     auditId,
     reportId,
     ownerEmail: "owner@example.com",
-    tokens: [{
-      id: "token-1",
-      owner_email: "owner@example.com",
-      token_hash: await sha256Hex(apiToken),
-      status: "active",
-      revoked_at: null
-    }],
-    jobs: [{
-      id: auditId,
-      owner_email: "owner@example.com",
-      status: "completed",
-      target_url: "https://example.com/",
-      target_host: "example.com",
-      competitor_urls_json: "[]",
-      backlink_rows_json: "[]",
-      local_seo_input_json: "{}",
-      keyword_rows_json: "[]",
-      rendered_crawl_target: 0,
-      max_pages: 1,
-      report_id: reportId,
-      created_at: now,
-      updated_at: now,
-      completed_at: now
-    }],
-    reports: [{
-      id: reportId,
-      owner_email: "owner@example.com",
-      expires_at: new Date(Date.now() + 60_000).toISOString(),
-      created_at: "2020-01-01T00:00:00.000Z",
-      updated_at: "2020-01-01T00:00:00.000Z",
-      url: "https://example.com/",
-      target_host: "example.com",
-      report_json: JSON.stringify(report)
-    }],
-	    fixRequests: overrides.fixRequests || [],
-	    queueItems: overrides.queueItems || [{
-      id: "queue-1",
-      report_id: reportId,
-      owner_email: "owner@example.com",
-      issue_id: "issue-1",
-      title: "Missing title",
-      severity: "critical",
-      page_url: "https://example.com/",
-      page_label: "home",
-      proof: "Rendered title is missing.",
-      fix: "Add a descriptive title.",
-      acceptance: "Rendered title exists.",
-      confidence: "verified",
-      source: "rendered",
-      source_kind: "finding",
-      action_mode: "cms_draft",
-      status: "drafted",
-      rerun_status: "not_run",
-      updated_at: now,
-      updated_by_email: "owner@example.com"
-    }],
-    actions: overrides.actions || [{
-      id: "action-1",
-      report_id: reportId,
-      owner_email: "owner@example.com",
-      queue_item_id: "queue-1",
-      issue_id: "issue-1",
-      action_mode: "cms_draft",
-      action_type: "metadata_copy",
-      approval_state: "drafted",
-      execution_state: "not_started",
-      rerun_state: "not_run",
-      source_proof: "Rendered title is missing.",
-      proposed_change: "Private draft title copy",
-      acceptance: "Rendered title exists.",
-      rerun_report_id: "",
-      created_at: now,
-      updated_at: now,
-      approved_at: "",
-      applied_at: "",
-      updated_by_email: "owner@example.com"
-	    }],
-	    webhooks: [],
-	    events: [],
-	    reportCleanupFails: Boolean(overrides.reportCleanupFails),
-	    missingRepairTables: Boolean(overrides.missingRepairTables)
-	  };
+    tokens: [
+      {
+        id: "token-1",
+        owner_email: "owner@example.com",
+        token_hash: await sha256Hex(apiToken),
+        status: "active",
+        revoked_at: null
+      }
+    ],
+    jobs: [
+      {
+        id: auditId,
+        owner_email: "owner@example.com",
+        status: "completed",
+        target_url: "https://example.com/",
+        target_host: "example.com",
+        competitor_urls_json: "[]",
+        backlink_rows_json: "[]",
+        local_seo_input_json: "{}",
+        keyword_rows_json: "[]",
+        rendered_crawl_target: 0,
+        max_pages: 1,
+        report_id: reportId,
+        created_at: now,
+        updated_at: now,
+        completed_at: now
+      }
+    ],
+    reports: [
+      {
+        id: reportId,
+        owner_email: "owner@example.com",
+        expires_at: new Date(Date.now() + 60_000).toISOString(),
+        created_at: "2020-01-01T00:00:00.000Z",
+        updated_at: "2020-01-01T00:00:00.000Z",
+        url: "https://example.com/",
+        target_host: "example.com",
+        report_json: JSON.stringify(report)
+      }
+    ],
+    fixRequests: overrides.fixRequests || [],
+    queueItems: overrides.queueItems || [
+      {
+        id: "queue-1",
+        report_id: reportId,
+        owner_email: "owner@example.com",
+        issue_id: "issue-1",
+        title: "Missing title",
+        severity: "critical",
+        page_url: "https://example.com/",
+        page_label: "home",
+        proof: "Rendered title is missing.",
+        fix: "Add a descriptive title.",
+        acceptance: "Rendered title exists.",
+        confidence: "verified",
+        source: "rendered",
+        source_kind: "finding",
+        action_mode: "cms_draft",
+        status: "drafted",
+        rerun_status: "not_run",
+        updated_at: now,
+        updated_by_email: "owner@example.com"
+      }
+    ],
+    actions: overrides.actions || [
+      {
+        id: "action-1",
+        report_id: reportId,
+        owner_email: "owner@example.com",
+        queue_item_id: "queue-1",
+        issue_id: "issue-1",
+        action_mode: "cms_draft",
+        action_type: "metadata_copy",
+        approval_state: "drafted",
+        execution_state: "not_started",
+        rerun_state: "not_run",
+        source_proof: "Rendered title is missing.",
+        proposed_change: "Private draft title copy",
+        acceptance: "Rendered title exists.",
+        rerun_report_id: "",
+        created_at: now,
+        updated_at: now,
+        approved_at: "",
+        applied_at: "",
+        updated_by_email: "owner@example.com"
+      }
+    ],
+    webhooks: [],
+    events: [],
+    reportCleanupFails: Boolean(overrides.reportCleanupFails),
+    missingRepairTables: Boolean(overrides.missingRepairTables)
+  };
   env.WAITLIST_DB = {
     prepare(sql) {
       return {
@@ -1595,22 +1704,27 @@ function first(sql, values, env) {
   }
   if (sql.includes("FROM fix_requests")) {
     const reportId = values.at(-1);
-    return env.fixRequests.find((row) =>
-      ["paid", "in_progress", "delivered", "refunded", "refund_failed", "disputed"].includes(row.status) &&
-      (row.report_id === reportId || row.final_report_id === reportId)
-    ) || null;
+    return (
+      env.fixRequests.find(
+        (row) =>
+          ["paid", "in_progress", "delivered", "refunded", "refund_failed", "disputed"].includes(row.status) &&
+          (row.report_id === reportId || row.final_report_id === reportId)
+      ) || null
+    );
   }
   if (sql.includes("FROM repair_queue_items")) {
     return env.queueItems[0] ? { id: env.queueItems[0].id } : null;
   }
-	  if (sql.includes("FROM repair_agent_actions")) {
-	    if (sql.includes("SELECT id FROM repair_agent_actions")) {
-	      return env.actions[0] ? { id: env.actions[0].id } : null;
-	    }
-	    const [id, reportId, ownerEmail] = values;
-	    const row = env.actions.find((row) => row.id === id && row.report_id === reportId && row.owner_email === ownerEmail);
-	    return row ? { ...row } : null;
-	  }
+  if (sql.includes("FROM repair_agent_actions")) {
+    if (sql.includes("SELECT id FROM repair_agent_actions")) {
+      return env.actions[0] ? { id: env.actions[0].id } : null;
+    }
+    const [id, reportId, ownerEmail] = values;
+    const row = env.actions.find(
+      (row) => row.id === id && row.report_id === reportId && row.owner_email === ownerEmail
+    );
+    return row ? { ...row } : null;
+  }
   throw new Error(`Unexpected first SQL: ${sql}`);
 }
 
@@ -1631,9 +1745,9 @@ function all(sql, values, env) {
     const [reportId, ownerEmail] = values;
     return { results: env.actions.filter((row) => row.report_id === reportId && row.owner_email === ownerEmail) };
   }
-	  if (sql.includes("FROM api_webhooks")) {
-	    return { results: env.webhooks };
-	  }
+  if (sql.includes("FROM api_webhooks")) {
+    return { results: env.webhooks };
+  }
   throw new Error(`Unexpected all SQL: ${sql}`);
 }
 
@@ -1733,13 +1847,11 @@ function run(sql, values, env) {
     }
     return { meta: { changes: 1 } };
   }
-	  if (sql.includes("INSERT INTO repair_agent_actions")) {
+  if (sql.includes("INSERT INTO repair_agent_actions")) {
     if (env.dropQueueBeforeActionInsert) env.queueItems = env.queueItems.filter((row) => row.id !== values[19]);
     if (sql.includes("WHERE EXISTS")) {
-      const queueExists = env.queueItems.some((row) =>
-        row.id === values[19] &&
-        row.report_id === values[20] &&
-        row.owner_email === values[21]
+      const queueExists = env.queueItems.some(
+        (row) => row.id === values[19] && row.report_id === values[20] && row.owner_email === values[21]
       );
       if (!queueExists) return { meta: { changes: 0 } };
     }
@@ -1764,26 +1876,26 @@ function run(sql, values, env) {
       applied_at: values[17],
       updated_by_email: values[18]
     });
-	    return { meta: { changes: 1 } };
-	  }
-	  if (sql.includes("INSERT INTO api_webhook_events")) {
-	    env.events.push({
-	      id: values[0],
-	      webhook_id: values[1],
-	      owner_email: values[2],
-	      event_type: values[3],
-	      audit_job_id: values[4],
-	      report_id: values[5],
-	      status: values[6],
-	      http_status: values[7],
-	      error: values[8],
-	      payload_json: values[9],
-	      created_at: values[10],
-	      delivered_at: values[11]
-	    });
-	    return { meta: { changes: 1 } };
-	  }
-	  if (sql.includes("UPDATE repair_queue_items")) {
+    return { meta: { changes: 1 } };
+  }
+  if (sql.includes("INSERT INTO api_webhook_events")) {
+    env.events.push({
+      id: values[0],
+      webhook_id: values[1],
+      owner_email: values[2],
+      event_type: values[3],
+      audit_job_id: values[4],
+      report_id: values[5],
+      status: values[6],
+      http_status: values[7],
+      error: values[8],
+      payload_json: values[9],
+      created_at: values[10],
+      delivered_at: values[11]
+    });
+    return { meta: { changes: 1 } };
+  }
+  if (sql.includes("UPDATE repair_queue_items")) {
     const idIndex = sql.includes("SET status = 'drafted'") ? 3 : values.length - 3;
     const row = env.queueItems.find((item) => item.id === values[idIndex]);
     if (row) {
@@ -1815,10 +1927,8 @@ function run(sql, values, env) {
     const row = env.actions.find((action) => action.id === values[8]);
     if (env.dropQueueBeforeActionUpdate) env.queueItems = env.queueItems.filter((item) => item.id !== values[11]);
     if (sql.includes("EXISTS")) {
-      const queueExists = env.queueItems.some((item) =>
-        item.id === values[11] &&
-        item.report_id === values[12] &&
-        item.owner_email === values[13]
+      const queueExists = env.queueItems.some(
+        (item) => item.id === values[11] && item.report_id === values[12] && item.owner_email === values[13]
       );
       if (!queueExists) return { meta: { changes: 0 } };
     }
@@ -1832,49 +1942,56 @@ function run(sql, values, env) {
       row.applied_at = values[6];
       row.updated_by_email = values[7];
     }
-	    return { meta: { changes: row ? 1 : 0 } };
-	  }
-	  if (sql.includes("UPDATE api_webhook_events")) {
-	    const failedUpdate = sql.includes("SET status = 'failed'");
-	    const event = env.events.find((row) => row.id === values[failedUpdate ? 2 : 4]);
-	    Object.assign(event, failedUpdate
-	      ? {
-	          status: "failed",
-	          error: values[0],
-	          delivered_at: values[1]
-	        }
-	      : {
-	          status: values[0],
-	          http_status: values[1],
-	          error: values[2],
-	          delivered_at: values[3]
-	        });
-	    return { meta: { changes: 1 } };
-	  }
-	  if (sql.includes("UPDATE api_webhooks")) {
-	    const failedUpdate = sql.includes("last_delivery_status = 'failed'");
-	    const webhook = env.webhooks.find((row) => row.id === values[failedUpdate ? 3 : 4]);
-	    Object.assign(webhook, failedUpdate
-	      ? {
-	          last_delivery_at: values[0],
-	          last_delivery_status: "failed",
-	          last_error: values[1],
-	          updated_at: values[2]
-	        }
-	      : {
-	          last_delivery_at: values[0],
-	          last_delivery_status: values[1],
-	          last_error: values[2],
-	          updated_at: values[3]
-	        });
-	    return { meta: { changes: 1 } };
-	  }
-	  throw new Error(`Unexpected run SQL: ${sql}`);
-	}
+    return { meta: { changes: row ? 1 : 0 } };
+  }
+  if (sql.includes("UPDATE api_webhook_events")) {
+    const failedUpdate = sql.includes("SET status = 'failed'");
+    const event = env.events.find((row) => row.id === values[failedUpdate ? 2 : 4]);
+    Object.assign(
+      event,
+      failedUpdate
+        ? {
+            status: "failed",
+            error: values[0],
+            delivered_at: values[1]
+          }
+        : {
+            status: values[0],
+            http_status: values[1],
+            error: values[2],
+            delivered_at: values[3]
+          }
+    );
+    return { meta: { changes: 1 } };
+  }
+  if (sql.includes("UPDATE api_webhooks")) {
+    const failedUpdate = sql.includes("last_delivery_status = 'failed'");
+    const webhook = env.webhooks.find((row) => row.id === values[failedUpdate ? 3 : 4]);
+    Object.assign(
+      webhook,
+      failedUpdate
+        ? {
+            last_delivery_at: values[0],
+            last_delivery_status: "failed",
+            last_error: values[1],
+            updated_at: values[2]
+          }
+        : {
+            last_delivery_at: values[0],
+            last_delivery_status: values[1],
+            last_error: values[2],
+            updated_at: values[3]
+          }
+    );
+    return { meta: { changes: 1 } };
+  }
+  throw new Error(`Unexpected run SQL: ${sql}`);
+}
 
 function isProtectedReport(env, reportId) {
-  return env.fixRequests.some((row) =>
-    ["paid", "in_progress", "delivered", "refunded", "refund_failed", "disputed"].includes(row.status) &&
-    (row.report_id === reportId || row.final_report_id === reportId)
+  return env.fixRequests.some(
+    (row) =>
+      ["paid", "in_progress", "delivered", "refunded", "refund_failed", "disputed"].includes(row.status) &&
+      (row.report_id === reportId || row.final_report_id === reportId)
   );
 }

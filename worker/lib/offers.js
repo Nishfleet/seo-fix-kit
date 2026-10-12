@@ -57,9 +57,7 @@ async function monitoringEntitlementSchemaReady(env = {}) {
     await env.WAITLIST_DB.prepare(
       "SELECT owner_email, offer_key, subscription_id, limits_json, revoked_at FROM offer_entitlements LIMIT 1"
     ).first();
-    await env.WAITLIST_DB.prepare(
-      "SELECT owner_email, offer_key, event FROM offer_entitlement_events LIMIT 1"
-    ).first();
+    await env.WAITLIST_DB.prepare("SELECT owner_email, offer_key, event FROM offer_entitlement_events LIMIT 1").first();
     return true;
   } catch {
     return false;

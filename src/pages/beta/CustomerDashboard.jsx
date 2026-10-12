@@ -62,16 +62,15 @@ export function Overview({ accountData, auditPanel, message, status }) {
 
   return (
     <div className="app-page">
-      <PageHeader
-        title="Overview"
-        description="Find what is broken on your site, fix it, and prove it worked."
-      />
+      <PageHeader title="Overview" description="Find what is broken on your site, fix it, and prove it worked." />
       {message && status === "error" && <StatusMessage tone={status}>{message}</StatusMessage>}
       {!loading && doneCount < steps.length && (
         <section className="app-card onboarding" aria-labelledby="onboarding-title">
           <div className="app-card-head">
             <h2 id="onboarding-title">Get set up</h2>
-            <span className="app-progress-label">{doneCount} of {steps.length} done</span>
+            <span className="app-progress-label">
+              {doneCount} of {steps.length} done
+            </span>
           </div>
           <div className="app-progress" aria-hidden="true">
             <span style={{ width: `${(doneCount / steps.length) * 100}%` }} />
@@ -79,7 +78,9 @@ export function Overview({ accountData, auditPanel, message, status }) {
           <ol className="onboarding-list">
             {steps.map((step) => (
               <li className={step.done ? "done" : ""} key={step.title}>
-                <span className="onboarding-check" aria-hidden="true">{step.done ? "✓" : ""}</span>
+                <span className="onboarding-check" aria-hidden="true">
+                  {step.done ? "✓" : ""}
+                </span>
                 <div>
                   <strong>{step.title}</strong>
                   <p>{step.detail}</p>
@@ -89,9 +90,13 @@ export function Overview({ accountData, auditPanel, message, status }) {
                 ) : step !== currentStep ? (
                   <span />
                 ) : step.to.startsWith("#") ? (
-                  <a className="app-button" href={step.to}>{step.cta}</a>
+                  <a className="app-button" href={step.to}>
+                    {step.cta}
+                  </a>
                 ) : (
-                  <Link discover="none" className="app-button" to={step.to}>{step.cta}</Link>
+                  <Link discover="none" className="app-button" to={step.to}>
+                    {step.cta}
+                  </Link>
                 )}
               </li>
             ))}
@@ -110,13 +115,18 @@ export function Overview({ accountData, auditPanel, message, status }) {
             <Metric label="Reports" value={metrics.reports || reports.length} />
             <Metric label="Open fixes" value={metrics.openRepairs || repairCounts.active || 0} />
             <Metric label="Verified sites" value={verifiedCount} />
-            <Metric label="Weekly monitors" value={`${monitorCount}/${metrics.monitorLimit || accountData?.monitoring?.limit || 5}`} />
+            <Metric
+              label="Weekly monitors"
+              value={`${monitorCount}/${metrics.monitorLimit || accountData?.monitoring?.limit || 5}`}
+            />
           </section>
           <RepairAgentFeed items={repairItems} nextAction={primaryAction} reports={reports} />
           <section className="app-card" aria-labelledby="recent-reports-title">
             <div className="app-card-head">
               <h2 id="recent-reports-title">Recent reports</h2>
-              <Link discover="none" className="app-card-link" to="/beta/reports">View all</Link>
+              <Link discover="none" className="app-card-link" to="/beta/reports">
+                View all
+              </Link>
             </div>
             <ReportRows reports={reports.slice(0, 5)} />
           </section>
@@ -139,9 +149,15 @@ function ReportRows({ reports }) {
       </div>
       {reports.map((item) => (
         <Link discover="none" className="app-table-row" role="row" to={item.reportPath} key={item.id}>
-          <span role="cell" className="app-table-primary">{item.targetHost || safeHostnameLabel(item.url)}</span>
-          <span role="cell"><ScoreBadge score={item.score} /></span>
-          <span role="cell" className="app-table-muted">{formatDate(item.createdAt || item.savedAt || item.generatedAt)}</span>
+          <span role="cell" className="app-table-primary">
+            {item.targetHost || safeHostnameLabel(item.url)}
+          </span>
+          <span role="cell">
+            <ScoreBadge score={item.score} />
+          </span>
+          <span role="cell" className="app-table-muted">
+            {formatDate(item.createdAt || item.savedAt || item.generatedAt)}
+          </span>
         </Link>
       ))}
     </div>
@@ -166,12 +182,18 @@ export function ReportsPage({ accountData, message, status }) {
       <PageHeader
         title="Reports"
         description="Every audit you run is saved here for 30 days."
-        actions={<Link discover="none" className="app-button" to="/beta#new-audit">New audit</Link>}
+        actions={
+          <Link discover="none" className="app-button" to="/beta#new-audit">
+            New audit
+          </Link>
+        }
       />
       {message && status === "error" && <StatusMessage tone={status}>{message}</StatusMessage>}
       {Boolean(auditJobs.length) && (
         <section className="app-card" aria-labelledby="running-title">
-          <div className="app-card-head"><h2 id="running-title">In progress</h2></div>
+          <div className="app-card-head">
+            <h2 id="running-title">In progress</h2>
+          </div>
           <div className="audit-job-list">
             {auditJobs.slice(0, 5).map((job) => (
               <article className={`audit-job-card ${job.status}`} key={job.id}>
@@ -187,21 +209,35 @@ export function ReportsPage({ accountData, message, status }) {
         </section>
       )}
       <section className="app-card" aria-labelledby="all-reports-title">
-        <div className="app-card-head"><h2 id="all-reports-title">Saved reports</h2></div>
+        <div className="app-card-head">
+          <h2 id="all-reports-title">Saved reports</h2>
+        </div>
         <ReportRows reports={reports} />
       </section>
       <section className="app-card" aria-labelledby="fix-packs-title">
         <div className="app-card-head">
           <h2 id="fix-packs-title">Fix Packs</h2>
-          <Link discover="none" className="app-card-link" to="/beta/billing">Billing</Link>
+          <Link discover="none" className="app-card-link" to="/beta/billing">
+            Billing
+          </Link>
         </div>
         {fixRequests.length ? (
           <div className="app-table" role="table" aria-label="Fix Packs">
             {fixRequests.map((request) => (
-              <Link discover="none" className="app-table-row" role="row" to={request.reportPath || "/beta/billing"} key={request.id}>
-                <span role="cell" className="app-table-primary">{request.targetHost || request.targetUrl || "Fix Pack"}</span>
+              <Link
+                discover="none"
+                className="app-table-row"
+                role="row"
+                to={request.reportPath || "/beta/billing"}
+                key={request.id}
+              >
+                <span role="cell" className="app-table-primary">
+                  {request.targetHost || request.targetUrl || "Fix Pack"}
+                </span>
                 <span role="cell">{request.statusLabel || statusLabel(request.status)}</span>
-                <span role="cell" className="app-table-muted">{formatDate(request.updatedAt || request.createdAt)}</span>
+                <span role="cell" className="app-table-muted">
+                  {formatDate(request.updatedAt || request.createdAt)}
+                </span>
               </Link>
             ))}
           </div>
@@ -242,7 +278,9 @@ export function SitesPage({
       />
       {message && status === "error" && <StatusMessage tone={status}>{message}</StatusMessage>}
       <section className="app-card" aria-labelledby="add-site-title">
-        <div className="app-card-head"><h2 id="add-site-title">Add a site</h2></div>
+        <div className="app-card-head">
+          <h2 id="add-site-title">Add a site</h2>
+        </div>
         <p className="app-card-text">
           Enter your domain and we’ll give you a DNS record or a small file to prove you own it.
           {isFounder ? " Founder accounts can audit any site without verifying." : ""}
@@ -277,28 +315,42 @@ export function SitesPage({
         {sites.length ? (
           <div className="site-claim-list">
             {sites.map((site) => {
-              const monitor = schedules.find((schedule) => hostKey(schedule.targetHost || schedule.targetUrl) === hostKey(site.host));
+              const monitor = schedules.find(
+                (schedule) => hostKey(schedule.targetHost || schedule.targetUrl) === hostKey(site.host)
+              );
               return (
                 <article className={`site-claim-card ${site.status}`} key={site.id || site.host}>
                   <div>
                     <span className="status-pill">{site.status === "verified" ? "Verified" : "Not verified"}</span>
                     <h3>{site.host}</h3>
                     {site.status === "verified" ? (
-                      <p>{monitor ? `Checked ${monitor.cadenceLabel?.toLowerCase() || "weekly"}. ${auditScheduleDetail(monitor)}` : "Weekly monitoring is off."}</p>
+                      <p>
+                        {monitor
+                          ? `Checked ${monitor.cadenceLabel?.toLowerCase() || "weekly"}. ${auditScheduleDetail(monitor)}`
+                          : "Weekly monitoring is off."}
+                      </p>
                     ) : (
                       <div className="verification-instructions">
                         <p>Add one of these, then select Verify.</p>
                         <span className="verification-label">DNS TXT record</span>
-                        <code>{site.dnsName}: {site.dnsValue}</code>
+                        <code>
+                          {site.dnsName}: {site.dnsValue}
+                        </code>
                         <span className="verification-label">Or a file on your site</span>
-                        <code>{site.filePath}: {site.fileContents}</code>
+                        <code>
+                          {site.filePath}: {site.fileContents}
+                        </code>
                       </div>
                     )}
                   </div>
                   {site.status === "verified" ? (
                     monitor ? (
                       <div className="schedule-actions">
-                        {monitor.lastReportPath && <a className="action-link" href={monitor.lastReportPath}>Latest report</a>}
+                        {monitor.lastReportPath && (
+                          <a className="action-link" href={monitor.lastReportPath}>
+                            Latest report
+                          </a>
+                        )}
                         <button
                           className="action-link secondary"
                           disabled={scheduleStatus === "loading"}
@@ -335,7 +387,9 @@ export function SitesPage({
         ) : (
           <p className="app-empty">No sites yet. Add your first one above.</p>
         )}
-        <p className="app-footnote">{monitoring.message || "Weekly monitoring is included free for verified sites during the beta."}</p>
+        <p className="app-footnote">
+          {monitoring.message || "Weekly monitoring is included free for verified sites during the beta."}
+        </p>
       </section>
     </div>
   );
@@ -356,11 +410,19 @@ export function RepairAgentFeed({ items = [], nextAction = null, reports = [] })
                 : "Run your first audit to see what needs fixing."}
           </p>
         </div>
-        {nextAction?.href && items.length > 0 && <a className="app-card-link" href={nextAction.href}>Open</a>}
+        {nextAction?.href && items.length > 0 && (
+          <a className="app-card-link" href={nextAction.href}>
+            Open
+          </a>
+        )}
       </div>
       <div className="repair-agent-list">
         {items.slice(0, 4).map((item) => (
-          <a className={`repair-agent-card ${item.status || "open"}`} href={item.reportPath || nextAction?.href || "/beta"} key={item.id}>
+          <a
+            className={`repair-agent-card ${item.status || "open"}`}
+            href={item.reportPath || nextAction?.href || "/beta"}
+            key={item.id}
+          >
             <div className="repair-agent-card-head">
               <span className={`status-pill ${item.severity || "notice"}`}>{item.severity || "notice"}</span>
               <span className="status-pill">{repairStatusLabel(item.status)}</span>
@@ -376,7 +438,9 @@ export function RepairAgentFeed({ items = [], nextAction = null, reports = [] })
         {!items.length && (
           <div className="repair-agent-empty">
             <strong>{hasReports ? "Nothing to fix right now." : "No reports yet."}</strong>
-            <span>{hasReports ? "New problems from your next audit will show up here." : "Run an audit to get started."}</span>
+            <span>
+              {hasReports ? "New problems from your next audit will show up here." : "Run an audit to get started."}
+            </span>
           </div>
         )}
       </div>
@@ -432,7 +496,10 @@ export function DeveloperApiPanel({
               <div className="developer-api-row" key={token.id}>
                 <div>
                   <strong>{token.label || "API key"}</strong>
-                  <span>{token.tokenPrefix || "hidden"}{token.lastUsedAt ? ` · used ${formatDate(token.lastUsedAt)}` : ""}</span>
+                  <span>
+                    {token.tokenPrefix || "hidden"}
+                    {token.lastUsedAt ? ` · used ${formatDate(token.lastUsedAt)}` : ""}
+                  </span>
                 </div>
                 <button
                   className="text-button"
@@ -479,7 +546,10 @@ export function DeveloperApiPanel({
               <div className="developer-api-row" key={webhook.id}>
                 <div>
                   <strong>{safeUrlLabel(webhook.url)}</strong>
-                  <span>{(webhook.events || []).join(", ")}{webhook.lastDeliveryStatus ? ` · ${webhook.lastDeliveryStatus}` : ""}</span>
+                  <span>
+                    {(webhook.events || []).join(", ")}
+                    {webhook.lastDeliveryStatus ? ` · ${webhook.lastDeliveryStatus}` : ""}
+                  </span>
                 </div>
                 <button
                   className="text-button"

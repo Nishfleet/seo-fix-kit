@@ -16,7 +16,12 @@ import {
   termsHtml
 } from "../worker/routes/pages.js";
 import { checkHtml } from "../worker/routes/public-check.js";
-import { canonicalHostSpotChecks, publicPageSpotChecks, publicSurfaceSpotChecks, spotCheckPublicPages } from "./live-promise-spot-check.mjs";
+import {
+  canonicalHostSpotChecks,
+  publicPageSpotChecks,
+  publicSurfaceSpotChecks,
+  spotCheckPublicPages
+} from "./live-promise-spot-check.mjs";
 
 const origin = "https://seofixkit.com";
 const pages = {
@@ -101,14 +106,35 @@ function textResponse(body, contentType = "text/plain; charset=utf-8") {
 test("live spot-check covers the public pages including the proof receipt", () => {
   assert.deepEqual(
     publicPageSpotChecks(origin).map((check) => check.path),
-    ["/demo", "/check", "/methodology", "/pricing", "/small-business-seo-audit", "/rendered-vs-static-seo-audit", "/ai-answer-readiness", "/proof", "/proof.md", "/support", "/terms", "/privacy"]
+    [
+      "/demo",
+      "/check",
+      "/methodology",
+      "/pricing",
+      "/small-business-seo-audit",
+      "/rendered-vs-static-seo-audit",
+      "/ai-answer-readiness",
+      "/proof",
+      "/proof.md",
+      "/support",
+      "/terms",
+      "/privacy"
+    ]
   );
 });
 
 test("live spot-check covers the public machine surfaces", () => {
   assert.deepEqual(
     publicSurfaceSpotChecks(origin).map((check) => check.path),
-    ["/llms.txt", "/sitemap.xml", "/robots.txt", "/api/health", "/api/deep-health", "/api/public-check", "/api/public-check"]
+    [
+      "/llms.txt",
+      "/sitemap.xml",
+      "/robots.txt",
+      "/api/health",
+      "/api/deep-health",
+      "/api/public-check",
+      "/api/public-check"
+    ]
   );
 });
 
@@ -170,7 +196,7 @@ test("live spot-check flags a missing page", async () => {
 
 test("live spot-check flags a stale Worker serving the SPA fallback", async () => {
   const spaShell =
-    '<!doctype html><html><head><title>SEO Fix Kit - Proof-Backed SEO Repair Beta</title></head>' +
+    "<!doctype html><html><head><title>SEO Fix Kit - Proof-Backed SEO Repair Beta</title></head>" +
     '<body><div id="root"></div></body></html>';
   const spaFetcher = async (rawUrl, options = {}) => {
     const url = new URL(rawUrl);
@@ -202,8 +228,8 @@ test("live spot-check flags a stale Worker serving the SPA fallback", async () =
 
 test("live spot-check flags a stale Worker serving the 404-page asset fallback", async () => {
   const notFoundPage =
-    '<!doctype html><html><head><title>Page not found - SEO Fix Kit</title></head>' +
-    '<body><main><h1>Nothing to fix here.</h1></main></body></html>';
+    "<!doctype html><html><head><title>Page not found - SEO Fix Kit</title></head>" +
+    "<body><main><h1>Nothing to fix here.</h1></main></body></html>";
   const notFoundFetcher = async (rawUrl, options = {}) => {
     const url = new URL(rawUrl);
     const method = options.method || "GET";
@@ -236,7 +262,7 @@ test("live spot-check flags a www host that stops redirecting to the apex", asyn
   const noRedirectFetcher = async (rawUrl, options = {}) => {
     const url = new URL(rawUrl);
     if (url.hostname.startsWith("www.")) {
-      return htmlResponse("<!doctype html><div id=\"root\"></div>");
+      return htmlResponse('<!doctype html><div id="root"></div>');
     }
     return pageFetcher()(rawUrl, options);
   };
@@ -279,10 +305,7 @@ test("live spot-check flags llms.txt that no longer lists the anonymous check", 
   };
   const results = await spotCheckPublicPages({ baseUrl: origin, fetcher });
   const llms = results.find((result) => result.path === "/llms.txt");
-  assert.ok(
-    llms.failures.includes("llms.txt lists the anonymous check"),
-    "llms.txt must keep listing /check"
-  );
+  assert.ok(llms.failures.includes("llms.txt lists the anonymous check"), "llms.txt must keep listing /check");
 });
 
 test("live spot-check flags a landing page that lost its machine-readable JSON-LD proof", async () => {
@@ -340,7 +363,9 @@ test("live spot-check flags a landing page that lost the SoftwareApplication JSO
 });
 
 test("live spot-check flags a sitemap missing a promised page", async () => {
-  const overrides = { "/sitemap.xml": () => textResponse(rootSitemap(origin).replace(`${origin}/check`, `${origin}/gone`)) };
+  const overrides = {
+    "/sitemap.xml": () => textResponse(rootSitemap(origin).replace(`${origin}/check`, `${origin}/gone`))
+  };
   const fetcher = async (rawUrl, options = {}) => {
     const url = new URL(rawUrl);
     if (url.pathname === "/sitemap.xml") return overrides["/sitemap.xml"]();
@@ -348,15 +373,12 @@ test("live spot-check flags a sitemap missing a promised page", async () => {
   };
   const results = await spotCheckPublicPages({ baseUrl: origin, fetcher });
   const sitemap = results.find((result) => result.path === "/sitemap.xml");
-  assert.ok(
-    sitemap.failures.includes("sitemap lists the one-page check"),
-    "sitemap must keep listing /check"
-  );
+  assert.ok(sitemap.failures.includes("sitemap lists the one-page check"), "sitemap must keep listing /check");
 });
 
 test("live spot-check flags a wrong status or content type on a machine surface", async () => {
   const overrides = {
-    "/api/health": () => htmlResponse("<!doctype html><div id=\"root\"></div>")
+    "/api/health": () => htmlResponse('<!doctype html><div id="root"></div>')
   };
   const fetcher = async (rawUrl, options = {}) => {
     const url = new URL(rawUrl);
@@ -396,11 +418,7 @@ test("live spot-check accepts a degraded deep-health as a truthful readiness sta
   };
   const results = await spotCheckPublicPages({ baseUrl: origin, fetcher });
   const deepHealth = results.find((result) => result.path === "/api/deep-health");
-  assert.deepEqual(
-    deepHealth.failures,
-    [],
-    "a documented degraded readiness state must not fail the spot-check"
-  );
+  assert.deepEqual(deepHealth.failures, [], "a documented degraded readiness state must not fail the spot-check");
 });
 
 test("live spot-check flags a public-check route that stopped validating input", async () => {

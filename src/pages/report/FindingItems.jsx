@@ -76,7 +76,9 @@ export function PageProof({ page }) {
       <dl>
         <div>
           <dt>Status</dt>
-          <dd>{page.status || "unknown"} {page.redirected ? `· final ${facts.finalUrl || page.finalUrl}` : ""}</dd>
+          <dd>
+            {page.status || "unknown"} {page.redirected ? `· final ${facts.finalUrl || page.finalUrl}` : ""}
+          </dd>
         </div>
         <div>
           <dt>Title</dt>
@@ -88,11 +90,15 @@ export function PageProof({ page }) {
         </div>
         <div>
           <dt>Words</dt>
-          <dd>{staticFacts.wordCount ?? "unknown"} static → {facts.wordCount ?? "unknown"} rendered</dd>
+          <dd>
+            {staticFacts.wordCount ?? "unknown"} static → {facts.wordCount ?? "unknown"} rendered
+          </dd>
         </div>
         <div>
           <dt>Internal links</dt>
-          <dd>{staticFacts.internalLinks?.length ?? 0} static → {facts.internalLinks?.length ?? 0} rendered</dd>
+          <dd>
+            {staticFacts.internalLinks?.length ?? 0} static → {facts.internalLinks?.length ?? 0} rendered
+          </dd>
         </div>
         <div>
           <dt>Broken links</dt>

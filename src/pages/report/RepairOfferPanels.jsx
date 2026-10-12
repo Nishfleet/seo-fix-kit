@@ -8,19 +8,12 @@ import {
   fixPackCheckoutOutcome,
   fixPackRepairTarget
 } from "../../fix-pack-checkout.js";
-import {
-  monitoringCheckoutErrorOutcome,
-  monitoringCheckoutOutcome
-} from "../../monitoring-checkout.js";
+import { monitoringCheckoutErrorOutcome, monitoringCheckoutOutcome } from "../../monitoring-checkout.js";
 import { CopyButton } from "../../components/CopyButton.jsx";
 import { usePricingPreview } from "../../hooks/usePricingPreview.js";
 import { beforeAfterText, formatDate } from "../../lib/format.js";
 import { proposalStatusLabel, checkoutMessage, statusLabel } from "../../lib/labels.js";
-import {
-  loadRepairQueue,
-  requestFixQuote,
-  patchRepairProposalApproval
-} from "../../lib/requests.js";
+import { loadRepairQueue, requestFixQuote, patchRepairProposalApproval } from "../../lib/requests.js";
 
 export function FixRequestStatusPanel({ fixRequest, checkoutReturned }) {
   const status = fixRequest?.status || (checkoutReturned ? "checkout_created" : "new");
@@ -75,13 +68,19 @@ export function FixRequestStatusPanel({ fixRequest, checkoutReturned }) {
           {fixRequest.deliveryUrl && (
             <div>
               <dt>Delivery</dt>
-              <dd><a href={fixRequest.deliveryUrl} target="_blank" rel="noreferrer">Open delivery link</a></dd>
+              <dd>
+                <a href={fixRequest.deliveryUrl} target="_blank" rel="noreferrer">
+                  Open delivery link
+                </a>
+              </dd>
             </div>
           )}
           {fixRequest.finalReportPath && (
             <div>
               <dt>Final rerun</dt>
-              <dd><a href={fixRequest.finalReportPath}>Open rerun report</a></dd>
+              <dd>
+                <a href={fixRequest.finalReportPath}>Open rerun report</a>
+              </dd>
             </div>
           )}
           {fixRequest.beforeAfterSummary && (
@@ -158,11 +157,9 @@ export function RepairProposalPanel({ reportId, initialProposals = [], repairSpr
   const currentRepairSprint = repairSprint
     ? {
         ...repairSprint,
-        ...repairSprintEligibilityFromProposals(
-          proposals,
-          repairSprint.hasPaidRequest ? { status: "paid" } : null,
-          { checkoutReady: Boolean(repairSprint.checkoutReady || repairSprint.checkoutLive) }
-        )
+        ...repairSprintEligibilityFromProposals(proposals, repairSprint.hasPaidRequest ? { status: "paid" } : null, {
+          checkoutReady: Boolean(repairSprint.checkoutReady || repairSprint.checkoutLive)
+        })
       }
     : null;
 
@@ -206,14 +203,20 @@ export function RepairProposalPanel({ reportId, initialProposals = [], repairSpr
               <div>
                 <span className="status-pill">{proposal.executionModeLabel || proposal.executionMode}</span>
                 <span className="status-pill">{proposalStatusLabel(proposal.approvalStatus)}</span>
-                {proposal.deliveryStatus && <span className="status-pill">{proposalStatusLabel(proposal.deliveryStatus)}</span>}
+                {proposal.deliveryStatus && (
+                  <span className="status-pill">{proposalStatusLabel(proposal.deliveryStatus)}</span>
+                )}
                 <h3>{proposal.generatedTitle || proposal.issueTitle}</h3>
                 <p>{proposal.generatedSummary || proposal.proposal?.fix}</p>
               </div>
               <div className="proposal-actions">
                 <button
                   className="action-link paid-action"
-                  disabled={savingId === proposal.id || proposal.approvalStatus === "approved" || proposal.executionMode === "unsupported"}
+                  disabled={
+                    savingId === proposal.id ||
+                    proposal.approvalStatus === "approved" ||
+                    proposal.executionMode === "unsupported"
+                  }
                   onClick={() => updateProposal(proposal, "approve")}
                   type="button"
                 >
@@ -245,7 +248,9 @@ export function RepairProposalPanel({ reportId, initialProposals = [], repairSpr
               {proposal.proposal?.snippet && (
                 <div>
                   <dt>Snippet</dt>
-                  <dd><code>{proposal.proposal.snippet}</code></dd>
+                  <dd>
+                    <code>{proposal.proposal.snippet}</code>
+                  </dd>
                 </div>
               )}
             </dl>
@@ -353,10 +358,16 @@ export function FixQuotePanel({ report, hasPriorityFixes }) {
             }}
             type="button"
           >
-            {status === "success" ? "Checkout ready" : status === "submitting" ? "Opening checkout" : "Start paid Fix Pack"}
+            {status === "success"
+              ? "Checkout ready"
+              : status === "submitting"
+                ? "Opening checkout"
+                : "Start paid Fix Pack"}
           </button>
           {(message || pricing.status === "error") && (
-            <small className={`checkout-message ${status === "error" || pricing.status === "error" ? "error" : status}`}>
+            <small
+              className={`checkout-message ${status === "error" || pricing.status === "error" ? "error" : status}`}
+            >
               {message || pricing.message}
             </small>
           )}

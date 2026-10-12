@@ -18,18 +18,9 @@ import { recordAccessEvent } from "../lib/access-events.js";
 import { runD1BatchChunks } from "../lib/db.js";
 import { json, jsonNoStore } from "../lib/http.js";
 import { monitoringAccessForOwner } from "../lib/offers.js";
-import {
-  REPORT_RETENTION_DAYS,
-  saveAuditReport,
-  saveAuditReportWithContext
-} from "../lib/report-data.js";
+import { REPORT_RETENTION_DAYS, saveAuditReport, saveAuditReportWithContext } from "../lib/report-data.js";
 import { checkQuotaSet, requestIpHash, sha256Hex, workerLargeCrawlId } from "../lib/security.js";
-import {
-  apiAuditResponse,
-  apiReportResponse,
-  auditJobResponse,
-  auditScheduleResponse
-} from "../lib/serializers.js";
+import { apiAuditResponse, apiReportResponse, auditJobResponse, auditScheduleResponse } from "../lib/serializers.js";
 import {
   clampScheduleInterval,
   cleanText,
@@ -43,15 +34,102 @@ import {
   parseJson,
   safeHostname
 } from "../lib/text.js";
+import { body, number, parseJsonBody, text, z } from "../lib/validation.js";
 import { deliverApiWebhooks } from "../lib/webhooks.js";
 
+const scalarInput = z.union([z.string(), z.number()]).nullish();
+// Imports accept either pasted text (CSV, one per line) or an array of rows.
+const listInput = z.union([z.string(), z.array(z.unknown())]).nullish();
+const objectInput = z.record(z.string(), z.unknown()).nullish();
+
+function fieldsOf(keys, schema) {
+  return Object.fromEntries(keys.map((key) => [key, schema]));
+}
+
+// Every key the audit-input parsers (competitors, backlinks, local SEO,
+// keywords) read; they keep their own precedence and error messages. Shared
+// with the v1 API's audit body.
+const auditInputFields = {
+  ...fieldsOf(["competitorUrls", "competitor_urls", "competitors"], listInput),
+  ...fieldsOf(["backlinks", "backlinkRows", "backlink_rows", "backlinkCsv", "backlink_csv"], listInput),
+  ...fieldsOf(["localSeo", "localSEO", "local_seo", "localSeoInput", "location"], objectInput),
+  ...fieldsOf(
+    [
+      "businessName",
+      "localBusinessName",
+      "business_name",
+      "phone",
+      "localPhone",
+      "phone_number",
+      "address",
+      "localAddress",
+      "business_address",
+      "googleBusinessProfileUrl",
+      "gbpUrl",
+      "gbp_url"
+    ],
+    scalarInput
+  ),
+  ...fieldsOf(
+    [
+      "localKeywords",
+      "local_keywords",
+      "citations",
+      "citationRows",
+      "citation_rows",
+      "citationUrls",
+      "citation_urls",
+      "citationCsv",
+      "citation_csv"
+    ],
+    listInput
+  ),
+  ...fieldsOf(
+    [
+      "keywordRows",
+      "keyword_rows",
+      "keywordRankRows",
+      "keyword_rank_rows",
+      "keywordCsv",
+      "keyword_csv",
+      "searchConsoleRows",
+      "search_console_rows",
+      "gscRows",
+      "gsc_rows"
+    ],
+    listInput
+  )
+};
+
+// Starting an audit. `url` stays raw so normalizeUrl() sees it unaltered.
+const AuditRunBody = body({
+  url: z.string().nullish(),
+  maxPages: number(),
+  renderedCrawlTarget: number(),
+  rendered_crawl_target: number(),
+  crawlScaleTarget: number(),
+  funnelKey: text(64),
+  landingPath: text(500),
+  ...auditInputFields
+});
+
+// A recurring audit for `url` (or `targetUrl`).
+const AuditScheduleBody = body({
+  url: z.string().nullish(),
+  targetUrl: z.string().nullish(),
+  maxPages: number(),
+  intervalDays: number()
+});
+
 async function runPrivateAudit(request, env, ctx) {
-  const body = await request.json().catch(() => ({}));
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
   if (!env.WAITLIST_DB) {
     return json({ error: "Report storage is not configured." }, 503);
   }
+  const parsed = await parseJsonBody(request, AuditRunBody);
+  if (parsed.error) return json(parsed.error, 400);
+  const body = parsed.data;
 
   let targetUrl;
   try {
@@ -117,7 +195,17 @@ async function runPrivateAudit(request, env, ctx) {
   }
 
   await failStaleRunningAuditJobs(env, access.ownerEmail);
-  const existingJob = await activeAuditJobForTarget(env, access, targetUrl, competitorUrls, backlinkRows, localSeo, keywordRows, renderedCrawlTarget, maxPages);
+  const existingJob = await activeAuditJobForTarget(
+    env,
+    access,
+    targetUrl,
+    competitorUrls,
+    backlinkRows,
+    localSeo,
+    keywordRows,
+    renderedCrawlTarget,
+    maxPages
+  );
   if (existingJob) {
     return jsonNoStore(
       {
@@ -158,10 +246,10 @@ async function runPrivateAudit(request, env, ctx) {
   await enqueueAuditJob(env, ctx, job.id, new URL(request.url).origin);
   await recordAccessEvent(env, {
     step: "audit_started",
-    funnelKey: cleanText(body?.funnelKey || request.headers.get("x-seofixkit-funnel-key") || "", 64),
+    funnelKey: body.funnelKey || cleanText(request.headers.get("x-seofixkit-funnel-key") || "", 64),
     ownerEmail: access.ownerEmail || job.owner_email,
     source: access.accessMode === "founder-override" ? "founder-override" : "private-beta",
-    landingPath: cleanText(body?.landingPath || `/${job.target_host || "audit"}`, 500),
+    landingPath: body.landingPath || cleanText(`/${job.target_host || "audit"}`, 500),
     request,
     metadata: { jobId: job.id, targetHost: job.target_host, maxPages: job.max_pages }
   });
@@ -202,10 +290,12 @@ async function listAuditSchedules(request, env) {
 }
 
 async function createAuditSchedule(request, env) {
-  const body = await request.json().catch(() => ({}));
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
   if (!env.WAITLIST_DB) return json({ error: "Schedule storage is not configured." }, 503);
+  const parsed = await parseJsonBody(request, AuditScheduleBody);
+  if (parsed.error) return json(parsed.error, 400);
+  const body = parsed.data;
 
   let targetUrl;
   try {
@@ -360,7 +450,17 @@ async function deleteAuditSchedule(request, env) {
   return jsonNoStore({ ok: true, status: "paused", id });
 }
 
-async function activeAuditJobForTarget(env, access, targetUrl, competitorUrls = [], backlinkRows = [], localSeo = {}, keywordRows = [], renderedCrawlTarget = 0, maxPages = 10) {
+async function activeAuditJobForTarget(
+  env,
+  access,
+  targetUrl,
+  competitorUrls = [],
+  backlinkRows = [],
+  localSeo = {},
+  keywordRows = [],
+  renderedCrawlTarget = 0,
+  maxPages = 10
+) {
   const competitorKey = competitorUrlsKey(competitorUrls);
   const backlinkKey = backlinkRowsKey(backlinkRows);
   const localSeoKey = localSeoInputKey(localSeo);
@@ -415,9 +515,17 @@ async function createAuditJob(env, access, targetUrl, maxPages, options = {}) {
     target_url: targetUrl,
     target_host: safeHostname(targetUrl),
     competitor_urls_json: JSON.stringify(normalizeCompetitorUrlsList(options.competitorUrls || [], targetUrl)),
-    backlink_rows_json: JSON.stringify(parseBacklinkRows({ backlinkRows: options.backlinkRows || [] }, targetUrl, { allowPrivate: false }).rows || []),
-    local_seo_input_json: JSON.stringify(parseLocalSeoInput({ localSeo: options.localSeo || {} }, targetUrl, { allowPrivate: false }).input || { enabled: false }),
-    keyword_rows_json: JSON.stringify(parseKeywordRows({ keywordRows: options.keywordRows || [] }, targetUrl, { allowPrivate: false }).rows || []),
+    backlink_rows_json: JSON.stringify(
+      parseBacklinkRows({ backlinkRows: options.backlinkRows || [] }, targetUrl, { allowPrivate: false }).rows || []
+    ),
+    local_seo_input_json: JSON.stringify(
+      parseLocalSeoInput({ localSeo: options.localSeo || {} }, targetUrl, { allowPrivate: false }).input || {
+        enabled: false
+      }
+    ),
+    keyword_rows_json: JSON.stringify(
+      parseKeywordRows({ keywordRows: options.keywordRows || [] }, targetUrl, { allowPrivate: false }).rows || []
+    ),
     rendered_crawl_target: normalizeRenderedCrawlTarget(options.renderedCrawlTarget || 0),
     max_pages: maxPages,
     status: "queued",
@@ -511,7 +619,9 @@ async function persistKeywordImportHistory(env, access, targetUrl, rows = []) {
   const now = new Date().toISOString();
   const targetHost = safeHostname(targetUrl);
   const batchId = workerLargeCrawlId("kwi");
-  const queryCount = new Set(rows.map((row) => row.normalizedQuery || String(row.query || "").toLowerCase()).filter(Boolean)).size;
+  const queryCount = new Set(
+    rows.map((row) => row.normalizedQuery || String(row.query || "").toLowerCase()).filter(Boolean)
+  ).size;
   const pageCount = new Set(rows.map((row) => row.pageUrl || "").filter(Boolean)).size;
   const statements = [
     env.WAITLIST_DB.prepare(
@@ -578,7 +688,17 @@ async function runAuditSchedule(env, schedule) {
     accessMode: schedule.access_mode || "schedule"
   };
 
-  const existing = await activeAuditJobForTarget(env, access, schedule.target_url, [], [], {}, [], 0, schedule.max_pages || 10);
+  const existing = await activeAuditJobForTarget(
+    env,
+    access,
+    schedule.target_url,
+    [],
+    [],
+    {},
+    [],
+    0,
+    schedule.max_pages || 10
+  );
   if (existing?.id) {
     const retryAt = isoDaysFromDate(now, 1);
     await env.WAITLIST_DB.prepare(
@@ -592,13 +712,9 @@ async function runAuditSchedule(env, schedule) {
   }
 
   try {
-    const job = await createAuditJob(
-      env,
-      access,
-      schedule.target_url,
-      clampPageLimit(schedule.max_pages || 10),
-      { scheduleId: schedule.id }
-    );
+    const job = await createAuditJob(env, access, schedule.target_url, clampPageLimit(schedule.max_pages || 10), {
+      scheduleId: schedule.id
+    });
     await env.WAITLIST_DB.prepare(
       `UPDATE audit_schedules
        SET last_run_at = ?, last_job_id = ?, last_error = NULL, updated_at = ?
@@ -634,9 +750,7 @@ async function failStaleRunningAuditJobs(env, ownerEmail = "") {
     where += " AND owner_email = ?";
     params.push(ownerEmail);
   }
-  const rows = await env.WAITLIST_DB.prepare(
-    `SELECT id, schedule_id FROM audit_jobs WHERE ${where} LIMIT 25`
-  )
+  const rows = await env.WAITLIST_DB.prepare(`SELECT id, schedule_id FROM audit_jobs WHERE ${where} LIMIT 25`)
     .bind(...params)
     .all();
   let failedCount = 0;
@@ -711,9 +825,7 @@ async function processAuditJob(env, jobId, context = {}) {
     .run();
   if (Number(claimed?.meta?.changes || 0) !== 1) return;
 
-  const row = await env.WAITLIST_DB.prepare(`SELECT * FROM audit_jobs WHERE id = ? LIMIT 1`)
-    .bind(jobId)
-    .first();
+  const row = await env.WAITLIST_DB.prepare(`SELECT * FROM audit_jobs WHERE id = ? LIMIT 1`).bind(jobId).first();
   if (!row?.id) return;
 
   try {
@@ -749,9 +861,7 @@ async function processAuditJob(env, jobId, context = {}) {
       .bind(saved.id, completedAt, completedAt, jobId)
       .run();
     if (row.schedule_id) {
-      const schedule = await env.WAITLIST_DB.prepare(
-        `SELECT interval_days FROM audit_schedules WHERE id = ? LIMIT 1`
-      )
+      const schedule = await env.WAITLIST_DB.prepare(`SELECT interval_days FROM audit_schedules WHERE id = ? LIMIT 1`)
         .bind(row.schedule_id)
         .first();
       await env.WAITLIST_DB.prepare(
@@ -984,6 +1094,7 @@ export {
   AUDIT_JOB_QUEUED_STALE_MINUTES,
   AUDIT_JOB_RUNNING_STALE_MINUTES,
   AUDIT_JOB_TIMEOUT_MESSAGE,
+  auditInputFields,
   activeAuditJobCount,
   activeAuditJobForTarget,
   auditQuotaStatus,

@@ -38,10 +38,13 @@ export function SignIn({
             <h1 id="beta-title">Check your inbox</h1>
             <p>
               We sent a secure sign-in link to <strong>{email}</strong>.
-              {returningToReport ? " It will bring you straight back to this report." : ""} The link
-              works once.
+              {returningToReport ? " It will bring you straight back to this report." : ""} The link works once.
             </p>
-            {message && <p className={`form-message ${status}`} role="status">{message}</p>}
+            {message && (
+              <p className={`form-message ${status}`} role="status">
+                {message}
+              </p>
+            )}
             <button className="text-button accent-text" onClick={() => setLinkSent(false)} type="button">
               Use a different email
             </button>

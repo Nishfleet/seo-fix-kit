@@ -43,13 +43,8 @@ async function requestIpHash(request) {
 }
 
 async function sha256Hex(value) {
-  const digest = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(String(value || ""))
-  );
-  return [...new Uint8Array(digest)]
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(String(value || "")));
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 async function hmacSha256Hex(secret, value) {
@@ -61,9 +56,7 @@ async function hmacSha256Hex(secret, value) {
     ["sign"]
   );
   const digest = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(String(value || "")));
-  return [...new Uint8Array(digest)]
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 function constantTimeEqual(left, right) {

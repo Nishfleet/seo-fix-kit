@@ -1,9 +1,4 @@
-import {
-  cleanActionMode,
-  cleanActionType,
-  cleanApprovalState,
-  cleanExecutionState
-} from "./repair-queue.js";
+import { cleanActionMode, cleanActionType, cleanApprovalState, cleanExecutionState } from "./repair-queue.js";
 
 const IMPLEMENTATION_PACK_CONTENT_TYPE = "text/markdown; charset=utf-8";
 
@@ -21,7 +16,8 @@ function buildRepairImplementationPack({ report = {}, item = {}, action = {} } =
   }
 
   const approvalState = cleanApprovalState(action.approval_state || action.approvalState);
-  if (approvalState === "drafted") return packError("Approve the repair action before creating an implementation pack.", 409);
+  if (approvalState === "drafted")
+    return packError("Approve the repair action before creating an implementation pack.", 409);
   if (approvalState === "ignored") return packError("Ignored repair actions do not have implementation packs.", 409);
 
   const itemStatus = text(item.status || item.queue_status, 80).toLowerCase();
@@ -68,7 +64,9 @@ function buildRepairImplementationPack({ report = {}, item = {}, action = {} } =
     "",
     "## Source Proof",
     "",
-    sourceProof ? fencedBlock(sourceProof, 3000) : "The original report contains the proof for this repair. Reopen the private report before applying the change.",
+    sourceProof
+      ? fencedBlock(sourceProof, 3000)
+      : "The original report contains the proof for this repair. Reopen the private report before applying the change.",
     sourceFix ? ["", "## Original Fix Guidance", "", fencedBlock(sourceFix, 2500)].join("\n") : "",
     snippet ? ["", "## Source Snippet", "", fencedBlock(snippet, 5000)].join("\n") : "",
     "",
@@ -82,7 +80,9 @@ function buildRepairImplementationPack({ report = {}, item = {}, action = {} } =
     "",
     "## Acceptance Check",
     "",
-    acceptance ? fencedBlock(acceptance, 2000) : "Rerun the audit and confirm the original finding is gone or intentionally accepted with fresh proof.",
+    acceptance
+      ? fencedBlock(acceptance, 2000)
+      : "Rerun the audit and confirm the original finding is gone or intentionally accepted with fresh proof.",
     "",
     "## Rollback Note",
     "",
@@ -98,7 +98,9 @@ function buildRepairImplementationPack({ report = {}, item = {}, action = {} } =
     "- SEOFixKit did not publish to a CMS, open or merge a GitHub pull request, or call provider admin APIs for this pack.",
     "- Rankings, traffic, indexing, AI citations, and revenue are not guaranteed.",
     "- If the approved change no longer matches the current site, pause and draft a new repair action before applying anything."
-  ].filter((part) => part !== "").join("\n");
+  ]
+    .filter((part) => part !== "")
+    .join("\n");
 
   return {
     ok: true,
@@ -175,34 +177,42 @@ function modeSteps(mode = "self_serve") {
 
 function rollbackNote(mode = "self_serve") {
   const notes = {
-    self_serve: "Keep the previous page copy, metadata, or snippet so the site owner can restore it if the rerun regresses or the change is wrong.",
+    self_serve:
+      "Keep the previous page copy, metadata, or snippet so the site owner can restore it if the rerun regresses or the change is wrong.",
     teammate: "Ask the teammate to document the previous value and restore path before changing the page.",
-    fix_pack: "Keep the delivery note, previous value, and customer-visible change summary so support can reverse or revise the repair if proof regresses.",
-    cms_draft: "Keep the CMS draft history or previous published value. If proof regresses, revert the draft or restore the previous published version.",
-    github_pr: "Keep the pull request small. If proof regresses after merge, revert the PR or apply a follow-up PR that restores the previous behavior."
+    fix_pack:
+      "Keep the delivery note, previous value, and customer-visible change summary so support can reverse or revise the repair if proof regresses.",
+    cms_draft:
+      "Keep the CMS draft history or previous published value. If proof regresses, revert the draft or restore the previous published version.",
+    github_pr:
+      "Keep the pull request small. If proof regresses after merge, revert the PR or apply a follow-up PR that restores the previous behavior."
   };
   return notes[mode] || notes.self_serve;
 }
 
 function actionModeLabel(mode = "") {
-  return {
-    self_serve: "Self-serve implementation",
-    teammate: "Teammate handoff",
-    fix_pack: "Fix Pack fulfillment",
-    cms_draft: "CMS draft",
-    github_pr: "GitHub PR draft"
-  }[mode] || "Self-serve implementation";
+  return (
+    {
+      self_serve: "Self-serve implementation",
+      teammate: "Teammate handoff",
+      fix_pack: "Fix Pack fulfillment",
+      cms_draft: "CMS draft",
+      github_pr: "GitHub PR draft"
+    }[mode] || "Self-serve implementation"
+  );
 }
 
 function actionTypeLabel(type = "") {
-  return {
-    draft_fix: "Draft fix",
-    metadata_copy: "Metadata copy",
-    schema_snippet: "Schema snippet",
-    fix_pack_handoff: "Fix Pack handoff",
-    cms_draft: "CMS draft",
-    github_pr_draft: "GitHub PR draft"
-  }[type] || "Draft fix";
+  return (
+    {
+      draft_fix: "Draft fix",
+      metadata_copy: "Metadata copy",
+      schema_snippet: "Schema snippet",
+      fix_pack_handoff: "Fix Pack handoff",
+      cms_draft: "CMS draft",
+      github_pr_draft: "GitHub PR draft"
+    }[type] || "Draft fix"
+  );
 }
 
 function packError(error, status = 400) {
@@ -235,25 +245,31 @@ function sanitizeMarkdown(value = "", max = 500, options = {}) {
     .replace(/[<>]/g, "");
   const cleaned = options.multiline
     ? source
-      .split("\n")
-      .map((line) => line.replace(/[ \t]+/g, " ").trimEnd())
-      .join("\n")
-      .replace(/\n{3,}/g, "\n\n")
-      .trim()
+        .split("\n")
+        .map((line) => line.replace(/[ \t]+/g, " ").trimEnd())
+        .join("\n")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim()
     : source.replace(/\s+/g, " ").trim();
   return cleaned.slice(0, max);
 }
 
 function slug(value = "", fallback = "item") {
-  return String(value || fallback)
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 70) || fallback;
+  return (
+    String(value || fallback)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 70) || fallback
+  );
 }
 
 function rawUnsupported(value = "") {
-  return String(value || "").trim().toLowerCase() === "unsupported";
+  return (
+    String(value || "")
+      .trim()
+      .toLowerCase() === "unsupported"
+  );
 }
 
 export {

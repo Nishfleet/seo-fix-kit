@@ -91,9 +91,8 @@ export function WaitlistPage() {
             <p className="landing-pill">Now in private beta · Free to try</p>
             <h1 id="page-title">SEO fixes you can prove.</h1>
             <p className="landing-lead">
-              SEO Fix Kit checks your site in a real browser, shows exactly what is
-              broken with the evidence, and hands your developer ready-to-paste
-              fixes. Then it reruns the check to prove they worked.
+              SEO Fix Kit checks your site in a real browser, shows exactly what is broken with the evidence, and hands
+              your developer ready-to-paste fixes. Then it reruns the check to prove they worked.
             </p>
             <AccessForm />
           </div>
@@ -101,10 +100,22 @@ export function WaitlistPage() {
         </section>
 
         <section className="landing-facts" aria-label="At a glance">
-          <div><strong>1,000</strong><span>pages per audit</span></div>
-          <div><strong>Real browser</strong><span>rendering on every page</span></div>
-          <div><strong>$0</strong><span>to find the problems</span></div>
-          <div><strong>Proof</strong><span>after every fix</span></div>
+          <div>
+            <strong>1,000</strong>
+            <span>pages per audit</span>
+          </div>
+          <div>
+            <strong>Real browser</strong>
+            <span>rendering on every page</span>
+          </div>
+          <div>
+            <strong>$0</strong>
+            <span>to find the problems</span>
+          </div>
+          <div>
+            <strong>Proof</strong>
+            <span>after every fix</span>
+          </div>
         </section>
 
         <section className="landing-section" aria-labelledby="how-title">
@@ -139,18 +150,29 @@ export function WaitlistPage() {
             <p className="landing-eyebrow">Real result</p>
             <h2 id="proof-title">85 to 100, with a receipt.</h2>
             <p>
-              Our founder’s own portfolio site went from 7 problems to none across
-              two small changes. The same audit ran before and after each one, so every step is
-              on the record.
+              Our founder’s own portfolio site went from 7 problems to none across two small changes. The same audit ran
+              before and after each one, so every step is on the record.
             </p>
             <a className="landing-link" href="/proof">
               See the before and after →
             </a>
           </div>
           <dl className="landing-proof-scores">
-            <div><dt>Before</dt><dd>85</dd><span>7 problems</span></div>
-            <div><dt>After fix 1</dt><dd>99</dd><span>2 problems</span></div>
-            <div><dt>After fix 2</dt><dd>100</dd><span>0 problems</span></div>
+            <div>
+              <dt>Before</dt>
+              <dd>85</dd>
+              <span>7 problems</span>
+            </div>
+            <div>
+              <dt>After fix 1</dt>
+              <dd>99</dd>
+              <span>2 problems</span>
+            </div>
+            <div>
+              <dt>After fix 2</dt>
+              <dd>100</dd>
+              <span>0 problems</span>
+            </div>
           </dl>
         </section>
 

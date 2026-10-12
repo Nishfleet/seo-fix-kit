@@ -21,28 +21,34 @@ test("Fix Pack checkout carries selected repair metadata to Dodo", async () => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, options = {}) => {
     dodoRequests.push({ url: String(url), body: JSON.parse(options.body || "{}") });
-    return new Response(JSON.stringify({
-      checkout_url: "https://checkout.example.com/session-1",
-      session_id: "dodo-session-1"
-    }), {
-      status: 200,
-      headers: { "content-type": "application/json" }
-    });
+    return new Response(
+      JSON.stringify({
+        checkout_url: "https://checkout.example.com/session-1",
+        session_id: "dodo-session-1"
+      }),
+      {
+        status: 200,
+        headers: { "content-type": "application/json" }
+      }
+    );
   };
 
   try {
-    const response = await requestFixPack(new Request("https://seofixkit.test/api/beta/fix-request", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-beta-session": env.sessionToken
-      },
-      body: JSON.stringify({
-        reportId: env.reportId,
-        queueItemId: "queue-1",
-        note: "Please repair this title first."
-      })
-    }), env);
+    const response = await requestFixPack(
+      new Request("https://seofixkit.test/api/beta/fix-request", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-beta-session": env.sessionToken
+        },
+        body: JSON.stringify({
+          reportId: env.reportId,
+          queueItemId: "queue-1",
+          note: "Please repair this title first."
+        })
+      }),
+      env
+    );
 
     assert.equal(response.status, 200);
     const body = await response.json();
@@ -86,27 +92,33 @@ test("Fix Pack checkout rejects requested closed repairs instead of silently swi
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, options = {}) => {
     dodoRequests.push({ url: String(url), body: JSON.parse(options.body || "{}") });
-    return new Response(JSON.stringify({
-      checkout_url: "https://checkout.example.com/session-closed-request",
-      session_id: "dodo-session-closed-request"
-    }), {
-      status: 200,
-      headers: { "content-type": "application/json" }
-    });
+    return new Response(
+      JSON.stringify({
+        checkout_url: "https://checkout.example.com/session-closed-request",
+        session_id: "dodo-session-closed-request"
+      }),
+      {
+        status: 200,
+        headers: { "content-type": "application/json" }
+      }
+    );
   };
 
   try {
-    const response = await requestFixPack(new Request("https://seofixkit.test/api/beta/fix-request", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-beta-session": env.sessionToken
-      },
-      body: JSON.stringify({
-        reportId: env.reportId,
-        queueItemId: "queue-1"
-      })
-    }), env);
+    const response = await requestFixPack(
+      new Request("https://seofixkit.test/api/beta/fix-request", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-beta-session": env.sessionToken
+        },
+        body: JSON.stringify({
+          reportId: env.reportId,
+          queueItemId: "queue-1"
+        })
+      }),
+      env
+    );
 
     assert.equal(response.status, 409);
     const body = await response.json();
@@ -135,30 +147,36 @@ test("Fix Pack checkout rejects mismatched explicit repair identifiers", async (
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, options = {}) => {
     dodoRequests.push({ url: String(url), body: JSON.parse(options.body || "{}") });
-    return new Response(JSON.stringify({
-      checkout_url: "https://checkout.example.com/session-mismatched-repair",
-      session_id: "dodo-session-mismatched-repair"
-    }), {
-      status: 200,
-      headers: { "content-type": "application/json" }
-    });
+    return new Response(
+      JSON.stringify({
+        checkout_url: "https://checkout.example.com/session-mismatched-repair",
+        session_id: "dodo-session-mismatched-repair"
+      }),
+      {
+        status: 200,
+        headers: { "content-type": "application/json" }
+      }
+    );
   };
 
   try {
-    const response = await requestFixPack(new Request("https://seofixkit.test/api/beta/fix-request", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-beta-session": env.sessionToken
-      },
-      body: JSON.stringify({
-        reportId: env.reportId,
-        selectedRepair: {
-          queueItemId: "queue-1",
-          issueId: "issue-2"
-        }
-      })
-    }), env);
+    const response = await requestFixPack(
+      new Request("https://seofixkit.test/api/beta/fix-request", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-beta-session": env.sessionToken
+        },
+        body: JSON.stringify({
+          reportId: env.reportId,
+          selectedRepair: {
+            queueItemId: "queue-1",
+            issueId: "issue-2"
+          }
+        })
+      }),
+      env
+    );
 
     assert.equal(response.status, 409);
     const body = await response.json();
@@ -181,27 +199,33 @@ test("Fix Pack checkout has no selected repair when every repair is closed", asy
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, options = {}) => {
     dodoRequests.push({ url: String(url), body: JSON.parse(options.body || "{}") });
-    return new Response(JSON.stringify({
-      checkout_url: "https://checkout.example.com/session-no-active-repair",
-      session_id: "dodo-session-no-active-repair"
-    }), {
-      status: 200,
-      headers: { "content-type": "application/json" }
-    });
+    return new Response(
+      JSON.stringify({
+        checkout_url: "https://checkout.example.com/session-no-active-repair",
+        session_id: "dodo-session-no-active-repair"
+      }),
+      {
+        status: 200,
+        headers: { "content-type": "application/json" }
+      }
+    );
   };
 
   try {
-    const response = await requestFixPack(new Request("https://seofixkit.test/api/beta/fix-request", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-beta-session": env.sessionToken
-      },
-      body: JSON.stringify({
-        reportId: env.reportId,
-        queueItemId: "queue-1"
-      })
-    }), env);
+    const response = await requestFixPack(
+      new Request("https://seofixkit.test/api/beta/fix-request", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-beta-session": env.sessionToken
+        },
+        body: JSON.stringify({
+          reportId: env.reportId,
+          queueItemId: "queue-1"
+        })
+      }),
+      env
+    );
 
     assert.equal(response.status, 409);
     const body = await response.json();
@@ -249,27 +273,33 @@ test("Fix Pack checkout returns an existing paid request after its repair closes
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, options = {}) => {
     dodoRequests.push({ url: String(url), body: JSON.parse(options.body || "{}") });
-    return new Response(JSON.stringify({
-      checkout_url: "https://checkout.example.com/unexpected",
-      session_id: "dodo-session-unexpected"
-    }), {
-      status: 200,
-      headers: { "content-type": "application/json" }
-    });
+    return new Response(
+      JSON.stringify({
+        checkout_url: "https://checkout.example.com/unexpected",
+        session_id: "dodo-session-unexpected"
+      }),
+      {
+        status: 200,
+        headers: { "content-type": "application/json" }
+      }
+    );
   };
 
   try {
-    const response = await requestFixPack(new Request("https://seofixkit.test/api/beta/fix-request", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-beta-session": env.sessionToken
-      },
-      body: JSON.stringify({
-        reportId: env.reportId,
-        queueItemId: "queue-1"
-      })
-    }), env);
+    const response = await requestFixPack(
+      new Request("https://seofixkit.test/api/beta/fix-request", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-beta-session": env.sessionToken
+        },
+        body: JSON.stringify({
+          reportId: env.reportId,
+          queueItemId: "queue-1"
+        })
+      }),
+      env
+    );
 
     assert.equal(response.status, 200);
     const body = await response.json();
@@ -316,27 +346,33 @@ test("Fix Pack checkout blocks rebuy after refund or dispute statuses", async ()
     const originalFetch = globalThis.fetch;
     globalThis.fetch = async (url, options = {}) => {
       dodoRequests.push({ url: String(url), body: JSON.parse(options.body || "{}") });
-      return new Response(JSON.stringify({
-        checkout_url: "https://checkout.example.com/unexpected-rebuy",
-        session_id: "dodo-session-unexpected-rebuy"
-      }), {
-        status: 200,
-        headers: { "content-type": "application/json" }
-      });
+      return new Response(
+        JSON.stringify({
+          checkout_url: "https://checkout.example.com/unexpected-rebuy",
+          session_id: "dodo-session-unexpected-rebuy"
+        }),
+        {
+          status: 200,
+          headers: { "content-type": "application/json" }
+        }
+      );
     };
 
     try {
-      const response = await requestFixPack(new Request("https://seofixkit.test/api/beta/fix-request", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-beta-session": env.sessionToken
-        },
-        body: JSON.stringify({
-          reportId: env.reportId,
-          queueItemId: "queue-1"
-        })
-      }), env);
+      const response = await requestFixPack(
+        new Request("https://seofixkit.test/api/beta/fix-request", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-beta-session": env.sessionToken
+          },
+          body: JSON.stringify({
+            reportId: env.reportId,
+            queueItemId: "queue-1"
+          })
+        }),
+        env
+      );
 
       assert.equal(response.status, 200);
       const body = await response.json();
@@ -360,27 +396,33 @@ test("Fix Pack checkout materializes repair queue before Dodo metadata", async (
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, options = {}) => {
     dodoRequests.push({ url: String(url), body: JSON.parse(options.body || "{}") });
-    return new Response(JSON.stringify({
-      checkout_url: "https://checkout.example.com/materialized-repair",
-      session_id: "dodo-session-materialized-repair"
-    }), {
-      status: 200,
-      headers: { "content-type": "application/json" }
-    });
+    return new Response(
+      JSON.stringify({
+        checkout_url: "https://checkout.example.com/materialized-repair",
+        session_id: "dodo-session-materialized-repair"
+      }),
+      {
+        status: 200,
+        headers: { "content-type": "application/json" }
+      }
+    );
   };
 
   try {
-    const response = await requestFixPack(new Request("https://seofixkit.test/api/beta/fix-request", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-beta-session": env.sessionToken
-      },
-      body: JSON.stringify({
-        reportId: env.reportId,
-        issueId: "issue-1"
-      })
-    }), env);
+    const response = await requestFixPack(
+      new Request("https://seofixkit.test/api/beta/fix-request", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-beta-session": env.sessionToken
+        },
+        body: JSON.stringify({
+          reportId: env.reportId,
+          issueId: "issue-1"
+        })
+      }),
+      env
+    );
 
     assert.equal(response.status, 200);
     const body = await response.json();
@@ -406,27 +448,33 @@ test("Fix Pack checkout returns migration error when repair queue tables are una
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, options = {}) => {
     dodoRequests.push({ url: String(url), body: JSON.parse(options.body || "{}") });
-    return new Response(JSON.stringify({
-      checkout_url: "https://checkout.example.com/unexpected-repair-table-skew",
-      session_id: "dodo-session-unexpected-repair-table-skew"
-    }), {
-      status: 200,
-      headers: { "content-type": "application/json" }
-    });
+    return new Response(
+      JSON.stringify({
+        checkout_url: "https://checkout.example.com/unexpected-repair-table-skew",
+        session_id: "dodo-session-unexpected-repair-table-skew"
+      }),
+      {
+        status: 200,
+        headers: { "content-type": "application/json" }
+      }
+    );
   };
 
   try {
-    const response = await requestFixPack(new Request("https://seofixkit.test/api/beta/fix-request", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-beta-session": env.sessionToken
-      },
-      body: JSON.stringify({
-        reportId: env.reportId,
-        issueId: "issue-1"
-      })
-    }), env);
+    const response = await requestFixPack(
+      new Request("https://seofixkit.test/api/beta/fix-request", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-beta-session": env.sessionToken
+        },
+        body: JSON.stringify({
+          reportId: env.reportId,
+          issueId: "issue-1"
+        })
+      }),
+      env
+    );
 
     assert.equal(response.status, 503);
     const body = await response.json();
@@ -449,27 +497,33 @@ test("Fix Pack checkout preflights checkout repair metadata column before Dodo",
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, options = {}) => {
     dodoRequests.push({ url: String(url), body: JSON.parse(options.body || "{}") });
-    return new Response(JSON.stringify({
-      checkout_url: "https://checkout.example.com/unexpected-checkout-schema-skew",
-      session_id: "dodo-session-unexpected-checkout-schema-skew"
-    }), {
-      status: 200,
-      headers: { "content-type": "application/json" }
-    });
+    return new Response(
+      JSON.stringify({
+        checkout_url: "https://checkout.example.com/unexpected-checkout-schema-skew",
+        session_id: "dodo-session-unexpected-checkout-schema-skew"
+      }),
+      {
+        status: 200,
+        headers: { "content-type": "application/json" }
+      }
+    );
   };
 
   try {
-    const response = await requestFixPack(new Request("https://seofixkit.test/api/beta/fix-request", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-beta-session": env.sessionToken
-      },
-      body: JSON.stringify({
-        reportId: env.reportId,
-        queueItemId: "queue-1"
-      })
-    }), env);
+    const response = await requestFixPack(
+      new Request("https://seofixkit.test/api/beta/fix-request", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-beta-session": env.sessionToken
+        },
+        body: JSON.stringify({
+          reportId: env.reportId,
+          queueItemId: "queue-1"
+        })
+      }),
+      env
+    );
 
     assert.equal(response.status, 503);
     const body = await response.json();
@@ -493,27 +547,33 @@ test("Fix Pack checkout refreshes cached checkout when selected repair closes", 
   globalThis.fetch = async (url, options = {}) => {
     const session = `dodo-session-refresh-${dodoRequests.length + 1}`;
     dodoRequests.push({ url: String(url), body: JSON.parse(options.body || "{}"), session });
-    return new Response(JSON.stringify({
-      checkout_url: `https://checkout.example.com/${session}`,
-      session_id: session
-    }), {
-      status: 200,
-      headers: { "content-type": "application/json" }
-    });
+    return new Response(
+      JSON.stringify({
+        checkout_url: `https://checkout.example.com/${session}`,
+        session_id: session
+      }),
+      {
+        status: 200,
+        headers: { "content-type": "application/json" }
+      }
+    );
   };
 
   try {
-    const first = await requestFixPack(new Request("https://seofixkit.test/api/beta/fix-request", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-beta-session": env.sessionToken
-      },
-      body: JSON.stringify({
-        reportId: env.reportId,
-        queueItemId: "queue-1"
-      })
-    }), env);
+    const first = await requestFixPack(
+      new Request("https://seofixkit.test/api/beta/fix-request", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-beta-session": env.sessionToken
+        },
+        body: JSON.stringify({
+          reportId: env.reportId,
+          queueItemId: "queue-1"
+        })
+      }),
+      env
+    );
     assert.equal(first.status, 200);
     const firstBody = await first.json();
     assert.equal(firstBody.checkoutUrl, "https://checkout.example.com/dodo-session-refresh-1");
@@ -534,16 +594,19 @@ test("Fix Pack checkout refreshes cached checkout when selected repair closes", 
       status: "open"
     });
 
-    const second = await requestFixPack(new Request("https://seofixkit.test/api/beta/fix-request", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-beta-session": env.sessionToken
-      },
-      body: JSON.stringify({
-        reportId: env.reportId
-      })
-    }), env);
+    const second = await requestFixPack(
+      new Request("https://seofixkit.test/api/beta/fix-request", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-beta-session": env.sessionToken
+        },
+        body: JSON.stringify({
+          reportId: env.reportId
+        })
+      }),
+      env
+    );
     assert.equal(second.status, 200);
     const secondBody = await second.json();
     assert.equal(secondBody.checkoutUrl, "https://checkout.example.com/dodo-session-refresh-2");
@@ -591,40 +654,49 @@ test("Fix Pack checkout reuses cached checkout when selected repair is unchanged
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, options = {}) => {
     dodoRequests.push({ url: String(url), body: JSON.parse(options.body || "{}") });
-    return new Response(JSON.stringify({
-      checkout_url: "https://checkout.example.com/cached-repair-target",
-      session_id: "dodo-session-cached-repair-target"
-    }), {
-      status: 200,
-      headers: { "content-type": "application/json" }
-    });
+    return new Response(
+      JSON.stringify({
+        checkout_url: "https://checkout.example.com/cached-repair-target",
+        session_id: "dodo-session-cached-repair-target"
+      }),
+      {
+        status: 200,
+        headers: { "content-type": "application/json" }
+      }
+    );
   };
 
   try {
-    const first = await requestFixPack(new Request("https://seofixkit.test/api/beta/fix-request", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-beta-session": env.sessionToken
-      },
-      body: JSON.stringify({
-        reportId: env.reportId,
-        queueItemId: "queue-1"
-      })
-    }), env);
+    const first = await requestFixPack(
+      new Request("https://seofixkit.test/api/beta/fix-request", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-beta-session": env.sessionToken
+        },
+        body: JSON.stringify({
+          reportId: env.reportId,
+          queueItemId: "queue-1"
+        })
+      }),
+      env
+    );
     assert.equal(first.status, 200);
 
-    const second = await requestFixPack(new Request("https://seofixkit.test/api/beta/fix-request", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-beta-session": env.sessionToken
-      },
-      body: JSON.stringify({
-        reportId: env.reportId,
-        queueItemId: "queue-1"
-      })
-    }), env);
+    const second = await requestFixPack(
+      new Request("https://seofixkit.test/api/beta/fix-request", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-beta-session": env.sessionToken
+        },
+        body: JSON.stringify({
+          reportId: env.reportId,
+          queueItemId: "queue-1"
+        })
+      }),
+      env
+    );
     assert.equal(second.status, 200);
     const secondBody = await second.json();
     assert.equal(secondBody.checkoutUrl, "https://checkout.example.com/cached-repair-target");
@@ -665,26 +737,33 @@ test("Dodo payment from an older matching checkout is recorded for follow-up", a
     updated_at: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString()
   });
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = async () => new Response(JSON.stringify({
-    checkout_url: "https://checkout.example.com/session-new",
-    session_id: "dodo-session-new"
-  }), {
-    status: 200,
-    headers: { "content-type": "application/json" }
-  });
+  globalThis.fetch = async () =>
+    new Response(
+      JSON.stringify({
+        checkout_url: "https://checkout.example.com/session-new",
+        session_id: "dodo-session-new"
+      }),
+      {
+        status: 200,
+        headers: { "content-type": "application/json" }
+      }
+    );
 
   try {
-    const refreshed = await requestFixPack(new Request("https://seofixkit.test/api/beta/fix-request", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-beta-session": env.sessionToken
-      },
-      body: JSON.stringify({
-        reportId: env.reportId,
-        queueItemId: "queue-1"
-      })
-    }), env);
+    const refreshed = await requestFixPack(
+      new Request("https://seofixkit.test/api/beta/fix-request", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-beta-session": env.sessionToken
+        },
+        body: JSON.stringify({
+          reportId: env.reportId,
+          queueItemId: "queue-1"
+        })
+      }),
+      env
+    );
     assert.equal(refreshed.status, 200);
   } finally {
     globalThis.fetch = originalFetch;
@@ -1092,17 +1171,21 @@ test("Dodo payment success event preserves selected repair metadata", async () =
 
 test("Dodo webhook drill marker cannot pay a non-test Fix Pack request", async () => {
   const env = await fakeBillingEnv();
-  env.fixRequests.push(checkoutFixRequest(env, {
-    id: "fix-request-real",
-    is_test: 0
-  }));
+  env.fixRequests.push(
+    checkoutFixRequest(env, {
+      id: "fix-request-real",
+      is_test: 0
+    })
+  );
 
-  const payment = extractDodoPayment(paymentEventData(env, {
-    id: "payment-drill-real",
-    metadata: {
-      seofixkit_webhook_drill: "1"
-    }
-  }));
+  const payment = extractDodoPayment(
+    paymentEventData(env, {
+      id: "payment-drill-real",
+      metadata: {
+        seofixkit_webhook_drill: "1"
+      }
+    })
+  );
 
   const result = await processDodoPaymentWebhook(env, "payment.succeeded", payment, "wh_drill_real");
 
@@ -1118,17 +1201,21 @@ test("Dodo webhook drill marker cannot pay a non-test Fix Pack request", async (
 
 test("Dodo webhook drill marker can pay only a test Fix Pack request and seed proposals", async () => {
   const env = await fakeBillingEnv();
-  env.fixRequests.push(checkoutFixRequest(env, {
-    id: "fix-request-test",
-    is_test: 1
-  }));
+  env.fixRequests.push(
+    checkoutFixRequest(env, {
+      id: "fix-request-test",
+      is_test: 1
+    })
+  );
 
-  const payment = extractDodoPayment(paymentEventData(env, {
-    id: "payment-drill-test",
-    metadata: {
-      seofixkit_webhook_drill: "1"
-    }
-  }));
+  const payment = extractDodoPayment(
+    paymentEventData(env, {
+      id: "payment-drill-test",
+      metadata: {
+        seofixkit_webhook_drill: "1"
+      }
+    })
+  );
 
   const result = await processDodoPaymentWebhook(env, "payment.succeeded", payment, "wh_drill_test");
 
@@ -1146,15 +1233,17 @@ test("Dodo webhook drill marker can pay only a test Fix Pack request and seed pr
 
 test("billing summary exposes customer delivery readiness from repair proposal state", async () => {
   const env = await fakeBillingEnv();
-  env.fixRequests.push(checkoutFixRequest(env, {
-    id: "fix-request-paid",
-    status: "paid",
-    payment_id: "payment-1",
-    paid_at: "2026-06-20T00:00:00.000Z",
-    customer_note: "",
-    delivery_url: "",
-    final_report_id: ""
-  }));
+  env.fixRequests.push(
+    checkoutFixRequest(env, {
+      id: "fix-request-paid",
+      status: "paid",
+      payment_id: "payment-1",
+      paid_at: "2026-06-20T00:00:00.000Z",
+      customer_note: "",
+      delivery_url: "",
+      final_report_id: ""
+    })
+  );
   env.repairProposals.push({
     fix_request_id: "fix-request-paid",
     owner_email: "owner@example.com",
@@ -1163,19 +1252,26 @@ test("billing summary exposes customer delivery readiness from repair proposal s
     execution_mode: "generated_proposal"
   });
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = async () => new Response(JSON.stringify({
-    display_price: "$99.00",
-    currency: "USD",
-    total_amount: 9900
-  }), {
-    status: 200,
-    headers: { "content-type": "application/json" }
-  });
+  globalThis.fetch = async () =>
+    new Response(
+      JSON.stringify({
+        display_price: "$99.00",
+        currency: "USD",
+        total_amount: 9900
+      }),
+      {
+        status: 200,
+        headers: { "content-type": "application/json" }
+      }
+    );
 
   try {
-    const response = await getBillingSummary(new Request("https://seofixkit.test/api/billing/summary", {
-      headers: { "x-beta-session": env.sessionToken }
-    }), env);
+    const response = await getBillingSummary(
+      new Request("https://seofixkit.test/api/billing/summary", {
+        headers: { "x-beta-session": env.sessionToken }
+      }),
+      env
+    );
     assert.equal(response.status, 200);
     const body = await response.json();
     assert.equal(body.requests.length, 1);
@@ -1199,29 +1295,38 @@ test("billing summary exposes customer delivery readiness from repair proposal s
 test("billing summary marks delivery blocked when proposal state is unavailable", async () => {
   const env = await fakeBillingEnv();
   env.repairProposalsMissing = true;
-  env.fixRequests.push(checkoutFixRequest(env, {
-    id: "fix-request-paid",
-    status: "paid",
-    payment_id: "payment-1",
-    paid_at: "2026-06-20T00:00:00.000Z",
-    customer_note: "Ready for review",
-    delivery_url: "https://seofixkit.com/beta/reports/final",
-    final_report_id: "final"
-  }));
+  env.fixRequests.push(
+    checkoutFixRequest(env, {
+      id: "fix-request-paid",
+      status: "paid",
+      payment_id: "payment-1",
+      paid_at: "2026-06-20T00:00:00.000Z",
+      customer_note: "Ready for review",
+      delivery_url: "https://seofixkit.com/beta/reports/final",
+      final_report_id: "final"
+    })
+  );
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = async () => new Response(JSON.stringify({
-    display_price: "$99.00",
-    currency: "USD",
-    total_amount: 9900
-  }), {
-    status: 200,
-    headers: { "content-type": "application/json" }
-  });
+  globalThis.fetch = async () =>
+    new Response(
+      JSON.stringify({
+        display_price: "$99.00",
+        currency: "USD",
+        total_amount: 9900
+      }),
+      {
+        status: 200,
+        headers: { "content-type": "application/json" }
+      }
+    );
 
   try {
-    const response = await getBillingSummary(new Request("https://seofixkit.test/api/billing/summary", {
-      headers: { "x-beta-session": env.sessionToken }
-    }), env);
+    const response = await getBillingSummary(
+      new Request("https://seofixkit.test/api/billing/summary", {
+        headers: { "x-beta-session": env.sessionToken }
+      }),
+      env
+    );
     assert.equal(response.status, 200);
     const body = await response.json();
     assert.equal(body.requests[0].repairProposalSummary, undefined);
@@ -1239,9 +1344,12 @@ test("billing summary keeps empty Fix Pack state unchanged", async () => {
   const env = await fakeBillingEnv();
 
   await withDodoPricing(async () => {
-    const response = await getBillingSummary(new Request("https://seofixkit.test/api/billing/summary", {
-      headers: { "x-beta-session": env.sessionToken }
-    }), env);
+    const response = await getBillingSummary(
+      new Request("https://seofixkit.test/api/billing/summary", {
+        headers: { "x-beta-session": env.sessionToken }
+      }),
+      env
+    );
     assert.equal(response.status, 200);
     const body = await response.json();
     assert.deepEqual(body.requests, []);
@@ -1255,24 +1363,30 @@ test("Proof Monitoring checkout creates Dodo subscription checkout for verified 
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, options = {}) => {
     dodoRequests.push({ url: String(url), body: JSON.parse(options.body || "{}") });
-    return new Response(JSON.stringify({
-      checkout_url: "https://checkout.example.com/monitoring-1",
-      session_id: "dodo-monitoring-session-1"
-    }), {
-      status: 200,
-      headers: { "content-type": "application/json" }
-    });
+    return new Response(
+      JSON.stringify({
+        checkout_url: "https://checkout.example.com/monitoring-1",
+        session_id: "dodo-monitoring-session-1"
+      }),
+      {
+        status: 200,
+        headers: { "content-type": "application/json" }
+      }
+    );
   };
 
   try {
-    const response = await requestMonitoringCheckout(new Request("https://seofixkit.test/api/beta/monitoring-checkout", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-beta-session": env.sessionToken
-      },
-      body: JSON.stringify({ targetHost: "example.com" })
-    }), env);
+    const response = await requestMonitoringCheckout(
+      new Request("https://seofixkit.test/api/beta/monitoring-checkout", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-beta-session": env.sessionToken
+        },
+        body: JSON.stringify({ targetHost: "example.com" })
+      }),
+      env
+    );
 
     assert.equal(response.status, 200);
     const body = await response.json();
@@ -1309,14 +1423,17 @@ test("Proof Monitoring checkout fails closed when subscription product is not co
   };
 
   try {
-    const response = await requestMonitoringCheckout(new Request("https://seofixkit.test/api/beta/monitoring-checkout", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-beta-session": env.sessionToken
-      },
-      body: JSON.stringify({ targetHost: "example.com" })
-    }), env);
+    const response = await requestMonitoringCheckout(
+      new Request("https://seofixkit.test/api/beta/monitoring-checkout", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-beta-session": env.sessionToken
+        },
+        body: JSON.stringify({ targetHost: "example.com" })
+      }),
+      env
+    );
 
     assert.equal(response.status, 503);
     const body = await response.json();
@@ -1359,14 +1476,17 @@ test("Proof Monitoring checkout fails closed without an eligible verified site o
     };
 
     try {
-      const response = await requestMonitoringCheckout(new Request("https://seofixkit.test/api/beta/monitoring-checkout", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-beta-session": env.sessionToken
-        },
-        body: JSON.stringify(setup.body)
-      }), env);
+      const response = await requestMonitoringCheckout(
+        new Request("https://seofixkit.test/api/beta/monitoring-checkout", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-beta-session": env.sessionToken
+          },
+          body: JSON.stringify(setup.body)
+        }),
+        env
+      );
 
       assert.equal(response.status, 409, setup.label);
       const body = await response.json();
@@ -1396,14 +1516,17 @@ test("Proof Monitoring checkout fails closed when entitlement schema is unavaila
   };
 
   try {
-    const response = await requestMonitoringCheckout(new Request("https://seofixkit.test/api/beta/monitoring-checkout", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-beta-session": env.sessionToken
-      },
-      body: JSON.stringify({ targetHost: "example.com" })
-    }), env);
+    const response = await requestMonitoringCheckout(
+      new Request("https://seofixkit.test/api/beta/monitoring-checkout", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-beta-session": env.sessionToken
+        },
+        body: JSON.stringify({ targetHost: "example.com" })
+      }),
+      env
+    );
 
     assert.equal(response.status, 503);
     const body = await response.json();
@@ -1420,23 +1543,30 @@ test("Proof Monitoring checkout fails closed when entitlement schema is unavaila
 test("Proof Monitoring checkout rejects unsafe provider checkout URLs", async () => {
   const env = await fakeBillingEnv();
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = async () => new Response(JSON.stringify({
-    checkout_url: "javascript:alert(1)",
-    session_id: "unsafe-session"
-  }), {
-    status: 200,
-    headers: { "content-type": "application/json" }
-  });
+  globalThis.fetch = async () =>
+    new Response(
+      JSON.stringify({
+        checkout_url: "javascript:alert(1)",
+        session_id: "unsafe-session"
+      }),
+      {
+        status: 200,
+        headers: { "content-type": "application/json" }
+      }
+    );
 
   try {
-    const response = await requestMonitoringCheckout(new Request("https://seofixkit.test/api/beta/monitoring-checkout", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-beta-session": env.sessionToken
-      },
-      body: JSON.stringify({ targetHost: "example.com" })
-    }), env);
+    const response = await requestMonitoringCheckout(
+      new Request("https://seofixkit.test/api/beta/monitoring-checkout", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-beta-session": env.sessionToken
+        },
+        body: JSON.stringify({ targetHost: "example.com" })
+      }),
+      env
+    );
 
     assert.equal(response.status, 503);
     const body = await response.json();
@@ -1456,24 +1586,30 @@ test("Repair Sprint checkout creates Dodo checkout for approved proposal queue",
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, options = {}) => {
     dodoRequests.push({ url: String(url), body: JSON.parse(options.body || "{}") });
-    return new Response(JSON.stringify({
-      checkout_url: "https://checkout.example.com/repair-sprint-1",
-      session_id: "dodo-repair-sprint-session-1"
-    }), {
-      status: 200,
-      headers: { "content-type": "application/json" }
-    });
+    return new Response(
+      JSON.stringify({
+        checkout_url: "https://checkout.example.com/repair-sprint-1",
+        session_id: "dodo-repair-sprint-session-1"
+      }),
+      {
+        status: 200,
+        headers: { "content-type": "application/json" }
+      }
+    );
   };
 
   try {
-    const response = await requestRepairSprintCheckout(new Request("https://seofixkit.test/api/beta/repair-sprint-checkout", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-beta-session": env.sessionToken
-      },
-      body: JSON.stringify({ reportId: env.reportId })
-    }), env);
+    const response = await requestRepairSprintCheckout(
+      new Request("https://seofixkit.test/api/beta/repair-sprint-checkout", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-beta-session": env.sessionToken
+        },
+        body: JSON.stringify({ reportId: env.reportId })
+      }),
+      env
+    );
 
     assert.equal(response.status, 200);
     const body = await response.json();
@@ -1502,22 +1638,24 @@ test("Repair Sprint checkout creates Dodo checkout for approved proposal queue",
 test("Repair Sprint checkout can use a report-level owner-approved proposal", async () => {
   const env = await fakeBillingEnv();
   const proposalId = "00000000-0000-4000-8000-000000000001";
-  env.repairProposals.push(approvedRepairProposal(env, {
-    id: proposalId,
-    approval_status: "pending",
-    fix_request_id: ""
-  }));
-  const approvalResponse = await updateRepairProposalApproval(new Request(
-    `https://seofixkit.test/api/reports/${env.reportId}/repair-proposals/${proposalId}`,
-    {
+  env.repairProposals.push(
+    approvedRepairProposal(env, {
+      id: proposalId,
+      approval_status: "pending",
+      fix_request_id: ""
+    })
+  );
+  const approvalResponse = await updateRepairProposalApproval(
+    new Request(`https://seofixkit.test/api/reports/${env.reportId}/repair-proposals/${proposalId}`, {
       method: "PATCH",
       headers: {
         "content-type": "application/json",
         "x-beta-session": env.sessionToken
       },
       body: JSON.stringify({ action: "approve" })
-    }
-  ), env);
+    }),
+    env
+  );
   assert.equal(approvalResponse.status, 200);
   const approvalBody = await approvalResponse.json();
   assert.equal(approvalBody.proposal.approvalStatus, "approved");
@@ -1526,24 +1664,30 @@ test("Repair Sprint checkout can use a report-level owner-approved proposal", as
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, options = {}) => {
     dodoRequests.push({ url: String(url), body: JSON.parse(options.body || "{}") });
-    return new Response(JSON.stringify({
-      checkout_url: "https://checkout.example.com/repair-sprint-approved",
-      session_id: "dodo-repair-sprint-approved"
-    }), {
-      status: 200,
-      headers: { "content-type": "application/json" }
-    });
+    return new Response(
+      JSON.stringify({
+        checkout_url: "https://checkout.example.com/repair-sprint-approved",
+        session_id: "dodo-repair-sprint-approved"
+      }),
+      {
+        status: 200,
+        headers: { "content-type": "application/json" }
+      }
+    );
   };
 
   try {
-    const response = await requestRepairSprintCheckout(new Request("https://seofixkit.test/api/beta/repair-sprint-checkout", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-beta-session": env.sessionToken
-      },
-      body: JSON.stringify({ reportId: env.reportId })
-    }), env);
+    const response = await requestRepairSprintCheckout(
+      new Request("https://seofixkit.test/api/beta/repair-sprint-checkout", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-beta-session": env.sessionToken
+        },
+        body: JSON.stringify({ reportId: env.reportId })
+      }),
+      env
+    );
 
     assert.equal(response.status, 200);
     const body = await response.json();
@@ -1572,14 +1716,17 @@ test("Repair Sprint checkout fails closed when product is not configured", async
   };
 
   try {
-    const response = await requestRepairSprintCheckout(new Request("https://seofixkit.test/api/beta/repair-sprint-checkout", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-beta-session": env.sessionToken
-      },
-      body: JSON.stringify({ reportId: env.reportId })
-    }), env);
+    const response = await requestRepairSprintCheckout(
+      new Request("https://seofixkit.test/api/beta/repair-sprint-checkout", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-beta-session": env.sessionToken
+        },
+        body: JSON.stringify({ reportId: env.reportId })
+      }),
+      env
+    );
 
     assert.equal(response.status, 503);
     const body = await response.json();
@@ -1596,45 +1743,55 @@ test("Repair Sprint checkout fails closed when product is not configured", async
 test("Repair Sprint checkout blocks refunded and disputed prior requests", async () => {
   for (const status of ["refunded", "refund_failed", "disputed"]) {
     const env = await fakeBillingEnv();
-    env.fixRequests.push(checkoutFixRequest(env, {
-      id: `fix-request-${status}`,
-      status,
-      payment_id: `payment-${status}`,
-      product_id: "pdt_repair_sprint",
-      checkout_repair_json: JSON.stringify({
-        offerKey: "repair_sprint",
-        proposalIds: ["proposal-1"],
-        issueIds: ["issue-1"],
-        approved: 1,
-        executable: 1
+    env.fixRequests.push(
+      checkoutFixRequest(env, {
+        id: `fix-request-${status}`,
+        status,
+        payment_id: `payment-${status}`,
+        product_id: "pdt_repair_sprint",
+        checkout_repair_json: JSON.stringify({
+          offerKey: "repair_sprint",
+          proposalIds: ["proposal-1"],
+          issueIds: ["issue-1"],
+          approved: 1,
+          executable: 1
+        })
       })
-    }));
-    env.repairProposals.push(approvedRepairProposal(env, {
-      id: "proposal-1",
-      fix_request_id: `fix-request-${status}`
-    }));
+    );
+    env.repairProposals.push(
+      approvedRepairProposal(env, {
+        id: "proposal-1",
+        fix_request_id: `fix-request-${status}`
+      })
+    );
     const dodoRequests = [];
     const originalFetch = globalThis.fetch;
     globalThis.fetch = async (url, options = {}) => {
       dodoRequests.push({ url: String(url), body: JSON.parse(options.body || "{}") });
-      return new Response(JSON.stringify({
-        checkout_url: "https://checkout.example.com/unexpected-sprint-rebuy",
-        session_id: "unexpected-sprint-rebuy"
-      }), {
-        status: 200,
-        headers: { "content-type": "application/json" }
-      });
+      return new Response(
+        JSON.stringify({
+          checkout_url: "https://checkout.example.com/unexpected-sprint-rebuy",
+          session_id: "unexpected-sprint-rebuy"
+        }),
+        {
+          status: 200,
+          headers: { "content-type": "application/json" }
+        }
+      );
     };
 
     try {
-      const response = await requestRepairSprintCheckout(new Request("https://seofixkit.test/api/beta/repair-sprint-checkout", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-beta-session": env.sessionToken
-        },
-        body: JSON.stringify({ reportId: env.reportId })
-      }), env);
+      const response = await requestRepairSprintCheckout(
+        new Request("https://seofixkit.test/api/beta/repair-sprint-checkout", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-beta-session": env.sessionToken
+          },
+          body: JSON.stringify({ reportId: env.reportId })
+        }),
+        env
+      );
 
       assert.equal(response.status, 409);
       const body = await response.json();
@@ -1651,44 +1808,54 @@ test("Repair Sprint checkout blocks refunded and disputed prior requests", async
 
 test("Repair Sprint checkout lets a declined customer retry self-serve", async () => {
   const env = await fakeBillingEnv();
-  env.fixRequests.push(checkoutFixRequest(env, {
-    id: "fix-request-payment-failed",
-    status: "payment_failed",
-    product_id: "pdt_repair_sprint",
-    checkout_repair_json: JSON.stringify({
-      offerKey: "repair_sprint",
-      proposalIds: ["proposal-1"],
-      issueIds: ["issue-1"],
-      approved: 1,
-      executable: 1
+  env.fixRequests.push(
+    checkoutFixRequest(env, {
+      id: "fix-request-payment-failed",
+      status: "payment_failed",
+      product_id: "pdt_repair_sprint",
+      checkout_repair_json: JSON.stringify({
+        offerKey: "repair_sprint",
+        proposalIds: ["proposal-1"],
+        issueIds: ["issue-1"],
+        approved: 1,
+        executable: 1
+      })
     })
-  }));
-  env.repairProposals.push(approvedRepairProposal(env, {
-    id: "proposal-1",
-    fix_request_id: "fix-request-payment-failed"
-  }));
+  );
+  env.repairProposals.push(
+    approvedRepairProposal(env, {
+      id: "proposal-1",
+      fix_request_id: "fix-request-payment-failed"
+    })
+  );
   const dodoRequests = [];
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, options = {}) => {
     dodoRequests.push({ url: String(url), body: JSON.parse(options.body || "{}") });
-    return new Response(JSON.stringify({
-      checkout_url: "https://checkout.example.com/repair-sprint-retry",
-      session_id: "dodo-repair-sprint-retry"
-    }), {
-      status: 200,
-      headers: { "content-type": "application/json" }
-    });
+    return new Response(
+      JSON.stringify({
+        checkout_url: "https://checkout.example.com/repair-sprint-retry",
+        session_id: "dodo-repair-sprint-retry"
+      }),
+      {
+        status: 200,
+        headers: { "content-type": "application/json" }
+      }
+    );
   };
 
   try {
-    const response = await requestRepairSprintCheckout(new Request("https://seofixkit.test/api/beta/repair-sprint-checkout", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-beta-session": env.sessionToken
-      },
-      body: JSON.stringify({ reportId: env.reportId })
-    }), env);
+    const response = await requestRepairSprintCheckout(
+      new Request("https://seofixkit.test/api/beta/repair-sprint-checkout", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-beta-session": env.sessionToken
+        },
+        body: JSON.stringify({ reportId: env.reportId })
+      }),
+      env
+    );
 
     assert.equal(response.status, 200);
     const body = await response.json();
@@ -1707,20 +1874,24 @@ test("Repair Sprint checkout leaves proposals approvable when Dodo checkout fail
   const proposalId = "00000000-0000-4000-8000-000000000002";
   env.repairProposals.push(approvedRepairProposal(env, { id: proposalId }));
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = async () => new Response(JSON.stringify({ message: "Dodo is down." }), {
-    status: 503,
-    headers: { "content-type": "application/json" }
-  });
+  globalThis.fetch = async () =>
+    new Response(JSON.stringify({ message: "Dodo is down." }), {
+      status: 503,
+      headers: { "content-type": "application/json" }
+    });
 
   try {
-    const response = await requestRepairSprintCheckout(new Request("https://seofixkit.test/api/beta/repair-sprint-checkout", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-beta-session": env.sessionToken
-      },
-      body: JSON.stringify({ reportId: env.reportId })
-    }), env);
+    const response = await requestRepairSprintCheckout(
+      new Request("https://seofixkit.test/api/beta/repair-sprint-checkout", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-beta-session": env.sessionToken
+        },
+        body: JSON.stringify({ reportId: env.reportId })
+      }),
+      env
+    );
 
     assert.equal(response.status, 503);
     const body = await response.json();
@@ -1732,17 +1903,17 @@ test("Repair Sprint checkout leaves proposals approvable when Dodo checkout fail
   assert.equal(env.repairProposals[0].fix_request_id, "");
   assert.equal(env.proposalAttachWrites || 0, 0);
 
-  const dismissResponse = await updateRepairProposalApproval(new Request(
-    `https://seofixkit.test/api/reports/${env.reportId}/repair-proposals/${proposalId}`,
-    {
+  const dismissResponse = await updateRepairProposalApproval(
+    new Request(`https://seofixkit.test/api/reports/${env.reportId}/repair-proposals/${proposalId}`, {
       method: "PATCH",
       headers: {
         "content-type": "application/json",
         "x-beta-session": env.sessionToken
       },
       body: JSON.stringify({ action: "dismiss" })
-    }
-  ), env);
+    }),
+    env
+  );
   assert.equal(dismissResponse.status, 200);
 });
 
@@ -1760,14 +1931,17 @@ test("Repair Sprint checkout fails closed when proposal storage is unavailable",
   };
 
   try {
-    const response = await requestRepairSprintCheckout(new Request("https://seofixkit.test/api/beta/repair-sprint-checkout", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-beta-session": env.sessionToken
-      },
-      body: JSON.stringify({ reportId: env.reportId })
-    }), env);
+    const response = await requestRepairSprintCheckout(
+      new Request("https://seofixkit.test/api/beta/repair-sprint-checkout", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-beta-session": env.sessionToken
+        },
+        body: JSON.stringify({ reportId: env.reportId })
+      }),
+      env
+    );
 
     assert.equal(response.status, 503);
     const body = await response.json();
@@ -1783,23 +1957,27 @@ test("Repair Sprint checkout fails closed when proposal storage is unavailable",
 
 test("Repair Sprint checkout reuses cached matching checkout without relinking proposals", async () => {
   const env = await fakeBillingEnv();
-  env.fixRequests.push(checkoutFixRequest(env, {
-    id: "fix-request-sprint-cache",
-    checkout_session_id: "dodo-repair-sprint-cache",
-    checkout_url: "https://checkout.example.com/repair-sprint-cache",
-    product_id: "pdt_repair_sprint",
-    checkout_repair_json: JSON.stringify({
-      offerKey: "repair_sprint",
-      proposalIds: ["proposal-1"],
-      issueIds: ["issue-1"],
-      approved: 1,
-      executable: 1
+  env.fixRequests.push(
+    checkoutFixRequest(env, {
+      id: "fix-request-sprint-cache",
+      checkout_session_id: "dodo-repair-sprint-cache",
+      checkout_url: "https://checkout.example.com/repair-sprint-cache",
+      product_id: "pdt_repair_sprint",
+      checkout_repair_json: JSON.stringify({
+        offerKey: "repair_sprint",
+        proposalIds: ["proposal-1"],
+        issueIds: ["issue-1"],
+        approved: 1,
+        executable: 1
+      })
     })
-  }));
-  env.repairProposals.push(approvedRepairProposal(env, {
-    id: "proposal-1",
-    fix_request_id: "fix-request-sprint-cache"
-  }));
+  );
+  env.repairProposals.push(
+    approvedRepairProposal(env, {
+      id: "proposal-1",
+      fix_request_id: "fix-request-sprint-cache"
+    })
+  );
   const dodoRequests = [];
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, options = {}) => {
@@ -1811,14 +1989,17 @@ test("Repair Sprint checkout reuses cached matching checkout without relinking p
   };
 
   try {
-    const response = await requestRepairSprintCheckout(new Request("https://seofixkit.test/api/beta/repair-sprint-checkout", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-beta-session": env.sessionToken
-      },
-      body: JSON.stringify({ reportId: env.reportId })
-    }), env);
+    const response = await requestRepairSprintCheckout(
+      new Request("https://seofixkit.test/api/beta/repair-sprint-checkout", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-beta-session": env.sessionToken
+        },
+        body: JSON.stringify({ reportId: env.reportId })
+      }),
+      env
+    );
 
     assert.equal(response.status, 200);
     const body = await response.json();
@@ -1833,22 +2014,26 @@ test("Repair Sprint checkout reuses cached matching checkout without relinking p
 
 test("Dodo payment webhook accepts Repair Sprint product when approved proposals match", async () => {
   const env = await fakeBillingEnv();
-  env.fixRequests.push(checkoutFixRequest(env, {
-    id: "fix-request-sprint",
-    checkout_session_id: "dodo-repair-sprint-session-1",
-    product_id: "pdt_repair_sprint",
-    checkout_repair_json: JSON.stringify({
-      offerKey: "repair_sprint",
-      proposalIds: ["proposal-1"],
-      issueIds: ["issue-1"],
-      approved: 1,
-      executable: 1
+  env.fixRequests.push(
+    checkoutFixRequest(env, {
+      id: "fix-request-sprint",
+      checkout_session_id: "dodo-repair-sprint-session-1",
+      product_id: "pdt_repair_sprint",
+      checkout_repair_json: JSON.stringify({
+        offerKey: "repair_sprint",
+        proposalIds: ["proposal-1"],
+        issueIds: ["issue-1"],
+        approved: 1,
+        executable: 1
+      })
     })
-  }));
-  env.repairProposals.push(approvedRepairProposal(env, {
-    id: "proposal-1",
-    fix_request_id: "fix-request-sprint"
-  }));
+  );
+  env.repairProposals.push(
+    approvedRepairProposal(env, {
+      id: "proposal-1",
+      fix_request_id: "fix-request-sprint"
+    })
+  );
   const paymentData = paymentEventData(env, {
     id: "payment-repair-sprint",
     checkout_session_id: "dodo-repair-sprint-session-1",
@@ -1877,29 +2062,40 @@ test("Dodo payment webhook accepts Repair Sprint product when approved proposals
 
 test("Dodo payment webhook rejects stale Fix Pack payment after Repair Sprint checkout", async () => {
   const env = await fakeBillingEnv();
-  env.fixRequests.push(checkoutFixRequest(env, {
-    id: "fix-request-sprint",
-    checkout_session_id: "dodo-repair-sprint-session-1",
-    product_id: "pdt_repair_sprint",
-    checkout_repair_json: JSON.stringify({
-      offerKey: "repair_sprint",
-      proposalIds: ["proposal-1"],
-      issueIds: ["issue-1"],
-      approved: 1,
-      executable: 1
+  env.fixRequests.push(
+    checkoutFixRequest(env, {
+      id: "fix-request-sprint",
+      checkout_session_id: "dodo-repair-sprint-session-1",
+      product_id: "pdt_repair_sprint",
+      checkout_repair_json: JSON.stringify({
+        offerKey: "repair_sprint",
+        proposalIds: ["proposal-1"],
+        issueIds: ["issue-1"],
+        approved: 1,
+        executable: 1
+      })
     })
-  }));
-  env.repairProposals.push(approvedRepairProposal(env, {
-    id: "proposal-1",
-    fix_request_id: "fix-request-sprint"
-  }));
-  const staleFixPackPayment = extractDodoPayment(paymentEventData(env, {
-    id: "payment-stale-fix-pack",
-    checkout_session_id: "dodo-old-fix-pack-session",
-    fixRequestId: "fix-request-sprint"
-  }));
+  );
+  env.repairProposals.push(
+    approvedRepairProposal(env, {
+      id: "proposal-1",
+      fix_request_id: "fix-request-sprint"
+    })
+  );
+  const staleFixPackPayment = extractDodoPayment(
+    paymentEventData(env, {
+      id: "payment-stale-fix-pack",
+      checkout_session_id: "dodo-old-fix-pack-session",
+      fixRequestId: "fix-request-sprint"
+    })
+  );
 
-  const result = await processDodoPaymentWebhook(env, "payment.succeeded", staleFixPackPayment, "wh_stale_fix_pack_sprint");
+  const result = await processDodoPaymentWebhook(
+    env,
+    "payment.succeeded",
+    staleFixPackPayment,
+    "wh_stale_fix_pack_sprint"
+  );
 
   assert.equal(result.ok, false);
   assert.equal(result.reason, "checkout_product_mismatch");
@@ -1910,22 +2106,26 @@ test("Dodo payment webhook rejects stale Fix Pack payment after Repair Sprint ch
 
 test("signed payment webhook records an unattributable product mismatch as a webhook error", async () => {
   const env = await fakeBillingEnv();
-  env.fixRequests.push(checkoutFixRequest(env, {
-    id: "fix-request-sprint",
-    checkout_session_id: "dodo-repair-sprint-session-1",
-    product_id: "pdt_repair_sprint",
-    checkout_repair_json: JSON.stringify({
-      offerKey: "repair_sprint",
-      proposalIds: ["proposal-1"],
-      issueIds: ["issue-1"],
-      approved: 1,
-      executable: 1
+  env.fixRequests.push(
+    checkoutFixRequest(env, {
+      id: "fix-request-sprint",
+      checkout_session_id: "dodo-repair-sprint-session-1",
+      product_id: "pdt_repair_sprint",
+      checkout_repair_json: JSON.stringify({
+        offerKey: "repair_sprint",
+        proposalIds: ["proposal-1"],
+        issueIds: ["issue-1"],
+        approved: 1,
+        executable: 1
+      })
     })
-  }));
-  env.repairProposals.push(approvedRepairProposal(env, {
-    id: "proposal-1",
-    fix_request_id: "fix-request-sprint"
-  }));
+  );
+  env.repairProposals.push(
+    approvedRepairProposal(env, {
+      id: "proposal-1",
+      fix_request_id: "fix-request-sprint"
+    })
+  );
   const data = paymentEventData(env, {
     id: "payment-stale-fix-pack",
     checkout_session_id: "dodo-old-fix-pack-session",
@@ -1952,17 +2152,21 @@ test("signed payment webhook records an unattributable product mismatch as a web
 
 test("Dodo payment webhook rejects a Repair Sprint payment with no stored checkout target", async () => {
   const env = await fakeBillingEnv();
-  env.fixRequests.push(checkoutFixRequest(env, {
-    id: "fix-request-sprint",
-    checkout_session_id: "dodo-repair-sprint-session-1",
-    product_id: "pdt_repair_sprint",
-    checkout_repair_json: ""
-  }));
-  env.repairProposals.push(approvedRepairProposal(env, {
-    id: "proposal-1",
-    fix_request_id: "fix-request-sprint",
-    approval_status: "pending"
-  }));
+  env.fixRequests.push(
+    checkoutFixRequest(env, {
+      id: "fix-request-sprint",
+      checkout_session_id: "dodo-repair-sprint-session-1",
+      product_id: "pdt_repair_sprint",
+      checkout_repair_json: ""
+    })
+  );
+  env.repairProposals.push(
+    approvedRepairProposal(env, {
+      id: "proposal-1",
+      fix_request_id: "fix-request-sprint",
+      approval_status: "pending"
+    })
+  );
   const paymentData = paymentEventData(env, {
     id: "payment-repair-sprint-no-target",
     checkout_session_id: "dodo-repair-sprint-session-1",
@@ -1993,18 +2197,20 @@ test("Dodo payment webhook rejects a Repair Sprint payment with no stored checko
 
 test("Dodo Repair Sprint payment still records when repair proposal storage is missing", async () => {
   const env = await fakeBillingEnv();
-  env.fixRequests.push(checkoutFixRequest(env, {
-    id: "fix-request-sprint",
-    checkout_session_id: "dodo-repair-sprint-session-1",
-    product_id: "pdt_repair_sprint",
-    checkout_repair_json: JSON.stringify({
-      offerKey: "repair_sprint",
-      proposalIds: ["proposal-1"],
-      issueIds: ["issue-1"],
-      approved: 1,
-      executable: 1
+  env.fixRequests.push(
+    checkoutFixRequest(env, {
+      id: "fix-request-sprint",
+      checkout_session_id: "dodo-repair-sprint-session-1",
+      product_id: "pdt_repair_sprint",
+      checkout_repair_json: JSON.stringify({
+        offerKey: "repair_sprint",
+        proposalIds: ["proposal-1"],
+        issueIds: ["issue-1"],
+        approved: 1,
+        executable: 1
+      })
     })
-  }));
+  );
   env.repairProposalsMissing = true;
   const paymentData = paymentEventData(env, {
     id: "payment-repair-sprint-no-table",
@@ -2046,12 +2252,14 @@ test("repair proposals seed once per report and get adopted by a fix request", a
   const seededProposalId = env.repairProposals[0].id;
   env.repairProposals[0].approval_status = "approved";
 
-  env.fixRequests.push(checkoutFixRequest(env, {
-    id: "fix-request-adopt",
-    status: "paid",
-    payment_id: "payment-adopt",
-    paid_at: new Date().toISOString()
-  }));
+  env.fixRequests.push(
+    checkoutFixRequest(env, {
+      id: "fix-request-adopt",
+      status: "paid",
+      payment_id: "payment-adopt",
+      paid_at: new Date().toISOString()
+    })
+  );
   const seed = await seedRepairProposalsForFixRequest(
     env,
     report,
@@ -2084,23 +2292,27 @@ test("repair proposals seed once per report and get adopted by a fix request", a
 
 test("Dodo payment webhook rejects Repair Sprint when approved proposals no longer match", async () => {
   const env = await fakeBillingEnv();
-  env.fixRequests.push(checkoutFixRequest(env, {
-    id: "fix-request-sprint",
-    checkout_session_id: "dodo-repair-sprint-session-1",
-    product_id: "pdt_repair_sprint",
-    checkout_repair_json: JSON.stringify({
-      offerKey: "repair_sprint",
-      proposalIds: ["proposal-1"],
-      issueIds: ["issue-1"],
-      approved: 1,
-      executable: 1
+  env.fixRequests.push(
+    checkoutFixRequest(env, {
+      id: "fix-request-sprint",
+      checkout_session_id: "dodo-repair-sprint-session-1",
+      product_id: "pdt_repair_sprint",
+      checkout_repair_json: JSON.stringify({
+        offerKey: "repair_sprint",
+        proposalIds: ["proposal-1"],
+        issueIds: ["issue-1"],
+        approved: 1,
+        executable: 1
+      })
     })
-  }));
-  env.repairProposals.push(approvedRepairProposal(env, {
-    id: "proposal-1",
-    fix_request_id: "fix-request-sprint",
-    approval_status: "pending"
-  }));
+  );
+  env.repairProposals.push(
+    approvedRepairProposal(env, {
+      id: "proposal-1",
+      fix_request_id: "fix-request-sprint",
+      approval_status: "pending"
+    })
+  );
   const paymentData = paymentEventData(env, {
     id: "payment-repair-sprint-missing-approval",
     checkout_session_id: "dodo-repair-sprint-session-1",
@@ -2131,10 +2343,12 @@ test("Dodo payment webhook rejects Repair Sprint when approved proposals no long
 
 test("Dodo subscription webhook activates Proof Monitoring entitlement", async () => {
   const env = await fakeBillingEnv();
-  const subscription = extractDodoSubscription(subscriptionEventData({
-    id: "sub-active-1",
-    status: "active"
-  }));
+  const subscription = extractDodoSubscription(
+    subscriptionEventData({
+      id: "sub-active-1",
+      status: "active"
+    })
+  );
 
   const result = await processDodoSubscriptionWebhook(env, "subscription.active", subscription, "wh_sub_active");
 
@@ -2298,7 +2512,12 @@ test("Dodo subscription webhook reactivates failed monitoring after provider rec
   await processDodoSubscriptionWebhook(env, "subscription.failed", failed, "wh_failed_recovered_failed");
 
   const recovered = extractDodoSubscription(subscriptionEventData({ id: "sub-failed-recovered-1", status: "active" }));
-  const result = await processDodoSubscriptionWebhook(env, "subscription.renewed", recovered, "wh_failed_recovered_renewed");
+  const result = await processDodoSubscriptionWebhook(
+    env,
+    "subscription.renewed",
+    recovered,
+    "wh_failed_recovered_renewed"
+  );
 
   assert.equal(result.ok, true);
   assert.equal(result.ignored, false);
@@ -2316,7 +2535,12 @@ test("Dodo subscription webhook does not reactivate a cancelled subscription fro
   await processDodoSubscriptionWebhook(env, "subscription.cancelled", cancelled, "wh_stale_cancelled");
 
   const staleActive = extractDodoSubscription(subscriptionEventData({ id: "sub-stale-1", status: "active" }));
-  const result = await processDodoSubscriptionWebhook(env, "subscription.updated", staleActive, "wh_stale_active_retry");
+  const result = await processDodoSubscriptionWebhook(
+    env,
+    "subscription.updated",
+    staleActive,
+    "wh_stale_active_retry"
+  );
 
   assert.equal(result.ok, true);
   assert.equal(result.ignored, true);
@@ -2336,7 +2560,12 @@ test("Dodo subscription.updated with pending or missing status does not activate
     if (status === "missing") delete data.status;
     const subscription = extractDodoSubscription(data);
 
-    const result = await processDodoSubscriptionWebhook(env, "subscription.updated", subscription, `wh_updated_${status || "missing"}`);
+    const result = await processDodoSubscriptionWebhook(
+      env,
+      "subscription.updated",
+      subscription,
+      `wh_updated_${status || "missing"}`
+    );
 
     assert.equal(result.ok, true, status);
     assert.equal(result.ignored, true, status);
@@ -2346,10 +2575,12 @@ test("Dodo subscription.updated with pending or missing status does not activate
 
 test("Dodo subscription webhook rejects wrong monitoring product", async () => {
   const env = await fakeBillingEnv();
-  const subscription = extractDodoSubscription(subscriptionEventData({
-    id: "sub-wrong-product",
-    product_id: "pdt_other"
-  }));
+  const subscription = extractDodoSubscription(
+    subscriptionEventData({
+      id: "sub-wrong-product",
+      product_id: "pdt_other"
+    })
+  );
 
   const result = await processDodoSubscriptionWebhook(env, "subscription.active", subscription, "wh_sub_wrong_product");
 
@@ -2365,11 +2596,13 @@ test("Dodo subscription plan_changed revokes monitoring when product changes awa
   const env = await fakeBillingEnv();
   const active = extractDodoSubscription(subscriptionEventData({ id: "sub-plan-change-1", status: "active" }));
   await processDodoSubscriptionWebhook(env, "subscription.active", active, "wh_plan_change_active");
-  const changed = extractDodoSubscription(subscriptionEventData({
-    id: "sub-plan-change-1",
-    status: "active",
-    product_id: "pdt_other"
-  }));
+  const changed = extractDodoSubscription(
+    subscriptionEventData({
+      id: "sub-plan-change-1",
+      status: "active",
+      product_id: "pdt_other"
+    })
+  );
 
   const result = await processDodoSubscriptionWebhook(env, "subscription.plan_changed", changed, "wh_plan_changed");
 
@@ -2401,7 +2634,12 @@ test("Dodo subscription webhook rejects missing product cart and quantity mismat
     const env = await fakeBillingEnv();
     const subscription = extractDodoSubscription(scenario.data);
 
-    const result = await processDodoSubscriptionWebhook(env, "subscription.active", subscription, `wh_${scenario.label.replaceAll(" ", "_")}`);
+    const result = await processDodoSubscriptionWebhook(
+      env,
+      "subscription.active",
+      subscription,
+      `wh_${scenario.label.replaceAll(" ", "_")}`
+    );
 
     assert.equal(result.ok, true, scenario.label);
     assert.equal(result.ignored, true, scenario.label);
@@ -2429,11 +2667,18 @@ test("Dodo subscription parser does not double-count matching top-level product 
 test("Dodo subscription webhook refuses activation without monitoring product config", async () => {
   const env = await fakeBillingEnv();
   delete env.DODO_SEOFIXKIT_PRODUCT_MONITORING_ID;
-  const subscription = extractDodoSubscription(subscriptionEventData({
-    id: "sub-missing-config"
-  }));
+  const subscription = extractDodoSubscription(
+    subscriptionEventData({
+      id: "sub-missing-config"
+    })
+  );
 
-  const result = await processDodoSubscriptionWebhook(env, "subscription.active", subscription, "wh_sub_missing_config");
+  const result = await processDodoSubscriptionWebhook(
+    env,
+    "subscription.active",
+    subscription,
+    "wh_sub_missing_config"
+  );
 
   assert.equal(result.ok, false);
   assert.equal(result.status, "ignored");
@@ -2460,9 +2705,12 @@ test("billing summary exposes Proof Monitoring checkout and entitlement state", 
   const env = await fakeBillingEnv();
 
   await withDodoPricing(async () => {
-    const response = await getBillingSummary(new Request("https://seofixkit.test/api/billing/summary", {
-      headers: { "x-beta-session": env.sessionToken }
-    }), env);
+    const response = await getBillingSummary(
+      new Request("https://seofixkit.test/api/billing/summary", {
+        headers: { "x-beta-session": env.sessionToken }
+      }),
+      env
+    );
     const body = await response.json();
 
     assert.equal(response.status, 200);
@@ -2483,9 +2731,12 @@ test("billing summary exposes Proof Monitoring checkout and entitlement state", 
   await processDodoSubscriptionWebhook(env, "subscription.active", active, "wh_summary_active");
 
   await withDodoPricing(async () => {
-    const response = await getBillingSummary(new Request("https://seofixkit.test/api/billing/summary", {
-      headers: { "x-beta-session": env.sessionToken }
-    }), env);
+    const response = await getBillingSummary(
+      new Request("https://seofixkit.test/api/billing/summary", {
+        headers: { "x-beta-session": env.sessionToken }
+      }),
+      env
+    );
     const body = await response.json();
 
     assert.equal(body.monitoring.status, "active");
@@ -2500,9 +2751,12 @@ test("billing summary gates monitoring checkout when entitlement event schema is
   env.missingEntitlementEventsSchema = true;
 
   await withDodoPricing(async () => {
-    const response = await getBillingSummary(new Request("https://seofixkit.test/api/billing/summary", {
-      headers: { "x-beta-session": env.sessionToken }
-    }), env);
+    const response = await getBillingSummary(
+      new Request("https://seofixkit.test/api/billing/summary", {
+        headers: { "x-beta-session": env.sessionToken }
+      }),
+      env
+    );
     const body = await response.json();
 
     assert.equal(response.status, 200);
@@ -2522,9 +2776,12 @@ test("billing summary keeps monitoring checkout gated when product config is mis
   delete env.DODO_SEOFIXKIT_PRODUCT_MONITORING_ID;
 
   await withDodoPricing(async () => {
-    const response = await getBillingSummary(new Request("https://seofixkit.test/api/billing/summary", {
-      headers: { "x-beta-session": env.sessionToken }
-    }), env);
+    const response = await getBillingSummary(
+      new Request("https://seofixkit.test/api/billing/summary", {
+        headers: { "x-beta-session": env.sessionToken }
+      }),
+      env
+    );
     const body = await response.json();
 
     assert.equal(response.status, 200);
@@ -2539,15 +2796,17 @@ test("billing summary keeps monitoring checkout gated when product config is mis
 
 test("billing summary marks delivery ready when approved proposal and proof are attached", async () => {
   const env = await fakeBillingEnv();
-  env.fixRequests.push(checkoutFixRequest(env, {
-    id: "fix-request-ready",
-    status: "in_progress",
-    payment_id: "payment-ready",
-    paid_at: "2026-06-20T00:00:00.000Z",
-    customer_note: "We repaired the title and queued the rerun proof.",
-    delivery_url: "https://seofixkit.com/beta/reports/final",
-    final_report_id: "final"
-  }));
+  env.fixRequests.push(
+    checkoutFixRequest(env, {
+      id: "fix-request-ready",
+      status: "in_progress",
+      payment_id: "payment-ready",
+      paid_at: "2026-06-20T00:00:00.000Z",
+      customer_note: "We repaired the title and queued the rerun proof.",
+      delivery_url: "https://seofixkit.com/beta/reports/final",
+      final_report_id: "final"
+    })
+  );
   env.repairProposals.push({
     fix_request_id: "fix-request-ready",
     owner_email: "someone-else@example.com",
@@ -2564,9 +2823,12 @@ test("billing summary marks delivery ready when approved proposal and proof are 
   });
 
   await withDodoPricing(async () => {
-    const response = await getBillingSummary(new Request("https://seofixkit.test/api/billing/summary", {
-      headers: { "x-beta-session": env.sessionToken }
-    }), env);
+    const response = await getBillingSummary(
+      new Request("https://seofixkit.test/api/billing/summary", {
+        headers: { "x-beta-session": env.sessionToken }
+      }),
+      env
+    );
     assert.equal(response.status, 200);
     const body = await response.json();
     assert.equal(body.requests[0].deliveryReadiness.status, "ready");
@@ -2579,15 +2841,17 @@ test("billing summary marks delivery ready when approved proposal and proof are 
 
 test("billing summary ignores proposal rows from another owner", async () => {
   const env = await fakeBillingEnv();
-  env.fixRequests.push(checkoutFixRequest(env, {
-    id: "fix-request-owner-guard",
-    status: "paid",
-    payment_id: "payment-owner-guard",
-    paid_at: "2026-06-20T00:00:00.000Z",
-    customer_note: "Ready for proof",
-    delivery_url: "https://seofixkit.com/beta/reports/final",
-    final_report_id: "final"
-  }));
+  env.fixRequests.push(
+    checkoutFixRequest(env, {
+      id: "fix-request-owner-guard",
+      status: "paid",
+      payment_id: "payment-owner-guard",
+      paid_at: "2026-06-20T00:00:00.000Z",
+      customer_note: "Ready for proof",
+      delivery_url: "https://seofixkit.com/beta/reports/final",
+      final_report_id: "final"
+    })
+  );
   env.repairProposals.push({
     fix_request_id: "fix-request-owner-guard",
     owner_email: "someone-else@example.com",
@@ -2597,9 +2861,12 @@ test("billing summary ignores proposal rows from another owner", async () => {
   });
 
   await withDodoPricing(async () => {
-    const response = await getBillingSummary(new Request("https://seofixkit.test/api/billing/summary", {
-      headers: { "x-beta-session": env.sessionToken }
-    }), env);
+    const response = await getBillingSummary(
+      new Request("https://seofixkit.test/api/billing/summary", {
+        headers: { "x-beta-session": env.sessionToken }
+      }),
+      env
+    );
     assert.equal(response.status, 200);
     const body = await response.json();
     assert.equal(body.requests[0].deliveryReadiness.status, "ready");
@@ -2610,18 +2877,23 @@ test("billing summary ignores proposal rows from another owner", async () => {
 
 test("billing summary marks delivered requests delivered without blockers", async () => {
   const env = await fakeBillingEnv();
-  env.fixRequests.push(checkoutFixRequest(env, {
-    id: "fix-request-delivered",
-    status: "delivered",
-    payment_id: "payment-delivered",
-    paid_at: "2026-06-20T00:00:00.000Z",
-    delivered_at: "2026-06-21T00:00:00.000Z"
-  }));
+  env.fixRequests.push(
+    checkoutFixRequest(env, {
+      id: "fix-request-delivered",
+      status: "delivered",
+      payment_id: "payment-delivered",
+      paid_at: "2026-06-20T00:00:00.000Z",
+      delivered_at: "2026-06-21T00:00:00.000Z"
+    })
+  );
 
   await withDodoPricing(async () => {
-    const response = await getBillingSummary(new Request("https://seofixkit.test/api/billing/summary", {
-      headers: { "x-beta-session": env.sessionToken }
-    }), env);
+    const response = await getBillingSummary(
+      new Request("https://seofixkit.test/api/billing/summary", {
+        headers: { "x-beta-session": env.sessionToken }
+      }),
+      env
+    );
     assert.equal(response.status, 200);
     const body = await response.json();
     assert.equal(body.requests[0].deliveryReadiness.status, "delivered");
@@ -2633,18 +2905,23 @@ test("billing summary marks delivered requests delivered without blockers", asyn
 
 test("billing summary hides customer-sensitive billing identifiers", async () => {
   const env = await fakeBillingEnv();
-  env.fixRequests.push(checkoutFixRequest(env, {
-    id: "fix-request-paid",
-    status: "paid",
-    payment_id: "payment-secret",
-    checkout_session_id: "checkout-secret",
-    paid_at: "2026-06-20T00:00:00.000Z"
-  }));
+  env.fixRequests.push(
+    checkoutFixRequest(env, {
+      id: "fix-request-paid",
+      status: "paid",
+      payment_id: "payment-secret",
+      checkout_session_id: "checkout-secret",
+      paid_at: "2026-06-20T00:00:00.000Z"
+    })
+  );
 
   await withDodoPricing(async () => {
-    const response = await getBillingSummary(new Request("https://seofixkit.test/api/billing/summary", {
-      headers: { "x-beta-session": env.sessionToken }
-    }), env);
+    const response = await getBillingSummary(
+      new Request("https://seofixkit.test/api/billing/summary", {
+        headers: { "x-beta-session": env.sessionToken }
+      }),
+      env
+    );
     assert.equal(response.status, 200);
     const body = await response.json();
     assert.equal(body.requests[0].checkoutSessionId, undefined);
@@ -2660,47 +2937,56 @@ test("billing summary hides customer-sensitive billing identifiers", async () =>
 
 test("billing summary uses customer-safe payment history references", async () => {
   const env = await fakeBillingEnv();
-  env.fixRequests.push(checkoutFixRequest(env, {
-    id: "fix-request-payment",
-    status: "paid",
-    payment_id: "payment-secret",
-    paid_at: "2026-06-20T00:00:00.000Z"
-  }));
-  env.fixRequests.push(checkoutFixRequest(env, {
-    id: "fix-request-refund",
-    status: "refunded",
-    payment_id: "payment-refund-secret",
-    refund_id: "refund-secret",
-    paid_at: "2026-06-20T00:00:00.000Z",
-    refunded_at: "2026-06-21T00:00:00.000Z"
-  }));
-  env.fixRequests.push(checkoutFixRequest(env, {
-    id: "fix-request-dispute",
-    status: "disputed",
-    payment_id: "payment-dispute-secret",
-    dispute_event: "chargeback",
-    paid_at: "2026-06-20T00:00:00.000Z",
-    disputed_at: "2026-06-21T00:00:00.000Z"
-  }));
-  env.fixRequests.push(checkoutFixRequest(env, {
-    id: "fix-request-failed",
-    status: "payment_failed",
-    checkout_session_id: "checkout-failed-secret"
-  }));
+  env.fixRequests.push(
+    checkoutFixRequest(env, {
+      id: "fix-request-payment",
+      status: "paid",
+      payment_id: "payment-secret",
+      paid_at: "2026-06-20T00:00:00.000Z"
+    })
+  );
+  env.fixRequests.push(
+    checkoutFixRequest(env, {
+      id: "fix-request-refund",
+      status: "refunded",
+      payment_id: "payment-refund-secret",
+      refund_id: "refund-secret",
+      paid_at: "2026-06-20T00:00:00.000Z",
+      refunded_at: "2026-06-21T00:00:00.000Z"
+    })
+  );
+  env.fixRequests.push(
+    checkoutFixRequest(env, {
+      id: "fix-request-dispute",
+      status: "disputed",
+      payment_id: "payment-dispute-secret",
+      dispute_event: "chargeback",
+      paid_at: "2026-06-20T00:00:00.000Z",
+      disputed_at: "2026-06-21T00:00:00.000Z"
+    })
+  );
+  env.fixRequests.push(
+    checkoutFixRequest(env, {
+      id: "fix-request-failed",
+      status: "payment_failed",
+      checkout_session_id: "checkout-failed-secret"
+    })
+  );
 
   await withDodoPricing(async () => {
-    const response = await getBillingSummary(new Request("https://seofixkit.test/api/billing/summary", {
-      headers: { "x-beta-session": env.sessionToken }
-    }), env);
+    const response = await getBillingSummary(
+      new Request("https://seofixkit.test/api/billing/summary", {
+        headers: { "x-beta-session": env.sessionToken }
+      }),
+      env
+    );
     assert.equal(response.status, 200);
     const body = await response.json();
     const references = new Set(body.payments.map((payment) => payment.displayReference));
-    assert.deepEqual(references, new Set([
-      "Dodo payment record",
-      "Dodo refund record",
-      "Dodo dispute record",
-      "Dodo payment attempt"
-    ]));
+    assert.deepEqual(
+      references,
+      new Set(["Dodo payment record", "Dodo refund record", "Dodo dispute record", "Dodo payment attempt"])
+    );
     for (const payment of body.payments) {
       assert.equal(payment.paymentId, undefined);
       assert.equal(payment.checkoutSessionId, undefined);
@@ -2748,12 +3034,14 @@ test("signed payment.failed marks an unpaid Fix Pack payment_failed and grants n
 test("signed payment failure never regresses already-paid Fix Packs and keeps payment identity", async () => {
   for (const status of ["paid", "in_progress"]) {
     const env = await fakeBillingEnv();
-    env.fixRequests.push(checkoutFixRequest(env, {
-      id: `fix-request-${status}`,
-      status,
-      payment_id: "payment-paid",
-      paid_at: "2026-06-20T00:00:00.000Z"
-    }));
+    env.fixRequests.push(
+      checkoutFixRequest(env, {
+        id: `fix-request-${status}`,
+        status,
+        payment_id: "payment-paid",
+        paid_at: "2026-06-20T00:00:00.000Z"
+      })
+    );
     const payload = {
       type: "payment.failed",
       data: paymentEventData(env, {
@@ -2786,12 +3074,14 @@ test("signed payment failure never regresses already-paid Fix Packs and keeps pa
 
 test("signed refund.succeeded closes a paid Fix Pack to refunded exactly once", async () => {
   const env = await fakeBillingEnv();
-  env.fixRequests.push(checkoutFixRequest(env, {
-    id: "fix-request-1",
-    status: "paid",
-    payment_id: "payment-paid",
-    paid_at: "2026-06-20T00:00:00.000Z"
-  }));
+  env.fixRequests.push(
+    checkoutFixRequest(env, {
+      id: "fix-request-1",
+      status: "paid",
+      payment_id: "payment-paid",
+      paid_at: "2026-06-20T00:00:00.000Z"
+    })
+  );
   const refundData = {
     id: "refund-1",
     payment_id: "payment-paid",
@@ -2802,7 +3092,11 @@ test("signed refund.succeeded closes a paid Fix Pack to refunded exactly once", 
     metadata: { fix_request_id: "fix-request-1" }
   };
 
-  const first = await handleDodoWebhook(signedDodoWebhookRequest({ type: "refund.succeeded", data: refundData }, "wh_refund_1", env), env, null);
+  const first = await handleDodoWebhook(
+    signedDodoWebhookRequest({ type: "refund.succeeded", data: refundData }, "wh_refund_1", env),
+    env,
+    null
+  );
   assert.equal(first.status, 200);
   const firstBody = await first.json();
   assert.equal(firstBody.received, true);
@@ -2826,7 +3120,11 @@ test("signed refund.succeeded closes a paid Fix Pack to refunded exactly once", 
 
   // A repeated refund with a fresh webhook id must not reopen or re-stamp the
   // refund: status stays refunded and refunded_at is preserved (COALESCE).
-  const second = await handleDodoWebhook(signedDodoWebhookRequest({ type: "refund.succeeded", data: refundData }, "wh_refund_2", env), env, null);
+  const second = await handleDodoWebhook(
+    signedDodoWebhookRequest({ type: "refund.succeeded", data: refundData }, "wh_refund_2", env),
+    env,
+    null
+  );
   assert.equal(second.status, 200);
   const secondBody = await second.json();
   assert.equal(secondBody.refunded, true);
@@ -2838,12 +3136,14 @@ test("signed refund.succeeded closes a paid Fix Pack to refunded exactly once", 
 test("signed refund.failed marks refund_failed but keeps an already-refunded Fix Pack refunded", async () => {
   {
     const env = await fakeBillingEnv();
-    env.fixRequests.push(checkoutFixRequest(env, {
-      id: "fix-request-1",
-      status: "paid",
-      payment_id: "payment-paid",
-      paid_at: "2026-06-20T00:00:00.000Z"
-    }));
+    env.fixRequests.push(
+      checkoutFixRequest(env, {
+        id: "fix-request-1",
+        status: "paid",
+        payment_id: "payment-paid",
+        paid_at: "2026-06-20T00:00:00.000Z"
+      })
+    );
     const data = {
       id: "payment-paid",
       payment_id: "payment-paid",
@@ -2853,7 +3153,11 @@ test("signed refund.failed marks refund_failed but keeps an already-refunded Fix
       status: "failed",
       metadata: { fix_request_id: "fix-request-1" }
     };
-    const response = await handleDodoWebhook(signedDodoWebhookRequest({ type: "refund.failed", data }, "wh_refund_fail_1", env), env, null);
+    const response = await handleDodoWebhook(
+      signedDodoWebhookRequest({ type: "refund.failed", data }, "wh_refund_fail_1", env),
+      env,
+      null
+    );
     assert.equal(response.status, 200);
     const body = await response.json();
     assert.equal(body.refundFailed, true);
@@ -2865,14 +3169,16 @@ test("signed refund.failed marks refund_failed but keeps an already-refunded Fix
   }
   {
     const env = await fakeBillingEnv();
-    env.fixRequests.push(checkoutFixRequest(env, {
-      id: "fix-request-1",
-      status: "refunded",
-      payment_id: "payment-paid",
-      refund_id: "refund-keep",
-      refunded_at: "2026-06-21T00:00:00.000Z",
-      paid_at: "2026-06-20T00:00:00.000Z"
-    }));
+    env.fixRequests.push(
+      checkoutFixRequest(env, {
+        id: "fix-request-1",
+        status: "refunded",
+        payment_id: "payment-paid",
+        refund_id: "refund-keep",
+        refunded_at: "2026-06-21T00:00:00.000Z",
+        paid_at: "2026-06-20T00:00:00.000Z"
+      })
+    );
     const data = {
       id: "payment-paid",
       payment_id: "payment-paid",
@@ -2882,7 +3188,11 @@ test("signed refund.failed marks refund_failed but keeps an already-refunded Fix
       status: "failed",
       metadata: { fix_request_id: "fix-request-1" }
     };
-    const response = await handleDodoWebhook(signedDodoWebhookRequest({ type: "refund.failed", data }, "wh_refund_fail_2", env), env, null);
+    const response = await handleDodoWebhook(
+      signedDodoWebhookRequest({ type: "refund.failed", data }, "wh_refund_fail_2", env),
+      env,
+      null
+    );
     assert.equal(response.status, 200);
     const fixRequest = env.fixRequests[0];
     assert.equal(fixRequest.status, "refunded");
@@ -2897,19 +3207,25 @@ test("signed refund.failed marks refund_failed but keeps an already-refunded Fix
 test("signed dispute webhooks dispute paid Fix Packs but preserve delivered ones", async () => {
   for (const eventType of ["dispute.opened", "dispute.lost"]) {
     const env = await fakeBillingEnv();
-    env.fixRequests.push(checkoutFixRequest(env, {
-      id: "fix-request-1",
-      status: "paid",
-      payment_id: "payment-paid",
-      paid_at: "2026-06-20T00:00:00.000Z"
-    }));
+    env.fixRequests.push(
+      checkoutFixRequest(env, {
+        id: "fix-request-1",
+        status: "paid",
+        payment_id: "payment-paid",
+        paid_at: "2026-06-20T00:00:00.000Z"
+      })
+    );
     const data = {
       id: "payment-paid",
       payment_id: "payment-paid",
       status: "disputed",
       metadata: { fix_request_id: "fix-request-1" }
     };
-    const response = await handleDodoWebhook(signedDodoWebhookRequest({ type: eventType, data }, `wh_dispute_${eventType.replace(".", "_")}`, env), env, null);
+    const response = await handleDodoWebhook(
+      signedDodoWebhookRequest({ type: eventType, data }, `wh_dispute_${eventType.replace(".", "_")}`, env),
+      env,
+      null
+    );
     assert.equal(response.status, 200);
     const body = await response.json();
     assert.equal(body.disputed, true, eventType);
@@ -2923,20 +3239,26 @@ test("signed dispute webhooks dispute paid Fix Packs but preserve delivered ones
   }
   {
     const env = await fakeBillingEnv();
-    env.fixRequests.push(checkoutFixRequest(env, {
-      id: "fix-request-delivered",
-      status: "delivered",
-      payment_id: "payment-paid",
-      paid_at: "2026-06-20T00:00:00.000Z",
-      delivered_at: "2026-06-21T00:00:00.000Z"
-    }));
+    env.fixRequests.push(
+      checkoutFixRequest(env, {
+        id: "fix-request-delivered",
+        status: "delivered",
+        payment_id: "payment-paid",
+        paid_at: "2026-06-20T00:00:00.000Z",
+        delivered_at: "2026-06-21T00:00:00.000Z"
+      })
+    );
     const data = {
       id: "payment-paid",
       payment_id: "payment-paid",
       status: "disputed",
       metadata: { fix_request_id: "fix-request-delivered" }
     };
-    const response = await handleDodoWebhook(signedDodoWebhookRequest({ type: "dispute.opened", data }, "wh_dispute_delivered", env), env, null);
+    const response = await handleDodoWebhook(
+      signedDodoWebhookRequest({ type: "dispute.opened", data }, "wh_dispute_delivered", env),
+      env,
+      null
+    );
     assert.equal(response.status, 200);
     const fixRequest = env.fixRequests[0];
     assert.equal(fixRequest.status, "delivered");
@@ -2951,12 +3273,14 @@ test("signed dispute webhooks dispute paid Fix Packs but preserve delivered ones
 test("signed refund and dispute webhooks with mismatched payment identity mutate nothing", async () => {
   for (const eventType of ["refund.succeeded", "dispute.opened"]) {
     const env = await fakeBillingEnv();
-    env.fixRequests.push(checkoutFixRequest(env, {
-      id: "fix-request-1",
-      status: "paid",
-      payment_id: "payment-paid",
-      paid_at: "2026-06-20T00:00:00.000Z"
-    }));
+    env.fixRequests.push(
+      checkoutFixRequest(env, {
+        id: "fix-request-1",
+        status: "paid",
+        payment_id: "payment-paid",
+        paid_at: "2026-06-20T00:00:00.000Z"
+      })
+    );
     const data = {
       id: "payment-other",
       payment_id: "payment-other",
@@ -2966,7 +3290,11 @@ test("signed refund and dispute webhooks with mismatched payment identity mutate
       status: "succeeded",
       metadata: { fix_request_id: "fix-request-1" }
     };
-    const response = await handleDodoWebhook(signedDodoWebhookRequest({ type: eventType, data }, `wh_mismatch_${eventType.replace(".", "_")}`, env), env, null);
+    const response = await handleDodoWebhook(
+      signedDodoWebhookRequest({ type: eventType, data }, `wh_mismatch_${eventType.replace(".", "_")}`, env),
+      env,
+      null
+    );
     assert.equal(response.status, 200);
     const body = await response.json();
     assert.equal(body.received, true, eventType);
@@ -2986,18 +3314,34 @@ test("signed refund and dispute webhooks with mismatched payment identity mutate
 
 test("signed second subscription active while the first entitlement is active grants zero duplicate entitlements", async () => {
   const env = await fakeBillingEnv();
-  const first = await handleDodoWebhook(signedDodoWebhookRequest({
-    type: "subscription.active",
-    data: subscriptionEventData({ id: "sub-1", status: "active" })
-  }, "wh_second_sub_1", env), env, null);
+  const first = await handleDodoWebhook(
+    signedDodoWebhookRequest(
+      {
+        type: "subscription.active",
+        data: subscriptionEventData({ id: "sub-1", status: "active" })
+      },
+      "wh_second_sub_1",
+      env
+    ),
+    env,
+    null
+  );
   assert.equal(first.status, 200);
   assert.equal(env.entitlements.length, 1);
   const firstEntitlementId = env.entitlements[0].id;
 
-  const second = await handleDodoWebhook(signedDodoWebhookRequest({
-    type: "subscription.active",
-    data: subscriptionEventData({ id: "sub-2", status: "active" })
-  }, "wh_second_sub_2", env), env, null);
+  const second = await handleDodoWebhook(
+    signedDodoWebhookRequest(
+      {
+        type: "subscription.active",
+        data: subscriptionEventData({ id: "sub-2", status: "active" })
+      },
+      "wh_second_sub_2",
+      env
+    ),
+    env,
+    null
+  );
   assert.equal(second.status, 200);
   const body = await second.json();
   assert.equal(body.received, true);
@@ -3023,20 +3367,44 @@ test("signed second subscription active while the first entitlement is active gr
 
 test("signed second subscription active after the first is cancelled grants exactly one fresh entitlement", async () => {
   const env = await fakeBillingEnv();
-  await handleDodoWebhook(signedDodoWebhookRequest({
-    type: "subscription.active",
-    data: subscriptionEventData({ id: "sub-1", status: "active" })
-  }, "wh_cancel_flow_1", env), env, null);
-  const cancelled = await handleDodoWebhook(signedDodoWebhookRequest({
-    type: "subscription.cancelled",
-    data: subscriptionEventData({ id: "sub-1", status: "cancelled" })
-  }, "wh_cancel_flow_2", env), env, null);
+  await handleDodoWebhook(
+    signedDodoWebhookRequest(
+      {
+        type: "subscription.active",
+        data: subscriptionEventData({ id: "sub-1", status: "active" })
+      },
+      "wh_cancel_flow_1",
+      env
+    ),
+    env,
+    null
+  );
+  const cancelled = await handleDodoWebhook(
+    signedDodoWebhookRequest(
+      {
+        type: "subscription.cancelled",
+        data: subscriptionEventData({ id: "sub-1", status: "cancelled" })
+      },
+      "wh_cancel_flow_2",
+      env
+    ),
+    env,
+    null
+  );
   assert.equal(cancelled.status, 200);
 
-  const second = await handleDodoWebhook(signedDodoWebhookRequest({
-    type: "subscription.active",
-    data: subscriptionEventData({ id: "sub-2", status: "active" })
-  }, "wh_cancel_flow_3", env), env, null);
+  const second = await handleDodoWebhook(
+    signedDodoWebhookRequest(
+      {
+        type: "subscription.active",
+        data: subscriptionEventData({ id: "sub-2", status: "active" })
+      },
+      "wh_cancel_flow_3",
+      env
+    ),
+    env,
+    null
+  );
   assert.equal(second.status, 200);
   const body = await second.json();
   assert.equal(body.ok, true);
@@ -3078,10 +3446,18 @@ test("signed second subscription adopts an unattached active entitlement instead
     revoked_at: null
   });
 
-  const response = await handleDodoWebhook(signedDodoWebhookRequest({
-    type: "subscription.active",
-    data: subscriptionEventData({ id: "sub-2", status: "active" })
-  }, "wh_adopt_sub_2", env), env, null);
+  const response = await handleDodoWebhook(
+    signedDodoWebhookRequest(
+      {
+        type: "subscription.active",
+        data: subscriptionEventData({ id: "sub-2", status: "active" })
+      },
+      "wh_adopt_sub_2",
+      env
+    ),
+    env,
+    null
+  );
   assert.equal(response.status, 200);
   const body = await response.json();
   assert.equal(body.ok, true);
@@ -3098,18 +3474,34 @@ test("signed second subscription adopts an unattached active entitlement instead
 
 test("signed subscription.renewed reactivates the same entitlement row without a second grant", async () => {
   const env = await fakeBillingEnv();
-  const first = await handleDodoWebhook(signedDodoWebhookRequest({
-    type: "subscription.active",
-    data: subscriptionEventData({ id: "sub-renew-1", status: "active" })
-  }, "wh_renew_1", env), env, null);
+  const first = await handleDodoWebhook(
+    signedDodoWebhookRequest(
+      {
+        type: "subscription.active",
+        data: subscriptionEventData({ id: "sub-renew-1", status: "active" })
+      },
+      "wh_renew_1",
+      env
+    ),
+    env,
+    null
+  );
   assert.equal(first.status, 200);
   assert.equal(env.entitlements.length, 1);
   const entitlementId = env.entitlements[0].id;
 
-  const renewed = await handleDodoWebhook(signedDodoWebhookRequest({
-    type: "subscription.renewed",
-    data: subscriptionEventData({ id: "sub-renew-1", status: "active" })
-  }, "wh_renew_2", env), env, null);
+  const renewed = await handleDodoWebhook(
+    signedDodoWebhookRequest(
+      {
+        type: "subscription.renewed",
+        data: subscriptionEventData({ id: "sub-renew-1", status: "active" })
+      },
+      "wh_renew_2",
+      env
+    ),
+    env,
+    null
+  );
   assert.equal(renewed.status, 200);
   const body = await renewed.json();
   assert.equal(body.ok, true);
@@ -3128,14 +3520,18 @@ test("signed subscription.renewed reactivates the same entitlement row without a
 
 async function withDodoPricing(callback) {
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = async () => new Response(JSON.stringify({
-    display_price: "$99.00",
-    currency: "USD",
-    total_amount: 9900
-  }), {
-    status: 200,
-    headers: { "content-type": "application/json" }
-  });
+  globalThis.fetch = async () =>
+    new Response(
+      JSON.stringify({
+        display_price: "$99.00",
+        currency: "USD",
+        total_amount: 9900
+      }),
+      {
+        status: 200,
+        headers: { "content-type": "application/json" }
+      }
+    );
   try {
     return await callback();
   } finally {
@@ -3153,16 +3549,18 @@ async function fakeBillingEnv() {
     url: "https://example.com/",
     score: 81,
     summary: { totalFindings: 1 },
-    findings: [{
-      id: "issue-1",
-      severity: "critical",
-      title: "Missing title",
-      pageUrl: "https://example.com/",
-      evidence: "Rendered title is missing.",
-      fix: "Add a descriptive title.",
-      confidence: "verified",
-      source: "rendered"
-    }],
+    findings: [
+      {
+        id: "issue-1",
+        severity: "critical",
+        title: "Missing title",
+        pageUrl: "https://example.com/",
+        evidence: "Rendered title is missing.",
+        fix: "Add a descriptive title.",
+        confidence: "verified",
+        source: "rendered"
+      }
+    ],
     repairPlan: []
   };
   const env = {
@@ -3176,90 +3574,102 @@ async function fakeBillingEnv() {
     DODO_SEOFIXKIT_BRAND_ID: "brand-1",
     DODO_SEOFIXKIT_ENVIRONMENT: "test",
     DODO_SEOFIXKIT_WEBHOOK_SECRET: "whsec_test",
-    sessions: [{
-      token_hash: tokenHash,
-      owner_email: "owner@example.com",
-      invite_id: null,
-      access_mode: "founder-override",
-      expires_at: new Date(Date.now() + 60_000).toISOString(),
-      revoked_at: null
-    }],
-    reports: [{
-      id: reportId,
-      url: "https://example.com/",
-      target_host: "example.com",
-      owner_email: "owner@example.com",
-      owner_invite_id: null,
-      score: 81,
-      summary_json: JSON.stringify(report.summary),
-      report_json: JSON.stringify(report),
-      expires_at: new Date(Date.now() + 60_000).toISOString()
-    }],
-    queueItems: [{
-      id: "queue-1",
-      report_id: reportId,
-      owner_email: "owner@example.com",
-      issue_id: "issue-1",
-      title: "Missing title",
-      severity: "critical",
-      page_url: "https://example.com/",
-      page_label: "home",
-      proof: "Rendered title is missing.",
-      fix: "Add a descriptive title.",
-      snippet: "",
-      acceptance: "Rendered title exists.",
-      confidence: "verified",
-      source: "rendered",
-      source_kind: "finding",
-      estimated_effort: "",
-      work_type: "",
-      action_mode: "cms_draft",
-      status: "approved",
-      rerun_status: "not_run",
-      last_rerun_report_id: "",
-      created_at: now,
-      updated_at: now,
-      updated_by_email: "owner@example.com"
-    }],
-    actions: [{
-      id: "action-1",
-      report_id: reportId,
-      owner_email: "owner@example.com",
-      queue_item_id: "queue-1",
-      issue_id: "issue-1",
-      action_mode: "cms_draft",
-      action_type: "metadata_copy",
-      approval_state: "approved",
-      execution_state: "not_started",
-      rerun_state: "not_run",
-      source_proof: "Rendered title is missing.",
-      proposed_change: "Private draft title copy",
-      acceptance: "Rendered title exists.",
-      rerun_report_id: "",
-      created_at: now,
-      updated_at: now,
-      approved_at: now,
-      applied_at: "",
-      updated_by_email: "owner@example.com"
-    }],
-    siteClaims: [{
-      id: "site-claim-1",
-      owner_email: "owner@example.com",
-      host: "example.com",
-      status: "verified",
-      revoked_at: null,
-      updated_at: now
-    }],
-    auditSchedules: [{
-      id: "schedule-1",
-      owner_email: "owner@example.com",
-      target_url: "https://example.com/",
-      target_host: "example.com",
-      status: "active",
-      interval_days: 7,
-      max_pages: 10,
-      updated_at: now
-    }],
+    sessions: [
+      {
+        token_hash: tokenHash,
+        owner_email: "owner@example.com",
+        invite_id: null,
+        access_mode: "founder-override",
+        expires_at: new Date(Date.now() + 60_000).toISOString(),
+        revoked_at: null
+      }
+    ],
+    reports: [
+      {
+        id: reportId,
+        url: "https://example.com/",
+        target_host: "example.com",
+        owner_email: "owner@example.com",
+        owner_invite_id: null,
+        score: 81,
+        summary_json: JSON.stringify(report.summary),
+        report_json: JSON.stringify(report),
+        expires_at: new Date(Date.now() + 60_000).toISOString()
+      }
+    ],
+    queueItems: [
+      {
+        id: "queue-1",
+        report_id: reportId,
+        owner_email: "owner@example.com",
+        issue_id: "issue-1",
+        title: "Missing title",
+        severity: "critical",
+        page_url: "https://example.com/",
+        page_label: "home",
+        proof: "Rendered title is missing.",
+        fix: "Add a descriptive title.",
+        snippet: "",
+        acceptance: "Rendered title exists.",
+        confidence: "verified",
+        source: "rendered",
+        source_kind: "finding",
+        estimated_effort: "",
+        work_type: "",
+        action_mode: "cms_draft",
+        status: "approved",
+        rerun_status: "not_run",
+        last_rerun_report_id: "",
+        created_at: now,
+        updated_at: now,
+        updated_by_email: "owner@example.com"
+      }
+    ],
+    actions: [
+      {
+        id: "action-1",
+        report_id: reportId,
+        owner_email: "owner@example.com",
+        queue_item_id: "queue-1",
+        issue_id: "issue-1",
+        action_mode: "cms_draft",
+        action_type: "metadata_copy",
+        approval_state: "approved",
+        execution_state: "not_started",
+        rerun_state: "not_run",
+        source_proof: "Rendered title is missing.",
+        proposed_change: "Private draft title copy",
+        acceptance: "Rendered title exists.",
+        rerun_report_id: "",
+        created_at: now,
+        updated_at: now,
+        approved_at: now,
+        applied_at: "",
+        updated_by_email: "owner@example.com"
+      }
+    ],
+    siteClaims: [
+      {
+        id: "site-claim-1",
+        owner_email: "owner@example.com",
+        host: "example.com",
+        status: "verified",
+        revoked_at: null,
+        updated_at: now
+      }
+    ],
+    auditSchedules: [
+      {
+        id: "schedule-1",
+        owner_email: "owner@example.com",
+        target_url: "https://example.com/",
+        target_host: "example.com",
+        status: "active",
+        interval_days: 7,
+        max_pages: 10,
+        updated_at: now
+      }
+    ],
     fixRequests: [],
     repairProposals: [],
     entitlements: [],
@@ -3365,9 +3775,10 @@ function subscriptionEventData(overrides = {}) {
     status: overrides.status || "active",
     brand_id: overrides.brand_id || "brand-1",
     customer: { email: overrides.customerEmail || "owner@example.com" },
-    product_cart: overrides.product_cart === undefined
-      ? [{ product_id: overrides.product_id || "pdt_monitoring", quantity: overrides.quantity || 1 }]
-      : overrides.product_cart,
+    product_cart:
+      overrides.product_cart === undefined
+        ? [{ product_id: overrides.product_id || "pdt_monitoring", quantity: overrides.quantity || 1 }]
+        : overrides.product_cart,
     current_period_start: "2026-06-20T00:00:00.000Z",
     current_period_end: "2026-07-20T00:00:00.000Z",
     metadata: {
@@ -3411,7 +3822,9 @@ function signedDodoWebhookRequest(payload, webhookId, env, options = {}) {
 }
 
 function dodoWebhookSecretBytes(secret) {
-  const normalized = String(secret || "").trim().replace(/^whsec_/, "");
+  const normalized = String(secret || "")
+    .trim()
+    .replace(/^whsec_/, "");
   try {
     return Buffer.from(atob(normalized), "binary");
   } catch {
@@ -3460,11 +3873,13 @@ function first(sql, values, env) {
   if (sql.includes("FROM offer_entitlements") && sql.includes("provider = 'dodo'")) {
     if (env.missingEntitlementSchema) throw new Error("no such table: offer_entitlements");
     const [subscriptionId, offerKey] = values;
-    return snapshot(env.entitlements.find((row) =>
-      row.provider === "dodo" &&
-      row.subscription_id === subscriptionId &&
-      row.offer_key === offerKey
-    )) || null;
+    return (
+      snapshot(
+        env.entitlements.find(
+          (row) => row.provider === "dodo" && row.subscription_id === subscriptionId && row.offer_key === offerKey
+        )
+      ) || null
+    );
   }
   if (sql.includes("FROM offer_entitlements") && sql.includes("owner_email = ?")) {
     if (env.missingEntitlementSchema) throw new Error("no such table: offer_entitlements");
@@ -3473,11 +3888,13 @@ function first(sql, values, env) {
     // mutation dropping that predicate changes mock behavior verbatim.
     const excludesRevoked = sql.includes("AND revoked_at IS NULL");
     const [ownerEmail, offerKey] = values;
-    return snapshot(env.entitlements.find((row) =>
-      row.owner_email === ownerEmail &&
-      row.offer_key === offerKey &&
-      (!excludesRevoked || !row.revoked_at)
-    )) || null;
+    return (
+      snapshot(
+        env.entitlements.find(
+          (row) => row.owner_email === ownerEmail && row.offer_key === offerKey && (!excludesRevoked || !row.revoked_at)
+        )
+      ) || null
+    );
   }
   if (sql.includes("FROM offer_entitlements")) {
     if (env.missingEntitlementSchema) throw new Error("no such table: offer_entitlements");
@@ -3493,24 +3910,29 @@ function first(sql, values, env) {
   if (sql.includes("FROM repair_proposals") && sql.includes("WHERE id = ?")) {
     if (env.repairProposalsMissing) throw new Error("no such table: repair_proposals");
     const [proposalId, reportId, ownerEmail] = values;
-    return env.repairProposals.find((row) =>
-      row.id === proposalId &&
-      (!reportId || row.report_id === reportId) &&
-      (!ownerEmail || row.owner_email === ownerEmail)
-    ) || null;
+    return (
+      env.repairProposals.find(
+        (row) =>
+          row.id === proposalId &&
+          (!reportId || row.report_id === reportId) &&
+          (!ownerEmail || row.owner_email === ownerEmail)
+      ) || null
+    );
   }
   if (sql.includes("FROM repair_queue_items")) {
     if (env.repairTablesMissing) throw new Error("no such table: repair_queue_items");
     const [id, reportId, ownerEmail] = values;
-    return snapshot(env.queueItems.find((row) =>
-      row.id === id &&
-      row.report_id === reportId &&
-      row.owner_email === ownerEmail
-    )) || null;
+    return (
+      snapshot(
+        env.queueItems.find((row) => row.id === id && row.report_id === reportId && row.owner_email === ownerEmail)
+      ) || null
+    );
   }
   if (sql.includes("FROM fix_requests")) {
     const [reportId, ownerEmail] = values;
-    return snapshot(env.fixRequests.find((row) => row.report_id === reportId && row.owner_email === ownerEmail)) || null;
+    return (
+      snapshot(env.fixRequests.find((row) => row.report_id === reportId && row.owner_email === ownerEmail)) || null
+    );
   }
   throw new Error(`Unexpected first SQL: ${sql}`);
 }
@@ -3530,9 +3952,8 @@ function all(sql, values, env) {
     const ownerEmail = ownerFiltered ? values[values.length - 1] : "";
     const ids = new Set(ownerFiltered ? values.slice(0, -1) : values);
     const grouped = new Map();
-    for (const proposal of env.repairProposals.filter((row) =>
-      ids.has(row.fix_request_id) &&
-      (!ownerEmail || row.owner_email === ownerEmail)
+    for (const proposal of env.repairProposals.filter(
+      (row) => ids.has(row.fix_request_id) && (!ownerEmail || row.owner_email === ownerEmail)
     )) {
       const current = grouped.get(proposal.fix_request_id) || {
         fix_request_id: proposal.fix_request_id,
@@ -3579,14 +4000,16 @@ function all(sql, values, env) {
     const [fixRequestId, reportId, ownerEmail] = values;
     return {
       results: env.repairProposals
-        .filter((row) =>
-          row.fix_request_id === fixRequestId &&
-          (!reportId || row.report_id === reportId) &&
-          (!ownerEmail || row.owner_email === ownerEmail)
+        .filter(
+          (row) =>
+            row.fix_request_id === fixRequestId &&
+            (!reportId || row.report_id === reportId) &&
+            (!ownerEmail || row.owner_email === ownerEmail)
         )
-        .sort((a, b) =>
-          Number(a.priority || 0) - Number(b.priority || 0) ||
-          String(b.updated_at || "").localeCompare(String(a.updated_at || ""))
+        .sort(
+          (a, b) =>
+            Number(a.priority || 0) - Number(b.priority || 0) ||
+            String(b.updated_at || "").localeCompare(String(a.updated_at || ""))
         )
         .slice(0, 50)
     };
@@ -3594,30 +4017,22 @@ function all(sql, values, env) {
   if (sql.includes("FROM site_claims")) {
     const [ownerEmail] = values;
     return {
-      results: env.siteClaims.filter((row) =>
-        row.owner_email === ownerEmail &&
-        row.status === "verified" &&
-        !row.revoked_at
+      results: env.siteClaims.filter(
+        (row) => row.owner_email === ownerEmail && row.status === "verified" && !row.revoked_at
       )
     };
   }
   if (sql.includes("FROM audit_schedules")) {
     const [ownerEmail] = values;
     return {
-      results: env.auditSchedules.filter((row) =>
-        row.owner_email === ownerEmail &&
-        row.status === "active"
-      )
+      results: env.auditSchedules.filter((row) => row.owner_email === ownerEmail && row.status === "active")
     };
   }
   if (sql.includes("FROM offer_entitlements")) {
     if (env.missingEntitlementSchema) throw new Error("no such table: offer_entitlements");
     const [ownerEmail] = values;
     return {
-      results: env.entitlements.filter((row) =>
-        row.owner_email === ownerEmail &&
-        !row.revoked_at
-      )
+      results: env.entitlements.filter((row) => row.owner_email === ownerEmail && !row.revoked_at)
     };
   }
   throw new Error(`Unexpected all SQL: ${sql}`);
@@ -3701,12 +4116,23 @@ function run(sql, values, env) {
     return { meta: { changes: 1 } };
   }
   if (sql.includes("UPDATE repair_proposals") && sql.includes("SET approval_status")) {
-    const [approvalStatus, ownerNote, approvedAt, approvedByEmail, dismissedAt, updatedAt, proposalId, reportId, ownerEmail] = values;
-    const row = env.repairProposals.find((item) =>
-      item.id === proposalId &&
-      item.report_id === reportId &&
-      item.owner_email === ownerEmail &&
-      item.delivery_status === "draft"
+    const [
+      approvalStatus,
+      ownerNote,
+      approvedAt,
+      approvedByEmail,
+      dismissedAt,
+      updatedAt,
+      proposalId,
+      reportId,
+      ownerEmail
+    ] = values;
+    const row = env.repairProposals.find(
+      (item) =>
+        item.id === proposalId &&
+        item.report_id === reportId &&
+        item.owner_email === ownerEmail &&
+        item.delivery_status === "draft"
     );
     if (!row) return { meta: { changes: 0 } };
     if (row.fix_request_id) {
@@ -3777,7 +4203,8 @@ function run(sql, values, env) {
   if (sql.includes("INSERT OR IGNORE INTO repair_proposals")) {
     // Mirror migration 0026: the unique index skips rows without a
     // fix_request_id, so unattached rows are never deduped by storage itself.
-    const conflicts = Boolean(values[1]) &&
+    const conflicts =
+      Boolean(values[1]) &&
       env.repairProposals.some((row) => row.fix_request_id === values[1] && row.issue_id === values[4]);
     if (!conflicts) {
       env.repairProposals.push({
@@ -3810,11 +4237,8 @@ function run(sql, values, env) {
   if (sql.includes("UPDATE repair_proposals") && sql.includes("COALESCE(fix_request_id, '') = ''")) {
     env.proposalAdoptWrites = Number(env.proposalAdoptWrites || 0) + 1;
     const [fixRequestId, updatedAt, id, reportId, ownerEmail] = values;
-    const row = env.repairProposals.find((item) =>
-      item.id === id &&
-      item.report_id === reportId &&
-      item.owner_email === ownerEmail &&
-      !item.fix_request_id
+    const row = env.repairProposals.find(
+      (item) => item.id === id && item.report_id === reportId && item.owner_email === ownerEmail && !item.fix_request_id
     );
     if (!row) return { meta: { changes: 0 } };
     row.fix_request_id = fixRequestId;
@@ -3824,12 +4248,13 @@ function run(sql, values, env) {
   if (sql.includes("UPDATE repair_proposals") && sql.includes("SET fix_request_id")) {
     env.proposalAttachWrites = Number(env.proposalAttachWrites || 0) + 1;
     const [fixRequestId, updatedAt, id, reportId, ownerEmail] = values;
-    const row = env.repairProposals.find((item) =>
-      item.id === id &&
-      item.report_id === reportId &&
-      item.owner_email === ownerEmail &&
-      item.approval_status === "approved" &&
-      item.execution_mode !== "unsupported"
+    const row = env.repairProposals.find(
+      (item) =>
+        item.id === id &&
+        item.report_id === reportId &&
+        item.owner_email === ownerEmail &&
+        item.approval_status === "approved" &&
+        item.execution_mode !== "unsupported"
     );
     if (row && !row.fix_request_id) {
       row.fix_request_id = fixRequestId;
@@ -3939,10 +4364,16 @@ function run(sql, values, env) {
       const paidPreservesStatus = sql.includes("WHEN paid_at IS NOT NULL");
       const failureStatus = (sql.match(/ELSE '([^']+)'/) || [])[1] || "payment_failed";
       row.status = paidPreservesStatus
-        ? (row.paid_at ? row.status : failureStatus)
-        : (row.paid_at ? failureStatus : row.status);
-      row.payment_id = sql.includes("COALESCE(payment_id,") ? (row.payment_id || values[0]) : values[0];
-      row.checkout_session_id = sql.includes("COALESCE(checkout_session_id,") ? (row.checkout_session_id || values[1]) : values[1];
+        ? row.paid_at
+          ? row.status
+          : failureStatus
+        : row.paid_at
+          ? failureStatus
+          : row.status;
+      row.payment_id = sql.includes("COALESCE(payment_id,") ? row.payment_id || values[0] : values[0];
+      row.checkout_session_id = sql.includes("COALESCE(checkout_session_id,")
+        ? row.checkout_session_id || values[1]
+        : values[1];
       row.updated_at = values[2];
     }
     return { meta: { changes: row ? 1 : 0 } };
@@ -3954,7 +4385,7 @@ function run(sql, values, env) {
       row.refund_id = values[0];
       row.refund_amount = values[1];
       row.refund_currency = values[2];
-      row.refunded_at = sql.includes("COALESCE(refunded_at,") ? (row.refunded_at || values[3]) : values[3];
+      row.refunded_at = sql.includes("COALESCE(refunded_at,") ? row.refunded_at || values[3] : values[3];
       row.updated_at = values[4];
     }
     return { meta: { changes: row ? 1 : 0 } };
@@ -3963,11 +4394,13 @@ function run(sql, values, env) {
     const row = env.fixRequests.find((item) => item.id === values[4]);
     if (row) {
       row.status = sql.includes("WHEN status = 'refunded'")
-        ? (row.status === "refunded" ? "refunded" : "refund_failed")
+        ? row.status === "refunded"
+          ? "refunded"
+          : "refund_failed"
         : "refund_failed";
-      row.refund_id = sql.includes("COALESCE(refund_id,") ? (row.refund_id || values[0]) : values[0];
-      row.refund_amount = sql.includes("COALESCE(refund_amount,") ? (row.refund_amount || values[1]) : values[1];
-      row.refund_currency = sql.includes("COALESCE(refund_currency,") ? (row.refund_currency || values[2]) : values[2];
+      row.refund_id = sql.includes("COALESCE(refund_id,") ? row.refund_id || values[0] : values[0];
+      row.refund_amount = sql.includes("COALESCE(refund_amount,") ? row.refund_amount || values[1] : values[1];
+      row.refund_currency = sql.includes("COALESCE(refund_currency,") ? row.refund_currency || values[2] : values[2];
       row.updated_at = values[3];
     }
     return { meta: { changes: row ? 1 : 0 } };
@@ -3977,10 +4410,12 @@ function run(sql, values, env) {
     if (row) {
       const disputeStatus = sql.includes("ELSE 'disputed'") ? "disputed" : "paid";
       row.status = sql.includes("WHEN status = 'delivered'")
-        ? (row.status === "delivered" ? "delivered" : disputeStatus)
+        ? row.status === "delivered"
+          ? "delivered"
+          : disputeStatus
         : disputeStatus;
       row.dispute_event = values[0];
-      row.disputed_at = sql.includes("COALESCE(disputed_at,") ? (row.disputed_at || values[1]) : values[1];
+      row.disputed_at = sql.includes("COALESCE(disputed_at,") ? row.disputed_at || values[1] : values[1];
       row.updated_at = values[2];
     }
     return { meta: { changes: row ? 1 : 0 } };

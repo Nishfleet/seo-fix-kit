@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { unstable_readConfig } from "wrangler";
 import worker from "./index.js";
 import { sha256Hex } from "./lib/security.js";
 
@@ -11,161 +13,193 @@ test("Worker dispatch routes public pages and repair APIs", async () => {
   assert.equal(methodology.status, 200);
   assert.match(await methodology.text(), /Proof first\. Repairs second\. Claims last\./);
 
-  const sessionQueue = await worker.fetch(new Request(`https://seofixkit.test/api/reports/${env.reportId}/repair-queue`, {
-    headers: { cookie: `sfk_beta_session=${env.sessionToken}` }
-  }), env, fakeCtx());
+  const sessionQueue = await worker.fetch(
+    new Request(`https://seofixkit.test/api/reports/${env.reportId}/repair-queue`, {
+      headers: { cookie: `sfk_beta_session=${env.sessionToken}` }
+    }),
+    env,
+    fakeCtx()
+  );
   assert.equal(sessionQueue.status, 200);
   const sessionBody = await sessionQueue.json();
   assert.equal(sessionBody.items[0].issueId, "issue-1");
 
-  const apiQueue = await worker.fetch(new Request(`https://seofixkit.test/v1/audits/${env.auditId}/repair-queue`, {
-    headers: { authorization: `Bearer ${env.apiToken}` }
-  }), env, fakeCtx());
+  const apiQueue = await worker.fetch(
+    new Request(`https://seofixkit.test/v1/audits/${env.auditId}/repair-queue`, {
+      headers: { authorization: `Bearer ${env.apiToken}` }
+    }),
+    env,
+    fakeCtx()
+  );
   assert.equal(apiQueue.status, 200);
   const apiBody = await apiQueue.json();
   assert.equal(apiBody.items[0].issue_id, "issue-1");
 
-  const sessionQueuePatch = await worker.fetch(sessionRequest(env, `/api/reports/${env.reportId}/repair-queue`, {
-    method: "PATCH",
-    body: JSON.stringify({
-      issueId: "issue-1",
-      status: "ignored",
-      actionMode: "self_serve"
-    })
-  }), env, fakeCtx());
+  const sessionQueuePatch = await worker.fetch(
+    sessionRequest(env, `/api/reports/${env.reportId}/repair-queue`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        issueId: "issue-1",
+        status: "ignored",
+        actionMode: "self_serve"
+      })
+    }),
+    env,
+    fakeCtx()
+  );
   assert.equal(sessionQueuePatch.status, 200);
   assert.equal(env.queueItems[0].status, "ignored");
 
-  const sessionAction = await worker.fetch(sessionRequest(env, `/api/reports/${env.reportId}/repair-actions`, {
-    method: "POST",
-    body: JSON.stringify({
-      issueId: "issue-1",
-      actionMode: "cms_draft",
-      proposedChange: "Draft the fixed title for review."
-    })
-  }), env, fakeCtx());
+  const sessionAction = await worker.fetch(
+    sessionRequest(env, `/api/reports/${env.reportId}/repair-actions`, {
+      method: "POST",
+      body: JSON.stringify({
+        issueId: "issue-1",
+        actionMode: "cms_draft",
+        proposedChange: "Draft the fixed title for review."
+      })
+    }),
+    env,
+    fakeCtx()
+  );
   assert.equal(sessionAction.status, 201);
   const sessionActionBody = await sessionAction.json();
   assert.equal(sessionActionBody.action.approvalState, "drafted");
   assert.equal(env.actions.length, 1);
   assert.equal(env.queueItems[0].status, "drafted");
 
-  const sessionActionPatch = await worker.fetch(sessionRequest(
-    env,
-    `/api/reports/${env.reportId}/repair-actions/${sessionActionBody.action.id}`,
-    {
+  const sessionActionPatch = await worker.fetch(
+    sessionRequest(env, `/api/reports/${env.reportId}/repair-actions/${sessionActionBody.action.id}`, {
       method: "PATCH",
       body: JSON.stringify({
         approvalState: "approved",
         executionState: "applied"
       })
-    }
-  ), env, fakeCtx());
+    }),
+    env,
+    fakeCtx()
+  );
   assert.equal(sessionActionPatch.status, 200);
   assert.equal(env.actions[0].approval_state, "approved");
   assert.equal(env.actions[0].execution_state, "applied");
   assert.equal(env.queueItems[0].status, "applied");
 
-  const sessionPack = await worker.fetch(sessionRequest(
+  const sessionPack = await worker.fetch(
+    sessionRequest(env, `/api/reports/${env.reportId}/repair-actions/${sessionActionBody.action.id}/implementation.md`),
     env,
-    `/api/reports/${env.reportId}/repair-actions/${sessionActionBody.action.id}/implementation.md`
-  ), env, fakeCtx());
+    fakeCtx()
+  );
   assert.equal(sessionPack.status, 200);
   assert.match(sessionPack.headers.get("content-type") || "", /text\/markdown/);
   assert.match(await sessionPack.text(), /# SEOFixKit Implementation Pack/);
 
   env.reports.push(fixedRerunReportRow("rerun-fixed-report-1"));
-  const sessionFixedPatch = await worker.fetch(sessionRequest(
-    env,
-    `/api/reports/${env.reportId}/repair-actions/${sessionActionBody.action.id}`,
-    {
+  const sessionFixedPatch = await worker.fetch(
+    sessionRequest(env, `/api/reports/${env.reportId}/repair-actions/${sessionActionBody.action.id}`, {
       method: "PATCH",
       body: JSON.stringify({
         rerunState: "fixed",
         rerunReportId: "rerun-fixed-report-1"
       })
-    }
-  ), env, fakeCtx());
-  assert.equal(sessionFixedPatch.status, 200);
-  const sessionProof = await worker.fetch(sessionRequest(
+    }),
     env,
-    `/api/reports/${env.reportId}/repair-actions/${sessionActionBody.action.id}/proof.md`
-  ), env, fakeCtx());
+    fakeCtx()
+  );
+  assert.equal(sessionFixedPatch.status, 200);
+  const sessionProof = await worker.fetch(
+    sessionRequest(env, `/api/reports/${env.reportId}/repair-actions/${sessionActionBody.action.id}/proof.md`),
+    env,
+    fakeCtx()
+  );
   assert.equal(sessionProof.status, 200);
   assert.match(sessionProof.headers.get("content-type") || "", /text\/markdown/);
   assert.match(await sessionProof.text(), /# SEOFixKit Repair Proof Receipt/);
 
   const apiEnv = await fakeWorkerEnv();
-  await worker.fetch(new Request(`https://seofixkit.test/v1/audits/${apiEnv.auditId}/repair-queue`, {
-    headers: { authorization: `Bearer ${apiEnv.apiToken}` }
-  }), apiEnv, fakeCtx());
+  await worker.fetch(
+    new Request(`https://seofixkit.test/v1/audits/${apiEnv.auditId}/repair-queue`, {
+      headers: { authorization: `Bearer ${apiEnv.apiToken}` }
+    }),
+    apiEnv,
+    fakeCtx()
+  );
 
-  const apiQueuePatch = await worker.fetch(apiRequest(apiEnv, `/v1/audits/${apiEnv.auditId}/repair-queue`, {
-    method: "PATCH",
-    body: JSON.stringify({
-      issue_id: "issue-1",
-      status: "ignored",
-      action_mode: "self_serve"
-    })
-  }), apiEnv, fakeCtx());
+  const apiQueuePatch = await worker.fetch(
+    apiRequest(apiEnv, `/v1/audits/${apiEnv.auditId}/repair-queue`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        issue_id: "issue-1",
+        status: "ignored",
+        action_mode: "self_serve"
+      })
+    }),
+    apiEnv,
+    fakeCtx()
+  );
   assert.equal(apiQueuePatch.status, 200);
   assert.equal(apiEnv.queueItems[0].status, "ignored");
 
-  const apiAction = await worker.fetch(apiRequest(apiEnv, `/v1/audits/${apiEnv.auditId}/repair-actions`, {
-    method: "POST",
-    body: JSON.stringify({
-      issue_id: "issue-1",
-      action_mode: "cms_draft",
-      proposed_change: "Draft the fixed title for review."
-    })
-  }), apiEnv, fakeCtx());
+  const apiAction = await worker.fetch(
+    apiRequest(apiEnv, `/v1/audits/${apiEnv.auditId}/repair-actions`, {
+      method: "POST",
+      body: JSON.stringify({
+        issue_id: "issue-1",
+        action_mode: "cms_draft",
+        proposed_change: "Draft the fixed title for review."
+      })
+    }),
+    apiEnv,
+    fakeCtx()
+  );
   assert.equal(apiAction.status, 201);
   const apiActionBody = await apiAction.json();
   assert.equal(apiActionBody.action.approval_state, "drafted");
   assert.equal(apiEnv.actions.length, 1);
   assert.equal(apiEnv.queueItems[0].status, "drafted");
 
-  const apiActionPatch = await worker.fetch(apiRequest(
-    apiEnv,
-    `/v1/audits/${apiEnv.auditId}/repair-actions/${apiActionBody.action.id}`,
-    {
+  const apiActionPatch = await worker.fetch(
+    apiRequest(apiEnv, `/v1/audits/${apiEnv.auditId}/repair-actions/${apiActionBody.action.id}`, {
       method: "PATCH",
       body: JSON.stringify({
         approval_state: "approved",
         execution_state: "applied"
       })
-    }
-  ), apiEnv, fakeCtx());
+    }),
+    apiEnv,
+    fakeCtx()
+  );
   assert.equal(apiActionPatch.status, 200);
   assert.equal(apiEnv.actions[0].approval_state, "approved");
   assert.equal(apiEnv.actions[0].execution_state, "applied");
   assert.equal(apiEnv.queueItems[0].status, "applied");
 
-  const apiPack = await worker.fetch(apiRequest(
+  const apiPack = await worker.fetch(
+    apiRequest(apiEnv, `/v1/audits/${apiEnv.auditId}/repair-actions/${apiActionBody.action.id}/implementation.md`),
     apiEnv,
-    `/v1/audits/${apiEnv.auditId}/repair-actions/${apiActionBody.action.id}/implementation.md`
-  ), apiEnv, fakeCtx());
+    fakeCtx()
+  );
   assert.equal(apiPack.status, 200);
   assert.match(apiPack.headers.get("content-type") || "", /text\/markdown/);
   assert.match(await apiPack.text(), /# SEOFixKit Implementation Pack/);
 
   apiEnv.reports.push(fixedRerunReportRow("rerun-fixed-report-1"));
-  const apiFixedPatch = await worker.fetch(apiRequest(
-    apiEnv,
-    `/v1/audits/${apiEnv.auditId}/repair-actions/${apiActionBody.action.id}`,
-    {
+  const apiFixedPatch = await worker.fetch(
+    apiRequest(apiEnv, `/v1/audits/${apiEnv.auditId}/repair-actions/${apiActionBody.action.id}`, {
       method: "PATCH",
       body: JSON.stringify({
         rerun_state: "fixed",
         rerun_report_id: "rerun-fixed-report-1"
       })
-    }
-  ), apiEnv, fakeCtx());
-  assert.equal(apiFixedPatch.status, 200);
-  const apiProof = await worker.fetch(apiRequest(
+    }),
     apiEnv,
-    `/v1/audits/${apiEnv.auditId}/repair-actions/${apiActionBody.action.id}/proof.md`
-  ), apiEnv, fakeCtx());
+    fakeCtx()
+  );
+  assert.equal(apiFixedPatch.status, 200);
+  const apiProof = await worker.fetch(
+    apiRequest(apiEnv, `/v1/audits/${apiEnv.auditId}/repair-actions/${apiActionBody.action.id}/proof.md`),
+    apiEnv,
+    fakeCtx()
+  );
   assert.equal(apiProof.status, 200);
   assert.match(apiProof.headers.get("content-type") || "", /text\/markdown/);
   assert.match(await apiProof.text(), /# SEOFixKit Repair Proof Receipt/);
@@ -333,7 +367,10 @@ test("Worker dispatch exposes public-safe deep health readiness", async () => {
   assert.equal(body.capabilities.developerApi, true);
   assert.equal(body.capabilities.agencyWorkspace, true);
   assert.equal(body.capabilities.largeCrawlEarlyAccess, true);
-  assert.equal(body.schema.checks.some((check) => check.key === "fixPackCheckoutTarget" && check.ok), true);
+  assert.equal(
+    body.schema.checks.some((check) => check.key === "fixPackCheckoutTarget" && check.ok),
+    true
+  );
   assert.doesNotMatch(JSON.stringify(body), /dodo-key|whsec|pdt_fix_pack|brand-1|owner@example\.com|checkoutUrl/i);
 });
 
@@ -398,16 +435,24 @@ test("Worker deep health does not overclaim paid monitoring when entitlement eve
 test("Worker deep health claims the route for HEAD and unsupported methods", async () => {
   const env = await fakeWorkerEnv();
 
-  const headResponse = await worker.fetch(new Request("https://seofixkit.test/api/deep-health", {
-    method: "HEAD"
-  }), env, fakeCtx());
+  const headResponse = await worker.fetch(
+    new Request("https://seofixkit.test/api/deep-health", {
+      method: "HEAD"
+    }),
+    env,
+    fakeCtx()
+  );
   assert.equal(headResponse.status, 200);
   assert.match(headResponse.headers.get("content-type") || "", /application\/json/);
   assert.equal(await headResponse.text(), "");
 
-  const postResponse = await worker.fetch(new Request("https://seofixkit.test/api/deep-health", {
-    method: "POST"
-  }), env, fakeCtx());
+  const postResponse = await worker.fetch(
+    new Request("https://seofixkit.test/api/deep-health", {
+      method: "POST"
+    }),
+    env,
+    fakeCtx()
+  );
   const body = await postResponse.json();
   assert.equal(postResponse.status, 405);
   assert.equal(body.error, "Method not allowed.");
@@ -419,7 +464,11 @@ test("Worker dispatch passes through the asset layer 404 for unknown URLs instea
   // The ASSETS binding (wrangler.jsonc not_found_handling "404-page") owns the
   // 404 response for unknown URLs. The worker must pass it through unchanged
   // (status, body) with security headers, never a 200 homepage shell.
-  const unknown = await worker.fetch(new Request("https://seofixkit.test/definitely-not-a-real-page-xyz"), env, fakeCtx());
+  const unknown = await worker.fetch(
+    new Request("https://seofixkit.test/definitely-not-a-real-page-xyz"),
+    env,
+    fakeCtx()
+  );
   assert.equal(unknown.status, 404);
   assert.equal(await unknown.text(), "asset fallback");
   assert.match(unknown.headers.get("x-content-type-options") || "", /nosniff/);
@@ -443,30 +492,42 @@ test("Worker dispatch passes through the asset layer 404 for unknown URLs instea
 test("Worker never leaks internal error text and rejects malformed URL escapes", async () => {
   const env = await fakeWorkerEnv();
 
-  const malformed = await worker.fetch(new Request("https://seofixkit.test/api/team/members/%E0%A4%A", {
-    method: "DELETE"
-  }), env, fakeCtx());
+  const malformed = await worker.fetch(
+    new Request("https://seofixkit.test/api/team/members/%E0%A4%A", {
+      method: "DELETE"
+    }),
+    env,
+    fakeCtx()
+  );
   assert.ok([400, 401].includes(malformed.status), `unexpected status ${malformed.status}`);
   assert.notEqual(malformed.status, 500);
 
-  const badCookie = await worker.fetch(new Request("https://seofixkit.test/api/beta/session", {
-    headers: { cookie: "sfk_beta_session=%E0%A4%A" }
-  }), env, fakeCtx());
+  const badCookie = await worker.fetch(
+    new Request("https://seofixkit.test/api/beta/session", {
+      headers: { cookie: "sfk_beta_session=%E0%A4%A" }
+    }),
+    env,
+    fakeCtx()
+  );
   assert.notEqual(badCookie.status, 500);
 
   const originalError = console.error;
   console.error = () => {};
   try {
-    const failing = await worker.fetch(new Request("https://seofixkit.test/api/beta/session", {
-      headers: { cookie: "sfk_beta_session=some-session-token" }
-    }), {
-      ...env,
-      WAITLIST_DB: {
-        prepare() {
-          throw new Error("D1_ERROR: no such table: secret_internal_table");
+    const failing = await worker.fetch(
+      new Request("https://seofixkit.test/api/beta/session", {
+        headers: { cookie: "sfk_beta_session=some-session-token" }
+      }),
+      {
+        ...env,
+        WAITLIST_DB: {
+          prepare() {
+            throw new Error("D1_ERROR: no such table: secret_internal_table");
+          }
         }
-      }
-    }, fakeCtx());
+      },
+      fakeCtx()
+    );
     assert.equal(failing.status, 500);
     const body = await failing.json();
     assert.doesNotMatch(body.error, /secret_internal_table|D1_ERROR/);
@@ -476,9 +537,8 @@ test("Worker never leaks internal error text and rejects malformed URL escapes",
 });
 
 test("Deploy surface serves a real 404 page instead of the single-page-application homepage catch-all", () => {
-  const config = readFileSync(new URL("../wrangler.jsonc", import.meta.url), "utf8");
-  assert.match(config, /"not_found_handling"\s*:\s*"404-page"/);
-  assert.doesNotMatch(config, /"not_found_handling"\s*:\s*"single-page-application"/);
+  const config = unstable_readConfig({ config: fileURLToPath(new URL("../wrangler.jsonc", import.meta.url)) });
+  assert.equal(config.assets.not_found_handling, "404-page");
 
   const notFoundPage = readFileSync(new URL("../public/404.html", import.meta.url), "utf8");
   assert.match(notFoundPage, /<title>Page not found - SEO Fix Kit<\/title>/);
@@ -502,8 +562,9 @@ test("404 page reflows at narrow viewports without horizontal overflow", async (
           scrollWidth: root.scrollWidth,
           clientWidth: root.clientWidth,
           bodyMinWidth: getComputedStyle(document.body).minWidth,
-          wideCount: [...document.querySelectorAll("*")]
-            .filter((el) => el.getBoundingClientRect().right > root.clientWidth + 1).length
+          wideCount: [...document.querySelectorAll("*")].filter(
+            (el) => el.getBoundingClientRect().right > root.clientWidth + 1
+          ).length
         };
       });
       assert.equal(measured.bodyMinWidth, "0px", `404 page must not keep the 320px floor at ${width}px`);
@@ -511,7 +572,11 @@ test("404 page reflows at narrow viewports without horizontal overflow", async (
         measured.scrollWidth <= measured.clientWidth,
         `404 page overflow at ${width}px: scrollWidth=${measured.scrollWidth}/clientWidth=${measured.clientWidth}`
       );
-      assert.equal(measured.wideCount, 0, `404 page has ${measured.wideCount} elements wider than the viewport at ${width}px`);
+      assert.equal(
+        measured.wideCount,
+        0,
+        `404 page has ${measured.wideCount} elements wider than the viewport at ${width}px`
+      );
       await page.close();
     }
   } finally {
@@ -522,24 +587,32 @@ test("404 page reflows at narrow viewports without horizontal overflow", async (
 test("Worker dispatch creates admin-only beta proof sessions without exposing tokens", async () => {
   const env = await fakeWorkerEnv();
 
-  const denied = await worker.fetch(new Request("https://seofixkit.test/admin/beta-session", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ ownerEmail: "proof@example.com" })
-  }), env, fakeCtx());
+  const denied = await worker.fetch(
+    new Request("https://seofixkit.test/admin/beta-session", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ownerEmail: "proof@example.com" })
+    }),
+    env,
+    fakeCtx()
+  );
   const deniedBody = await denied.json();
   assert.equal(denied.status, 401);
   assert.equal(deniedBody.error, "Unauthorized");
   assert.equal(denied.headers.get("set-cookie"), null);
 
-  const response = await worker.fetch(new Request("https://seofixkit.test/admin/beta-session", {
-    method: "POST",
-    headers: {
-      authorization: `Bearer ${env.ADMIN_EXPORT_TOKEN}`,
-      "content-type": "application/json"
-    },
-    body: JSON.stringify({ ownerEmail: "proof@example.com" })
-  }), env, fakeCtx());
+  const response = await worker.fetch(
+    new Request("https://seofixkit.test/admin/beta-session", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${env.ADMIN_EXPORT_TOKEN}`,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({ ownerEmail: "proof@example.com" })
+    }),
+    env,
+    fakeCtx()
+  );
   const body = await response.json();
   const cookie = response.headers.get("set-cookie") || "";
 
@@ -550,11 +623,12 @@ test("Worker dispatch creates admin-only beta proof sessions without exposing to
   assert.equal(Object.hasOwn(body, "token"), false);
   assert.match(cookie, /sfk_beta_session=/);
   assert.match(cookie, /HttpOnly/);
-  assert.equal(env.betaSessions.some((row) =>
-    row.owner_email === "proof@example.com" &&
-    row.access_mode === "founder-override" &&
-    !row.invite_id
-  ), true);
+  assert.equal(
+    env.betaSessions.some(
+      (row) => row.owner_email === "proof@example.com" && row.access_mode === "founder-override" && !row.invite_id
+    ),
+    true
+  );
   assert.doesNotMatch(JSON.stringify(body), /sfk_beta_session|test-admin-token/);
 });
 
@@ -602,12 +676,14 @@ function fixedRerunReportRow(id) {
       repairPlan: [],
       reportDelta: {
         status: "ready",
-        fixedIssues: [{
-          id: "issue-1",
-          title: "Missing title",
-          pageUrl: "https://example.com/",
-          source: "rendered"
-        }]
+        fixedIssues: [
+          {
+            id: "issue-1",
+            title: "Missing title",
+            pageUrl: "https://example.com/",
+            source: "rendered"
+          }
+        ]
       }
     }),
     summary_json: JSON.stringify({ totalFindings: 0 }),
@@ -626,17 +702,19 @@ async function fakeWorkerEnv() {
     id: reportId,
     url: "https://example.com/",
     createdAt: now,
-    findings: [{
-      id: "issue-1",
-      severity: "critical",
-      title: "Missing title",
-      pageUrl: "https://example.com/",
-      pageLabel: "home",
-      evidence: "Rendered title is missing.",
-      fix: "Add a descriptive title.",
-      confidence: "verified",
-      source: "rendered"
-    }],
+    findings: [
+      {
+        id: "issue-1",
+        severity: "critical",
+        title: "Missing title",
+        pageUrl: "https://example.com/",
+        pageLabel: "home",
+        evidence: "Rendered title is missing.",
+        fix: "Add a descriptive title.",
+        confidence: "verified",
+        source: "rendered"
+      }
+    ],
     repairPlan: []
   };
   const env = {
@@ -644,50 +722,58 @@ async function fakeWorkerEnv() {
     auditId,
     sessionToken,
     apiToken,
-    betaSessions: [{
-      token_hash: await sha256Hex(sessionToken),
-      owner_email: "owner@example.com",
-      invite_id: null,
-      access_mode: "founder-override",
-      expires_at: new Date(Date.now() + 60_000).toISOString(),
-      revoked_at: null
-    }],
-    apiTokens: [{
-      id: "token-1",
-      owner_email: "owner@example.com",
-      token_hash: await sha256Hex(apiToken),
-      status: "active",
-      revoked_at: null
-    }],
-    reports: [{
-      id: reportId,
-      owner_email: "owner@example.com",
-      owner_invite_id: null,
-      expires_at: new Date(Date.now() + 60_000).toISOString(),
-      url: "https://example.com/",
-      target_host: "example.com",
-      report_json: JSON.stringify(report),
-      summary_json: JSON.stringify({ totalFindings: 1 }),
-      created_at: now,
-      updated_at: now
-    }],
-    jobs: [{
-      id: auditId,
-      owner_email: "owner@example.com",
-      status: "completed",
-      target_url: "https://example.com/",
-      target_host: "example.com",
-      competitor_urls_json: "[]",
-      backlink_rows_json: "[]",
-      local_seo_input_json: "{}",
-      keyword_rows_json: "[]",
-      rendered_crawl_target: 0,
-      max_pages: 1,
-      report_id: reportId,
-      created_at: now,
-      updated_at: now,
-      completed_at: now
-    }],
+    betaSessions: [
+      {
+        token_hash: await sha256Hex(sessionToken),
+        owner_email: "owner@example.com",
+        invite_id: null,
+        access_mode: "founder-override",
+        expires_at: new Date(Date.now() + 60_000).toISOString(),
+        revoked_at: null
+      }
+    ],
+    apiTokens: [
+      {
+        id: "token-1",
+        owner_email: "owner@example.com",
+        token_hash: await sha256Hex(apiToken),
+        status: "active",
+        revoked_at: null
+      }
+    ],
+    reports: [
+      {
+        id: reportId,
+        owner_email: "owner@example.com",
+        owner_invite_id: null,
+        expires_at: new Date(Date.now() + 60_000).toISOString(),
+        url: "https://example.com/",
+        target_host: "example.com",
+        report_json: JSON.stringify(report),
+        summary_json: JSON.stringify({ totalFindings: 1 }),
+        created_at: now,
+        updated_at: now
+      }
+    ],
+    jobs: [
+      {
+        id: auditId,
+        owner_email: "owner@example.com",
+        status: "completed",
+        target_url: "https://example.com/",
+        target_host: "example.com",
+        competitor_urls_json: "[]",
+        backlink_rows_json: "[]",
+        local_seo_input_json: "{}",
+        keyword_rows_json: "[]",
+        rendered_crawl_target: 0,
+        max_pages: 1,
+        report_id: reportId,
+        created_at: now,
+        updated_at: now,
+        completed_at: now
+      }
+    ],
     queueItems: [],
     actions: [],
     BROWSER: {},
@@ -758,7 +844,9 @@ function first(sql, values, env) {
   }
   if (sql.includes("FROM repair_agent_actions")) {
     const [id, reportId, ownerEmail] = values;
-    const row = env.actions.find((row) => row.id === id && row.report_id === reportId && row.owner_email === ownerEmail);
+    const row = env.actions.find(
+      (row) => row.id === id && row.report_id === reportId && row.owner_email === ownerEmail
+    );
     return row ? { ...row } : null;
   }
   if (sql.includes("FROM audit_reports")) {
@@ -775,11 +863,19 @@ function first(sql, values, env) {
 function all(sql, values, env) {
   if (sql.includes("FROM repair_queue_items")) {
     const [reportId, ownerEmail] = values;
-    return { results: env.queueItems.filter((row) => row.report_id === reportId && row.owner_email === ownerEmail).map((row) => ({ ...row })) };
+    return {
+      results: env.queueItems
+        .filter((row) => row.report_id === reportId && row.owner_email === ownerEmail)
+        .map((row) => ({ ...row }))
+    };
   }
   if (sql.includes("FROM repair_agent_actions")) {
     const [reportId, ownerEmail] = values;
-    return { results: env.actions.filter((row) => row.report_id === reportId && row.owner_email === ownerEmail).map((row) => ({ ...row })) };
+    return {
+      results: env.actions
+        .filter((row) => row.report_id === reportId && row.owner_email === ownerEmail)
+        .map((row) => ({ ...row }))
+    };
   }
   if (sql.includes("FROM api_webhooks")) {
     return { results: [] };
@@ -845,8 +941,11 @@ function run(sql, values, env) {
     return { meta: { changes: 1 } };
   }
   if (sql.includes("UPDATE repair_queue_items") && sql.includes("SET status = ?,") && sql.includes("action_mode = ?")) {
-    const [status, actionMode, rerunStatus, rerunReportId, updatedAt, updatedByEmail, id, reportId, ownerEmail] = values;
-    const row = env.queueItems.find((row) => row.id === id && row.report_id === reportId && row.owner_email === ownerEmail);
+    const [status, actionMode, rerunStatus, rerunReportId, updatedAt, updatedByEmail, id, reportId, ownerEmail] =
+      values;
+    const row = env.queueItems.find(
+      (row) => row.id === id && row.report_id === reportId && row.owner_email === ownerEmail
+    );
     if (!row) return { meta: { changes: 0 } };
     Object.assign(row, {
       status,
@@ -859,10 +958,8 @@ function run(sql, values, env) {
     return { meta: { changes: 1 } };
   }
   if (sql.includes("INSERT INTO repair_agent_actions")) {
-    const queueItem = env.queueItems.find((row) =>
-      row.id === values[19] &&
-      row.report_id === values[20] &&
-      row.owner_email === values[21]
+    const queueItem = env.queueItems.find(
+      (row) => row.id === values[19] && row.report_id === values[20] && row.owner_email === values[21]
     );
     if (!queueItem) return { meta: { changes: 0 } };
     env.actions.push({
@@ -890,7 +987,9 @@ function run(sql, values, env) {
   }
   if (sql.includes("UPDATE repair_queue_items") && sql.includes("status = 'drafted'")) {
     const [actionMode, updatedAt, updatedByEmail, id, reportId, ownerEmail] = values;
-    const row = env.queueItems.find((row) => row.id === id && row.report_id === reportId && row.owner_email === ownerEmail);
+    const row = env.queueItems.find(
+      (row) => row.id === id && row.report_id === reportId && row.owner_email === ownerEmail
+    );
     if (!row) return { meta: { changes: 0 } };
     Object.assign(row, {
       status: "drafted",
@@ -903,9 +1002,26 @@ function run(sql, values, env) {
     return { meta: { changes: 1 } };
   }
   if (sql.includes("UPDATE repair_agent_actions")) {
-    const [approvalState, executionState, rerunState, rerunReportId, updatedAt, approvedAt, appliedAt, updatedByEmail, id, reportId, ownerEmail, queueItemId] = values;
-    const action = env.actions.find((row) => row.id === id && row.report_id === reportId && row.owner_email === ownerEmail);
-    const queueItem = env.queueItems.find((row) => row.id === queueItemId && row.report_id === reportId && row.owner_email === ownerEmail);
+    const [
+      approvalState,
+      executionState,
+      rerunState,
+      rerunReportId,
+      updatedAt,
+      approvedAt,
+      appliedAt,
+      updatedByEmail,
+      id,
+      reportId,
+      ownerEmail,
+      queueItemId
+    ] = values;
+    const action = env.actions.find(
+      (row) => row.id === id && row.report_id === reportId && row.owner_email === ownerEmail
+    );
+    const queueItem = env.queueItems.find(
+      (row) => row.id === queueItemId && row.report_id === reportId && row.owner_email === ownerEmail
+    );
     if (!action || !queueItem) return { meta: { changes: 0 } };
     Object.assign(action, {
       approval_state: approvalState,
@@ -921,7 +1037,9 @@ function run(sql, values, env) {
   }
   if (sql.includes("UPDATE repair_queue_items") && sql.includes("rerun_status = ?")) {
     const [status, rerunStatus, rerunReportId, updatedAt, updatedByEmail, id, reportId, ownerEmail] = values;
-    const row = env.queueItems.find((row) => row.id === id && row.report_id === reportId && row.owner_email === ownerEmail);
+    const row = env.queueItems.find(
+      (row) => row.id === id && row.report_id === reportId && row.owner_email === ownerEmail
+    );
     if (!row) return { meta: { changes: 0 } };
     Object.assign(row, {
       status,
@@ -938,18 +1056,26 @@ function run(sql, values, env) {
 test("Worker rejects malformed JSON bodies with a clear 400 but allows empty ones", async () => {
   const env = await fakeWorkerEnv();
 
-  const malformed = await worker.fetch(new Request("https://seofixkit.test/api/waitlist", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: "{\"email\": "
-  }), env, fakeCtx());
+  const malformed = await worker.fetch(
+    new Request("https://seofixkit.test/api/waitlist", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: '{"email": '
+    }),
+    env,
+    fakeCtx()
+  );
   assert.equal(malformed.status, 400);
   assert.deepEqual(await malformed.json(), { error: "Request body is not valid JSON." });
 
-  const empty = await worker.fetch(new Request("https://seofixkit.test/api/waitlist", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: ""
-  }), env, fakeCtx());
+  const empty = await worker.fetch(
+    new Request("https://seofixkit.test/api/waitlist", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: ""
+    }),
+    env,
+    fakeCtx()
+  );
   assert.notEqual((await empty.json()).error, "Request body is not valid JSON.");
 });
