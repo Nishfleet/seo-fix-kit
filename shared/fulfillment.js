@@ -1,3 +1,4 @@
+import { emailButton } from "./email-layout.js";
 import { escapeHtml } from "./html.js";
 import { OFFER_KEYS } from "./offers.js";
 
@@ -156,18 +157,16 @@ export function buildPaymentNotificationEmail({ appOrigin, fixRequest, report, p
     .join("\n");
 
   const html = [
-    "<p>",
-    intro,
-    "</p>",
-    "<ul>",
-    `<li><strong>Site:</strong> ${escapeHtml(fixRequest.target_url)}</li>`,
-    `<li><strong>Report:</strong> <a href="${escapeHtml(reportUrl)}">${escapeHtml(reportUrl)}</a></li>`,
-    amount ? `<li><strong>Amount:</strong> ${escapeHtml(amount)}</li>` : "",
-    payment?.paymentId ? `<li><strong>Payment ID:</strong> ${escapeHtml(payment.paymentId)}</li>` : "",
+    `<p style="font-size:18px;font-weight:600;margin:0 0 12px">${escapeHtml(intro)}</p>`,
+    '<ul style="margin:0 0 4px;padding-left:20px">',
+    `<li style="margin:0 0 6px"><strong>Site:</strong> ${escapeHtml(fixRequest.target_url)}</li>`,
+    amount ? `<li style="margin:0 0 6px"><strong>Amount:</strong> ${escapeHtml(amount)}</li>` : "",
+    payment?.paymentId ? `<li style="margin:0 0 6px"><strong>Payment ID:</strong> ${escapeHtml(payment.paymentId)}</li>` : "",
     "</ul>",
-    "<p>Next status: repair in progress.</p>",
-    "<p>Your paid report stays available in your workspace and does not expire.</p>",
-    `<p>${offer.scope}</p>`
+    emailButton(reportUrl, "Open report"),
+    '<p style="margin:0 0 8px">Next status: repair in progress.</p>',
+    '<p style="margin:0 0 8px">Your paid report stays available in your workspace and does not expire.</p>',
+    `<p style="color:#6b6f6c;font-size:13px;margin:0">${offer.scope}</p>`
   ]
     .filter(Boolean)
     .join("");
@@ -176,6 +175,7 @@ export function buildPaymentNotificationEmail({ appOrigin, fixRequest, report, p
     subject,
     text,
     html,
+    preheader: `${intro} Site: ${target}.`,
     reportUrl,
     reportTitle: report?.title || target
   };
@@ -253,25 +253,34 @@ export function buildStatusNotificationEmail({
     .filter((line) => line !== "")
     .join("\n");
 
+  // One primary button: the delivery notes when they exist, then the final
+  // rerun, then the original report. Every other link keeps a short label.
+  const primary = deliveryUrl
+    ? { href: deliveryUrl, label: "Open delivery notes" }
+    : finalReportUrl
+      ? { href: finalReportUrl, label: "Open final rerun report" }
+      : { href: reportUrl, label: "Open report" };
+  const labeledLink = (href, label) => `<a href="${escapeHtml(href)}" style="color:#0f7a56;font-weight:600;text-decoration:none">${label}</a>`;
   const html = [
-    `<p>${escapeHtml(intro)}</p>`,
-    "<ul>",
-    `<li><strong>Site:</strong> ${escapeHtml(fixRequest.target_url)}</li>`,
-    `<li><strong>Original report:</strong> <a href="${escapeHtml(reportUrl)}">${escapeHtml(reportUrl)}</a></li>`,
-    deliveryUrl ? `<li><strong>Delivery:</strong> <a href="${escapeHtml(deliveryUrl)}">${escapeHtml(deliveryUrl)}</a></li>` : "",
-    finalReportUrl ? `<li><strong>Final rerun:</strong> <a href="${escapeHtml(finalReportUrl)}">${escapeHtml(finalReportUrl)}</a></li>` : "",
-    customerNote ? `<li><strong>Note:</strong> ${escapeHtml(customerNote)}</li>` : "",
-    fixRequest.due_at ? `<li><strong>Expected by:</strong> ${escapeHtml(formatEmailDate(fixRequest.due_at))}</li>` : "",
-    fixRequest.next_update_at ? `<li><strong>Next update by:</strong> ${escapeHtml(formatEmailDate(fixRequest.next_update_at))}</li>` : "",
-    ...proof.map((line) => `<li>${escapeHtml(line)}</li>`),
+    `<p style="font-size:18px;font-weight:600;margin:0 0 12px">${escapeHtml(intro)}</p>`,
+    '<ul style="margin:0 0 4px;padding-left:20px">',
+    `<li style="margin:0 0 6px"><strong>Site:</strong> ${escapeHtml(fixRequest.target_url)}</li>`,
+    `<li style="margin:0 0 6px"><strong>Original report:</strong> ${labeledLink(reportUrl, "Open report")}</li>`,
+    deliveryUrl ? `<li style="margin:0 0 6px"><strong>Delivery:</strong> ${labeledLink(deliveryUrl, "Open delivery notes")}</li>` : "",
+    finalReportUrl ? `<li style="margin:0 0 6px"><strong>Final rerun:</strong> ${labeledLink(finalReportUrl, "Open final rerun report")}</li>` : "",
+    customerNote ? `<li style="margin:0 0 6px"><strong>Note:</strong> ${escapeHtml(customerNote)}</li>` : "",
+    fixRequest.due_at ? `<li style="margin:0 0 6px"><strong>Expected by:</strong> ${escapeHtml(formatEmailDate(fixRequest.due_at))}</li>` : "",
+    fixRequest.next_update_at ? `<li style="margin:0 0 6px"><strong>Next update by:</strong> ${escapeHtml(formatEmailDate(fixRequest.next_update_at))}</li>` : "",
+    ...proof.map((line) => `<li style="margin:0 0 6px">${escapeHtml(line)}</li>`),
     "</ul>",
-    "<p>Your paid reports stay available in your workspace and do not expire.</p>",
-    "<p>No ranking promises are made; this covers the proven repair queue and one rerun after fixes.</p>"
+    emailButton(primary.href, primary.label),
+    '<p style="margin:0 0 8px">Your paid reports stay available in your workspace and do not expire.</p>',
+    '<p style="color:#6b6f6c;font-size:13px;margin:0">No ranking promises are made; this covers the proven repair queue and one rerun after fixes.</p>'
   ]
     .filter(Boolean)
     .join("");
 
-  return { subject, text, html, reportUrl, reportTitle: report?.title || target };
+  return { subject, text, html, preheader: `${intro} Site: ${target}.`, reportUrl, reportTitle: report?.title || target };
 }
 
 export function buildOpsDigestEmail({ appOrigin, snapshot }) {
@@ -294,8 +303,8 @@ export function buildOpsDigestEmail({ appOrigin, snapshot }) {
     .filter(Boolean)
     .join("\n");
   const html = [
-    "<p>SEO Fix Kit daily ops digest.</p>",
-    "<ul>",
+    '<p style="font-size:18px;font-weight:600;margin:0 0 12px">SEO Fix Kit daily ops digest.</p>',
+    '<ul style="margin:0 0 4px;padding-left:20px">',
     `<li><strong>Paid open:</strong> ${snapshot.openPaid}</li>`,
     `<li><strong>In progress:</strong> ${snapshot.inProgress}</li>`,
     `<li><strong>Delivered today:</strong> ${snapshot.deliveredToday}</li>`,
@@ -306,11 +315,11 @@ export function buildOpsDigestEmail({ appOrigin, snapshot }) {
     `<li><strong>Monitors overdue:</strong> ${snapshot.overdueSchedules ?? 0}</li>`,
     snapshot.oldestOpenCreatedAt ? `<li><strong>Oldest open request:</strong> ${escapeHtml(snapshot.oldestOpenCreatedAt)}</li>` : "",
     "</ul>",
-    `<p><a href="${escapeHtml(`${appOrigin}/beta/admin`)}">Open admin queue</a></p>`
+    emailButton(`${appOrigin}/beta/admin`, "Open admin queue")
   ]
     .filter(Boolean)
     .join("");
-  return { subject, text, html };
+  return { subject, text, html, preheader: `${snapshot.openPaid} paid open, ${snapshot.overdue} overdue.` };
 }
 
 export function normalizeEmail(input) {

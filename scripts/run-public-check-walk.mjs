@@ -92,7 +92,7 @@ export async function runPublicCheckWalk({
   }
 
   const raw = await response.text().catch(() => "");
-  let payload = null;
+  let payload;
   try {
     payload = JSON.parse(raw);
   } catch {
@@ -231,7 +231,7 @@ async function fetchWithTimeout(url, options, timeoutMs, fetcher = fetch) {
     return await fetcher(url, { ...options, signal: controller.signal });
   } catch (error) {
     if (error?.name === "AbortError") {
-      throw new Error(`Request timed out after ${timeoutMs}ms.`);
+      throw new Error(`Request timed out after ${timeoutMs}ms.`, { cause: error });
     }
     throw error;
   } finally {

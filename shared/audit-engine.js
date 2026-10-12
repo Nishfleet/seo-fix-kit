@@ -603,7 +603,7 @@ export function createAuditEngine({
           (check) => check.key === "apple-touch-icon" && check.ok && check.url === rendered.appleTouchIcon
         );
       if (iconAlreadyOk) continue;
-      let pageOrigin = "";
+      let pageOrigin;
       try {
         pageOrigin = new URL(page.url).origin;
       } catch {
@@ -817,7 +817,7 @@ function discoveryFileSummary(file = {}) {
 // Dev/test-only guard: literal localhost targets are allowed; everything else
 // still goes through the production public-URL guard.
 function localAuditUrlStatus(value) {
-  let parsed = null;
+  let parsed;
   try {
     parsed = new URL(value);
   } catch {
@@ -3016,7 +3016,7 @@ export function parseAuditCompetitorUrls(body = {}, targetUrl = "", urlGuard = p
   for (const value of raw) {
     if (!value) continue;
     if (urls.length >= 5) break;
-    let normalized = "";
+    let normalized;
     try {
       normalized = normalizeUrl(value);
     } catch {
@@ -3064,7 +3064,7 @@ export function issuePatternKey(title) {
 }
 
 export function publicAuditUrlStatus(value) {
-  let parsed = null;
+  let parsed;
   try {
     parsed = new URL(value);
   } catch {
@@ -3164,18 +3164,18 @@ export const ROOT_PUBLIC_PATHS = ["/", "/demo", "/check", "/methodology", "/pack
 // worker/routes/pages.test.mjs refuses a stale lastmod so the update
 // cannot silently ship.
 export const ROOT_PUBLIC_LASTMODS = {
-  "/": "2026-10-12T14:55:32Z",
-  "/demo": "2026-08-15T07:14:01Z",
-  "/check": "2026-08-19T12:56:07Z",
-  "/methodology": "2026-08-23T04:56:07Z",
-  "/packages": "2026-08-22T05:24:07Z",
-  "/small-business-seo-audit": "2026-08-21T15:52:53Z",
-  "/rendered-vs-static-seo-audit": "2026-08-22T12:07:56Z",
-  "/ai-answer-readiness": "2026-08-23T08:38:32Z",
-  "/privacy": "2026-08-15T10:43:48Z",
-  "/proof": "2026-08-15T10:43:48Z",
-  "/support": "2026-08-15T10:43:48Z",
-  "/terms": "2026-08-15T03:44:50Z"
+  "/": "2026-10-12T16:38:44Z",
+  "/demo": "2026-10-12T16:27:56Z",
+  "/check": "2026-10-12T16:27:56Z",
+  "/methodology": "2026-10-12T16:27:56Z",
+  "/packages": "2026-10-12T16:27:56Z",
+  "/small-business-seo-audit": "2026-10-12T16:27:56Z",
+  "/rendered-vs-static-seo-audit": "2026-10-12T16:27:56Z",
+  "/ai-answer-readiness": "2026-10-12T16:27:56Z",
+  "/privacy": "2026-10-12T16:27:56Z",
+  "/proof": "2026-10-12T16:27:56Z",
+  "/support": "2026-10-12T16:27:56Z",
+  "/terms": "2026-10-12T16:27:56Z"
 };
 
 export function rootSitemap(origin) {

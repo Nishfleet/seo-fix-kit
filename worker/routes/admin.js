@@ -12,6 +12,7 @@ import {
 import {
   escapeHtml
 } from "../../shared/audit-engine.js";
+import { emailButton } from "../../shared/email-layout.js";
 import {
   shouldSkipOwnedInternalEmail,
   sendWorkerEmail
@@ -790,7 +791,8 @@ async function sendUrgentOpsAlerts(env) {
         to: adminEmail,
         subject: `SEO Fix Kit alert: ${condition.line}`,
         text: `${condition.line}\n\nAdmin queue: https://seofixkit.com/beta/admin`,
-        html: `<p>${escapeHtml(condition.line)}</p><p><a href="https://seofixkit.com/beta/admin">Open admin queue</a></p>`,
+        html: `<p style="font-size:18px;font-weight:600;margin:0 0 4px">${escapeHtml(condition.line)}</p>${emailButton("https://seofixkit.com/beta/admin", "Open admin queue")}`,
+        preheader: condition.line,
         tag: "ops-alert"
       });
       await env.WAITLIST_DB.prepare(
@@ -848,6 +850,7 @@ async function sendDailyOpsDigest(env) {
       subject: email.subject,
       text: email.text,
       html: email.html,
+      preheader: email.preheader,
       tag: "ops-digest"
     });
     await env.WAITLIST_DB.prepare(

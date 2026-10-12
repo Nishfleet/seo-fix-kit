@@ -114,7 +114,7 @@ test("the page's inline client-side validator actually executes with the server'
   // here. Execute the served function text in a fresh context and pin both
   // the rejection and the acceptance sides.
   const html = checkHtml(origin);
-  const served = html.match(/function publicUrlError[\s\S]*?return "";\n        }/);
+  const served = html.match(/function publicUrlError[\s\S]*?return "";\n {8}}/);
   assert.ok(served, "the served page includes the full validator function");
   assert.match(
     served[0],

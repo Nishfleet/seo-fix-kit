@@ -26,7 +26,7 @@ const LOCAL_SCHEMA_TYPES = new Set([
   "foodestablishment"
 ]);
 
-export function parseLocalSeoInput(input = {}, targetUrl = "", options = {}) {
+export function parseLocalSeoInput(input = {}, targetUrl, options = {}) {
   const raw = input.localSeo || input.localSEO || input.local_seo || input.localSeoInput || input.location || {};
   const source = typeof raw === "object" && raw !== null && !Array.isArray(raw) ? raw : {};
   const merged = {

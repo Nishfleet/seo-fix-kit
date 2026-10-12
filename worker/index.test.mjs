@@ -935,3 +935,22 @@ function run(sql, values, env) {
   }
   throw new Error(`Unexpected run SQL: ${sql}`);
 }
+
+test("Worker rejects malformed JSON bodies with a clear 400 but allows empty ones", async () => {
+  const env = await fakeWorkerEnv();
+
+  const malformed = await worker.fetch(new Request("https://seofixkit.test/api/waitlist", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: "{\"email\": "
+  }), env, fakeCtx());
+  assert.equal(malformed.status, 400);
+  assert.deepEqual(await malformed.json(), { error: "Request body is not valid JSON." });
+
+  const empty = await worker.fetch(new Request("https://seofixkit.test/api/waitlist", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: ""
+  }), env, fakeCtx());
+  assert.notEqual((await empty.json()).error, "Request body is not valid JSON.");
+});

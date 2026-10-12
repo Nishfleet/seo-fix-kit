@@ -354,7 +354,7 @@ async function requestRepairSprintCheckout(request, env) {
   let proposals;
   try {
     proposals = await repairSprintProposalsForCheckout(env, row.id, access.ownerEmail);
-  } catch (error) {
+  } catch {
     return repairSprintCheckoutErrorResponse({
       status: 503,
       code: "REPAIR_SPRINT_PROPOSAL_STORAGE_UNAVAILABLE",
@@ -2622,7 +2622,7 @@ function dodoPaymentProductForKey(env, productKey = "") {
 
 async function checkoutRepairTargetFulfillmentState(env, fixRequest = {}, repairTarget = {}) {
   if (!repairTarget.queueItemId || !repairTarget.issueId) return { ok: false, reason: "repair_target_mismatch" };
-  let row = null;
+  let row;
   try {
     row = await env.WAITLIST_DB.prepare(
       `SELECT id, issue_id, status
@@ -2796,6 +2796,7 @@ async function sendFixPackPaymentEmail({
       subject: email.subject,
       text: email.text,
       html: email.html,
+      preheader: email.preheader,
       tag
     });
     const providerMessageId = payload.messageId;
@@ -2949,6 +2950,7 @@ async function sendFixPackStatusEmail({
       subject: email.subject,
       text: email.text,
       html: email.html,
+      preheader: email.preheader,
       tag
     });
     const providerMessageId = payload.messageId;
