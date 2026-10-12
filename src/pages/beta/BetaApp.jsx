@@ -45,6 +45,13 @@ const SECTION_TITLES = {
   admin: "Ops"
 };
 
+// A sign-out's cookie-clearing response must land before any new sign-in
+// sets a fresh session cookie, so sign-ins wait for it.
+let pendingSignOut = Promise.resolve();
+
+// Query keys that are not private account data and survive a user switch.
+const SESSION_QUERY_ROOTS = new Set(["session", "access-token"]);
+
 export function BetaApp({ mountKey }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -64,28 +71,38 @@ export function BetaApp({ mountKey }) {
   const [loginMessage, setLoginMessage] = useState("");
 
   // Session: undefined until checked, null when signed out, else the owner.
-  // The sign-in cookie outlives this tab's stored hint, so the server is
-  // always asked; until it answers, the hint decides what to show.
-  const sessionHint = storageGet(BETA_SESSION_KEY) === "1";
+  // The server is always asked; until it answers, the stored hint decides
+  // whether to show the workspace optimistically.
   const sessionQuery = useQuery({
     queryKey: queryKeys.session,
-    queryFn: fetchSession,
+    queryFn: async () => {
+      const next = await fetchSession();
+      const previous = queryClient.getQueryData(queryKeys.session);
+      if (!next || (previous && previous.ownerEmail !== next.ownerEmail)) clearPrivateData();
+      return next;
+    },
     enabled: !accessToken,
     staleTime: 5 * 60_000
   });
   const session = sessionQuery.data;
-  const isAuthed = session === undefined ? sessionHint : Boolean(session);
-  const checkingSession = session === undefined && !sessionHint && !accessToken && sessionQuery.isFetching;
+  const isAuthed = session === undefined ? storageGet(BETA_SESSION_KEY) === "1" : Boolean(session);
   const ownerEmail =
     session === undefined ? inviteParams.get("email") || storageGet(BETA_EMAIL_KEY) || "" : session?.ownerEmail || "";
 
+  // Drop every cached account query so one owner's data never shows to the next.
+  function clearPrivateData() {
+    queryClient.removeQueries({ predicate: (query) => !SESSION_QUERY_ROOTS.has(query.queryKey[0]) });
+  }
+
   function setSignedIn(email) {
+    clearPrivateData();
     storageSet(BETA_SESSION_KEY, "1");
     storageSet(BETA_EMAIL_KEY, email);
     queryClient.setQueryData(queryKeys.session, { ownerEmail: email });
   }
 
   function markSignedOut() {
+    clearPrivateData();
     storageRemove(BETA_SESSION_KEY);
     storageRemove(BETA_EMAIL_KEY);
     queryClient.setQueryData(queryKeys.session, null);
@@ -96,6 +113,7 @@ export function BetaApp({ mountKey }) {
   const accessQuery = useQuery({
     queryKey: ["access-token", accessToken],
     queryFn: async () => {
+      await pendingSignOut;
       const payload = await verifyAccessToken(accessToken, storageGet(FUNNEL_KEY) || "");
       const email = payload.ownerEmail || loginEmail;
       setSignedIn(email);
@@ -178,7 +196,11 @@ export function BetaApp({ mountKey }) {
   const accountStatus = accountQuery.isError ? "error" : accountQuery.isLoading ? "loading" : "success";
   const accountMessage = accountQuery.isError ? accountQuery.error?.message || "We couldn’t load your workspace." : "";
   const retryAccount = () => accountQuery.refetch();
-  const refreshAccount = () => queryClient.invalidateQueries({ queryKey: queryKeys.account });
+  const refreshAccount = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.account }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.reports })
+    ]);
 
   const developerQuery = useQuery({
     queryKey: queryKeys.developer,
@@ -227,6 +249,7 @@ export function BetaApp({ mountKey }) {
     setLoginMessage("");
 
     try {
+      await pendingSignOut;
       const payload = await apiFetch("/api/beta/login", {
         method: "POST",
         body: { email: loginEmail, inviteCode },
@@ -464,7 +487,7 @@ export function BetaApp({ mountKey }) {
   }
 
   function signOut() {
-    fetch("/api/beta/logout", { method: "POST", credentials: "same-origin" }).catch(() => {});
+    pendingSignOut = fetch("/api/beta/logout", { method: "POST", credentials: "same-origin" }).catch(() => {});
     queryClient.clear();
     markSignedOut();
     setLoginEmail("");
@@ -501,8 +524,10 @@ export function BetaApp({ mountKey }) {
     );
   }
 
-  if (checkingSession) {
-    return <div className="app-boot" role="status" aria-label="Loading" />;
+  // No stored hint yet: wait for the server before offering sign-in, so a
+  // valid session is never shown the sign-in screen.
+  if (!isAuthed && session === undefined && sessionQuery.isFetching) {
+    return <div className="app-loading" aria-busy="true" />;
   }
 
   if (!isAuthed) {

@@ -1,3 +1,4 @@
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link } from "react-router";
 import StatusMessage from "../../StatusMessage.jsx";
@@ -7,6 +8,8 @@ import { CodeBlock } from "../../components/CodeBlock.jsx";
 import { CopyButton } from "../../components/CopyButton.jsx";
 import { Metric } from "../../components/Metric.jsx";
 import { hostKey, formatDate, safeHostnameLabel } from "../../lib/format.js";
+import { queryKeys } from "../../lib/queries.js";
+import { fetchReportsPage } from "../../lib/requests.js";
 import {
   repairStatusLabel,
   repairActionModeLabel,
@@ -200,7 +203,16 @@ const JOB_TONES = { queued: "neutral", running: "info", failed: "bad", completed
 // Reports: audits that are still running, every saved report, and Fix Pack
 // status.
 export function ReportsPage({ accountData, message, status, onRetry }) {
-  const reports = accountData?.recentReports || [];
+  // The account summary only carries the newest few; this lists every report.
+  const reportPages = useInfiniteQuery({
+    queryKey: queryKeys.reports,
+    queryFn: ({ pageParam }) => fetchReportsPage(pageParam),
+    initialPageParam: "",
+    getNextPageParam: (lastPage) => lastPage.nextCursor || undefined
+  });
+  const reports = reportPages.data
+    ? reportPages.data.pages.flatMap((page) => page.reports || [])
+    : accountData?.recentReports || [];
   const auditJobs = (accountData?.recentAuditJobs || []).filter((job) => !job.reportPath);
   const fixRequests = accountData?.fixRequests || [];
   const loaded = Boolean(accountData);
@@ -244,6 +256,16 @@ export function ReportsPage({ accountData, message, status, onRetry }) {
             <h2 id="all-reports-title">Saved reports</h2>
           </div>
           {loaded ? <ReportRows reports={reports} /> : <SkeletonRows label="Loading reports" />}
+          {reportPages.hasNextPage && (
+            <button
+              className="app-button-secondary app-load-more"
+              disabled={reportPages.isFetchingNextPage}
+              onClick={() => reportPages.fetchNextPage()}
+              type="button"
+            >
+              {reportPages.isFetchingNextPage ? "Loading…" : "Show older reports"}
+            </button>
+          )}
         </section>
       )}
       {loaded && (

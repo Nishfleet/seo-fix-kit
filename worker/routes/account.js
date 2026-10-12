@@ -336,4 +336,58 @@ function groupRowsByReport(rows = []) {
   return grouped;
 }
 
-export { getAccountSummary };
+const REPORT_LIST_PAGE_SIZE = 25;
+
+function reportListItem(row) {
+  const summary = parseJson(row.summary_json, {});
+  return {
+    id: row.id,
+    url: row.url,
+    targetHost: row.target_host || safeHostname(row.url),
+    score: row.score,
+    pagesScanned: summary.pagesScanned || 0,
+    totalFindings: summary.totalFindings || 0,
+    guardedFalsePositives: summary.guardedFalsePositives || 0,
+    reportPath: `/beta/reports/${row.id}`,
+    createdAt: row.created_at,
+    expiresAt: row.expires_at || ""
+  };
+}
+
+// Every unexpired report for the signed-in owner, newest first, one page at a
+// time. `cursor` is the last item's "createdAt|id" from the previous page.
+async function listReports(request, env) {
+  const access = await betaAccessStatus(request, env);
+  if (!access.ok) return betaAccessResponse(access);
+  if (!env.WAITLIST_DB) return json({ error: "Account storage is not configured." }, 503);
+
+  const cursor = new URL(request.url).searchParams.get("cursor") || "";
+  const [cursorCreatedAt, cursorId] = cursor.split("|");
+  const hasCursor = Boolean(cursorCreatedAt && cursorId);
+  const rows = await env.WAITLIST_DB.prepare(
+    `SELECT id, url, target_host, score, summary_json, created_at, expires_at
+     FROM audit_reports
+     WHERE owner_email = ?
+       AND (expires_at IS NULL OR expires_at > ?)
+       ${hasCursor ? "AND (created_at < ? OR (created_at = ? AND id < ?))" : ""}
+     ORDER BY created_at DESC, id DESC
+     LIMIT ?`
+  )
+    .bind(
+      access.ownerEmail,
+      new Date().toISOString(),
+      ...(hasCursor ? [cursorCreatedAt, cursorCreatedAt, cursorId] : []),
+      REPORT_LIST_PAGE_SIZE + 1
+    )
+    .all();
+  const results = rows.results || [];
+  const page = results.slice(0, REPORT_LIST_PAGE_SIZE);
+  const last = page.at(-1);
+  return jsonNoStore({
+    ok: true,
+    reports: page.map(reportListItem),
+    nextCursor: results.length > REPORT_LIST_PAGE_SIZE && last ? `${last.created_at}|${last.id}` : ""
+  });
+}
+
+export { getAccountSummary, listReports };

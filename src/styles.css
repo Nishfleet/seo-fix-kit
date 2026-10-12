@@ -4695,11 +4695,6 @@ a.app-table-row:hover {
 
 /* Dashboard QA pass: skeletons, load errors, badges, site rows, developer
    tables, and the payments table. */
-.app-boot {
-  background: #090b0a;
-  min-height: 100vh;
-}
-
 .visually-hidden {
   clip: rect(0 0 0 0);
   clip-path: inset(50%);
@@ -5103,4 +5098,8 @@ a.app-table-row:hover {
 
 .app-main:focus {
   outline: none;
+}
+
+.app-load-more {
+  margin-top: 14px;
 }

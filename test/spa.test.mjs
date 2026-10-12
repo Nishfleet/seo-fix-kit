@@ -242,8 +242,7 @@ function accountSummary({ sites = [], schedules = [], jobs = [], reports = [] } 
   };
 }
 
-// Signed out until the invite-code login succeeds, like the real session
-// cookie: the app asks the server for the session on every /beta load.
+// A browser with no session until the invite-code login sets one.
 function dashboardHandlers() {
   let signedIn = false;
   return {
@@ -342,6 +341,49 @@ test("homepage FAQ shows the buyer questions, the anonymous /check path, and no-
 
 // --- Beta workspace ---------------------------------------------------------
 
+test("a valid session opens the workspace even when the browser lost its stored sign-in hint", async (t) => {
+  const { page } = await openApp(t, {
+    "GET /api/beta/session": () => ({ ok: true, status: "active", ownerEmail: OWNER, accessMode: "invite" }),
+    "GET /api/account/summary": () => accountSummary(),
+    "GET /api/developer": () => ({ ok: true, tokens: [], webhooks: [] })
+  });
+  await page.goto(`${baseUrl}/beta`);
+  await visible(page.getByRole("heading", { name: "Overview" }));
+  assert.equal(await page.getByRole("button", { name: "Email me a sign-in link" }).count(), 0);
+});
+
+test("the Reports page lists every saved report, older ones on request", async (t) => {
+  const report = (index) => ({
+    id: `report-${index}`,
+    url: `https://example.com/page-${index}`,
+    targetHost: "example.com",
+    score: 80,
+    pagesScanned: 1,
+    totalFindings: 0,
+    reportPath: `/beta/reports/report-${index}`,
+    createdAt: isoFromNow(-index * 60_000),
+    expiresAt: isoFromNow(29 * 24 * 3600_000)
+  });
+  const { page, requests } = await openApp(t, {
+    "GET /api/beta/session": () => ({ ok: true, status: "active", ownerEmail: OWNER, accessMode: "invite" }),
+    "GET /api/account/summary": () => accountSummary(),
+    "GET /api/reports": ({ path }) => ({ ok: true, reports: [report(1), report(2)], nextCursor: "c1", path }),
+    "GET /api/developer": () => ({ ok: true, tokens: [], webhooks: [] })
+  });
+  await page.route("**/api/reports?cursor=*", (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({ ok: true, reports: [report(3)], nextCursor: "" })
+    })
+  );
+  await page.goto(`${baseUrl}/beta/reports`);
+  await visible(page.locator('a[href="/beta/reports/report-2"]').first());
+  await page.getByRole("button", { name: "Show older reports" }).click();
+  await visible(page.locator('a[href="/beta/reports/report-3"]').first());
+  assert.equal(await page.getByRole("button", { name: "Show older reports" }).count(), 0);
+  assert.ok(requests.some((request) => request.path === "/api/reports"));
+});
+
 test("a one-use sign-in link signs in once, cleans the address bar, and opens the dashboard", async (t) => {
   const { page, requests } = await openApp(t, {
     "POST /api/access/verify": () => ({ ok: true, status: "unlocked", ownerEmail: OWNER }),
@@ -357,19 +399,6 @@ test("a one-use sign-in link signs in once, cleans the address bar, and opens th
   const verifies = requests.filter((request) => request.path === "/api/access/verify");
   assert.equal(verifies.length, 1, "the one-use token is spent exactly once");
   assert.equal(verifies[0].body.token, "one-use-token");
-});
-
-test("a signed-in visitor opening /beta in a new tab goes straight to the dashboard", async (t) => {
-  // A fresh tab has no stored "signed in" hint; the session cookie is the
-  // only proof, so the app must ask the server before showing sign-in.
-  const { page } = await openApp(t, {
-    "GET /api/beta/session": () => ({ ok: true, status: "active", ownerEmail: OWNER, accessMode: "invite" }),
-    "GET /api/account/summary": () => accountSummary(),
-    "GET /api/developer": () => ({ ok: true, tokens: [], webhooks: [] })
-  });
-  await page.goto(`${baseUrl}/beta`);
-  await visible(page.getByRole("heading", { name: "Overview" }));
-  assert.equal(await page.getByRole("button", { name: "Email me a sign-in link" }).count(), 0);
 });
 
 test("an expired sign-in link shows the reason on the sign-in screen", async (t) => {
