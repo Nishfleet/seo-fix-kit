@@ -74,7 +74,7 @@ export function Overview({ accountData, auditPanel, message, status, onRetry }) 
           <SkeletonRows rows={4} label="Loading your workspace" />
         </section>
       )}
-      {!loaded && status === "error" && <LoadError message={message} onRetry={onRetry} />}
+      {status === "error" && <LoadError message={message} onRetry={onRetry} />}
       {loaded && doneCount < steps.length && (
         <section className="app-card onboarding" aria-labelledby="onboarding-title">
           <div className="app-card-head">
@@ -216,6 +216,7 @@ export function ReportsPage({ accountData, message, status, onRetry }) {
   const auditJobs = (accountData?.recentAuditJobs || []).filter((job) => !job.reportPath);
   const fixRequests = accountData?.fixRequests || [];
   const loaded = Boolean(accountData);
+  const reportsFailed = reportPages.isError && status !== "error";
   return (
     <div className="app-page">
       <PageHeader
@@ -227,7 +228,7 @@ export function ReportsPage({ accountData, message, status, onRetry }) {
           </Link>
         }
       />
-      {!loaded && status === "error" && <LoadError message={message} onRetry={onRetry} />}
+      {status === "error" && <LoadError message={message} onRetry={onRetry} />}
       {Boolean(auditJobs.length) && (
         <section className="app-card" aria-labelledby="running-title">
           <div className="app-card-head">
@@ -255,6 +256,12 @@ export function ReportsPage({ accountData, message, status, onRetry }) {
           <div className="app-card-head">
             <h2 id="all-reports-title">Saved reports</h2>
           </div>
+          {reportsFailed && (
+            <LoadError
+              message="We couldn’t load your full report list, so only your newest reports are shown."
+              onRetry={() => reportPages.refetch()}
+            />
+          )}
           {loaded ? <ReportRows reports={reports} /> : <SkeletonRows label="Loading reports" />}
           {reportPages.hasNextPage && (
             <button
@@ -341,7 +348,7 @@ export function SitesPage({
         title="Sites & monitoring"
         description="Verify the sites you own to unlock full audits and weekly monitoring."
       />
-      {!loaded && status === "error" && <LoadError message={message} onRetry={onRetry} />}
+      {status === "error" && <LoadError message={message} onRetry={onRetry} />}
       <section className="app-card" aria-labelledby="add-site-title">
         <div className="app-card-head">
           <h2 id="add-site-title">Add a site</h2>
@@ -461,7 +468,7 @@ export function SitesPage({
                       <VerificationRecord
                         title="Option 2: File on your site"
                         fields={[
-                          ["Path", site.fileUrl || site.filePath],
+                          ["Path", site.filePath || site.fileUrl],
                           ["Contents", site.fileContents]
                         ]}
                       />
@@ -625,6 +632,7 @@ export function DeveloperApiPanel({
 
   return (
     <>
+      {loadError && <LoadError message={loadError} onRetry={onRetry} />}
       <StatusMessage tone={developerStatus}>{developerMessage}</StatusMessage>
       <section className="app-card" aria-labelledby="api-keys-title">
         <div className="app-card-head">

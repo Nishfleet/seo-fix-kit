@@ -1,25 +1,24 @@
 import { useEffect, useState } from "react";
 import { copyText } from "../lib/browser.js";
 
-// Copies `value` and confirms with "Copied" for a moment.
+// Copies `value` and says "Copied" (or "Copy failed") for a moment.
 export function CopyButton({ label = "Copy", value, className = "action-link" }) {
-  const [copied, setCopied] = useState(false);
+  const [result, setResult] = useState("");
   useEffect(() => {
-    if (!copied) return undefined;
-    const timer = window.setTimeout(() => setCopied(false), 1600);
+    if (!result) return undefined;
+    const timer = window.setTimeout(() => setResult(""), 1600);
     return () => window.clearTimeout(timer);
-  }, [copied]);
+  }, [result]);
   return (
     <button
       aria-live="polite"
       className={className}
-      onClick={() => {
-        copyText(value);
-        setCopied(true);
+      onClick={async () => {
+        setResult((await copyText(value)) ? "Copied" : "Copy failed");
       }}
       type="button"
     >
-      {copied ? "Copied" : label}
+      {result || label}
     </button>
   );
 }
