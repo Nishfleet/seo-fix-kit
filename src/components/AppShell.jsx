@@ -8,6 +8,9 @@ export function AppShell({ section, ownerEmail, onSignOut, showOps = false, chil
   const items = showOps ? [...APP_SECTIONS, { key: "admin", label: "Ops", path: "/beta/admin" }] : APP_SECTIONS;
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#app-main">
+        Skip to content
+      </a>
       <aside className="app-sidebar">
         <Link discover="none" className="app-brand" to="/beta">
           SEO Fix Kit
@@ -35,7 +38,9 @@ export function AppShell({ section, ownerEmail, onSignOut, showOps = false, chil
           )}
         </div>
       </aside>
-      <main className="app-main">{children}</main>
+      <main className="app-main" id="app-main" tabIndex={-1}>
+        {children}
+      </main>
     </div>
   );
 }

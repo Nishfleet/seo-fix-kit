@@ -36,6 +36,15 @@ import { SignIn } from "./SignIn.jsx";
 import { BillingPortal } from "../billing/BillingPortal.jsx";
 import { ReportView } from "../report/ReportView.jsx";
 
+const SECTION_TITLES = {
+  overview: "Overview",
+  reports: "Reports",
+  sites: "Sites & monitoring",
+  developers: "Developers",
+  billing: "Billing",
+  admin: "Ops"
+};
+
 export function BetaApp({ mountKey }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -55,17 +64,18 @@ export function BetaApp({ mountKey }) {
   const [loginMessage, setLoginMessage] = useState("");
 
   // Session: undefined until checked, null when signed out, else the owner.
-  // Until the server answers, the stored hint decides what to show.
-  const sessionCheckNeeded =
-    storageGet(BETA_SESSION_KEY) === "1" || Boolean(reportId) || isAdminRoute || isBillingRoute;
+  // The sign-in cookie outlives this tab's stored hint, so the server is
+  // always asked; until it answers, the hint decides what to show.
+  const sessionHint = storageGet(BETA_SESSION_KEY) === "1";
   const sessionQuery = useQuery({
     queryKey: queryKeys.session,
     queryFn: fetchSession,
-    enabled: sessionCheckNeeded && !accessToken,
+    enabled: !accessToken,
     staleTime: 5 * 60_000
   });
   const session = sessionQuery.data;
-  const isAuthed = session === undefined ? storageGet(BETA_SESSION_KEY) === "1" : Boolean(session);
+  const isAuthed = session === undefined ? sessionHint : Boolean(session);
+  const checkingSession = session === undefined && !sessionHint && !accessToken && sessionQuery.isFetching;
   const ownerEmail =
     session === undefined ? inviteParams.get("email") || storageGet(BETA_EMAIL_KEY) || "" : session?.ownerEmail || "";
 
@@ -166,7 +176,8 @@ export function BetaApp({ mountKey }) {
   });
   const accountData = accountQuery.data || null;
   const accountStatus = accountQuery.isError ? "error" : accountQuery.isLoading ? "loading" : "success";
-  const accountMessage = accountQuery.isError ? accountQuery.error?.message || "Could not load your workspace." : "";
+  const accountMessage = accountQuery.isError ? accountQuery.error?.message || "We couldn’t load your workspace." : "";
+  const retryAccount = () => accountQuery.refetch();
   const refreshAccount = () => queryClient.invalidateQueries({ queryKey: queryKeys.account });
 
   const developerQuery = useQuery({
@@ -175,28 +186,23 @@ export function BetaApp({ mountKey }) {
     enabled: isAuthed && !reportId && !isAdminRoute && !isBillingRoute
   });
   const developerData = developerQuery.data || null;
-  const developerStatus =
-    developerActionStatus !== "idle" ? developerActionStatus : developerQuery.isError ? "error" : "idle";
-  const developerMessage =
-    developerActionMessage ||
-    (developerQuery.isError ? developerQuery.error?.message || "Could not load developer API." : "");
+  const developerStatus = developerActionStatus;
+  const developerMessage = developerActionMessage;
   const refreshDeveloper = () => queryClient.invalidateQueries({ queryKey: queryKeys.developer });
 
+  const section = sectionFromPath(location.pathname);
+  const pageTitle = isAdminRoute
+    ? "Ops"
+    : !isAuthed
+      ? "Sign in"
+      : section === "report"
+        ? report?.url
+          ? `${safeHostnameLabel(report.url)} report`
+          : "Report"
+        : SECTION_TITLES[section] || "Overview";
   useEffect(() => {
-    if (isAdminRoute) {
-      document.title = "SEO Fix Kit Ops";
-      return;
-    }
-    if (isBillingRoute) {
-      document.title = "SEO Fix Kit Billing";
-      return;
-    }
-    if (report?.url) {
-      document.title = `SEO Fix Kit report - ${safeHostnameLabel(report.url)}`;
-      return;
-    }
-    document.title = "SEO Fix Kit";
-  }, [isAdminRoute, isBillingRoute, report?.url]);
+    document.title = `${pageTitle} · SEO Fix Kit`;
+  }, [pageTitle]);
 
   // Drop a consumed ?invite= code from the address bar.
   useEffect(() => {
@@ -466,7 +472,6 @@ export function BetaApp({ mountKey }) {
     navigate("/beta", { replace: true });
   }
 
-  const section = sectionFromPath(location.pathname);
   const shell = (children) => (
     <AppShell
       onSignOut={signOut}
@@ -494,6 +499,10 @@ export function BetaApp({ mountKey }) {
         />
       </div>
     );
+  }
+
+  if (checkingSession) {
+    return <div className="app-boot" role="status" aria-label="Loading" />;
   }
 
   if (!isAuthed) {
@@ -546,7 +555,9 @@ export function BetaApp({ mountKey }) {
   }
 
   if (section === "reports") {
-    return shell(<ReportsPage accountData={accountData} message={accountMessage} status={accountStatus} />);
+    return shell(
+      <ReportsPage accountData={accountData} message={accountMessage} onRetry={retryAccount} status={accountStatus} />
+    );
   }
 
   if (section === "sites") {
@@ -554,6 +565,7 @@ export function BetaApp({ mountKey }) {
       <SitesPage
         accountData={accountData}
         message={accountMessage}
+        onRetry={retryAccount}
         onScheduleCreate={createSchedule}
         onScheduleDelete={deleteSchedule}
         onSiteClaim={claimSite}
@@ -581,8 +593,11 @@ export function BetaApp({ mountKey }) {
           developerData={developerData}
           developerMessage={developerMessage}
           developerStatus={developerStatus}
+          loadError={developerQuery.isError ? developerQuery.error?.message || "We couldn’t load your API keys." : ""}
+          loading={developerQuery.isLoading}
           onApiTokenCreate={createApiToken}
           onApiTokenRevoke={revokeApiToken}
+          onRetry={() => developerQuery.refetch()}
           onWebhookCreate={createWebhook}
           onWebhookRevoke={revokeWebhook}
           onWebhookUrlChange={setWebhookUrl}
@@ -728,6 +743,12 @@ export function BetaApp({ mountKey }) {
   );
 
   return shell(
-    <Overview accountData={accountData} auditPanel={auditPanel} message={accountMessage} status={accountStatus} />
+    <Overview
+      accountData={accountData}
+      auditPanel={auditPanel}
+      message={accountMessage}
+      onRetry={retryAccount}
+      status={accountStatus}
+    />
   );
 }

@@ -10,10 +10,18 @@ import {
   monitoringCheckoutOutcome
 } from "../../monitoring-checkout.js";
 import { PageHeader } from "../../components/AppShell.jsx";
+import { Badge, LoadError, SkeletonRows } from "../../components/AppStates.jsx";
 import { formatDate } from "../../lib/format.js";
 import { statusLabel } from "../../lib/labels.js";
 import { queryKeys } from "../../lib/queries.js";
 import { fetchBillingSummary } from "../../lib/requests.js";
+
+const PAYMENT_TONES = { payment: "good", refund: "neutral", dispute: "bad", failed_payment: "bad" };
+
+function paymentTypeLabel(type = "") {
+  const text = String(type).replaceAll("_", " ");
+  return text ? text[0].toUpperCase() + text.slice(1) : "Payment";
+}
 
 export function BillingPortal() {
   const billingQuery = useQuery({ queryKey: queryKeys.billing, queryFn: fetchBillingSummary });
@@ -68,137 +76,175 @@ export function BillingPortal() {
         description="Your plan, Fix Packs, and payment history. Payments are processed securely by Dodo Payments."
       />
 
-      {billingQuery.isError && (
-        <StatusMessage tone="error">{billingQuery.error?.message || "Could not load billing."}</StatusMessage>
+      {billingQuery.isError && !billing && (
+        <LoadError
+          message={billingQuery.error?.message || "We couldn’t load your billing details."}
+          onRetry={() => billingQuery.refetch()}
+        />
       )}
-
-      <section className="app-card" aria-labelledby="plan-title">
-        <div className="app-card-head">
-          <h2 id="plan-title">Your plan</h2>
-          <span className="status-pill">{monitoringActive ? "Proof Monitoring" : "Free beta"}</span>
-        </div>
-        <p className="app-card-text">
-          {monitoringActive
-            ? "Proof Monitoring is active: verified sites are rerun every week and changes are reported."
-            : "Audits and weekly monitoring for verified sites are free while SEO Fix Kit is in beta. You only pay for a Fix Pack when a report finds real problems."}
-        </p>
-        {monitoring.checkoutReady && !monitoringActive && (
-          <div>
-            <button
-              className="app-button"
-              disabled={monitoringDisabled}
-              onClick={startMonitoringCheckout}
-              type="button"
-            >
-              {monitoringCheckoutStatus === "submitting" ? "Opening checkout…" : "Start Proof Monitoring"}
-            </button>
-            <StatusMessage tone={monitoringCheckoutStatus}>{monitoringCheckoutMessage}</StatusMessage>
-            <p className="app-footnote">{monitoring.message || monitoringOffer.description}</p>
-          </div>
-        )}
-      </section>
-
-      <section className="app-card" aria-labelledby="fixpack-title">
-        <div className="app-card-head">
-          <h2 id="fixpack-title">{billing?.product?.name || "SEO Fix Pack"}</h2>
-          {!pricingUnavailable && <strong className="billing-price">{priceLabel}</strong>}
-        </div>
-        <p className="app-card-text">
-          One proof-backed repair pass for a report, plus one rerun to confirm the fixes worked.
-        </p>
-        <p className="app-footnote">
-          One-time payment per report. Start a Fix Pack from any report that finds real problems; the final price is
-          shown at checkout.
-        </p>
-      </section>
-
-      <section className="app-card" aria-labelledby="requests-title">
-        <div className="app-card-head">
-          <h2 id="requests-title">Fix Packs</h2>
-        </div>
-        <div className="billing-list">
-          {requests.map((request) => {
-            const readiness = request.deliveryReadiness || {};
-            return (
-              <article className={`billing-row ${request.status}`} key={request.id}>
-                <div>
-                  <span className="status-pill">{request.statusLabel || statusLabel(request.status)}</span>
-                  <h3>{request.targetHost || request.targetUrl}</h3>
-                  <p>
-                    {request.issueCount || 0} problems · score {request.score ?? "–"}
-                  </p>
-                  {readiness.status && (
-                    <div className={`delivery-readiness ${readiness.status}`}>
-                      <strong>{deliveryReadinessLabel(readiness)}</strong>
-                      <span>{deliveryReadinessText(readiness)}</span>
-                    </div>
-                  )}
-                </div>
-                <div className="billing-row-meta">
-                  {request.paidAt && <span>Paid {formatDate(request.paidAt)}</span>}
-                  {request.dueAt && <span>Due {formatDate(request.dueAt)}</span>}
-                  {request.nextUpdateAt && <span>Next update {formatDate(request.nextUpdateAt)}</span>}
-                  {request.deliveredAt && <span>Delivered {formatDate(request.deliveredAt)}</span>}
-                </div>
-                <div className="queue-links">
-                  {request.reportPath && (
-                    <Link discover="none" to={request.reportPath}>
-                      Report
-                    </Link>
-                  )}
-                  {request.briefPath && <a href={request.briefPath}>Brief</a>}
-                  {request.deliveryUrl && (
-                    <a href={request.deliveryUrl} target="_blank" rel="noreferrer">
-                      Delivery
-                    </a>
-                  )}
-                </div>
-              </article>
-            );
-          })}
-          {!requests.length && (
-            <p className="app-empty">
-              No Fix Packs yet.{" "}
-              <Link discover="none" className="inline-link" to="/beta#new-audit">
-                Run an audit
-              </Link>{" "}
-              and start one from a report with real problems.
+      {billingQuery.isPending && (
+        <section className="app-card" aria-label="Loading billing">
+          <SkeletonRows rows={4} label="Loading billing" />
+        </section>
+      )}
+      {billing && (
+        <>
+          <section className="app-card" aria-labelledby="plan-title">
+            <div className="app-card-head">
+              <h2 id="plan-title">Your plan</h2>
+              <Badge tone={monitoringActive ? "good" : "info"}>
+                {monitoringActive ? "Proof Monitoring" : "Free beta"}
+              </Badge>
+            </div>
+            <p className="app-card-text">
+              {monitoringActive
+                ? "Proof Monitoring is active: verified sites are rerun every week and changes are reported."
+                : "Audits and weekly monitoring for verified sites are free while SEO Fix Kit is in beta. You only pay for a Fix Pack when a report finds real problems."}
             </p>
-          )}
-        </div>
-      </section>
-
-      <section className="app-card" aria-labelledby="payments-title">
-        <div className="app-card-head">
-          <h2 id="payments-title">Payment history</h2>
-        </div>
-        <div className="billing-list">
-          {payments.map((payment) => (
-            <article className={`billing-row ${payment.type}`} key={`${payment.id}-${payment.type}`}>
+            {monitoring.checkoutReady && !monitoringActive && (
               <div>
-                <span className="status-pill">{payment.type.replaceAll("_", " ")}</span>
-                <h3>{payment.targetHost || "Payment"}</h3>
-                <p>{payment.displayReference || payment.statusLabel || "Payment record"}</p>
+                <button
+                  className="app-button"
+                  disabled={monitoringDisabled}
+                  onClick={startMonitoringCheckout}
+                  type="button"
+                >
+                  {monitoringCheckoutStatus === "submitting" ? "Opening checkout…" : "Start Proof Monitoring"}
+                </button>
+                <StatusMessage tone={monitoringCheckoutStatus}>{monitoringCheckoutMessage}</StatusMessage>
+                <p className="app-footnote">{monitoring.message || monitoringOffer.description}</p>
               </div>
-              <div className="billing-row-meta">
-                {payment.displayAmount && <span>{payment.displayAmount}</span>}
-                {payment.displayRefundAmount && <span>Refund {payment.displayRefundAmount}</span>}
-                {payment.paidAt && <span>Paid {formatDate(payment.paidAt)}</span>}
-                {payment.refundedAt && <span>Refunded {formatDate(payment.refundedAt)}</span>}
-                {payment.disputedAt && <span>Disputed {formatDate(payment.disputedAt)}</span>}
+            )}
+          </section>
+
+          <section className="app-card" aria-labelledby="fixpack-title">
+            <div className="app-card-head">
+              <h2 id="fixpack-title">{billing?.product?.name || "SEO Fix Pack"}</h2>
+              {!pricingUnavailable && <strong className="billing-price">{priceLabel}</strong>}
+            </div>
+            <p className="app-card-text">
+              One proof-backed repair pass for a report, plus one rerun to confirm the fixes worked.
+            </p>
+            <p className="app-footnote">
+              One-time payment per report. Start a Fix Pack from any report that finds real problems; the final price is
+              shown at checkout.
+            </p>
+          </section>
+
+          <section className="app-card" aria-labelledby="requests-title">
+            <div className="app-card-head">
+              <h2 id="requests-title">Fix Packs</h2>
+            </div>
+            {requests.length ? (
+              <ul className="site-list">
+                {requests.map((request) => {
+                  const readiness = request.deliveryReadiness || {};
+                  const dates = [
+                    request.paidAt && `Paid ${formatDate(request.paidAt)}`,
+                    request.dueAt && `Due ${formatDate(request.dueAt)}`,
+                    request.nextUpdateAt && `Next update ${formatDate(request.nextUpdateAt)}`,
+                    request.deliveredAt && `Delivered ${formatDate(request.deliveredAt)}`
+                  ].filter(Boolean);
+                  return (
+                    <li className="site-row" key={request.id}>
+                      <div className="site-row-main">
+                        <div className="site-row-title">
+                          <h3>{request.targetHost || request.targetUrl}</h3>
+                          <Badge tone={request.status === "delivered" ? "good" : "info"}>
+                            {request.statusLabel || statusLabel(request.status)}
+                          </Badge>
+                        </div>
+                        <p>
+                          {request.issueCount || 0} problems · score {request.score ?? "–"}
+                          {dates.length ? ` · ${dates.join(" · ")}` : ""}
+                        </p>
+                        {readiness.status && (
+                          <p className="site-row-note">
+                            <strong>{deliveryReadinessLabel(readiness)}.</strong> {deliveryReadinessText(readiness)}
+                          </p>
+                        )}
+                      </div>
+                      <div className="site-row-actions">
+                        {request.reportPath && (
+                          <Link discover="none" className="app-button-secondary" to={request.reportPath}>
+                            Report
+                          </Link>
+                        )}
+                        {request.briefPath && (
+                          <a className="app-button-secondary" href={request.briefPath}>
+                            Brief
+                          </a>
+                        )}
+                        {request.deliveryUrl && (
+                          <a className="app-button" href={request.deliveryUrl} target="_blank" rel="noreferrer">
+                            Delivery
+                          </a>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="app-empty">
+                No Fix Packs yet.{" "}
+                <Link discover="none" className="inline-link" to="/beta#new-audit">
+                  Run an audit
+                </Link>{" "}
+                and start one from a report with real problems.
+              </p>
+            )}
+          </section>
+
+          <section className="app-card" aria-labelledby="payments-title">
+            <div className="app-card-head">
+              <h2 id="payments-title">Payment history</h2>
+            </div>
+            {payments.length ? (
+              <div className="app-table" role="table" aria-label="Payments">
+                <div className="app-table-row app-table-headrow app-table-row-payments" role="row">
+                  <span role="columnheader">Date</span>
+                  <span role="columnheader">Description</span>
+                  <span role="columnheader">Amount</span>
+                  <span role="columnheader">Type</span>
+                </div>
+                {payments.map((payment) => {
+                  const date = payment.disputedAt || payment.refundedAt || payment.paidAt;
+                  const description = [payment.targetHost, payment.displayReference].filter(Boolean).join(" · ");
+                  return (
+                    <div
+                      className="app-table-row app-table-row-payments"
+                      role="row"
+                      key={`${payment.id}-${payment.type}`}
+                    >
+                      <span role="cell" className="app-table-muted">
+                        {date ? formatDate(date) : "–"}
+                      </span>
+                      <span role="cell" className="app-table-primary">
+                        {payment.reportPath ? (
+                          <Link discover="none" to={payment.reportPath}>
+                            {description || "Payment"}
+                          </Link>
+                        ) : (
+                          description || payment.statusLabel || "Payment"
+                        )}
+                      </span>
+                      <span role="cell">
+                        {payment.displayRefundAmount ? `−${payment.displayRefundAmount}` : payment.displayAmount || "–"}
+                      </span>
+                      <span role="cell">
+                        <Badge tone={PAYMENT_TONES[payment.type] || "neutral"}>{paymentTypeLabel(payment.type)}</Badge>
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
-              <div className="queue-links">
-                {payment.reportPath && (
-                  <Link discover="none" to={payment.reportPath}>
-                    Report
-                  </Link>
-                )}
-              </div>
-            </article>
-          ))}
-          {!payments.length && <p className="app-empty">No payments yet.</p>}
-        </div>
-      </section>
+            ) : (
+              <p className="app-empty">No payments yet.</p>
+            )}
+          </section>
+        </>
+      )}
     </div>
   );
 }

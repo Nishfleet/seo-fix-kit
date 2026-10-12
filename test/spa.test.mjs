@@ -242,16 +242,22 @@ function accountSummary({ sites = [], schedules = [], jobs = [], reports = [] } 
   };
 }
 
-const dashboardHandlers = {
-  "POST /api/beta/login": ({ body }) => ({
-    ok: true,
-    status: "unlocked",
-    ownerEmail: body.email,
-    accessMode: "invite"
-  }),
-  "GET /api/beta/session": () => ({ ok: true, status: "active", ownerEmail: OWNER, accessMode: "invite" }),
-  "GET /api/developer": () => ({ ok: true, tokens: [], webhooks: [] })
-};
+// Signed out until the invite-code login succeeds, like the real session
+// cookie: the app asks the server for the session on every /beta load.
+function dashboardHandlers() {
+  let signedIn = false;
+  return {
+    "POST /api/beta/login": ({ body }) => {
+      signedIn = true;
+      return { ok: true, status: "unlocked", ownerEmail: body.email, accessMode: "invite" };
+    },
+    "GET /api/beta/session": () =>
+      signedIn
+        ? { ok: true, status: "active", ownerEmail: OWNER, accessMode: "invite" }
+        : { status: 401, body: { error: "Sign in to continue." } },
+    "GET /api/developer": () => ({ ok: true, tokens: [], webhooks: [] })
+  };
+}
 
 function repairBoard(page) {
   return page.getByRole("heading", { name: /safe action drafts/i }).locator("xpath=ancestor::section[1]");
@@ -353,6 +359,19 @@ test("a one-use sign-in link signs in once, cleans the address bar, and opens th
   assert.equal(verifies[0].body.token, "one-use-token");
 });
 
+test("a signed-in visitor opening /beta in a new tab goes straight to the dashboard", async (t) => {
+  // A fresh tab has no stored "signed in" hint; the session cookie is the
+  // only proof, so the app must ask the server before showing sign-in.
+  const { page } = await openApp(t, {
+    "GET /api/beta/session": () => ({ ok: true, status: "active", ownerEmail: OWNER, accessMode: "invite" }),
+    "GET /api/account/summary": () => accountSummary(),
+    "GET /api/developer": () => ({ ok: true, tokens: [], webhooks: [] })
+  });
+  await page.goto(`${baseUrl}/beta`);
+  await visible(page.getByRole("heading", { name: "Overview" }));
+  assert.equal(await page.getByRole("button", { name: "Email me a sign-in link" }).count(), 0);
+});
+
 test("an expired sign-in link shows the reason on the sign-in screen", async (t) => {
   const { page } = await openApp(t, {
     "POST /api/access/verify": () => ({ status: 401, body: { error: "This sign-in link has expired." } })
@@ -379,8 +398,8 @@ test("a queued audit polls /api/audit/jobs/:id until completed before the privat
   };
   const jobStatuses = ["queued", "completed"];
   const { page, requests } = await openApp(t, {
-    ...dashboardHandlers,
     ...reportHandlers(report),
+    ...dashboardHandlers(),
     "GET /api/account/summary": () => accountSummary(),
     "POST /api/audit": () => ({
       status: 202,
@@ -428,7 +447,7 @@ test("the dashboard adds a weekly monitor for a verified host and pauses it", as
   });
   let schedules = [];
   const { page, requests } = await openApp(t, {
-    ...dashboardHandlers,
+    ...dashboardHandlers(),
     "GET /api/account/summary": () => accountSummary({ sites: [site], schedules }),
     "POST /api/audit/schedules": ({ body }) => {
       const schedule = auditScheduleResponse({
@@ -448,7 +467,7 @@ test("the dashboard adds a weekly monitor for a verified host and pauses it", as
     }
   });
   await signIn(page);
-  await page.getByRole("navigation", { name: "App" }).getByRole("link", { name: "Sites & monitoring" }).click();
+  await page.getByRole("navigation", { name: "App" }).getByRole("link", { name: "Sites", exact: true }).click();
 
   await (await visible(page.getByRole("button", { name: "Monitor weekly" }))).click();
   await visible(page.getByText("example.com will be checked weekly."));

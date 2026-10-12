@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { Link } from "react-router";
 import StatusMessage from "../../StatusMessage.jsx";
 import { PageHeader } from "../../components/AppShell.jsx";
+import { Badge, LoadError, SkeletonRows } from "../../components/AppStates.jsx";
+import { CodeBlock } from "../../components/CodeBlock.jsx";
+import { CopyButton } from "../../components/CopyButton.jsx";
 import { Metric } from "../../components/Metric.jsx";
-import { copyText } from "../../lib/browser.js";
-import { hostKey, formatDate, safeHostnameLabel, safeUrlLabel } from "../../lib/format.js";
+import { hostKey, formatDate, safeHostnameLabel } from "../../lib/format.js";
 import {
   repairStatusLabel,
   repairActionModeLabel,
@@ -14,7 +17,7 @@ import {
 
 // Overview: first-run checklist until the account is set up, the new-audit
 // form, and (once there are reports) headline numbers and the repair feed.
-export function Overview({ accountData, auditPanel, message, status }) {
+export function Overview({ accountData, auditPanel, message, status, onRetry }) {
   const metrics = accountData?.metrics || {};
   const reports = accountData?.recentReports || [];
   const nextActions = accountData?.nextActions || [];
@@ -58,13 +61,18 @@ export function Overview({ accountData, auditPanel, message, status }) {
   ];
   const doneCount = steps.filter((step) => step.done).length;
   const currentStep = steps.find((step) => !step.done);
-  const loading = status === "loading" && !accountData;
+  const loaded = Boolean(accountData);
 
   return (
     <div className="app-page">
       <PageHeader title="Overview" description="Find what is broken on your site, fix it, and prove it worked." />
-      {message && status === "error" && <StatusMessage tone={status}>{message}</StatusMessage>}
-      {!loading && doneCount < steps.length && (
+      {!loaded && status === "loading" && (
+        <section className="app-card" aria-label="Loading your workspace">
+          <SkeletonRows rows={4} label="Loading your workspace" />
+        </section>
+      )}
+      {!loaded && status === "error" && <LoadError message={message} onRetry={onRetry} />}
+      {loaded && doneCount < steps.length && (
         <section className="app-card onboarding" aria-labelledby="onboarding-title">
           <div className="app-card-head">
             <h2 id="onboarding-title">Get set up</h2>
@@ -82,7 +90,10 @@ export function Overview({ accountData, auditPanel, message, status }) {
                   {step.done ? "✓" : ""}
                 </span>
                 <div>
-                  <strong>{step.title}</strong>
+                  <strong>
+                    {step.title}
+                    {step.done && <span className="visually-hidden"> (done)</span>}
+                  </strong>
                   <p>{step.detail}</p>
                 </div>
                 {step.done ? (
@@ -136,6 +147,17 @@ export function Overview({ accountData, auditPanel, message, status }) {
   );
 }
 
+// "example.com" for a homepage, "example.com/pricing" for any other page, so
+// two reports on one site can be told apart.
+function reportLabel(item) {
+  try {
+    const url = new URL(item.url);
+    return `${url.hostname}${url.pathname === "/" ? "" : url.pathname}`;
+  } catch {
+    return item.targetHost || safeHostnameLabel(item.url) || "Report";
+  }
+}
+
 function ReportRows({ reports }) {
   if (!reports.length) {
     return <p className="app-empty">Your reports will show up here after your first audit.</p>;
@@ -143,14 +165,14 @@ function ReportRows({ reports }) {
   return (
     <div className="app-table" role="table" aria-label="Reports">
       <div className="app-table-row app-table-headrow" role="row">
-        <span role="columnheader">Site</span>
+        <span role="columnheader">Page</span>
         <span role="columnheader">Score</span>
         <span role="columnheader">Date</span>
       </div>
       {reports.map((item) => (
         <Link discover="none" className="app-table-row" role="row" to={item.reportPath} key={item.id}>
           <span role="cell" className="app-table-primary">
-            {item.targetHost || safeHostnameLabel(item.url)}
+            {reportLabel(item)}
           </span>
           <span role="cell">
             <ScoreBadge score={item.score} />
@@ -166,17 +188,22 @@ function ReportRows({ reports }) {
 
 function ScoreBadge({ score }) {
   const value = Number(score);
-  if (!Number.isFinite(value)) return <span className="score-badge">–</span>;
+  if (score === null || score === undefined || score === "" || !Number.isFinite(value)) {
+    return <span className="score-badge">–</span>;
+  }
   const tone = value >= 90 ? "good" : value >= 70 ? "ok" : "bad";
   return <span className={`score-badge ${tone}`}>{value}</span>;
 }
 
+const JOB_TONES = { queued: "neutral", running: "info", failed: "bad", completed: "good" };
+
 // Reports: audits that are still running, every saved report, and Fix Pack
 // status.
-export function ReportsPage({ accountData, message, status }) {
+export function ReportsPage({ accountData, message, status, onRetry }) {
   const reports = accountData?.recentReports || [];
   const auditJobs = (accountData?.recentAuditJobs || []).filter((job) => !job.reportPath);
   const fixRequests = accountData?.fixRequests || [];
+  const loaded = Boolean(accountData);
   return (
     <div className="app-page">
       <PageHeader
@@ -188,63 +215,75 @@ export function ReportsPage({ accountData, message, status }) {
           </Link>
         }
       />
-      {message && status === "error" && <StatusMessage tone={status}>{message}</StatusMessage>}
+      {!loaded && status === "error" && <LoadError message={message} onRetry={onRetry} />}
       {Boolean(auditJobs.length) && (
         <section className="app-card" aria-labelledby="running-title">
           <div className="app-card-head">
             <h2 id="running-title">In progress</h2>
           </div>
-          <div className="audit-job-list">
+          <div className="app-table" role="table" aria-label="Audits in progress">
             {auditJobs.slice(0, 5).map((job) => (
-              <article className={`audit-job-card ${job.status}`} key={job.id}>
-                <div>
-                  <span className="status-pill">{statusLabel(job.status)}</span>
-                  <h3>{job.targetHost || safeHostnameLabel(job.targetUrl)}</h3>
-                  <p>{auditJobDetail(job)}</p>
-                </div>
-                <span className="quiet-note">{job.status === "failed" ? "Needs rerun" : "Working"}</span>
-              </article>
+              <div className="app-table-row app-table-row-job" role="row" key={job.id}>
+                <span role="cell" className="app-table-primary">
+                  {job.targetHost || safeHostnameLabel(job.targetUrl)}
+                </span>
+                <span role="cell" className="app-table-muted">
+                  {auditJobDetail(job)}
+                </span>
+                <span role="cell">
+                  <Badge tone={JOB_TONES[job.status] || "neutral"}>{statusLabel(job.status)}</Badge>
+                </span>
+              </div>
             ))}
           </div>
         </section>
       )}
-      <section className="app-card" aria-labelledby="all-reports-title">
-        <div className="app-card-head">
-          <h2 id="all-reports-title">Saved reports</h2>
-        </div>
-        <ReportRows reports={reports} />
-      </section>
-      <section className="app-card" aria-labelledby="fix-packs-title">
-        <div className="app-card-head">
-          <h2 id="fix-packs-title">Fix Packs</h2>
-          <Link discover="none" className="app-card-link" to="/beta/billing">
-            Billing
-          </Link>
-        </div>
-        {fixRequests.length ? (
-          <div className="app-table" role="table" aria-label="Fix Packs">
-            {fixRequests.map((request) => (
-              <Link
-                discover="none"
-                className="app-table-row"
-                role="row"
-                to={request.reportPath || "/beta/billing"}
-                key={request.id}
-              >
-                <span role="cell" className="app-table-primary">
-                  {request.targetHost || request.targetUrl || "Fix Pack"}
-                </span>
-                <span role="cell">{request.statusLabel || statusLabel(request.status)}</span>
-                <span role="cell" className="app-table-muted">
-                  {formatDate(request.updatedAt || request.createdAt)}
-                </span>
-              </Link>
-            ))}
+      {(loaded || status !== "error") && (
+        <section className="app-card" aria-labelledby="all-reports-title">
+          <div className="app-card-head">
+            <h2 id="all-reports-title">Saved reports</h2>
           </div>
-        ) : (
-          <p className="app-empty">No Fix Packs yet. You can start one from any report that finds real problems.</p>
-        )}
-      </section>
+          {loaded ? <ReportRows reports={reports} /> : <SkeletonRows label="Loading reports" />}
+        </section>
+      )}
+      {loaded && (
+        <section className="app-card" aria-labelledby="fix-packs-title">
+          <div className="app-card-head">
+            <h2 id="fix-packs-title">Fix Packs</h2>
+            <Link discover="none" className="app-card-link" to="/beta/billing">
+              Billing
+            </Link>
+          </div>
+          {fixRequests.length ? (
+            <div className="app-table" role="table" aria-label="Fix Packs">
+              <div className="app-table-row app-table-headrow" role="row">
+                <span role="columnheader">Site</span>
+                <span role="columnheader">Status</span>
+                <span role="columnheader">Updated</span>
+              </div>
+              {fixRequests.map((request) => (
+                <Link
+                  discover="none"
+                  className="app-table-row"
+                  role="row"
+                  to={request.reportPath || "/beta/billing"}
+                  key={request.id}
+                >
+                  <span role="cell" className="app-table-primary">
+                    {request.targetHost || request.targetUrl || "Fix Pack"}
+                  </span>
+                  <span role="cell">{request.statusLabel || statusLabel(request.status)}</span>
+                  <span role="cell" className="app-table-muted">
+                    {formatDate(request.updatedAt || request.createdAt)}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <p className="app-empty">No Fix Packs yet. You can start one from any report that finds real problems.</p>
+          )}
+        </section>
+      )}
     </div>
   );
 }
@@ -254,6 +293,7 @@ export function ReportsPage({ accountData, message, status }) {
 export function SitesPage({
   accountData,
   message,
+  onRetry,
   onScheduleCreate,
   onScheduleDelete,
   onSiteClaim,
@@ -270,13 +310,14 @@ export function SitesPage({
   const schedules = accountData?.schedules || [];
   const monitoring = accountData?.monitoring || {};
   const isFounder = accountData?.owner?.accessMode === "founder-override";
+  const loaded = Boolean(accountData);
   return (
     <div className="app-page">
       <PageHeader
         title="Sites & monitoring"
         description="Verify the sites you own to unlock full audits and weekly monitoring."
       />
-      {message && status === "error" && <StatusMessage tone={status}>{message}</StatusMessage>}
+      {!loaded && status === "error" && <LoadError message={message} onRetry={onRetry} />}
       <section className="app-card" aria-labelledby="add-site-title">
         <div className="app-card-head">
           <h2 id="add-site-title">Add a site</h2>
@@ -289,11 +330,14 @@ export function SitesPage({
           <label htmlFor="site-host">Domain</label>
           <div className="audit-row">
             <input
+              autoCapitalize="none"
+              autoComplete="off"
               id="site-host"
               inputMode="url"
               onChange={(event) => onSiteHostChange(event.target.value)}
               placeholder="example.com"
               required
+              spellCheck={false}
               type="text"
               value={siteHost}
             />
@@ -307,83 +351,102 @@ export function SitesPage({
       <section className="app-card" aria-labelledby="your-sites-title">
         <div className="app-card-head">
           <h2 id="your-sites-title">Your sites</h2>
-          <span className="app-progress-label">
-            {schedules.length}/{monitoring.limit || 5} weekly monitors
-          </span>
+          {loaded && (
+            <span className="app-progress-label">
+              {schedules.length} of {monitoring.limit || 5} weekly monitors used
+            </span>
+          )}
         </div>
         <StatusMessage tone={scheduleStatus}>{scheduleMessage}</StatusMessage>
-        {sites.length ? (
-          <div className="site-claim-list">
+        {!loaded ? (
+          status === "error" ? (
+            <p className="app-empty">Your sites will show here once your workspace loads.</p>
+          ) : (
+            <SkeletonRows rows={2} label="Loading your sites" />
+          )
+        ) : sites.length ? (
+          <ul className="site-list">
             {sites.map((site) => {
               const monitor = schedules.find(
                 (schedule) => hostKey(schedule.targetHost || schedule.targetUrl) === hostKey(site.host)
               );
+              const verified = site.status === "verified";
               return (
-                <article className={`site-claim-card ${site.status}`} key={site.id || site.host}>
-                  <div>
-                    <span className="status-pill">{site.status === "verified" ? "Verified" : "Not verified"}</span>
-                    <h3>{site.host}</h3>
-                    {site.status === "verified" ? (
-                      <p>
-                        {monitor
+                <li className="site-row" key={site.id || site.host}>
+                  <div className="site-row-main">
+                    <div className="site-row-title">
+                      <h3>{site.host}</h3>
+                      <Badge tone={verified ? "good" : "warn"}>{verified ? "Verified" : "Not verified"}</Badge>
+                    </div>
+                    <p>
+                      {verified
+                        ? monitor
                           ? `Checked ${monitor.cadenceLabel?.toLowerCase() || "weekly"}. ${auditScheduleDetail(monitor)}`
-                          : "Weekly monitoring is off."}
-                      </p>
-                    ) : (
-                      <div className="verification-instructions">
-                        <p>Add one of these, then select Verify.</p>
-                        <span className="verification-label">DNS TXT record</span>
-                        <code>
-                          {site.dnsName}: {site.dnsValue}
-                        </code>
-                        <span className="verification-label">Or a file on your site</span>
-                        <code>
-                          {site.filePath}: {site.fileContents}
-                        </code>
-                      </div>
-                    )}
+                          : "Weekly monitoring is off."
+                        : "Add one of these to your site, then select Verify. DNS changes can take a few minutes to show up."}
+                    </p>
                   </div>
-                  {site.status === "verified" ? (
-                    monitor ? (
-                      <div className="schedule-actions">
-                        {monitor.lastReportPath && (
-                          <a className="action-link" href={monitor.lastReportPath}>
-                            Latest report
-                          </a>
-                        )}
+                  <div className="site-row-actions">
+                    {verified ? (
+                      monitor ? (
+                        <>
+                          {monitor.lastReportPath && (
+                            <Link discover="none" className="app-button-secondary" to={monitor.lastReportPath}>
+                              Latest report
+                            </Link>
+                          )}
+                          <button
+                            className="app-button-secondary"
+                            disabled={scheduleStatus === "loading"}
+                            onClick={() => onScheduleDelete(monitor.id)}
+                            type="button"
+                          >
+                            Pause monitoring
+                          </button>
+                        </>
+                      ) : (
                         <button
-                          className="action-link secondary"
+                          className="app-button"
                           disabled={scheduleStatus === "loading"}
-                          onClick={() => onScheduleDelete(monitor.id)}
+                          onClick={() => onScheduleCreate(`https://${site.host}/`)}
                           type="button"
                         >
-                          Pause monitoring
+                          Monitor weekly
                         </button>
-                      </div>
+                      )
                     ) : (
                       <button
-                        className="action-link"
-                        disabled={scheduleStatus === "loading"}
-                        onClick={() => onScheduleCreate(`https://${site.host}/`)}
+                        className="app-button"
+                        disabled={siteStatus === "loading"}
+                        onClick={() => onSiteVerify(site.id)}
                         type="button"
                       >
-                        Monitor weekly
+                        Verify
                       </button>
-                    )
-                  ) : (
-                    <button
-                      className="action-link"
-                      disabled={siteStatus === "loading"}
-                      onClick={() => onSiteVerify(site.id)}
-                      type="button"
-                    >
-                      Verify
-                    </button>
+                    )}
+                  </div>
+                  {!verified && (
+                    <dl className="verification-records">
+                      <VerificationRecord
+                        title="Option 1: DNS TXT record"
+                        fields={[
+                          ["Name", site.dnsName],
+                          ["Value", site.dnsValue]
+                        ]}
+                      />
+                      <VerificationRecord
+                        title="Option 2: File on your site"
+                        fields={[
+                          ["Path", site.fileUrl || site.filePath],
+                          ["Contents", site.fileContents]
+                        ]}
+                      />
+                    </dl>
                   )}
-                </article>
+                </li>
               );
             })}
-          </div>
+          </ul>
         ) : (
           <p className="app-empty">No sites yet. Add your first one above.</p>
         )}
@@ -391,6 +454,21 @@ export function SitesPage({
           {monitoring.message || "Weekly monitoring is included free for verified sites during the beta."}
         </p>
       </section>
+    </div>
+  );
+}
+
+function VerificationRecord({ title, fields }) {
+  return (
+    <div className="verification-record">
+      <dt>{title}</dt>
+      {fields.map(([label, value]) => (
+        <dd key={label}>
+          <span className="verification-field-label">{label}</span>
+          <code>{value}</code>
+          <CopyButton className="text-button accent-text" label={`Copy ${label.toLowerCase()}`} value={value} />
+        </dd>
+      ))}
     </div>
   );
 }
@@ -448,13 +526,58 @@ export function RepairAgentFeed({ items = [], nextAction = null, reports = [] })
   );
 }
 
+// A destructive button that asks "Are you sure?" in place before it acts.
+function ConfirmButton({ label, confirmLabel, onConfirm, disabled }) {
+  const [asking, setAsking] = useState(false);
+  if (!asking) {
+    return (
+      <button className="text-button" disabled={disabled} onClick={() => setAsking(true)} type="button">
+        {label}
+      </button>
+    );
+  }
+  return (
+    <span className="confirm-inline">
+      <button
+        className="text-button danger-text"
+        disabled={disabled}
+        onClick={() => {
+          setAsking(false);
+          onConfirm();
+        }}
+        type="button"
+      >
+        {confirmLabel}
+      </button>
+      <button className="text-button" onClick={() => setAsking(false)} type="button">
+        Cancel
+      </button>
+    </span>
+  );
+}
+
+function SecretBox({ title, value }) {
+  return (
+    <div className="secret-box" role="status">
+      <span>{title}</span>
+      <code>{value}</code>
+      <CopyButton className="app-button-secondary" value={value} />
+    </div>
+  );
+}
+
+const API_KEY_LIMIT = 5;
+
 export function DeveloperApiPanel({
   apiTokenSecret,
   developerData,
   developerMessage,
   developerStatus,
+  loadError = "",
+  loading = false,
   onApiTokenCreate,
   onApiTokenRevoke,
+  onRetry,
   onWebhookCreate,
   onWebhookRevoke,
   onWebhookUrlChange,
@@ -463,114 +586,174 @@ export function DeveloperApiPanel({
 }) {
   const tokens = developerData?.tokens || [];
   const webhooks = developerData?.webhooks || [];
+  const busy = developerStatus === "loading";
+  const origin = typeof window === "undefined" ? "https://seofixkit.com" : window.location.origin;
+  const quickStart = [
+    `curl -X POST ${origin}/v1/audits \\`,
+    `  -H "Authorization: Bearer YOUR_API_KEY" \\`,
+    `  -H "Content-Type: application/json" \\`,
+    `  -d '{"url": "https://example.com/"}'`
+  ].join("\n");
+
+  if (loadError && !developerData) {
+    return <LoadError message={loadError} onRetry={onRetry} />;
+  }
+
   return (
-    <section className="developer-api-panel" aria-label="Developer API">
+    <>
       <StatusMessage tone={developerStatus}>{developerMessage}</StatusMessage>
-      <div className="developer-api-grid">
-        <div className="developer-api-column">
-          <div className="developer-api-header">
-            <div>
-              <span>API keys</span>
-              <strong>{tokens.length}/5 active</strong>
-            </div>
+      <section className="app-card" aria-labelledby="api-keys-title">
+        <div className="app-card-head">
+          <div>
+            <h2 id="api-keys-title">API keys</h2>
+            <p className="app-card-subtle">Use a key to start audits and read results from your own tools.</p>
+          </div>
+          <div className="app-card-actions">
+            {!loading && (
+              <span className="app-progress-label">
+                {tokens.length} of {API_KEY_LIMIT} used
+              </span>
+            )}
             <button
-              className="action-link"
-              disabled={developerStatus === "loading"}
+              className="app-button"
+              disabled={busy || loading || tokens.length >= API_KEY_LIMIT}
               onClick={onApiTokenCreate}
               type="button"
             >
               Create API key
             </button>
           </div>
-          {apiTokenSecret && (
-            <div className="secret-box">
-              <span>Copy this key now. You won’t see it again.</span>
-              <code>{apiTokenSecret}</code>
-              <button className="text-button accent-text" onClick={() => copyText(apiTokenSecret)} type="button">
-                Copy
-              </button>
+        </div>
+        {apiTokenSecret && (
+          <SecretBox title="Copy this key now. You won’t be able to see it again." value={apiTokenSecret} />
+        )}
+        {loading ? (
+          <SkeletonRows rows={2} label="Loading API keys" />
+        ) : tokens.length ? (
+          <div className="app-table" role="table" aria-label="API keys">
+            <div className="app-table-row app-table-headrow app-table-row-keys" role="row">
+              <span role="columnheader">Name</span>
+              <span role="columnheader">Key</span>
+              <span role="columnheader">Last used</span>
+              <span role="columnheader">
+                <span className="visually-hidden">Actions</span>
+              </span>
             </div>
-          )}
-          <div className="developer-api-list">
             {tokens.map((token) => (
-              <div className="developer-api-row" key={token.id}>
-                <div>
-                  <strong>{token.label || "API key"}</strong>
-                  <span>
-                    {token.tokenPrefix || "hidden"}
-                    {token.lastUsedAt ? ` · used ${formatDate(token.lastUsedAt)}` : ""}
-                  </span>
-                </div>
-                <button
-                  className="text-button"
-                  disabled={developerStatus === "loading"}
-                  onClick={() => onApiTokenRevoke(token.id)}
-                  type="button"
-                >
-                  Revoke
-                </button>
+              <div className="app-table-row app-table-row-keys" role="row" key={token.id}>
+                <span role="cell" className="app-table-primary">
+                  {token.label || "API key"}
+                </span>
+                <span role="cell">
+                  <code className="app-code">{token.tokenPrefix ? `${token.tokenPrefix}…` : "hidden"}</code>
+                </span>
+                <span role="cell" className="app-table-muted">
+                  {token.lastUsedAt ? formatDate(token.lastUsedAt) : "Never"}
+                </span>
+                <span role="cell" className="app-table-action">
+                  <ConfirmButton
+                    confirmLabel="Yes, revoke"
+                    disabled={busy}
+                    label="Revoke"
+                    onConfirm={() => onApiTokenRevoke(token.id)}
+                  />
+                </span>
               </div>
             ))}
-            {!tokens.length && <p className="quiet-note">No active API keys.</p>}
+          </div>
+        ) : (
+          <p className="app-empty">No API keys yet.</p>
+        )}
+      </section>
+
+      <section className="app-card" aria-labelledby="webhooks-title">
+        <div className="app-card-head">
+          <div>
+            <h2 id="webhooks-title">Webhooks</h2>
+            <p className="app-card-subtle">
+              We send a signed POST request to your URL when an audit finishes or fails.
+            </p>
           </div>
         </div>
-        <div className="developer-api-column">
-          <form className="developer-webhook-form" onSubmit={onWebhookCreate}>
-            <label htmlFor="webhook-url">Webhook URL</label>
-            <div className="audit-row">
-              <input
-                id="webhook-url"
-                inputMode="url"
-                onChange={(event) => onWebhookUrlChange(event.target.value)}
-                placeholder="https://example.com/seofixkit-webhook"
-                required
-                type="url"
-                value={webhookUrl}
-              />
-              <button disabled={developerStatus === "loading"} type="submit">
-                Add webhook
-              </button>
-            </div>
-          </form>
-          {webhookSecret && (
-            <div className="secret-box">
-              <span>Signing secret. Copy it now; you won’t see it again.</span>
-              <code>{webhookSecret}</code>
-              <button className="text-button accent-text" onClick={() => copyText(webhookSecret)} type="button">
-                Copy
-              </button>
-            </div>
-          )}
-          <div className="developer-api-list">
+        <form className="developer-webhook-form" onSubmit={onWebhookCreate}>
+          <label htmlFor="webhook-url">Endpoint URL</label>
+          <div className="audit-row">
+            <input
+              autoCapitalize="none"
+              autoComplete="off"
+              id="webhook-url"
+              inputMode="url"
+              onChange={(event) => onWebhookUrlChange(event.target.value)}
+              placeholder="https://example.com/seofixkit-webhook"
+              required
+              spellCheck={false}
+              type="url"
+              value={webhookUrl}
+            />
+            <button disabled={busy || loading} type="submit">
+              Add endpoint
+            </button>
+          </div>
+        </form>
+        {webhookSecret && (
+          <SecretBox title="Signing secret. Copy it now; you won’t be able to see it again." value={webhookSecret} />
+        )}
+        {loading ? (
+          <SkeletonRows rows={1} label="Loading webhooks" />
+        ) : webhooks.length ? (
+          <div className="app-table" role="table" aria-label="Webhook endpoints">
             {webhooks.map((webhook) => (
-              <div className="developer-api-row" key={webhook.id}>
-                <div>
-                  <strong>{safeUrlLabel(webhook.url)}</strong>
-                  <span>
-                    {(webhook.events || []).join(", ")}
-                    {webhook.lastDeliveryStatus ? ` · ${webhook.lastDeliveryStatus}` : ""}
-                  </span>
-                </div>
-                <button
-                  className="text-button"
-                  disabled={developerStatus === "loading"}
-                  onClick={() => onWebhookRevoke(webhook.id)}
-                  type="button"
-                >
-                  Revoke
-                </button>
+              <div className="app-table-row app-table-row-hooks" role="row" key={webhook.id}>
+                <span role="cell" className="app-table-primary">
+                  {webhook.url}
+                </span>
+                <span role="cell" className="app-table-muted">
+                  {(webhook.events || []).join(", ")}
+                  {webhook.lastDeliveryStatus ? ` · last delivery: ${webhook.lastDeliveryStatus}` : ""}
+                </span>
+                <span role="cell" className="app-table-action">
+                  <ConfirmButton
+                    confirmLabel="Yes, remove"
+                    disabled={busy}
+                    label="Remove"
+                    onConfirm={() => onWebhookRevoke(webhook.id)}
+                  />
+                </span>
               </div>
             ))}
-            {!webhooks.length && <p className="quiet-note">No active webhooks.</p>}
           </div>
+        ) : (
+          <p className="app-empty">No endpoints yet.</p>
+        )}
+      </section>
+
+      <section className="app-card" aria-labelledby="quick-start-title">
+        <div className="app-card-head">
+          <h2 id="quick-start-title">Quick start</h2>
         </div>
-      </div>
-      <div className="api-command-strip">
-        <code>POST /v1/audits</code>
-        <code>GET /v1/audits/{"{audit_id}"}</code>
-        <code>GET /v1/audits/{"{audit_id}"}/issues</code>
-        <code>GET /v1/projects</code>
-      </div>
-    </section>
+        <p className="app-card-text">
+          Start an audit with your API key. The response includes an audit ID to check on.
+        </p>
+        <CodeBlock code={quickStart} />
+        <ul className="api-endpoints" aria-label="Main endpoints">
+          <li>
+            <code>POST /v1/audits</code>
+            <span>Start an audit</span>
+          </li>
+          <li>
+            <code>GET /v1/audits/{"{audit_id}"}</code>
+            <span>Check status and score</span>
+          </li>
+          <li>
+            <code>GET /v1/audits/{"{audit_id}"}/issues</code>
+            <span>List proven problems</span>
+          </li>
+          <li>
+            <code>GET /v1/projects</code>
+            <span>List your projects</span>
+          </li>
+        </ul>
+      </section>
+    </>
   );
 }
