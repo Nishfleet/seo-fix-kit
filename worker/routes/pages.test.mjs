@@ -490,21 +490,18 @@ function latestCommitIsoIst(renderer) {
   // published lastmod convention (Z-suffixed IST).
   lastGitLogOutput = output;
   const firstLine = output.split("\n").find((line) => line.trim()) || "";
-  const match = firstLine.trim().match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})([+-]\d{2}:?\d{2})?$/);
+  // Git 2.5x prints a UTC offset as "Z" (2026-10-12T09:25:32Z); older git
+  // prints "+00:00". Accept both.
+  const match = firstLine.trim().match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(Z|[+-]\d{2}:?\d{2})?$/);
   if (!match) return "";
   const [, base, tz] = match;
   if (!tz || tz === "+05:30" || tz === "+0530") return base;
-  const ms = Date.parse(`${base}${tz}`);
-  const istMs = ms + (5.5 * 60 * 60 * 1000 - parseTimezoneOffsetMinutes(tz) * 60 * 1000);
+  // Date.parse honours the offset, so `ms` is the true UTC instant; IST is
+  // UTC+05:30.
+  const istMs = Date.parse(`${base}${tz}`) + 5.5 * 60 * 60 * 1000;
   return new Date(istMs).toISOString().slice(0, 19);
 }
 
-function parseTimezoneOffsetMinutes(tz) {
-  const m = tz.match(/^([+-])(\d{2}):?(\d{2})$/);
-  if (!m) return 0;
-  const [, sign, hh, mm] = m;
-  return (sign === "-" ? -1 : 1) * (parseInt(hh, 10) * 60 + parseInt(mm, 10));
-}
 
 test("sitemap lastmod stays truthful relative to the page renderer (freshness discipline)", () => {
   const failures = [];
