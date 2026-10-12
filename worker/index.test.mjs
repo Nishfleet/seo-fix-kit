@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { unstable_readConfig } from "wrangler";
 import worker from "./index.js";
 import { sha256Hex } from "./lib/security.js";
+import { notFoundHtml } from "./routes/pages.js";
 
 test("Worker dispatch routes public pages and repair APIs", async () => {
   const env = await fakeWorkerEnv();
@@ -540,7 +540,7 @@ test("Deploy surface serves a real 404 page instead of the single-page-applicati
   const config = unstable_readConfig({ config: fileURLToPath(new URL("../wrangler.jsonc", import.meta.url)) });
   assert.equal(config.assets.not_found_handling, "404-page");
 
-  const notFoundPage = readFileSync(new URL("../public/404.html", import.meta.url), "utf8");
+  const notFoundPage = notFoundHtml();
   assert.match(notFoundPage, /<title>Page not found - SEO Fix Kit<\/title>/);
   assert.match(notFoundPage, /noindex/);
   assert.match(notFoundPage, /https:\/\/seofixkit\.com\//);
@@ -549,7 +549,7 @@ test("Deploy surface serves a real 404 page instead of the single-page-applicati
 
 test("404 page reflows at narrow viewports without horizontal overflow", async () => {
   const { chromium } = await import("playwright");
-  const notFoundPage = readFileSync(new URL("../public/404.html", import.meta.url), "utf8");
+  const notFoundPage = notFoundHtml();
 
   const browser = await chromium.launch({ headless: true });
   try {

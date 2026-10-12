@@ -1,13 +1,9 @@
 import { CodeBlock } from "../../components/CodeBlock.jsx";
-import { formatLoadMs } from "../../lib/format.js";
+import { findingAnchor, formatLoadMs } from "../../lib/format.js";
 
-export function FindingItem({ finding, plan, compact = false }) {
+function FindingDetails({ finding, plan, compact }) {
   return (
-    <article className={`finding-item ${finding.severity} ${compact ? "compact" : ""}`}>
-      <div>
-        <span>{finding.severity}</span>
-        <h3>{finding.title}</h3>
-      </div>
+    <>
       {!compact && <p>{finding.why}</p>}
       <dl>
         {finding.pageLabel && (
@@ -41,6 +37,39 @@ export function FindingItem({ finding, plan, compact = false }) {
         </a>
       )}
       {finding.snippet && <CodeBlock code={finding.snippet} />}
+    </>
+  );
+}
+
+// One problem. In the full list it is a row that opens to its proof and fix
+// (scan the list, open what you are working on, the way Linear lists issues);
+// compact items in other tabs stay fully open.
+export function FindingItem({ finding, plan, compact = false, collapsible = false, defaultOpen = false }) {
+  if (collapsible) {
+    return (
+      <details
+        className={`finding-item finding-row ${finding.severity}`}
+        id={findingAnchor(finding)}
+        open={defaultOpen}
+      >
+        <summary>
+          <span>{finding.severity}</span>
+          <h3>{finding.title}</h3>
+          {finding.snippet && <small className="finding-row-tag">Fix ready</small>}
+        </summary>
+        <div className="finding-row-body">
+          <FindingDetails finding={finding} plan={plan} compact={compact} />
+        </div>
+      </details>
+    );
+  }
+  return (
+    <article className={`finding-item ${finding.severity} ${compact ? "compact" : ""}`}>
+      <div>
+        <span>{finding.severity}</span>
+        <h3>{finding.title}</h3>
+      </div>
+      <FindingDetails finding={finding} plan={plan} compact={compact} />
     </article>
   );
 }

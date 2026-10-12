@@ -1,11 +1,15 @@
 import { Link } from "react-router";
 import { APP_SECTIONS } from "../lib/app-sections.js";
+import { Icon } from "./Icon.jsx";
 
 // Signed-in app frame: a left sidebar on desktop and a top bar with a
-// scrolling tab row on small screens.
+// scrolling tab row on small screens. On wide screens the page sits in an
+// inset panel beside the sidebar, the way Linear and Vercel frame their apps.
 export function AppShell({ section, ownerEmail, onSignOut, showOps = false, children }) {
   const active = section === "report" ? "reports" : section;
-  const items = showOps ? [...APP_SECTIONS, { key: "admin", label: "Ops", path: "/beta/admin" }] : APP_SECTIONS;
+  const items = showOps
+    ? [...APP_SECTIONS, { key: "admin", icon: "pulse", label: "Ops", path: "/beta/admin" }]
+    : APP_SECTIONS;
   return (
     <div className="app-shell">
       <a className="skip-link" href="#app-main">
@@ -24,18 +28,32 @@ export function AppShell({ section, ownerEmail, onSignOut, showOps = false, chil
               key={item.key}
               to={item.path}
             >
+              <Icon name={item.icon} size={18} />
               {item.label}
             </Link>
           ))}
         </nav>
         <div className="app-account">
-          {ownerEmail && <span className="app-account-email">{ownerEmail}</span>}
-          <a href="mailto:support@seofixkit.com">Help</a>
-          {onSignOut && (
-            <button className="text-button" onClick={onSignOut} type="button">
-              Sign out
-            </button>
+          {ownerEmail && (
+            <span className="app-account-who">
+              <span aria-hidden="true" className="app-avatar">
+                {ownerEmail.trim().charAt(0).toUpperCase()}
+              </span>
+              <span className="app-account-email">{ownerEmail}</span>
+            </span>
           )}
+          <span className="app-account-actions">
+            <a href="mailto:support@seofixkit.com">
+              <Icon name="help" size={16} />
+              Help
+            </a>
+            {onSignOut && (
+              <button className="text-button" onClick={onSignOut} type="button">
+                <Icon name="signOut" size={16} />
+                Sign out
+              </button>
+            )}
+          </span>
         </div>
       </aside>
       <main className="app-main" id="app-main" tabIndex={-1}>

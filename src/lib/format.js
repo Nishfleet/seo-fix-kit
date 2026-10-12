@@ -122,3 +122,10 @@ export function pathLabel(url, startUrl) {
     return url;
   }
 }
+
+// The anchor id a finding row answers to, so "Fix these first" can jump to it.
+export function findingAnchor(finding) {
+  return `finding-${String(finding.id || finding.title || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")}`;
+}

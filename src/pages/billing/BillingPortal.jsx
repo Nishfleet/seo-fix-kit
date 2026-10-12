@@ -10,7 +10,7 @@ import {
   monitoringCheckoutOutcome
 } from "../../monitoring-checkout.js";
 import { PageHeader } from "../../components/AppShell.jsx";
-import { Badge, LoadError, SkeletonRows } from "../../components/AppStates.jsx";
+import { Badge, EmptyState, LoadError, SkeletonRows } from "../../components/AppStates.jsx";
 import { formatDate } from "../../lib/format.js";
 import { statusLabel } from "../../lib/labels.js";
 import { queryKeys } from "../../lib/queries.js";
@@ -186,13 +186,13 @@ export function BillingPortal() {
                 })}
               </ul>
             ) : (
-              <p className="app-empty">
+              <EmptyState icon="wrench">
                 No Fix Packs yet.{" "}
                 <Link discover="none" className="inline-link" to="/beta#new-audit">
                   Run an audit
                 </Link>{" "}
                 and start one from a report with real problems.
-              </p>
+              </EmptyState>
             )}
           </section>
 
@@ -240,7 +240,7 @@ export function BillingPortal() {
                 })}
               </div>
             ) : (
-              <p className="app-empty">No payments yet.</p>
+              <EmptyState icon="receipt">No payments yet.</EmptyState>
             )}
           </section>
         </>
