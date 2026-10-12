@@ -1,7 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import { buildRemediationBrief } from "../shared/remediation-brief.js";
-import { readSpaSource } from "../scripts/spa-source.mjs";
 
 const report = {
   id: "r_demo",
@@ -120,8 +118,6 @@ assert.equal(duplicateTitleBrief.priorityQueue[1].pageUrl, "https://example.com/
 // The report and remediation-brief routes are covered end to end in
 // test/core-api-flow.test.mjs.
 
-const appSource = readSpaSource();
-assert.match(appSource, /RemediationBriefPanel/);
-assert.match(appSource, /Download remediation JSON/);
+// The report UI's remediation brief panel and JSON download are checked in a browser by test/spa.test.mjs.
 
 console.log(JSON.stringify({ ok: true, checked: "remediation brief" }, null, 2));

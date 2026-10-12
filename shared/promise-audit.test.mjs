@@ -53,13 +53,9 @@ import { auditUrl as workerAuditUrl } from "../worker/routes/audits.js";
 import { runDueLargeRenderedCrawlWorkers } from "../worker/routes/large-crawls.js";
 import { llmsText, homeMarkdown } from "../worker/routes/pages.js";
 import { buildPublicCheckResponse } from "../worker/routes/public-check.js";
-import { readSpaSource } from "../scripts/spa-source.mjs";
 
 const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
 const liveSection = readme.split("## What is live in this repo")[1]?.split("## Run locally")[0] || "";
-// Every SPA module under src/ (the UI is split across pages/, components/, lib/).
-const appSource = readSpaSource();
-const mainSource = readFileSync(new URL("../src/main.jsx", import.meta.url), "utf8");
 // Wrangler's own config reader, so deploy claims are checked against the
 // values Wrangler deploys, not against the file's formatting.
 const wranglerConfig = unstable_readConfig({ config: fileURLToPath(new URL("../wrangler.jsonc", import.meta.url)) });
@@ -713,21 +709,7 @@ test("README homepage anonymous-check claim matches the CTA beside the email for
     /request a secure one-use email link or check one public page anonymously/i,
     "README promises both homepage entry paths"
   );
-  assert.match(
-    appSource,
-    /<div className="access-entry">[\s\S]*<form className="waitlist-form"/,
-    "the email access form stays beside the anonymous check entry"
-  );
-  assert.match(
-    appSource,
-    /<a className="check-entry-cta" href="\/check">/,
-    "the homepage shows a primary CTA to the anonymous one-page check"
-  );
-  assert.match(
-    appSource,
-    /Anyone can check one public page now at[\s\S]*<a href="\/check">\/check<\/a>[\s\S]*with no account/,
-    "the homepage FAQ names the anonymous /check entry path"
-  );
+  // The rendered homepage form, /check CTA, and FAQ are checked in a browser by test/spa.test.mjs.
 });
 
 // State-truthfulness pins. The numeric caps and routes above are locked to
@@ -1581,7 +1563,7 @@ test("README repair agent board claim matches assignment, notes, drafts, and app
     queue.items.every((item) => typeof item.status === "string"),
     "queue items carry the status the board filters on"
   );
-  // The status filter UI itself lives in src/App.jsx (left to the App.jsx split).
+  // The board's status filter UI is checked in a browser by test/spa.test.mjs.
 });
 
 function implementationPackInput(actionOverrides = {}) {
@@ -1760,8 +1742,7 @@ test("README Dodo var list does not claim an unwired product id is already in wr
 
 test("README React interface and Cloudflare Worker target claims match the build", () => {
   assert.match(liveSection, /Founder-friendly React interface/i);
-  assert.match(mainSource, /createRoot/, "UI mounts a React root");
-  assert.match(appSource, /React|useState|from "react"/, "UI components are React");
+  // The React app mounting into #root is checked in a browser by test/spa.test.mjs.
   assert.match(liveSection, /Cloudflare Worker target using Workers Static Assets and Browser Run/i);
   assert.equal(wranglerConfig.browser.binding, "BROWSER", "Browser Run binding configured");
   assert.equal(wranglerConfig.assets.binding, "ASSETS", "Workers Static Assets configured");
@@ -1997,8 +1978,7 @@ test("README sitemap inventory claim keeps rendered repair proof separate", asyn
 
 test("README queued-job claim matches status polling before the private report loads", () => {
   assert.match(liveSection, /Queued audit jobs backed by D1 `audit_jobs`, with status polling before the private report loads/i);
-  assert.match(appSource, /async function pollAuditJob/, "the UI polls job status before the report loads");
-  assert.match(appSource, /\/api\/audit\/jobs\//, "polling hits the job status endpoint");
+  // The UI polling /api/audit/jobs/:id before loading the report is checked in a browser by test/spa.test.mjs.
 });
 
 test("README saved-report claim matches owner email and invite-bound ownership", async () => {
@@ -2145,7 +2125,7 @@ test("README repair queue claim keeps acceptance checks, status, and action mode
 
 test("README repair board claim keeps no external publishing side effects", () => {
   assert.match(liveSection, /and no external publishing side effects/i);
-  assert.match(appSource, /Drafts are saved for review and do not publish anything\./, "board drafts never publish externally");
+  // The board's draft-only, publish-nothing behaviour is checked in a browser by test/spa.test.mjs.
 });
 
 test("README implementation pack claim keeps approved change text", () => {
@@ -2197,8 +2177,7 @@ test("README proposal claim keeps execution modes, owner approval, and delivery 
 
 test("README schedule claim keeps dashboard add and pause controls", () => {
   assert.match(liveSection, /Weekly self-serve audit monitors backed by D1 `audit_schedules`, with dashboard controls to add or pause monitors for verified hosts/i);
-  assert.match(appSource, /Adding weekly monitor\./, "dashboard adds monitors");
-  assert.match(appSource, /await pauseAuditSchedule\(/, "dashboard pauses monitors");
+  // The dashboard add/pause monitor controls are checked in a browser by test/spa.test.mjs.
 });
 
 test("README developer API claim keeps safe repair_queue issue status", async () => {
