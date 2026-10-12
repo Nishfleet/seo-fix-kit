@@ -24,7 +24,44 @@ import { jsonNoStore } from "../lib/http.js";
 import { checkQuotaSet, constantTimeEqual, sha256Hex, workerLargeCrawlId } from "../lib/security.js";
 import { cleanText, dayWindow, parseJson, safeHostname } from "../lib/text.js";
 import { deliverApiWebhooks } from "../lib/webhooks.js";
+import { body, flag, number, parseJsonBody, text, z } from "../lib/validation.js";
 import { auditUrl } from "./audits.js";
+
+const LargeCrawlCreateBody = body(
+  {
+    url: z.string().nullish(),
+    targetPages: number(),
+    maxConcurrency: number(),
+    crawlDelayMs: number(),
+    // Pasted text (one URL per line or comma separated) or an array of URLs.
+    seedUrls: z.union([z.string(), z.array(z.unknown())]).nullish(),
+    incrementalMode: flag()
+  },
+  {
+    targetUrl: "url",
+    target_url: "url",
+    target_pages: "targetPages",
+    maxPages: "targetPages",
+    max_pages: "targetPages",
+    max_concurrency: "maxConcurrency",
+    crawl_delay_ms: "crawlDelayMs",
+    seed_urls: "seedUrls",
+    incremental_mode: "incrementalMode"
+  }
+);
+
+const LargeCrawlProcessBody = body({ limit: number() });
+
+// Renderer output: page proofs and per-URL failures. Rows that match no
+// frontier entry are skipped, as before.
+const LargeCrawlProofBody = body(
+  {
+    pages: z.array(z.unknown()).nullish().transform((rows) => rows || []),
+    failures: z.array(z.unknown()).nullish().transform((rows) => rows || []),
+    proofToken: text(256)
+  },
+  { proof_token: "proofToken" }
+);
 
 const LARGE_RENDERED_CRAWL_LEASE_MS = 15 * 60 * 1000;
 
@@ -33,20 +70,22 @@ const LARGE_RENDERED_CRAWL_SYNC_FRONTIER_LIMIT = 1000;
 async function createLargeRenderedCrawl(request, env, ctx) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
-  const body = await request.json().catch(() => ({}));
-  return createLargeRenderedCrawlForAccess(request, env, access, body, { api: false, ctx });
+  const parsed = await parseJsonBody(request, LargeCrawlCreateBody);
+  if (parsed.error) return jsonNoStore(parsed.error, 400);
+  return createLargeRenderedCrawlForAccess(request, env, access, parsed.data, { api: false, ctx });
 }
 
 async function apiCreateLargeRenderedCrawl(request, env, ctx) {
   const access = await apiAccessStatus(request, env);
   if (!access.ok) return apiAccessResponse(access);
-  const body = await request.json().catch(() => ({}));
-  return createLargeRenderedCrawlForAccess(request, env, access, body, { api: true, ctx });
+  const parsed = await parseJsonBody(request, LargeCrawlCreateBody);
+  if (parsed.error) return jsonNoStore(parsed.error, 400);
+  return createLargeRenderedCrawlForAccess(request, env, access, parsed.data, { api: true, ctx });
 }
 
 async function createLargeRenderedCrawlForAccess(request, env, access, body = {}, options = {}) {
   if (!env.WAITLIST_DB) return jsonNoStore({ error: "Large crawl storage is not configured." }, 503);
-  const normalized = normalizeLargeRenderedCrawlRequest(body, body.url || body.targetUrl || body.target_url || "");
+  const normalized = normalizeLargeRenderedCrawlRequest(body);
   if (!normalized.ok) return jsonNoStore({ error: normalized.error || "Enter a valid public website URL." }, 400);
   const publicUrlCheck = publicAuditUrlStatus(normalized.targetUrl);
   if (!publicUrlCheck.ok) return jsonNoStore({ error: publicUrlCheck.error }, 400);
@@ -124,7 +163,7 @@ async function createLargeRenderedCrawlForAccess(request, env, access, body = {}
   created.job.inventorySummary = inventory.summary || {};
   created.job.frontierIngestionStatus = largeCrawlFrontierIngestionStatus(created.frontierRows.length, normalized.targetPages, inventory);
   created.job.frontierStoredCount = created.frontierRows.length;
-  created.job.incrementalMode = Boolean(body.incrementalMode || body.incremental_mode);
+  created.job.incrementalMode = body.incrementalMode;
   created.job.previousCrawlJobId = created.job.incrementalMode
     ? (await latestLargeRenderedCrawlForTarget(env, access, normalized.targetUrl))?.id || ""
     : "";
@@ -356,7 +395,9 @@ async function apiProcessLargeRenderedCrawlBatch(request, env) {
 }
 
 async function processLargeRenderedCrawlBatchForAccess(request, env, access, prefix, options = {}) {
-  const body = await request.json().catch(() => ({}));
+  const parsed = await parseJsonBody(request, LargeCrawlProcessBody);
+  if (parsed.error) return jsonNoStore(parsed.error, 400);
+  const body = parsed.data;
   const jobId = pathId(request.url, prefix, "/batches/process");
   const claimRequest = new Request(request.url.replace("/batches/process", "/batches/claim"), {
     method: "POST",
@@ -368,7 +409,7 @@ async function processLargeRenderedCrawlBatchForAccess(request, env, access, pre
   const batchId = claimedBody.batch?.batch_id || claimedBody.batch?.id || "";
   await refreshLargeRenderedCrawlBatchLease(env, jobId, batchId);
   const claimedUrls = Array.isArray(claimedBody.urls) ? claimedBody.urls : [];
-  const urls = claimedUrls.slice(0, Math.min(Math.max(Number(body.limit || 10), 1), 50));
+  const urls = claimedUrls.slice(0, Math.min(Math.max(body.limit || 10, 1), 50));
   await deferUnprocessedLargeCrawlUrls(env, batchId, urls);
   const pages = [];
   const failures = [];
@@ -525,12 +566,13 @@ async function saveLargeRenderedCrawlBatchProofForAccess(request, env, access, p
   const batchRow = loaded.batches.find((batch) => batch.id === batchId);
   if (!batchRow?.id) return jsonNoStore({ error: "Large crawl batch not found." }, 404);
   const batch = largeCrawlBatchFromRow(batchRow);
-  const body = await request.json().catch(() => ({}));
+  const parsed = await parseJsonBody(request, LargeCrawlProofBody);
+  if (parsed.error) return jsonNoStore(parsed.error, 400);
+  const body = parsed.data;
   if (!largeCrawlBatchLeaseIsActive(batch) && !(await largeCrawlProofLeaseTokenIsValid(request, body, env, jobId, batch))) {
     return jsonNoStore({ error: "Large crawl batch does not have an active renderer lease.", code: "ACTIVE_RENDERER_LEASE_REQUIRED" }, 409);
   }
-  const pages = Array.isArray(body.pages) ? body.pages : [];
-  const failures = Array.isArray(body.failures) ? body.failures : [];
+  const { pages, failures } = body;
   const now = new Date().toISOString();
   const frontier = await env.WAITLIST_DB.prepare(
     `SELECT * FROM large_crawl_frontier WHERE batch_id = ? ORDER BY priority ASC`
@@ -1202,7 +1244,6 @@ async function largeCrawlProofLeaseTokenIsValid(request, body, env, jobId, batch
   const supplied = String(
     request.headers.get("x-seofixkit-proof-token") ||
     body.proofToken ||
-    body.proof_token ||
     ""
   ).trim();
   if (!supplied) return false;
