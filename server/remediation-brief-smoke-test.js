@@ -120,9 +120,10 @@ const routeSource = readFileSync(new URL("../worker/routes/reports.js", import.m
 assert.match(routeSource, /remediation-brief\.json/);
 assert.match(routeSource, /buildRemediationBrief\(report\)/);
 
-const localServerSource = readFileSync(new URL("../server/index.js", import.meta.url), "utf8");
-assert.match(localServerSource, /api\/reports\/:id\/remediation-brief\.json/);
-assert.match(localServerSource, /report\.remediationBrief = buildRemediationBrief\(report\)/);
+assert.match(routeSource, /report\.remediationBrief = buildRemediationBrief\(report\)/);
+
+const workerSource = readFileSync(new URL("../worker/index.js", import.meta.url), "utf8");
+assert.match(workerSource, /api\/reports\/:id\/remediation-brief\.json/);
 
 const appSource = readFileSync(new URL("../src/App.jsx", import.meta.url), "utf8");
 assert.match(appSource, /RemediationBriefPanel/);

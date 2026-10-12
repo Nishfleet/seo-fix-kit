@@ -234,6 +234,21 @@ test("Worker dispatch serves apex-only canonicals, robots, sitemap, and llms.txt
   assert.match(llmsBody, /https:\/\/seofixkit\.com\/check/);
   assert.match(llmsBody, /https:\/\/seofixkit\.com\/proof/);
   assert.match(sitemapBody, /<loc>https:\/\/seofixkit\.com\/proof<\/loc>/);
+  assert.match(sitemapBody, /<loc>https:\/\/seofixkit\.com\/methodology<\/loc>/);
+  assert.doesNotMatch(sitemapBody, /\/llms\.txt/);
+  assert.doesNotMatch(sitemapBody, /\/fixture\//);
+});
+
+test("Worker dispatch serves the deterministic fixture's own robots.txt and sitemap", async () => {
+  const env = await fakeWorkerEnv();
+
+  const robots = await worker.fetch(new Request("https://seofixkit.com/fixture/robots.txt"), env, fakeCtx());
+  assert.equal(robots.status, 200);
+  assert.match(await robots.text(), /Sitemap: https:\/\/seofixkit\.com\/fixture\/sitemap\.xml/);
+
+  const sitemap = await worker.fetch(new Request("https://seofixkit.com/fixture/sitemap.xml"), env, fakeCtx());
+  assert.equal(sitemap.status, 200);
+  assert.match(await sitemap.text(), /<loc>https:\/\/seofixkit\.com\/fixture\/rendered-page<\/loc>/);
 });
 
 test("Worker dispatch serves the real before/after repair proof receipt", async () => {
@@ -410,13 +425,54 @@ test("Worker dispatch passes through the asset layer 404 for unknown URLs instea
   assert.match(unknown.headers.get("x-content-type-options") || "", /nosniff/);
   assert.match(unknown.headers.get("x-frame-options") || "", /DENY/);
 
-  // Unknown /api/* and /v1/* paths must also surface a 404, not the SPA shell.
-  const unknownApi = await worker.fetch(new Request("https://seofixkit.test/api/nonexistent-route"), env, fakeCtx());
-  assert.equal(unknownApi.status, 404);
-  assert.equal(await unknownApi.text(), "asset fallback");
+  // Unknown /api/*, /v1/* and /admin/* paths answer with a JSON 404 from the
+  // Worker itself, never the SPA shell or the HTML 404 page.
+  for (const path of ["/api/nonexistent-route", "/v1/nonexistent-route", "/admin/nonexistent-route"]) {
+    const response = await worker.fetch(new Request(`https://seofixkit.test${path}`), env, fakeCtx());
+    assert.equal(response.status, 404, path);
+    assert.match(response.headers.get("content-type") || "", /application\/json/, path);
+    assert.deepEqual(await response.json(), { error: "Not found." }, path);
+  }
 
-  const unknownV1 = await worker.fetch(new Request("https://seofixkit.test/v1/nonexistent-route"), env, fakeCtx());
-  assert.equal(unknownV1.status, 404);
+  // A known API path with the wrong method is also a JSON 404, not HTML.
+  const wrongMethod = await worker.fetch(new Request("https://seofixkit.test/api/waitlist"), env, fakeCtx());
+  assert.equal(wrongMethod.status, 404);
+  assert.match(wrongMethod.headers.get("content-type") || "", /application\/json/);
+});
+
+test("Worker never leaks internal error text and rejects malformed URL escapes", async () => {
+  const env = await fakeWorkerEnv();
+
+  const malformed = await worker.fetch(new Request("https://seofixkit.test/api/team/members/%E0%A4%A", {
+    method: "DELETE"
+  }), env, fakeCtx());
+  assert.ok([400, 401].includes(malformed.status), `unexpected status ${malformed.status}`);
+  assert.notEqual(malformed.status, 500);
+
+  const badCookie = await worker.fetch(new Request("https://seofixkit.test/api/beta/session", {
+    headers: { cookie: "sfk_beta_session=%E0%A4%A" }
+  }), env, fakeCtx());
+  assert.notEqual(badCookie.status, 500);
+
+  const originalError = console.error;
+  console.error = () => {};
+  try {
+    const failing = await worker.fetch(new Request("https://seofixkit.test/api/beta/session", {
+      headers: { cookie: "sfk_beta_session=some-session-token" }
+    }), {
+      ...env,
+      WAITLIST_DB: {
+        prepare() {
+          throw new Error("D1_ERROR: no such table: secret_internal_table");
+        }
+      }
+    }, fakeCtx());
+    assert.equal(failing.status, 500);
+    const body = await failing.json();
+    assert.doesNotMatch(body.error, /secret_internal_table|D1_ERROR/);
+  } finally {
+    console.error = originalError;
+  }
 });
 
 test("Deploy surface serves a real 404 page instead of the single-page-application homepage catch-all", () => {

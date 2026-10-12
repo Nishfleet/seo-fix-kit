@@ -1,3 +1,4 @@
+import { escapeHtml } from "./html.js";
 import { competitorBenchmarkSummaryCopy } from "./competitor-benchmark.js";
 import { crawlIntelligenceSummaryCopy } from "./crawl-intelligence.js";
 import { aiAnswerReadinessSummaryCopy } from "./ai-answer-readiness.js";
@@ -1025,11 +1026,3 @@ function cleanText(input, maxLength = 500) {
     .slice(0, maxLength);
 }
 
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
-}

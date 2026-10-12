@@ -1,3 +1,4 @@
+import { Hono } from "hono";
 import { isEmailConfigured } from "../shared/fulfillment.js";
 import { VERSION, rootSitemap } from "../shared/audit-engine.js";
 import { indexNowKeyFileBody, indexNowKeyFilePaths } from "../shared/index-now.js";
@@ -155,12 +156,297 @@ import {
 const CANONICAL_HOST = "seofixkit.com";
 const CANONICAL_ORIGIN = `https://${CANONICAL_HOST}`;
 
+// Path prefixes that only ever serve machine responses. Unmatched requests
+// under them get a JSON 404 instead of falling through to the SPA shell.
+const API_PREFIXES = ["/api/", "/v1/", "/admin/"];
+
 function canonicalOrigin(url) {
   const hostname = url.hostname.toLowerCase();
   return hostname === CANONICAL_HOST || hostname === `www.${CANONICAL_HOST}`
     ? CANONICAL_ORIGIN
     : url.origin;
 }
+
+function executionContext(c) {
+  // Hono's getter throws when the runtime passed no ExecutionContext (unit
+  // tests, local tooling); route handlers already treat ctx as optional.
+  try {
+    return c.executionCtx;
+  } catch {
+    return undefined;
+  }
+}
+
+// Adapts the existing `(request, env, ctx)` route handlers to Hono. Handlers
+// keep reading their own path segments from `request.url`; Hono's patterns
+// make sure only well-formed paths and the right method ever reach them.
+function route(handler) {
+  return (c) => handler(c.req.raw, c.env, executionContext(c));
+}
+
+function originOf(c) {
+  return canonicalOrigin(new URL(c.req.url));
+}
+
+function textResponse(body, contentType, extraHeaders = {}) {
+  return new Response(body, {
+    headers: secureHeaders({ "content-type": contentType, ...extraHeaders })
+  });
+}
+
+function htmlPage(render) {
+  return (c) => textResponse(render(originOf(c)), "text/html; charset=utf-8");
+}
+
+const app = new Hono();
+
+app.use("*", async (c, next) => {
+  // Canonical host: permanently redirect every www.seofixkit.com request
+  // onto the apex host with its path and query intact before any route
+  // logic runs, so no content or API response is ever served from www.
+  const url = new URL(c.req.url);
+  if (url.hostname.toLowerCase() === `www.${CANONICAL_HOST}`) {
+    return new Response(null, {
+      status: 301,
+      headers: secureHeaders({ Location: `${CANONICAL_ORIGIN}${url.pathname}${url.search}` })
+    });
+  }
+  return next();
+});
+
+// --- Health -----------------------------------------------------------------
+app.get("/api/health", (c) =>
+  json({
+    ok: true,
+    service: "seo-fix-kit",
+    runtime: "cloudflare-worker",
+    browserRun: Boolean(c.env.BROWSER),
+    waitlistDb: Boolean(c.env.WAITLIST_DB),
+    emailNotifications: isEmailConfigured(c.env),
+    version: VERSION
+  })
+);
+// Deep health owns its method handling (HEAD support, JSON 405).
+app.all("/api/deep-health", route(getDeepHealth));
+
+// --- Access, beta session, waitlist ------------------------------------------
+app.post("/api/waitlist", route(joinWaitlist));
+app.post("/api/access/request", route(requestAccessLink));
+app.post("/api/access/verify", route(verifyAccessLink));
+app.post("/api/access/track", route(recordAccessBeacon));
+app.post("/api/beta/login", route(betaLogin));
+app.get("/api/beta/session", route(betaSession));
+app.post("/api/beta/logout", route(betaLogout));
+app.get("/api/sites", route(listSiteClaims));
+app.post("/api/sites/claim", route(createSiteClaim));
+app.post("/api/sites/verify", route(verifySiteClaim));
+
+// --- Billing -----------------------------------------------------------------
+app.post("/api/beta/fix-request", route(requestFixPack));
+app.post("/api/beta/monitoring-checkout", route(requestMonitoringCheckout));
+app.post("/api/beta/repair-sprint-checkout", route(requestRepairSprintCheckout));
+app.get("/api/pricing-preview", route(getFixPackPricingPreview));
+app.get("/api/public-pricing", route(getPublicFixPackPricing));
+app.get("/api/billing/summary", route(getBillingSummary));
+app.post("/api/webhooks/dodo", route(handleDodoWebhook));
+
+// --- Account, team, branding, developer settings -----------------------------
+app.get("/api/account/summary", route(getAccountSummary));
+app.get("/api/developer", route(getDeveloperApiSummary));
+app.post("/api/developer/tokens", route(createDeveloperApiToken));
+app.delete("/api/developer/tokens/:id", route(revokeDeveloperApiToken));
+app.post("/api/developer/webhooks", route(createDeveloperWebhook));
+app.delete("/api/developer/webhooks/:id", route(revokeDeveloperWebhook));
+app.get("/api/team", route(getTeamMembers));
+app.post("/api/team/members", route(createTeamMember));
+app.delete("/api/team/members/:id", route(revokeTeamMember));
+app.get("/api/branding", route(getReportBranding));
+app.post("/api/branding", route(saveReportBranding));
+app.get("/api/report-domains", route(listReportDomains));
+app.post("/api/report-domains", route(createReportDomain));
+app.post("/api/report-domains/:id/verify", route(verifyReportDomain));
+app.delete("/api/report-domains/:id", route(revokeReportDomain));
+
+// --- Audits and schedules ----------------------------------------------------
+app.post("/api/audit", route(runPrivateAudit));
+app.get("/api/audit/jobs/:id", route(getAuditJob));
+app.get("/api/audit/schedules", route(listAuditSchedules));
+app.post("/api/audit/schedules", route(createAuditSchedule));
+app.delete("/api/audit/schedules/:id", route(deleteAuditSchedule));
+app.all("/api/demo-audit", route(runPrivateDemoAudit));
+app.post("/api/public-check", route(runPublicCheck));
+
+// --- Saved reports, sharing, collaboration, repair queue ---------------------
+app.delete("/api/report-shares/:id", route(revokeReportShare));
+app.get("/api/reports/:id/shares", route(listReportShares));
+app.post("/api/reports/:id/share", route(createReportShare));
+app.get("/api/reports/:id/client.pdf", route(getPrivateReportPdf));
+app.get("/api/reports/:id/collaboration", route(getReportCollaboration));
+app.patch("/api/reports/:id/collaboration", route(saveReportCollaboration));
+app.get("/api/reports/:id/repair-queue", route(getRepairQueue));
+app.patch("/api/reports/:id/repair-queue", route(saveRepairQueue));
+app.post("/api/reports/:id/repair-actions", route(createRepairAction));
+app.get("/api/reports/:id/repair-actions/:actionId/implementation.md", route(getRepairActionImplementationPack));
+app.get("/api/reports/:id/repair-actions/:actionId/proof.md", route(getRepairActionProofReceipt));
+app.patch("/api/reports/:id/repair-actions/:actionId", route(updateRepairAction));
+app.patch("/api/reports/:id/repair-proposals/:proposalId", route(updateRepairProposalApproval));
+app.get("/api/reports/:id/brief.md", route(getSavedReport));
+app.get("/api/reports/:id/remediation-brief.json", route(getSavedReport));
+app.get("/api/reports/:id", route(getSavedReport));
+
+// --- Large rendered crawls (session) -----------------------------------------
+app.post("/api/large-crawls", route(createLargeRenderedCrawl));
+app.get("/api/large-crawls", route(listLargeRenderedCrawls));
+app.get("/api/large-crawls/:id", route(getLargeRenderedCrawl));
+app.post("/api/large-crawls/:id/retry", route(retryLargeRenderedCrawl));
+app.post("/api/large-crawls/:id/batches/claim", route(claimLargeRenderedCrawlBatch));
+app.post("/api/large-crawls/:id/batches/process", route(processLargeRenderedCrawlBatch));
+app.post("/api/large-crawls/:id/batches/:batchId/proof", route(saveLargeRenderedCrawlBatchProof));
+app.post("/api/large-crawls/:id/merge", route(markLargeRenderedCrawlReadyToMerge));
+
+// --- Public developer API (v1) -----------------------------------------------
+app.get("/v1/projects", route(apiListProjects));
+app.post("/v1/projects", route(apiCreateProject));
+app.get("/v1/audits", route(apiListAudits));
+app.post("/v1/audits", route(apiCreateAudit));
+app.get("/v1/audits/:id", route(apiGetAudit));
+app.delete("/v1/audits/:id", route(apiDeleteAudit));
+app.get("/v1/audits/:id/issues", route(apiGetAuditIssues));
+app.get("/v1/audits/:id/report", route(apiGetAuditReport));
+app.get("/v1/audits/:id/repair-queue", route(apiGetRepairQueue));
+app.patch("/v1/audits/:id/repair-queue", route(apiSaveRepairQueue));
+app.post("/v1/audits/:id/repair-actions", route(apiCreateRepairAction));
+app.get("/v1/audits/:id/repair-actions/:actionId/implementation.md", route(apiGetRepairActionImplementationPack));
+app.get("/v1/audits/:id/repair-actions/:actionId/proof.md", route(apiGetRepairActionProofReceipt));
+app.patch("/v1/audits/:id/repair-actions/:actionId", route(apiUpdateRepairAction));
+app.get("/v1/large-crawls", route(apiListLargeRenderedCrawls));
+app.post("/v1/large-crawls", route(apiCreateLargeRenderedCrawl));
+app.get("/v1/large-crawls/:id", route(apiGetLargeRenderedCrawl));
+app.post("/v1/large-crawls/:id/retry", route(apiRetryLargeRenderedCrawl));
+app.post("/v1/large-crawls/:id/batches/claim", route(apiClaimLargeRenderedCrawlBatch));
+app.post("/v1/large-crawls/:id/batches/process", route(apiProcessLargeRenderedCrawlBatch));
+app.post("/v1/large-crawls/:id/batches/:batchId/proof", route(apiSaveLargeRenderedCrawlBatchProof));
+app.post("/v1/large-crawls/:id/merge", route(apiMarkLargeRenderedCrawlReadyToMerge));
+
+// --- Admin -------------------------------------------------------------------
+app.post("/admin/session", route(createAdminSession));
+app.delete("/admin/session", route(revokeAdminSession));
+app.post("/admin/beta-session", route(createAdminBetaSession));
+app.get("/admin/summary", route(getAdminSummary));
+app.get("/admin/funnel", route(getFunnelSummary));
+app.get("/admin/leads.csv", route(exportLeadsCsv));
+app.post("/admin/invites", route(createInvite));
+app.patch("/admin/fix-requests/:id", route(updateFixRequestAdmin));
+
+// --- White-label client reports ----------------------------------------------
+app.get("/.well-known/seofixkit-report-domain.txt", route(getReportDomainChallenge));
+app.post("/r/:id/unlock", route(unlockClientReport));
+app.get("/r/:file{.+\\.pdf}", route(getClientReportPdf));
+app.get("/r/:id", route(getClientReport));
+
+// --- Audit fixtures ------------------------------------------------------------
+app.get("/fixture/rendered-page", (c) =>
+  textResponse(renderedFixture(originOf(c)), "text/html; charset=utf-8", {
+    "x-robots-tag": "noindex, nofollow"
+  })
+);
+app.get("/fixture/robots.txt", (c) =>
+  textResponse(
+    `User-agent: *\nAllow: /\n\nSitemap: ${originOf(c)}/fixture/sitemap.xml\n`,
+    "text/plain; charset=utf-8"
+  )
+);
+app.get("/fixture/sitemap.xml", (c) =>
+  textResponse(
+    `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${originOf(c)}/fixture/rendered-page</loc></url></urlset>`,
+    "application/xml; charset=utf-8"
+  )
+);
+
+// --- Crawler and SEO files -----------------------------------------------------
+app.get("/robots.txt", (c) =>
+  textResponse(`User-agent: *\nAllow: /\n\nSitemap: ${originOf(c)}/sitemap.xml\n`, "text/plain; charset=utf-8")
+);
+// IndexNow key file: served at both the spec root and the .well-known alias so
+// Bing/Naver/Seznam/Yandex can validate the submission key without any account
+// credentials. run_worker_first keeps the SPA asset fallback from shadowing them.
+for (const keyPath of indexNowKeyFilePaths()) {
+  app.get(keyPath, () =>
+    textResponse(indexNowKeyFileBody(), "text/plain; charset=utf-8", {
+      "x-robots-tag": "noindex, nofollow"
+    })
+  );
+}
+app.get("/sitemap.xml", (c) => textResponse(rootSitemap(originOf(c)), "application/xml; charset=utf-8"));
+app.get("/llms.txt", (c) => textResponse(llmsText(originOf(c)), "text/plain; charset=utf-8"));
+
+// --- Server-rendered public pages --------------------------------------------
+app.get("/privacy", htmlPage(privacyHtml));
+app.get("/support", htmlPage(supportHtml));
+app.get("/terms", htmlPage(termsHtml));
+app.get("/demo", htmlPage(demoHtml));
+app.get("/check", htmlPage(checkHtml));
+app.get("/methodology", htmlPage(methodologyHtml));
+app.get("/packages", htmlPage(packagesHtml));
+app.get("/small-business-seo-audit", htmlPage(smallBusinessSeoAuditHtml));
+app.get("/rendered-vs-static-seo-audit", htmlPage(renderedVsStaticAuditHtml));
+app.get("/ai-answer-readiness", htmlPage(aiAnswerReadinessHtml));
+
+function proofPage(c) {
+  const acceptsMarkdown =
+    new URL(c.req.url).pathname === "/proof.md" ||
+    (c.req.header("accept") || "").includes("text/markdown");
+  return acceptsMarkdown
+    ? textResponse(proofCaseMarkdown(originOf(c)), "text/markdown; charset=utf-8")
+    : textResponse(proofCaseHtml(originOf(c)), "text/html; charset=utf-8");
+}
+app.get("/proof", proofPage);
+app.get("/proof.md", proofPage);
+
+// --- Single-page app ---------------------------------------------------------
+async function betaShell(c) {
+  const indexUrl = new URL("/", c.req.url);
+  const response = await c.env.ASSETS.fetch(new Request(indexUrl, c.req.raw));
+  return withPrivateHeaders(response);
+}
+app.get("/beta", betaShell);
+app.get("/beta/*", betaShell);
+
+app.get("/", async (c) => {
+  if ((c.req.header("accept") || "").includes("text/markdown")) {
+    return textResponse(homeMarkdown(originOf(c)), "text/markdown; charset=utf-8");
+  }
+  return withSecurityHeaders(await c.env.ASSETS.fetch(c.req.raw));
+});
+
+app.notFound(async (c) => {
+  const { pathname } = new URL(c.req.url);
+  if (API_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
+    return json({ error: "Not found." }, 404);
+  }
+  return withSecurityHeaders(await c.env.ASSETS.fetch(c.req.raw));
+});
+
+app.onError((error, c) => {
+  // A malformed percent-escape in a path segment is a client error.
+  if (error instanceof URIError) {
+    return json({ error: "Malformed URL." }, 400);
+  }
+  console.error(`Unhandled error on ${c.req.method} ${new URL(c.req.url).pathname}`, error);
+  // Errors tagged with a `code` are deliberate, user-facing failures (for
+  // example BROWSER_BUSY); anything else may carry internal detail, so the
+  // client gets a generic message and the real one stays in the logs.
+  return json(
+    {
+      error: error?.code && error?.message
+        ? error.message
+        : "Something went wrong on our side. Try again in a moment."
+    },
+    500
+  );
+});
+
+export { app };
 
 export default {
   async scheduled(_event, env, ctx) {
@@ -181,583 +467,21 @@ export default {
   },
 
   async queue(batch, env) {
+    // Settle each message on its own so one failing job is retried (and
+    // eventually dead-lettered) without replaying the rest of the batch.
     for (const message of batch.messages) {
       const body = message.body || {};
-      if (body.kind === "audit-job" && isSafeUuid(String(body.jobId || ""))) {
-        await processAuditJob(env, body.jobId, { appOrigin: body.appOrigin || "https://seofixkit.com" });
+      try {
+        if (body.kind === "audit-job" && isSafeUuid(String(body.jobId || ""))) {
+          await processAuditJob(env, body.jobId, { appOrigin: body.appOrigin || "https://seofixkit.com" });
+        }
+        message.ack();
+      } catch (error) {
+        console.error(`Audit queue message ${message.id} failed`, error);
+        message.retry();
       }
-      message.ack();
     }
   },
 
-  async fetch(request, env, ctx) {
-    const url = new URL(request.url);
-
-    // Canonical host: permanently redirect every www.seofixkit.com request
-    // onto the apex host with its path and query intact before any route
-    // logic runs, so no content or API response is ever served from www.
-    if (url.hostname.toLowerCase() === `www.${CANONICAL_HOST}`) {
-      return new Response(null, {
-        status: 301,
-        headers: secureHeaders({ Location: `${CANONICAL_ORIGIN}${url.pathname}${url.search}` })
-      });
-    }
-
-    const origin = canonicalOrigin(url);
-
-    try {
-      if (url.pathname === "/api/health") {
-        return json({
-          ok: true,
-          service: "seo-fix-kit",
-          runtime: "cloudflare-worker",
-          browserRun: Boolean(env.BROWSER),
-          waitlistDb: Boolean(env.WAITLIST_DB),
-          emailNotifications: isEmailConfigured(env),
-          version: VERSION
-        });
-      }
-
-      if (url.pathname === "/api/deep-health") {
-        return getDeepHealth(request, env);
-      }
-
-      if (url.pathname === "/api/waitlist" && request.method === "POST") {
-        return joinWaitlist(request, env);
-      }
-
-      if (url.pathname === "/api/access/request" && request.method === "POST") {
-        return requestAccessLink(request, env);
-      }
-
-      if (url.pathname === "/api/access/verify" && request.method === "POST") {
-        return verifyAccessLink(request, env);
-      }
-
-      if (url.pathname === "/api/access/track" && request.method === "POST") {
-        return recordAccessBeacon(request, env);
-      }
-
-      if (url.pathname === "/api/beta/login" && request.method === "POST") {
-        return betaLogin(request, env);
-      }
-
-      if (url.pathname === "/api/beta/session" && request.method === "GET") {
-        return betaSession(request, env);
-      }
-
-      if (url.pathname === "/api/beta/logout" && request.method === "POST") {
-        return betaLogout(request, env);
-      }
-
-      if (url.pathname === "/api/beta/fix-request" && request.method === "POST") {
-        return requestFixPack(request, env);
-      }
-
-      if (url.pathname === "/api/beta/monitoring-checkout" && request.method === "POST") {
-        return requestMonitoringCheckout(request, env);
-      }
-
-      if (url.pathname === "/api/beta/repair-sprint-checkout" && request.method === "POST") {
-        return requestRepairSprintCheckout(request, env);
-      }
-
-      if (url.pathname === "/api/pricing-preview" && request.method === "GET") {
-        return getFixPackPricingPreview(request, env);
-      }
-
-      if (url.pathname === "/api/public-pricing" && request.method === "GET") {
-        return getPublicFixPackPricing(request, env, ctx);
-      }
-
-      if (url.pathname === "/api/billing/summary" && request.method === "GET") {
-        return getBillingSummary(request, env);
-      }
-
-      if (url.pathname === "/api/account/summary" && request.method === "GET") {
-        return getAccountSummary(request, env);
-      }
-
-      if (url.pathname === "/api/audit/schedules" && request.method === "GET") {
-        return listAuditSchedules(request, env);
-      }
-
-      if (url.pathname === "/api/audit/schedules" && request.method === "POST") {
-        return createAuditSchedule(request, env);
-      }
-
-      if (url.pathname.startsWith("/api/audit/schedules/") && request.method === "DELETE") {
-        return deleteAuditSchedule(request, env);
-      }
-
-      if (url.pathname === "/api/developer" && request.method === "GET") {
-        return getDeveloperApiSummary(request, env);
-      }
-
-      if (url.pathname === "/api/developer/tokens" && request.method === "POST") {
-        return createDeveloperApiToken(request, env);
-      }
-
-      if (url.pathname.startsWith("/api/developer/tokens/") && request.method === "DELETE") {
-        return revokeDeveloperApiToken(request, env);
-      }
-
-      if (url.pathname === "/api/developer/webhooks" && request.method === "POST") {
-        return createDeveloperWebhook(request, env);
-      }
-
-      if (url.pathname.startsWith("/api/developer/webhooks/") && request.method === "DELETE") {
-        return revokeDeveloperWebhook(request, env);
-      }
-
-      if (url.pathname === "/api/team" && request.method === "GET") {
-        return getTeamMembers(request, env);
-      }
-
-      if (url.pathname === "/api/team/members" && request.method === "POST") {
-        return createTeamMember(request, env);
-      }
-
-      if (url.pathname.startsWith("/api/team/members/") && request.method === "DELETE") {
-        return revokeTeamMember(request, env);
-      }
-
-      if (url.pathname === "/api/branding" && request.method === "GET") {
-        return getReportBranding(request, env);
-      }
-
-      if (url.pathname === "/api/branding" && request.method === "POST") {
-        return saveReportBranding(request, env);
-      }
-
-      if (url.pathname === "/api/report-domains" && request.method === "GET") {
-        return listReportDomains(request, env);
-      }
-
-      if (url.pathname === "/api/report-domains" && request.method === "POST") {
-        return createReportDomain(request, env);
-      }
-
-      if (url.pathname.startsWith("/api/report-domains/") && url.pathname.endsWith("/verify") && request.method === "POST") {
-        return verifyReportDomain(request, env);
-      }
-
-      if (url.pathname.startsWith("/api/report-domains/") && request.method === "DELETE") {
-        return revokeReportDomain(request, env);
-      }
-
-      if (url.pathname.startsWith("/api/report-shares/") && request.method === "DELETE") {
-        return revokeReportShare(request, env);
-      }
-
-      if (url.pathname.startsWith("/api/reports/") && url.pathname.endsWith("/shares") && request.method === "GET") {
-        return listReportShares(request, env);
-      }
-
-      if (url.pathname.startsWith("/api/reports/") && url.pathname.endsWith("/share") && request.method === "POST") {
-        return createReportShare(request, env);
-      }
-
-      if (url.pathname.startsWith("/api/reports/") && url.pathname.endsWith("/client.pdf") && request.method === "GET") {
-        return getPrivateReportPdf(request, env);
-      }
-
-      if (url.pathname.startsWith("/api/reports/") && url.pathname.endsWith("/collaboration") && request.method === "GET") {
-        return getReportCollaboration(request, env);
-      }
-
-      if (url.pathname.startsWith("/api/reports/") && url.pathname.endsWith("/collaboration") && request.method === "PATCH") {
-        return saveReportCollaboration(request, env);
-      }
-
-      if (url.pathname.startsWith("/api/reports/") && url.pathname.endsWith("/repair-queue") && request.method === "GET") {
-        return getRepairQueue(request, env);
-      }
-
-      if (url.pathname.startsWith("/api/reports/") && url.pathname.endsWith("/repair-queue") && request.method === "PATCH") {
-        return saveRepairQueue(request, env);
-      }
-
-      if (url.pathname.startsWith("/api/reports/") && url.pathname.endsWith("/repair-actions") && request.method === "POST") {
-        return createRepairAction(request, env, ctx);
-      }
-
-      if (url.pathname.startsWith("/api/reports/") && url.pathname.includes("/repair-actions/") && url.pathname.endsWith("/implementation.md") && request.method === "GET") {
-        return getRepairActionImplementationPack(request, env, ctx);
-      }
-
-      if (url.pathname.startsWith("/api/reports/") && url.pathname.includes("/repair-actions/") && url.pathname.endsWith("/proof.md") && request.method === "GET") {
-        return getRepairActionProofReceipt(request, env, ctx);
-      }
-
-      if (url.pathname.startsWith("/api/reports/") && url.pathname.includes("/repair-actions/") && request.method === "PATCH") {
-        return updateRepairAction(request, env, ctx);
-      }
-
-      if (url.pathname.includes("/repair-proposals/") && request.method === "PATCH") {
-        return updateRepairProposalApproval(request, env);
-      }
-
-      if (url.pathname.startsWith("/r/") && url.pathname.endsWith("/unlock") && request.method === "POST") {
-        return unlockClientReport(request, env);
-      }
-
-      if (url.pathname === "/.well-known/seofixkit-report-domain.txt" && request.method === "GET") {
-        return getReportDomainChallenge(request, env);
-      }
-
-      if (url.pathname.startsWith("/r/") && url.pathname.endsWith(".pdf") && request.method === "GET") {
-        return getClientReportPdf(request, env);
-      }
-
-      if (url.pathname.startsWith("/r/") && request.method === "GET") {
-        return getClientReport(request, env);
-      }
-
-      if (url.pathname === "/v1/projects" && request.method === "GET") {
-        return apiListProjects(request, env);
-      }
-
-      if (url.pathname === "/v1/projects" && request.method === "POST") {
-        return apiCreateProject(request, env);
-      }
-
-      if (url.pathname === "/v1/audits" && request.method === "POST") {
-        return apiCreateAudit(request, env, ctx);
-      }
-
-      if (url.pathname === "/v1/audits" && request.method === "GET") {
-        return apiListAudits(request, env);
-      }
-
-      if (url.pathname.startsWith("/v1/audits/") && url.pathname.endsWith("/issues") && request.method === "GET") {
-        return apiGetAuditIssues(request, env);
-      }
-
-      if (url.pathname.startsWith("/v1/audits/") && url.pathname.endsWith("/report") && request.method === "GET") {
-        return apiGetAuditReport(request, env);
-      }
-
-      if (url.pathname.startsWith("/v1/audits/") && url.pathname.endsWith("/repair-queue") && request.method === "GET") {
-        return apiGetRepairQueue(request, env);
-      }
-
-      if (url.pathname.startsWith("/v1/audits/") && url.pathname.endsWith("/repair-queue") && request.method === "PATCH") {
-        return apiSaveRepairQueue(request, env);
-      }
-
-      if (url.pathname.startsWith("/v1/audits/") && url.pathname.endsWith("/repair-actions") && request.method === "POST") {
-        return apiCreateRepairAction(request, env, ctx);
-      }
-
-      if (url.pathname.startsWith("/v1/audits/") && url.pathname.includes("/repair-actions/") && url.pathname.endsWith("/implementation.md") && request.method === "GET") {
-        return apiGetRepairActionImplementationPack(request, env);
-      }
-
-      if (url.pathname.startsWith("/v1/audits/") && url.pathname.includes("/repair-actions/") && url.pathname.endsWith("/proof.md") && request.method === "GET") {
-        return apiGetRepairActionProofReceipt(request, env);
-      }
-
-      if (url.pathname.startsWith("/v1/audits/") && url.pathname.includes("/repair-actions/") && request.method === "PATCH") {
-        return apiUpdateRepairAction(request, env, ctx);
-      }
-
-      if (url.pathname.startsWith("/v1/audits/") && request.method === "GET") {
-        return apiGetAudit(request, env);
-      }
-
-      if (url.pathname.startsWith("/v1/audits/") && request.method === "DELETE") {
-        return apiDeleteAudit(request, env);
-      }
-
-      if (url.pathname === "/v1/large-crawls" && request.method === "POST") {
-        return apiCreateLargeRenderedCrawl(request, env, ctx);
-      }
-
-      if (url.pathname === "/v1/large-crawls" && request.method === "GET") {
-        return apiListLargeRenderedCrawls(request, env);
-      }
-
-      if (url.pathname.startsWith("/v1/large-crawls/") && url.pathname.endsWith("/retry") && request.method === "POST") {
-        return apiRetryLargeRenderedCrawl(request, env);
-      }
-
-      if (url.pathname.startsWith("/v1/large-crawls/") && url.pathname.endsWith("/batches/claim") && request.method === "POST") {
-        return apiClaimLargeRenderedCrawlBatch(request, env);
-      }
-
-      if (url.pathname.startsWith("/v1/large-crawls/") && url.pathname.endsWith("/batches/process") && request.method === "POST") {
-        return apiProcessLargeRenderedCrawlBatch(request, env);
-      }
-
-      if (url.pathname.startsWith("/v1/large-crawls/") && url.pathname.includes("/batches/") && url.pathname.endsWith("/proof") && request.method === "POST") {
-        return apiSaveLargeRenderedCrawlBatchProof(request, env);
-      }
-
-      if (url.pathname.startsWith("/v1/large-crawls/") && url.pathname.endsWith("/merge") && request.method === "POST") {
-        return apiMarkLargeRenderedCrawlReadyToMerge(request, env);
-      }
-
-      if (url.pathname.startsWith("/v1/large-crawls/") && request.method === "GET") {
-        return apiGetLargeRenderedCrawl(request, env);
-      }
-
-      if (url.pathname === "/api/sites" && request.method === "GET") {
-        return listSiteClaims(request, env);
-      }
-
-      if (url.pathname === "/api/sites/claim" && request.method === "POST") {
-        return createSiteClaim(request, env);
-      }
-
-      if (url.pathname === "/api/sites/verify" && request.method === "POST") {
-        return verifySiteClaim(request, env);
-      }
-
-      if (url.pathname === "/admin/session" && request.method === "POST") {
-        return createAdminSession(request, env);
-      }
-
-      if (url.pathname === "/admin/session" && request.method === "DELETE") {
-        return revokeAdminSession(request, env);
-      }
-
-      if (url.pathname === "/admin/beta-session" && request.method === "POST") {
-        return createAdminBetaSession(request, env);
-      }
-
-      if (url.pathname === "/api/webhooks/dodo" && request.method === "POST") {
-        return handleDodoWebhook(request, env, ctx);
-      }
-
-      if (url.pathname === "/api/audit" && request.method === "POST") {
-        return runPrivateAudit(request, env, ctx);
-      }
-
-      if (url.pathname.startsWith("/api/audit/jobs/") && request.method === "GET") {
-        return getAuditJob(request, env);
-      }
-
-      if (url.pathname === "/api/large-crawls" && request.method === "POST") {
-        return createLargeRenderedCrawl(request, env, ctx);
-      }
-
-      if (url.pathname === "/api/large-crawls" && request.method === "GET") {
-        return listLargeRenderedCrawls(request, env);
-      }
-
-      if (url.pathname.startsWith("/api/large-crawls/") && url.pathname.endsWith("/retry") && request.method === "POST") {
-        return retryLargeRenderedCrawl(request, env);
-      }
-
-      if (url.pathname.startsWith("/api/large-crawls/") && url.pathname.endsWith("/batches/claim") && request.method === "POST") {
-        return claimLargeRenderedCrawlBatch(request, env);
-      }
-
-      if (url.pathname.startsWith("/api/large-crawls/") && url.pathname.endsWith("/batches/process") && request.method === "POST") {
-        return processLargeRenderedCrawlBatch(request, env);
-      }
-
-      if (url.pathname.startsWith("/api/large-crawls/") && url.pathname.includes("/batches/") && url.pathname.endsWith("/proof") && request.method === "POST") {
-        return saveLargeRenderedCrawlBatchProof(request, env);
-      }
-
-      if (url.pathname.startsWith("/api/large-crawls/") && url.pathname.endsWith("/merge") && request.method === "POST") {
-        return markLargeRenderedCrawlReadyToMerge(request, env);
-      }
-
-      if (url.pathname.startsWith("/api/large-crawls/") && request.method === "GET") {
-        return getLargeRenderedCrawl(request, env);
-      }
-
-      if (url.pathname.startsWith("/api/reports/")) {
-        return getSavedReport(request, env);
-      }
-
-      if (url.pathname === "/admin/summary") {
-        return getAdminSummary(request, env);
-      }
-
-      if (url.pathname === "/admin/funnel") {
-        return getFunnelSummary(request, env);
-      }
-
-      if (url.pathname === "/admin/invites" && request.method === "POST") {
-        return createInvite(request, env);
-      }
-
-      if (url.pathname.startsWith("/admin/fix-requests/") && request.method === "PATCH") {
-        return updateFixRequestAdmin(request, env);
-      }
-
-      if (url.pathname === "/admin/leads.csv") {
-        return exportLeadsCsv(request, env);
-      }
-
-      if (url.pathname === "/api/demo-audit") {
-        return runPrivateDemoAudit(request, env);
-      }
-
-      if (url.pathname === "/api/public-check" && request.method === "POST") {
-        return runPublicCheck(request, env);
-      }
-
-      if (url.pathname === "/fixture/rendered-page") {
-        return new Response(renderedFixture(origin), {
-          headers: secureHeaders({
-            "content-type": "text/html; charset=utf-8",
-            "x-robots-tag": "noindex, nofollow"
-          })
-        });
-      }
-
-      if (url.pathname === "/fixture/robots.txt") {
-        return new Response(`User-agent: *\nAllow: /\n\nSitemap: ${origin}/fixture/sitemap.xml\n`, {
-          headers: secureHeaders({ "content-type": "text/plain; charset=utf-8" })
-        });
-      }
-
-      if (url.pathname === "/fixture/sitemap.xml") {
-        return new Response(
-          `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${origin}/fixture/rendered-page</loc></url></urlset>`,
-          { headers: secureHeaders({ "content-type": "application/xml; charset=utf-8" }) }
-        );
-      }
-
-      if (url.pathname === "/robots.txt") {
-        return new Response(`User-agent: *\nAllow: /\n\nSitemap: ${origin}/sitemap.xml\n`, {
-          headers: secureHeaders({ "content-type": "text/plain; charset=utf-8" })
-        });
-      }
-
-      // IndexNow key file: served at both the spec root and the .well-known
-      // alias so Bing/Naver/Seznam/Yandex can validate the submission key
-      // without any account credentials. Both paths are covered by
-      // run_worker_first so the SPA asset fallback never shadows them.
-      for (const keyPath of indexNowKeyFilePaths()) {
-        if (url.pathname === keyPath) {
-          return new Response(indexNowKeyFileBody(), {
-            headers: secureHeaders({
-              "content-type": "text/plain; charset=utf-8",
-              "x-robots-tag": "noindex, nofollow"
-            })
-          });
-        }
-      }
-
-      if (url.pathname === "/sitemap.xml") {
-        return new Response(rootSitemap(origin), {
-          headers: secureHeaders({ "content-type": "application/xml; charset=utf-8" })
-        });
-      }
-
-      if (url.pathname === "/llms.txt") {
-        return new Response(llmsText(origin), {
-          headers: secureHeaders({ "content-type": "text/plain; charset=utf-8" })
-        });
-      }
-
-      if (url.pathname === "/privacy") {
-        return new Response(privacyHtml(origin), {
-          headers: secureHeaders({ "content-type": "text/html; charset=utf-8" })
-        });
-      }
-
-      if (url.pathname === "/support") {
-        return new Response(supportHtml(origin), {
-          headers: secureHeaders({ "content-type": "text/html; charset=utf-8" })
-        });
-      }
-
-      if (url.pathname === "/terms") {
-        return new Response(termsHtml(origin), {
-          headers: secureHeaders({ "content-type": "text/html; charset=utf-8" })
-        });
-      }
-
-      if (url.pathname === "/demo") {
-        return new Response(demoHtml(origin), {
-          headers: secureHeaders({ "content-type": "text/html; charset=utf-8" })
-        });
-      }
-
-      if (url.pathname === "/check") {
-        return new Response(checkHtml(origin), {
-          headers: secureHeaders({ "content-type": "text/html; charset=utf-8" })
-        });
-      }
-
-      if (url.pathname === "/methodology") {
-        return new Response(methodologyHtml(origin), {
-          headers: secureHeaders({ "content-type": "text/html; charset=utf-8" })
-        });
-      }
-
-      if (url.pathname === "/packages") {
-        return new Response(packagesHtml(origin), {
-          headers: secureHeaders({ "content-type": "text/html; charset=utf-8" })
-        });
-      }
-
-      if (url.pathname === "/small-business-seo-audit") {
-        return new Response(smallBusinessSeoAuditHtml(origin), {
-          headers: secureHeaders({ "content-type": "text/html; charset=utf-8" })
-        });
-      }
-
-      if (url.pathname === "/rendered-vs-static-seo-audit") {
-        return new Response(renderedVsStaticAuditHtml(origin), {
-          headers: secureHeaders({ "content-type": "text/html; charset=utf-8" })
-        });
-      }
-
-      if (url.pathname === "/ai-answer-readiness") {
-        return new Response(aiAnswerReadinessHtml(origin), {
-          headers: secureHeaders({ "content-type": "text/html; charset=utf-8" })
-        });
-      }
-
-      if (url.pathname === "/proof" || url.pathname === "/proof.md") {
-        const acceptsMarkdown =
-          url.pathname === "/proof.md" ||
-          (request.headers.get("accept") || "").includes("text/markdown");
-        return new Response(
-          acceptsMarkdown ? proofCaseMarkdown(origin) : proofCaseHtml(origin),
-          {
-            headers: secureHeaders({
-              "content-type": acceptsMarkdown
-                ? "text/markdown; charset=utf-8"
-                : "text/html; charset=utf-8"
-            })
-          }
-        );
-      }
-
-      if (url.pathname === "/beta" || url.pathname.startsWith("/beta/")) {
-        const indexUrl = new URL("/", request.url);
-        const response = await env.ASSETS.fetch(new Request(indexUrl, request));
-        return withPrivateHeaders(response);
-      }
-
-      if (
-        url.pathname === "/" &&
-        (request.headers.get("accept") || "").includes("text/markdown")
-      ) {
-        return new Response(homeMarkdown(origin), {
-          headers: secureHeaders({ "content-type": "text/markdown; charset=utf-8" })
-        });
-      }
-
-      return withSecurityHeaders(await env.ASSETS.fetch(request));
-    } catch (error) {
-      return json(
-        {
-          error:
-            error?.message ||
-            "The audit failed. Try a smaller site or run again in a moment."
-        },
-        500
-      );
-    }
-  }
+  fetch: (request, env, ctx) => app.fetch(request, env, ctx)
 };

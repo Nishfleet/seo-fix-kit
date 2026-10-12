@@ -1,8 +1,9 @@
 # Project check: the single validation gate for PRs and main.
 #
-# This workflow runs the canonical `npm run check` (all test suites + build)
-# against the exact package-lock.json. It is deliberately the ONLY project
-# validation workflow: no linters, no deploy, no secrets, no branch writes.
+# This workflow runs `npm run lint` and then the canonical `npm run check`
+# (all test suites + build) against the exact package-lock.json, both inside
+# the single "check" job. It is deliberately the ONLY project validation
+# workflow: no deploy, no secrets, no branch writes.
 #
 # Main-branch protection requires the "check" job below; keep its job name
 # stable. Triggers cover pull_request (PR gating), push to main (so merge
@@ -60,7 +61,10 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           # Project runs on Node 22 (Vite 8 requires >= 20.19 / >= 22.12).
-          node-version: 22
+          # .nvmrc is the single source of truth, shared with the deploy
+          # workflow so the gate validates the same major that ships; the
+          # package.json "engines" field enforces the >= 22.12 floor.
+          node-version-file: .nvmrc
           # npm cache keyed on package-lock.json; restores ~/.npm only and
           # never mutates the lockfile.
           cache: npm
@@ -69,6 +73,14 @@ jobs:
         # npm ci installs exactly what the lockfile pins and fails if the
         # lockfile drifts from package.json; it never rewrites the lockfile.
         run: npm ci
+
+      - name: Lint (ESLint)
+        # Fails the job on any ESLint error; warnings (the pre-existing
+        # backlog downgraded in eslint.config.js) are reported but do not
+        # fail. Kept out of the `npm run check` chain on purpose: that chain
+        # is the test inventory guarded by scripts/check-chain-inventory.test.mjs.
+        # Runs before the browser install so lint failures surface fast.
+        run: npm run lint
 
       - name: Install the Chromium browser Playwright needs
         # `npm ci` installs the playwright NPM package but not its browser

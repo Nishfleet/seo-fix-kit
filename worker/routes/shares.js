@@ -1,3 +1,4 @@
+import { serialize as serializeCookie } from "cookie";
 import puppeteer from "@cloudflare/puppeteer";
 import {
   buildWhiteLabelReportHtml,
@@ -814,8 +815,13 @@ async function clientReportCookieValue(env, share) {
 }
 
 async function clientReportCookie(request, env, share) {
-  const secure = new URL(request.url).protocol === "https:" ? "; Secure" : "";
-  return `${clientReportCookieName(share)}=${encodeURIComponent(await clientReportCookieValue(env, share))}; Path=/r; HttpOnly; SameSite=Strict; Max-Age=${60 * 60 * 24 * 30}${secure}`;
+  return serializeCookie(clientReportCookieName(share), await clientReportCookieValue(env, share), {
+    path: "/r",
+    httpOnly: true,
+    sameSite: "strict",
+    maxAge: 60 * 60 * 24 * 30,
+    secure: new URL(request.url).protocol === "https:"
+  });
 }
 
 async function clientReportUnlocked(request, env, share) {

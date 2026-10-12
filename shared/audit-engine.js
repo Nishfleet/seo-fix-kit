@@ -1,3 +1,4 @@
+import { escapeHtml } from "./html.js";
 // Shared audit engine extracted verbatim from worker/index.js (the production
 // audit pipeline). Runtime specifics are injected through createAuditEngine():
 // - launchBrowser(): @cloudflare/puppeteer in the Worker, Playwright (via
@@ -3121,16 +3122,6 @@ function decodeEntities(value) {
     .replace(/&gt;/g, ">");
 }
 
-export function escapeHtml(value) {
-  const entities = {
-    "&": "&amp;",
-    '"': "&quot;",
-    "<": "&lt;",
-    ">": "&gt;"
-  };
-  return String(value || "").replace(/[&"<>]/g, (character) => entities[character]);
-}
-
 function suggestTitle(url, facts) {
   const host = new URL(url).hostname.replace(/^www\./, "");
   const firstH1 = facts.h1s?.[0];
@@ -3173,7 +3164,7 @@ export const ROOT_PUBLIC_PATHS = ["/", "/demo", "/check", "/methodology", "/pack
 // worker/routes/pages.test.mjs refuses a stale lastmod so the update
 // cannot silently ship.
 export const ROOT_PUBLIC_LASTMODS = {
-  "/": "2026-08-20T18:41:39Z",
+  "/": "2026-10-12T14:55:32Z",
   "/demo": "2026-08-15T07:14:01Z",
   "/check": "2026-08-19T12:56:07Z",
   "/methodology": "2026-08-23T04:56:07Z",
@@ -3192,3 +3183,5 @@ export function rootSitemap(origin) {
     (path) => `<url><loc>${origin}${path}</loc><lastmod>${ROOT_PUBLIC_LASTMODS[path]}</lastmod></url>`
   ).join("")}</urlset>`;
 }
+
+export { escapeHtml };

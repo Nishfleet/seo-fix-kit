@@ -1,3 +1,5 @@
+import { Webhook } from "standardwebhooks";
+
 const DODO_LIVE_URL = "https://live.dodopayments.com";
 const DODO_TEST_URL = "https://test.dodopayments.com";
 
@@ -150,38 +152,28 @@ export function hasDodoRepairSprintCheckoutConfig(env = {}) {
   return dodoRepairSprintCheckoutConfigStatus(env).checkoutReady;
 }
 
+// Dodo signs webhooks per the Standard Webhooks spec
+// (https://www.standardwebhooks.com), so verification is delegated to the
+// reference implementation: signature over `id.timestamp.body`, multiple
+// space-separated `v1,` signatures, and a 5-minute replay tolerance.
 export async function verifyDodoWebhookSignature({
   payload,
   webhookId,
   webhookTimestamp,
   webhookSignature,
-  secret,
-  nowMs = Date.now(),
-  toleranceSeconds = 5 * 60
+  secret
 }) {
   if (!payload || !webhookId || !webhookTimestamp || !webhookSignature || !secret) return false;
-
-  const timestamp = Number(webhookTimestamp);
-  if (!Number.isFinite(timestamp)) return false;
-  if (Math.abs(nowMs / 1000 - timestamp) > toleranceSeconds) return false;
-
-  const signedPayload = `${webhookId}.${webhookTimestamp}.${payload}`;
-  const key = await crypto.subtle.importKey(
-    "raw",
-    decodeWebhookSecret(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-  const digest = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(signedPayload));
-  const expected = arrayBufferToBase64(digest);
-
-  return webhookSignature
-    .split(" ")
-    .flatMap((part) => part.split(","))
-    .map((part) => part.trim())
-    .filter(Boolean)
-    .some((part) => timingSafeEqual(part.replace(/^v1=/, "").replace(/^v1,/, ""), expected));
+  try {
+    new Webhook(decodeWebhookSecret(secret), { format: "raw" }).verify(payload, {
+      "webhook-id": webhookId,
+      "webhook-timestamp": webhookTimestamp,
+      "webhook-signature": webhookSignature
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function extractDodoPayment(payment = {}) {
@@ -293,24 +285,6 @@ function decodeWebhookSecret(secret) {
   } catch {
     return new TextEncoder().encode(secret);
   }
-}
-
-function arrayBufferToBase64(buffer) {
-  let binary = "";
-  const bytes = new Uint8Array(buffer);
-  bytes.forEach((byte) => {
-    binary += String.fromCharCode(byte);
-  });
-  return btoa(binary);
-}
-
-function timingSafeEqual(a, b) {
-  if (!a || !b || a.length !== b.length) return false;
-  let result = 0;
-  for (let index = 0; index < a.length; index += 1) {
-    result |= a.charCodeAt(index) ^ b.charCodeAt(index);
-  }
-  return result === 0;
 }
 
 function firstText(...values) {

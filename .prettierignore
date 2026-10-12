@@ -1,0 +1,12 @@
+dist/
+node_modules/
+package-lock.json
+docs/
+specs/
+ops/
+.lane/
+migrations/
+public/
+prototype-context/
+.claude/
+.wrangler/

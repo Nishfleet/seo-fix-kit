@@ -7,10 +7,111 @@ import {
 import { buildGeoReadinessAudit } from "../../shared/geo-readiness.js";
 import { buildRepairProposalsFromReport } from "../../shared/repair-execution.js";
 
-// The production engine has no static fallback when rendering fails, so the
+// The first audit below runs against a small local fixture site by default so
+// the gate is hermetic (no dependency on production being up or on outbound
+// network). Set TEST_URL to opt in to a live run instead, e.g.
+//   TEST_URL=https://seofixkit.com/ npm run test:audit
+// The production engine has no static fallback when rendering fails, so a
 // live target must reach network idle. aiconverter.app keeps analytics/ad
 // connections open and never idles; the product site renders clean.
-const target = process.env.TEST_URL || "https://seofixkit.com/";
+const liveTarget = process.env.TEST_URL || "";
+
+// A realistic three-page marketing site with robots.txt and sitemap.xml and
+// deliberate SEO defects (missing meta description, missing H1, image without
+// alt text, duplicate title, thin page) so the generic report assertions
+// exercise real findings rather than an empty report.
+const siteFixturePages = {
+  "/": `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Acme Widgets | Durable widgets for small workshops</title>
+    <link rel="canonical" href="/" />
+  </head>
+  <body>
+    <header><nav><a href="/">Home</a> <a href="/pricing">Pricing</a> <a href="/about">About</a></nav></header>
+    <main>
+      <h1>Durable widgets for small workshops</h1>
+      <p>${"Acme Widgets builds hand-finished widgets that last for years in busy workshops. ".repeat(30)}</p>
+      <h2>Why workshops choose Acme</h2>
+      <p>${"Every widget ships with a repair guide and replacement parts are always in stock. ".repeat(20)}</p>
+      <img src="/hero.svg" width="640" height="320" />
+      <p><a href="/pricing">See widget pricing</a> or <a href="/about">read about the workshop</a>.</p>
+    </main>
+  </body>
+</html>`,
+  "/pricing": `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Acme Widgets | Durable widgets for small workshops</title>
+    <meta name="description" content="Widget pricing for small workshops, with volume discounts." />
+  </head>
+  <body>
+    <main>
+      <p>${"Standard widgets start at twelve dollars with volume discounts for workshops. ".repeat(25)}</p>
+      <img src="/hero.svg" width="640" height="320" />
+      <a href="/">Home</a> <a href="/about">About</a>
+    </main>
+  </body>
+</html>`,
+  "/about": `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>About the Acme workshop</title>
+  </head>
+  <body>
+    <main>
+      <h1>About Acme</h1>
+      <p>Small team, big widgets.</p>
+      <a href="/">Home</a> <a href="/pricing">Pricing</a>
+    </main>
+  </body>
+</html>`
+};
+
+const siteFixtureServer = http.createServer((req, res) => {
+  const origin = `http://${req.headers.host}`;
+  const path = new URL(req.url, origin).pathname;
+  if (path === "/robots.txt") {
+    res.writeHead(200, { "content-type": "text/plain" });
+    res.end(`User-agent: *\nAllow: /\n\nSitemap: ${origin}/sitemap.xml\n`);
+    return;
+  }
+  if (path === "/sitemap.xml") {
+    res.writeHead(200, { "content-type": "application/xml" });
+    res.end(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>${origin}/</loc></url>
+  <url><loc>${origin}/pricing</loc></url>
+  <url><loc>${origin}/about</loc></url>
+</urlset>`);
+    return;
+  }
+  if (path === "/hero.svg") {
+    res.writeHead(200, { "content-type": "image/svg+xml" });
+    res.end('<svg xmlns="http://www.w3.org/2000/svg" width="640" height="320"><rect width="640" height="320" fill="#ccc"/></svg>');
+    return;
+  }
+  const page = siteFixturePages[path];
+  if (page) {
+    res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+    res.end(page);
+    return;
+  }
+  res.writeHead(404, { "content-type": "text/html" });
+  res.end("<!doctype html><title>Not found</title><h1>Not found</h1>");
+});
+
+let target = liveTarget;
+if (!target) {
+  await new Promise((resolve) => siteFixtureServer.listen(0, "127.0.0.1", resolve));
+  target = `http://127.0.0.1:${siteFixtureServer.address().port}/`;
+}
 
 const proposalFixture = buildRepairProposalsFromReport(
   {
@@ -102,6 +203,27 @@ if (!report.summary || report.summary.maxPages < report.summary.pagesScanned) {
 
 if (!report.repairBrief.includes("# SEO Fix Kit repair brief")) {
   throw new Error("Repair brief is not copyable Markdown.");
+}
+
+if (!liveTarget) {
+  // The local fixture site's defects are known, so pin them: the crawl must
+  // follow the home page's internal link and surface the planted issues.
+  const siteFindingTitles = report.findings.map((finding) => finding.title);
+  const expectSiteFinding = (pattern, label) => {
+    if (!siteFindingTitles.some((title) => pattern.test(title))) {
+      throw new Error(`Fixture site audit did not report ${label}: ${siteFindingTitles.join(" | ")}`);
+    }
+  };
+  if (report.summary.pagesScanned !== 2 || !report.summary.crawlLimitHit) {
+    throw new Error(`Fixture site crawl did not follow internal links to the 2-page limit: ${report.summary.pagesScanned}`);
+  }
+  if (!home.h1s.includes("Durable widgets for small workshops") || home.wordCount < 300) {
+    throw new Error("Fixture site home page rendered facts are wrong.");
+  }
+  expectSiteFinding(/^Missing meta description on home$/, "the missing home meta description");
+  expectSiteFinding(/^Missing H1 on \/pricing$/, "the missing /pricing H1");
+  expectSiteFinding(/^Images missing alt attributes on home$/, "the home image without alt text");
+  siteFixtureServer.close();
 }
 
 console.log(

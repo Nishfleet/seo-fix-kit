@@ -21,7 +21,7 @@ import {
 } from "../lib/auth.js";
 import { runD1BatchChunks } from "../lib/db.js";
 import { jsonNoStore } from "../lib/http.js";
-import { checkQuotaSet, sha256Hex, workerLargeCrawlId } from "../lib/security.js";
+import { checkQuotaSet, constantTimeEqual, sha256Hex, workerLargeCrawlId } from "../lib/security.js";
 import { cleanText, dayWindow, parseJson, safeHostname } from "../lib/text.js";
 import { deliverApiWebhooks } from "../lib/webhooks.js";
 import { auditUrl } from "./audits.js";
@@ -1208,17 +1208,6 @@ async function largeCrawlProofLeaseTokenIsValid(request, body, env, jobId, batch
   if (!supplied) return false;
   const expected = await largeCrawlProofLeaseToken(env, jobId, batch.id, batch.leasedAt);
   return constantTimeEqual(supplied, expected);
-}
-
-function constantTimeEqual(left, right) {
-  const leftText = String(left || "");
-  const rightText = String(right || "");
-  const maxLength = Math.max(leftText.length, rightText.length);
-  let diff = leftText.length ^ rightText.length;
-  for (let index = 0; index < maxLength; index += 1) {
-    diff |= (leftText.charCodeAt(index) || 0) ^ (rightText.charCodeAt(index) || 0);
-  }
-  return maxLength > 0 && diff === 0;
 }
 
 function largeCrawlBatchProofPath(rawUrl, prefix) {

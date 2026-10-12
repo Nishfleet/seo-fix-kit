@@ -12,10 +12,22 @@ import {
   LARGE_RENDERED_CRAWL_TARGET_PAGES
 } from "./large-rendered-crawl.js";
 import { REPORT_RETENTION_DAYS } from "../worker/lib/report-data.js";
+import { app as workerApp } from "../worker/index.js";
 
 const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
 const liveSection = readme.split("## What is live in this repo")[1]?.split("## Run locally")[0] || "";
 const workerIndex = readFileSync(new URL("../worker/index.js", import.meta.url), "utf8");
+
+// True when the Worker's router has a real route for `path` (any method, or
+// the given one); a trailing slash means "some route under this prefix".
+// Checks registered routes, not source text.
+function workerRoutes(path, method = "") {
+  return workerApp.routes.some(
+    (route) =>
+      (path.endsWith("/") ? route.path.startsWith(path) : route.path === path) &&
+      (!method || route.method === method || route.method === "ALL")
+  );
+}
 const auditsSource = readFileSync(new URL("../worker/routes/audits.js", import.meta.url), "utf8");
 const textSource = readFileSync(new URL("../worker/lib/text.js", import.meta.url), "utf8");
 const pagesSource = readFileSync(new URL("../worker/routes/pages.js", import.meta.url), "utf8");
@@ -117,10 +129,10 @@ test("README public page promise matches Worker routing and copy", () => {
   assert.match(liveSection, /Public `\/demo`, `\/methodology`, `\/packages`, and `\/proof` pages showing the proof loop, limits, package ladder, and a real before\/after repair receipt/i);
   assert.match(liveSection, /Intent-matching public landing pages at `\/small-business-seo-audit`, `\/rendered-vs-static-seo-audit`, and `\/ai-answer-readiness`/i);
   for (const path of ["/demo", "/methodology", "/packages", "/check", "/proof"]) {
-    assert.ok(workerIndex.includes(`url.pathname === "${path}"`), `Worker must route ${path}`);
+    assert.ok(workerRoutes(path, "GET"), `Worker must route ${path}`);
   }
   for (const path of ["/small-business-seo-audit", "/rendered-vs-static-seo-audit", "/ai-answer-readiness"]) {
-    assert.ok(workerIndex.includes(`url.pathname === "${path}"`), `Worker must route ${path}`);
+    assert.ok(workerRoutes(path, "GET"), `Worker must route ${path}`);
   }
   assert.match(pagesSource, /FIX_PACK_PUBLIC_PRICE/, "packages page price constant exists");
 });
@@ -131,7 +143,7 @@ test("README intent-landing-page promise matches routes, sitemap, and schema bou
   // boolean true, which covers every path (including these) unconditionally.
   assert.match(wranglerJsonc, /"run_worker_first":\s*true/, "the Worker must run before SPA assets for every path");
   for (const path of landingPaths) {
-    assert.ok(workerIndex.includes(`url.pathname === "${path}"`), `Worker must route ${path}`);
+    assert.ok(workerRoutes(path, "GET"), `Worker must route ${path}`);
     assert.match(liveSection, new RegExp(`\`${path}\``, "i"), `README must name ${path}`);
   }
   const sitemapSource = readFileSync(new URL("../public/sitemap.xml", import.meta.url), "utf8");
@@ -142,7 +154,7 @@ test("README intent-landing-page promise matches routes, sitemap, and schema bou
   assert.match(pagesSource, /"@type": "FAQPage"/, "landing pages carry FAQPage schema from the visible FAQ copy");
   assert.match(pagesSource, /does not provide live AI citation monitoring or answer-engine sampling/i, "landing pages keep the AI boundary");
   assert.doesNotMatch(pagesSource, /live AI citation monitoring is live/i, "no landing page may claim live citation monitoring");
-  assert.match(workerIndex, new RegExp(`url.pathname === "${landingPaths[2]}"`), "AI readiness page must be Worker-routed");
+  assert.ok(workerRoutes(landingPaths[2], "GET"), "AI readiness page must be Worker-routed");
 });
 
 test("README Cloudflare path routes are actually registered in the Worker", () => {
@@ -194,7 +206,7 @@ test("README Cloudflare path routes are actually registered in the Worker", () =
     "/beta"
   ];
   for (const route of claimedRoutes) {
-    assert.ok(workerIndex.includes(route), `Worker must register route ${route}`);
+    assert.ok(workerRoutes(route), `Worker must register route ${route}`);
   }
 });
 
@@ -237,8 +249,8 @@ test("README anonymous one-page check claim matches the Worker, page, and rate l
   assert.match(liveSection, /per-network and per-site rate limits with hashed, short-lived counters/i);
   assert.match(liveSection, /no stored report/i);
   assert.match(liveSection, /handoff into private beta access with no ranking promise/i);
-  assert.ok(workerIndex.includes('url.pathname === "/check"'), "Worker must route /check");
-  assert.ok(workerIndex.includes('url.pathname === "/api/public-check"'), "Worker must route /api/public-check");
+  assert.ok(workerRoutes("/check", "GET"), "Worker must route /check");
+  assert.ok(workerRoutes("/api/public-check", "POST"), "Worker must route /api/public-check");
   const publicCheckSource = readFileSync(new URL("../worker/routes/public-check.js", import.meta.url), "utf8");
   assert.match(liveSection, /real browser rendering of one public page/i);
   assert.match(publicCheckSource, /maxPages: 1/, "the public check is a one-page run");
@@ -410,10 +422,10 @@ test("README repair-proof-receipt claim keeps publishing and ranking disclaimers
 // proposals, D1 tables, and dashboard surfaces) to the code that backs them.
 
 test("README rendered-audit claims match the Worker browser runtime and local Playwright adapter", () => {
-  assert.match(liveSection, /Rendered-page audit powered by Cloudflare Browser Run in the deployed Worker and Playwright for local development/i);
+  assert.match(liveSection, /Rendered-page audit powered by Cloudflare Browser Run in the Worker \(emulated by `wrangler dev` locally\); the offline audit smoke tests use Playwright/i);
   assert.match(auditsSource, /import puppeteer from "@cloudflare\/puppeteer"/, "deployed Worker renders via the Browser Run puppeteer API");
   assert.match(auditsSource, /puppeteer\.launch\(env\.BROWSER\)/, "deployed Worker launches Browser Run through the BROWSER binding");
-  assert.match(serverEngineSource, /launchAuditBrowser/, "server audit uses the Playwright browser launcher for local development");
+  assert.match(serverEngineSource, /launchAuditBrowser/, "offline audit smoke tests use the Playwright browser launcher");
   assert.match(serverEngineSource, /playwright-browser\.js/, "local browser adapter is the Playwright wrapper");
   assert.match(liveSection, /Static HTML vs rendered DOM comparison/i);
   assert.match(auditEngineSource, /staticFacts\.h1s\.length === 0 && rendered\.h1s\.length > 0/, "engine compares static HTML with rendered DOM");
@@ -690,8 +702,8 @@ test("README React interface and Cloudflare Worker target claims match the build
 
 test("README homepage, waitlist, and access claims match the Worker and D1", () => {
   assert.match(liveSection, /Locked private-beta homepage with `\/api\/waitlist` and `\/api\/access\/request` backed by D1/i);
-  assert.match(workerIndex, /url\.pathname === "\/api\/waitlist"/, "waitlist endpoint registered");
-  assert.match(workerIndex, /url\.pathname === "\/api\/access\/request"/, "access request endpoint registered");
+  assert.ok(workerRoutes("/api/waitlist", "POST"), "waitlist endpoint registered");
+  assert.ok(workerRoutes("/api/access/request", "POST"), "access request endpoint registered");
   assert.match(accessSource, /INSERT INTO waitlist_leads/, "waitlist writes to D1");
   assert.match(accessSource, /access_tokens/, "access tokens backed by D1");
 });
@@ -718,7 +730,7 @@ test("README beta workbench and session claims match D1-backed records", () => {
 
 test("README account summary, developer API, admin ops, and Fix Pack CTA claims match code", () => {
   assert.match(liveSection, /Customer workspace summary API and dashboard at `\/api\/account\/summary`/i);
-  assert.match(workerIndex, /url\.pathname === "\/api\/account\/summary"/, "account summary route registered");
+  assert.ok(workerRoutes("/api/account/summary", "GET"), "account summary route registered");
   assert.match(accountSource, /repairAccountSummaryFromItems/, "account summary built from repair items");
   assert.match(liveSection, /Self-serve Developer API keys, `\/v1\/audits` JSON endpoints, project-style verified sites, safe `repair_queue` issue status, separate approved-action implementation-pack and fixed-proof receipt markdown endpoints, and audit\/repair-action lifecycle webhooks/i);
   assert.match(developerApiSource, /implementation\.md/, "implementation-pack markdown endpoint exists");
@@ -733,7 +745,7 @@ test("README account summary, developer API, admin ops, and Fix Pack CTA claims 
   assert.match(briefSource, /fixPackEligible/, "reports become Fix Pack eligible when real fixes exist");
   assert.match(liveSection, /Public `\/support`, `\/terms`, and `\/privacy` pages/i);
   for (const page of ["/support", "/terms", "/privacy"]) {
-    assert.ok(workerIndex.includes(`url.pathname === "${page}"`), `Worker must route ${page}`);
+    assert.ok(workerRoutes(page, "GET"), `Worker must route ${page}`);
   }
 });
 

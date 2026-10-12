@@ -1,8 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CRAWL_DEPTH_TIERS, DEFAULT_CRAWL_PAGES, SELF_SERVE_MAX_CRAWL_PAGES } from "../shared/crawl-depth.js";
 import { RENDERED_CRAWL_TARGETS } from "../shared/rendered-crawl-scale.js";
 import { repairSprintEligibilityFromProposals } from "../shared/offers.js";
+import { apiErrorMessage, apiFetch, apiRequest, isAbortError } from "./api.js";
 import { developerWebhookRequest } from "./developer-webhooks.js";
+import StatusMessage from "./StatusMessage.jsx";
+import { storageGet, storageRemove, storageSet } from "./storage.js";
 import { deliveryReadinessLabel, deliveryReadinessText } from "./delivery-readiness-copy.js";
 import {
   fixPackCheckoutBody,
@@ -303,12 +306,12 @@ function BetaApp() {
   const inviteParams = new URLSearchParams(window.location.search);
   const accessToken = inviteParams.get("access") || "";
   const [ownerEmail, setOwnerEmail] = useState(
-    () => inviteParams.get("email") || window.sessionStorage.getItem(BETA_EMAIL_KEY) || ""
+    () => inviteParams.get("email") || storageGet(BETA_EMAIL_KEY) || ""
   );
   const [loginEmail, setLoginEmail] = useState(ownerEmail || inviteParams.get("email") || "");
   const [inviteCode, setInviteCode] = useState(inviteParams.get("invite") || "");
   const [isAuthed, setIsAuthed] = useState(
-    () => window.sessionStorage.getItem(BETA_SESSION_KEY) === "1"
+    () => storageGet(BETA_SESSION_KEY) === "1"
   );
   const [loginStatus, setLoginStatus] = useState(accessToken ? "submitting" : "idle");
   const [loginMessage, setLoginMessage] = useState("");
@@ -364,7 +367,7 @@ function BetaApp() {
   }, [isAdminRoute, isBillingRoute, report?.url]);
 
   useEffect(() => {
-    if (window.sessionStorage.getItem(BETA_SESSION_KEY) === "1" || reportId || isAdminRoute || isBillingRoute) {
+    if (storageGet(BETA_SESSION_KEY) === "1" || reportId || isAdminRoute || isBillingRoute) {
       refreshSession(setIsAuthed, setOwnerEmail);
     }
   }, [reportId, isAdminRoute, isBillingRoute]);
@@ -381,12 +384,12 @@ function BetaApp() {
     let cancelled = false;
     setLoginStatus("submitting");
     setLoginMessage("Opening secure access link.");
-    const storedFunnelKey = window.sessionStorage.getItem(FUNNEL_KEY) || "";
+    const storedFunnelKey = storageGet(FUNNEL_KEY) || "";
     verifyAccessToken(accessToken, storedFunnelKey)
       .then((payload) => {
         if (cancelled) return;
-        window.sessionStorage.setItem(BETA_SESSION_KEY, "1");
-        window.sessionStorage.setItem(BETA_EMAIL_KEY, payload.ownerEmail || loginEmail);
+        storageSet(BETA_SESSION_KEY, "1");
+        storageSet(BETA_EMAIL_KEY, payload.ownerEmail || loginEmail);
         setOwnerEmail(payload.ownerEmail || loginEmail);
         setIsAuthed(true);
         setLoginStatus("success");
@@ -410,8 +413,8 @@ function BetaApp() {
     if (!isAuthed || !reportId) return;
     loadReport(reportId, setReport, setAuditStatus, setAuditMessage, () => {
       setIsAuthed(false);
-      window.sessionStorage.removeItem(BETA_SESSION_KEY);
-      window.sessionStorage.removeItem(BETA_EMAIL_KEY);
+      storageRemove(BETA_SESSION_KEY);
+      storageRemove(BETA_EMAIL_KEY);
     });
   }, [isAuthed, reportId]);
 
@@ -430,24 +433,26 @@ function BetaApp() {
     return () => window.clearInterval(interval);
   }, [isAuthed, reportId, isAdminRoute, isBillingRoute, accountData?.metrics?.runningAudits]);
 
+  // Queued audits are polled for minutes; tie that loop to this component so
+  // unmounting (or starting another audit) stops it instead of leaking
+  // requests and setState calls.
+  const auditPollRef = useRef(null);
+  useEffect(() => () => auditPollRef.current?.abort(), []);
+
   async function login(event) {
     event.preventDefault();
     setLoginStatus("submitting");
     setLoginMessage("");
 
     try {
-      const response = await fetch("/api/beta/login", {
+      const payload = await apiFetch("/api/beta/login", {
         method: "POST",
-        credentials: "same-origin",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email: loginEmail, inviteCode })
+        body: { email: loginEmail, inviteCode },
+        requireOkFlag: false,
+        fallbackError: "Private beta invite code required."
       });
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(payload.error || "Private beta invite code required.");
-      }
-      window.sessionStorage.setItem(BETA_SESSION_KEY, "1");
-      window.sessionStorage.setItem(BETA_EMAIL_KEY, payload.ownerEmail || loginEmail);
+      storageSet(BETA_SESSION_KEY, "1");
+      storageSet(BETA_EMAIL_KEY, payload.ownerEmail || loginEmail);
       setOwnerEmail(payload.ownerEmail || loginEmail);
       setIsAuthed(true);
       setLoginStatus("success");
@@ -623,24 +628,21 @@ function BetaApp() {
         : "Rendering the site, crawling same-site links, and collecting proof."
     );
     setReport(null);
+    auditPollRef.current?.abort();
+    const auditPoll = new AbortController();
+    auditPollRef.current = auditPoll;
 
     try {
-      const response = await fetch("/api/audit", {
+      const payload = await apiFetch("/api/audit", {
         method: "POST",
-        credentials: "same-origin",
-        headers: {
-          "content-type": "application/json"
-        },
-        body: JSON.stringify({ url: targetUrl, maxPages: Number(maxPages), renderedCrawlTarget: Number(renderedCrawlTarget), competitorUrls, backlinkRows, keywordRows, localSeo })
+        body: { url: targetUrl, maxPages: Number(maxPages), renderedCrawlTarget: Number(renderedCrawlTarget), competitorUrls, backlinkRows, keywordRows, localSeo },
+        requireOkFlag: false,
+        fallbackError: "The audit failed."
       });
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(payload.error || "The audit failed.");
-      }
       if (payload.mode === "queued" && (payload.jobId || payload.job?.id)) {
         const jobId = payload.jobId || payload.job.id;
         setAuditMessage("Audit queued. Waiting for proof collection to start.");
-        const job = await pollAuditJob(jobId, setAuditMessage);
+        const job = await pollAuditJob(jobId, setAuditMessage, { signal: auditPoll.signal });
         if (!job.reportId) {
           throw new Error("Audit finished without a saved report.");
         }
@@ -649,8 +651,8 @@ function BetaApp() {
         }
         await loadReport(job.reportId, setReport, setAuditStatus, setAuditMessage, () => {
           setIsAuthed(false);
-          window.sessionStorage.removeItem(BETA_SESSION_KEY);
-          window.sessionStorage.removeItem(BETA_EMAIL_KEY);
+          storageRemove(BETA_SESSION_KEY);
+          storageRemove(BETA_EMAIL_KEY);
         });
         loadAccountSummary(setAccountData, setAccountStatus, setAccountMessage);
         window.requestAnimationFrame(() => window.scrollTo(0, 0));
@@ -665,14 +667,15 @@ function BetaApp() {
       }
       window.requestAnimationFrame(() => window.scrollTo(0, 0));
     } catch (error) {
+      if (isAbortError(error) || auditPoll.signal.aborted) return;
       if (
         error.message.toLowerCase().includes("session") ||
         error.message.toLowerCase().includes("password") ||
         error.message.toLowerCase().includes("invite")
       ) {
         setIsAuthed(false);
-        window.sessionStorage.removeItem(BETA_SESSION_KEY);
-        window.sessionStorage.removeItem(BETA_EMAIL_KEY);
+        storageRemove(BETA_SESSION_KEY);
+        storageRemove(BETA_EMAIL_KEY);
       }
       setAuditStatus("error");
       setAuditMessage(error.message || "The audit failed. Try another URL.");
@@ -681,8 +684,8 @@ function BetaApp() {
 
   function lock() {
     fetch("/api/beta/logout", { method: "POST", credentials: "same-origin" }).catch(() => {});
-    window.sessionStorage.removeItem(BETA_SESSION_KEY);
-    window.sessionStorage.removeItem(BETA_EMAIL_KEY);
+    storageRemove(BETA_SESSION_KEY);
+    storageRemove(BETA_EMAIL_KEY);
     setOwnerEmail("");
     setLoginEmail("");
     setInviteCode("");
@@ -822,7 +825,7 @@ function BetaApp() {
               </option>
             ))}
           </select>
-          <p className="field-note">Self-serve deep crawls currently run up to {SELF_SERVE_MAX_CRAWL_PAGES.toLocaleString()} pages.</p>
+          <p className="field-note">Self-serve deep crawls currently run up to {formatCount(SELF_SERVE_MAX_CRAWL_PAGES)} pages.</p>
           <label htmlFor="rendered-crawl-target">Rendered scale target</label>
           <select
             id="rendered-crawl-target"
@@ -832,7 +835,7 @@ function BetaApp() {
             <option value="0">No staged target</option>
             {RENDERED_CRAWL_TARGETS.slice(1).map((tier) => (
               <option key={tier.id} value={tier.pages}>
-                {tier.label} - {tier.pages.toLocaleString()} pages
+                {tier.label} - {formatCount(tier.pages)} pages
               </option>
             ))}
           </select>
@@ -1023,7 +1026,7 @@ function CustomerDashboard({
       <div className="section-heading">
         <p className="beta-eyebrow">Your workspace</p>
         <h2>{verifiedSites.length ? "Recent proof audits" : "Verify a site first"}</h2>
-        {message && status !== "success" && <p className={`form-message ${status}`}>{message}</p>}
+        {message && status !== "success" && <StatusMessage tone={status}>{message}</StatusMessage>}
       </div>
       <section className="metric-strip account-metrics" aria-label="Account summary">
         <Metric label="Reports" value={metrics.reports || 0} />
@@ -1071,10 +1074,10 @@ function CustomerDashboard({
               {siteStatus === "loading" ? "Checking" : "Add site"}
             </button>
           </div>
-          {siteMessage && <p className={`form-message ${siteStatus}`}>{siteMessage}</p>}
+          <StatusMessage tone={siteStatus}>{siteMessage}</StatusMessage>
         </form>
       </div>
-      {scheduleMessage && <p className={`form-message ${scheduleStatus}`}>{scheduleMessage}</p>}
+      <StatusMessage tone={scheduleStatus}>{scheduleMessage}</StatusMessage>
       {Boolean(sites.length) && (
         <div className="site-claim-list">
           {sites.map((site) => {
@@ -1301,7 +1304,7 @@ function DeveloperApiPanel({
       <div className="section-heading">
         <p className="beta-eyebrow">Developer API</p>
         <h3>Run proof audits from your own tools.</h3>
-        {developerMessage && <p className={`form-message ${developerStatus}`}>{developerMessage}</p>}
+        <StatusMessage tone={developerStatus}>{developerMessage}</StatusMessage>
       </div>
       <div className="developer-api-grid">
         <div className="developer-api-column">
@@ -2391,7 +2394,7 @@ function AiAnswerReadinessPanel({ audit }) {
           <small>{highestPriority.estimatedEffort || "30-90 min"} - {highestPriority.workType || "content"}</small>
           {highestPriority.trafficRanked ? (
             <small>
-              {Number(highestPriority.trafficClicks || 0).toLocaleString("en-US")} clicks / {Number(highestPriority.trafficImpressions || 0).toLocaleString("en-US")} impressions on affected pages
+              {formatCount(highestPriority.trafficClicks)} clicks / {formatCount(highestPriority.trafficImpressions)} impressions on affected pages
             </small>
           ) : null}
         </article>
@@ -2726,7 +2729,7 @@ function ClientReportPanel({ report }) {
       <div className="section-heading">
         <p className="beta-eyebrow">Client reports</p>
         <h2>White-label report links</h2>
-        {message && <p className={`form-message ${status}`}>{message}</p>}
+        <StatusMessage tone={status}>{message}</StatusMessage>
       </div>
       <div className={`agency-workspace-strip ${agencyWorkspace.status || "beta_allowance"}`}>
         <div>
@@ -3121,7 +3124,7 @@ function TeamRepairBoard({ report }) {
         <div>
           <p className="beta-eyebrow">Repair agent</p>
           <h2>Proof-backed queue and safe action drafts</h2>
-          {message && <p className={`form-message ${status}`}>{message}</p>}
+          <StatusMessage tone={status}>{message}</StatusMessage>
         </div>
         <label className="repair-filter">
           View
@@ -3795,15 +3798,12 @@ function RepairProposalPanel({ reportId, initialProposals = [], repairSprint = n
     setSprintCheckoutStatus("submitting");
     showMessage("");
     try {
-      const response = await fetch("/api/beta/repair-sprint-checkout", {
+      const { response, payload } = await apiRequest("/api/beta/repair-sprint-checkout", {
         method: "POST",
-        credentials: "same-origin",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ reportId })
+        body: { reportId }
       });
-      const payload = await response.json().catch(() => ({}));
       if (!response.ok || !payload.ok) {
-        throw new Error(payload.error || payload.message || "Repair Sprint checkout is unavailable.");
+        throw new Error(apiErrorMessage(payload, "Repair Sprint checkout is unavailable.", ["error", "message"]));
       }
       const outcome = monitoringCheckoutOutcome(payload, { offerName: "Repair Sprint" });
       setSprintCheckoutStatus(outcome.status);
@@ -3864,7 +3864,7 @@ function RepairProposalPanel({ reportId, initialProposals = [], repairSprint = n
           )}
         </div>
       )}
-      {message && <p className={`form-message ${messageIsError ? "error" : "success"}`}>{message}</p>}
+      <StatusMessage tone={messageIsError ? "error" : "success"}>{message}</StatusMessage>
       <div className="repair-proposal-list">
         {proposals.map((proposal) => (
           <article className={`repair-proposal-card ${proposal.approvalStatus}`} key={proposal.id}>
@@ -4013,10 +4013,14 @@ function formatDate(value) {
   }).format(new Date(value));
 }
 
+// One locale for every count in the UI, so numbers read the same regardless
+// of the viewer's browser locale (matches the en-US copy elsewhere).
+const COUNT_FORMAT = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
+
 function formatCount(value) {
   const number = Number(value || 0);
   if (!Number.isFinite(number)) return "0";
-  return new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(number);
+  return COUNT_FORMAT.format(number);
 }
 
 function formatPercent(value) {
@@ -4372,17 +4376,13 @@ function usePricingPreview(enabled) {
 
     let cancelled = false;
     setPricing({ status: "loading", displayPrice: "", message: "" });
-    fetch("/api/pricing-preview", {
+    apiFetch("/api/pricing-preview", {
       credentials: "include",
-      headers: { accept: "application/json" }
+      requireOkFlag: false,
+      errorKeys: ["message"],
+      fallbackError: "Pricing unavailable."
     })
-      .then(async (response) => {
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok) {
-          throw new Error(payload.message || "Pricing unavailable.");
-        }
-        return payload.pricing || {};
-      })
+      .then((payload) => payload.pricing || {})
       .then((nextPricing) => {
         if (cancelled) return;
         setPricing({
@@ -4561,18 +4561,14 @@ function BillingPortal({ ownerEmail }) {
     setMonitoringCheckoutStatus("submitting");
     setMonitoringCheckoutMessage("");
     try {
-      const response = await fetch("/api/beta/monitoring-checkout", {
+      const { response, payload } = await apiRequest("/api/beta/monitoring-checkout", {
         method: "POST",
         credentials: "include",
-        headers: {
-          "content-type": "application/json",
-          accept: "application/json"
-        },
-        body: JSON.stringify({})
+        headers: { accept: "application/json" },
+        body: {}
       });
-      const payload = await response.json().catch(() => ({}));
       if (!response.ok && payload.checkoutAvailable !== false) {
-        throw new Error(payload.error || payload.message || "Proof Monitoring checkout is unavailable.");
+        throw new Error(apiErrorMessage(payload, "Proof Monitoring checkout is unavailable.", ["error", "message"]));
       }
       const outcome = monitoringCheckoutOutcome(payload);
       setMonitoringCheckoutStatus(outcome.status === "redirecting" ? "success" : outcome.status);
@@ -4605,7 +4601,7 @@ function BillingPortal({ ownerEmail }) {
         </button>
       </div>
 
-      {message && <p className={`form-message ${status}`}>{message}</p>}
+      <StatusMessage tone={status}>{message}</StatusMessage>
 
       <section className="metric-strip billing-metrics" aria-label="Billing summary">
         <Metric label="Product" value={billing?.product?.name || "Fix Pack"} />
@@ -4657,9 +4653,7 @@ function BillingPortal({ ownerEmail }) {
           >
             {monitoringCheckoutStatus === "submitting" ? "Opening checkout" : "Start monitoring checkout"}
           </button>
-          {monitoringCheckoutMessage && (
-            <p className={`form-message ${monitoringCheckoutStatus}`}>{monitoringCheckoutMessage}</p>
-          )}
+          <StatusMessage tone={monitoringCheckoutStatus}>{monitoringCheckoutMessage}</StatusMessage>
           <p className="quiet-note">
             Entitlement activates only after Dodo sends the subscription webhook. This does not execute repairs.
           </p>
@@ -4825,7 +4819,7 @@ function AdminDashboard({
         </form>
       </div>
 
-      {adminMessage && <p className={`form-message ${adminStatus}`}>{adminMessage}</p>}
+      <StatusMessage tone={adminStatus}>{adminMessage}</StatusMessage>
 
       <section className="metric-strip admin-metrics" aria-label="Beta ops summary">
         <Metric label="Waitlist" value={metrics.waitlist || 0} />
@@ -4894,7 +4888,7 @@ function AdminDashboard({
               <code>{inviteResult.invite.url}</code>
             </div>
           )}
-          {inviteResult?.error && <p className="form-message error">{inviteResult.error}</p>}
+          <StatusMessage tone="error">{inviteResult?.error}</StatusMessage>
           <div className="invite-list">
             {(adminData?.invites || []).slice(0, 6).map((invite) => (
               <div key={invite.id}>
@@ -4996,7 +4990,7 @@ function FixPackQueue({ adminToken, emailConfigured, requests, opsHealth, status
           <span>{emailConfigured ? "Email on" : "Email config missing"}</span>
         </div>
       </div>
-      {message && <p className={`form-message ${message.includes("Could") ? "error" : "success"}`}>{message}</p>}
+      {message && <StatusMessage tone={message.includes("Could") ? "error" : "success"}>{message}</StatusMessage>}
       <div className="fix-queue-list">
         {requests.map((request) => {
           const draft = draftFor(request);
@@ -5129,82 +5123,57 @@ function FixPackQueue({ adminToken, emailConfigured, requests, opsHealth, status
 
 async function refreshSession(setIsAuthed, setOwnerEmail) {
   try {
-    const response = await fetch("/api/beta/session", {
-      credentials: "same-origin"
-    });
-    const payload = await response.json().catch(() => ({}));
+    const { response, payload } = await apiRequest("/api/beta/session");
     if (!response.ok) {
-      window.sessionStorage.removeItem(BETA_SESSION_KEY);
-      window.sessionStorage.removeItem(BETA_EMAIL_KEY);
+      storageRemove(BETA_SESSION_KEY);
+      storageRemove(BETA_EMAIL_KEY);
       setOwnerEmail("");
       setIsAuthed(false);
       return;
     }
-    window.sessionStorage.setItem(BETA_SESSION_KEY, "1");
-    window.sessionStorage.setItem(BETA_EMAIL_KEY, payload.ownerEmail || "");
+    storageSet(BETA_SESSION_KEY, "1");
+    storageSet(BETA_EMAIL_KEY, payload.ownerEmail || "");
     setOwnerEmail(payload.ownerEmail || "");
     setIsAuthed(true);
   } catch {
-    window.sessionStorage.removeItem(BETA_SESSION_KEY);
-    window.sessionStorage.removeItem(BETA_EMAIL_KEY);
+    storageRemove(BETA_SESSION_KEY);
+    storageRemove(BETA_EMAIL_KEY);
     setOwnerEmail("");
     setIsAuthed(false);
   }
 }
 
 async function postAccessRequest({ email, company = "", source, formStartedAt, returnTo = "", funnelKey = "" }) {
-  const response = await fetch("/api/access/request", {
+  return apiFetch("/api/access/request", {
     method: "POST",
-    credentials: "same-origin",
-    headers: {
-      "content-type": "application/json",
-      ...(funnelKey ? { "x-seofixkit-funnel-key": funnelKey } : {})
-    },
-    body: JSON.stringify({
+    headers: funnelKey ? { "x-seofixkit-funnel-key": funnelKey } : {},
+    body: {
       email,
       company,
       source,
       ...(returnTo ? { returnTo } : {}),
       ...(funnelKey ? { funnelKey } : {}),
       ...trackingPayload(formStartedAt)
-    })
+    },
+    requireOkFlag: false,
+    fallbackError: "Could not send the access link."
   });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(payload.error || "Could not send the access link.");
-  }
-  return payload;
 }
 
 async function verifyAccessToken(token, funnelKey = "") {
-  const response = await fetch("/api/access/verify", {
+  return apiFetch("/api/access/verify", {
     method: "POST",
-    credentials: "same-origin",
-    headers: {
-      "content-type": "application/json",
-      ...(funnelKey ? { "x-seofixkit-funnel-key": funnelKey } : {})
-    },
-    body: JSON.stringify({ token, ...(funnelKey ? { funnelKey } : {}) })
+    headers: funnelKey ? { "x-seofixkit-funnel-key": funnelKey } : {},
+    body: { token, ...(funnelKey ? { funnelKey } : {}) },
+    fallbackError: "Access link is expired or already used."
   });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok || payload.ok !== true) {
-    throw new Error(payload.error || "Access link is expired or already used.");
-  }
-  return payload;
 }
 
 async function loadAccountSummary(setAccountData, setStatus, setMessage) {
   setStatus("loading");
   setMessage("Loading your workspace.");
   try {
-    const response = await fetch("/api/account/summary", {
-      credentials: "same-origin",
-      headers: { accept: "application/json" }
-    });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok || payload.ok !== true) {
-      throw new Error(payload.error || "Could not load your workspace.");
-    }
+    const payload = await apiFetch("/api/account/summary", { fallbackError: "Could not load your workspace." });
     setAccountData(payload);
     setStatus("success");
     setMessage("");
@@ -5218,14 +5187,7 @@ async function loadDeveloperSummary(setDeveloperData, setStatus, setMessage) {
   setStatus("loading");
   setMessage("Loading developer API.");
   try {
-    const response = await fetch("/api/developer", {
-      credentials: "same-origin",
-      headers: { accept: "application/json" }
-    });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok || payload.ok !== true) {
-      throw new Error(payload.error || "Could not load developer API.");
-    }
+    const payload = await apiFetch("/api/developer", { fallbackError: "Could not load developer API." });
     setDeveloperData(payload);
     setStatus("success");
     setMessage("");
@@ -5236,366 +5198,142 @@ async function loadDeveloperSummary(setDeveloperData, setStatus, setMessage) {
 }
 
 async function postSiteClaim(host) {
-  const response = await fetch("/api/sites/claim", {
-    method: "POST",
-    credentials: "same-origin",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ host })
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok || payload.ok !== true) {
-    throw new Error(payload.error || "Could not create site verification.");
-  }
-  return payload;
+  return apiFetch("/api/sites/claim", { method: "POST", body: { host }, fallbackError: "Could not create site verification." });
 }
 
 async function postSiteVerify(claimId) {
-  const response = await fetch("/api/sites/verify", {
-    method: "POST",
-    credentials: "same-origin",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ claimId })
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok || payload.ok !== true) {
-    throw new Error(payload.error || "Could not verify site.");
-  }
-  return payload;
+  return apiFetch("/api/sites/verify", { method: "POST", body: { claimId }, fallbackError: "Could not verify site." });
 }
 
 async function postAuditSchedule(url, options = {}) {
-  const response = await fetch("/api/audit/schedules", {
+  return apiFetch("/api/audit/schedules", {
     method: "POST",
-    credentials: "same-origin",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
+    body: {
       url,
       intervalDays: options.intervalDays || 7,
       maxPages: options.maxPages || DEFAULT_CRAWL_PAGES
-    })
+    },
+    fallbackError: "Could not add monitor."
   });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok || payload.ok !== true) {
-    throw new Error(payload.error || "Could not add monitor.");
-  }
-  return payload;
 }
 
 async function pauseAuditSchedule(scheduleId) {
-  const response = await fetch(`/api/audit/schedules/${encodeURIComponent(scheduleId)}`, {
-    method: "DELETE",
-    credentials: "same-origin",
-    headers: { accept: "application/json" }
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok || payload.ok !== true) {
-    throw new Error(payload.error || "Could not pause monitor.");
-  }
-  return payload;
+  return apiFetch(`/api/audit/schedules/${encodeURIComponent(scheduleId)}`, { method: "DELETE", fallbackError: "Could not pause monitor." });
 }
 
 async function postDeveloperToken() {
-  const response = await fetch("/api/developer/tokens", {
-    method: "POST",
-    credentials: "same-origin",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ label: "Default API key" })
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok || payload.ok !== true) {
-    throw new Error(payload.error || "Could not create API key.");
-  }
-  return payload;
+  return apiFetch("/api/developer/tokens", { method: "POST", body: { label: "Default API key" }, fallbackError: "Could not create API key." });
 }
 
 async function deleteDeveloperToken(tokenId) {
-  const response = await fetch(`/api/developer/tokens/${encodeURIComponent(tokenId)}`, {
-    method: "DELETE",
-    credentials: "same-origin",
-    headers: { accept: "application/json" }
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok || payload.ok !== true) {
-    throw new Error(payload.error || "Could not revoke API key.");
-  }
-  return payload;
+  return apiFetch(`/api/developer/tokens/${encodeURIComponent(tokenId)}`, { method: "DELETE", fallbackError: "Could not revoke API key." });
 }
 
 async function postDeveloperWebhook(url) {
   const request = developerWebhookRequest(url);
-  const response = await fetch(request.endpoint, request.init);
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok || payload.ok !== true) {
-    throw new Error(payload.error || "Could not add webhook.");
-  }
-  return payload;
+  return apiFetch(request.endpoint, { init: request.init, fallbackError: "Could not add webhook." });
 }
 
 async function deleteDeveloperWebhook(webhookId) {
-  const response = await fetch(`/api/developer/webhooks/${encodeURIComponent(webhookId)}`, {
-    method: "DELETE",
-    credentials: "same-origin",
-    headers: { accept: "application/json" }
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok || payload.ok !== true) {
-    throw new Error(payload.error || "Could not revoke webhook.");
-  }
-  return payload;
+  return apiFetch(`/api/developer/webhooks/${encodeURIComponent(webhookId)}`, { method: "DELETE", fallbackError: "Could not revoke webhook." });
 }
 
 async function loadReportBranding() {
-  const response = await fetch("/api/branding", {
-    credentials: "same-origin",
-    headers: { accept: "application/json" }
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok || payload.ok !== true) {
-    throw new Error(payload.error || "Could not load report branding.");
-  }
-  return payload;
+  return apiFetch("/api/branding", { fallbackError: "Could not load report branding." });
 }
 
 async function saveReportBranding(branding) {
-  const response = await fetch("/api/branding", {
-    method: "POST",
-    credentials: "same-origin",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(branding)
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok || payload.ok !== true) {
-    throw new Error(payload.error || "Could not save report branding.");
-  }
-  return payload;
+  return apiFetch("/api/branding", { method: "POST", body: branding, fallbackError: "Could not save report branding." });
 }
 
 async function loadReportDomains() {
-  const response = await fetch("/api/report-domains", {
-    credentials: "same-origin",
-    headers: { accept: "application/json" }
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok || payload.ok !== true) {
-    throw new Error(payload.error || "Could not load report domains.");
-  }
-  return payload;
+  return apiFetch("/api/report-domains", { fallbackError: "Could not load report domains." });
 }
 
 async function createReportDomain(domain) {
-  const response = await fetch("/api/report-domains", {
-    method: "POST",
-    credentials: "same-origin",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ domain })
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok || payload.ok !== true) {
-    throw new Error(payload.error || "Could not create report domain.");
-  }
-  return payload;
+  return apiFetch("/api/report-domains", { method: "POST", body: { domain }, fallbackError: "Could not create report domain." });
 }
 
 async function verifyReportDomain(domainId) {
-  const response = await fetch(`/api/report-domains/${encodeURIComponent(domainId)}/verify`, {
-    method: "POST",
-    credentials: "same-origin",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({})
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok || payload.ok !== true) {
-    throw new Error(payload.error || "Could not verify report domain.");
-  }
-  return payload;
+  return apiFetch(`/api/report-domains/${encodeURIComponent(domainId)}/verify`, { method: "POST", body: {}, fallbackError: "Could not verify report domain." });
 }
 
 async function revokeReportDomain(domainId) {
-  const response = await fetch(`/api/report-domains/${encodeURIComponent(domainId)}`, {
-    method: "DELETE",
-    credentials: "same-origin",
-    headers: { accept: "application/json" }
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok || payload.ok !== true) {
-    throw new Error(payload.error || "Could not remove report domain.");
-  }
-  return payload;
+  return apiFetch(`/api/report-domains/${encodeURIComponent(domainId)}`, { method: "DELETE", fallbackError: "Could not remove report domain." });
 }
 
 async function loadReportShares(reportId) {
-  const response = await fetch(`/api/reports/${encodeURIComponent(reportId)}/shares`, {
-    credentials: "same-origin",
-    headers: { accept: "application/json" }
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok || payload.ok !== true) {
-    throw new Error(payload.error || "Could not load client links.");
-  }
-  return payload;
+  return apiFetch(`/api/reports/${encodeURIComponent(reportId)}/shares`, { fallbackError: "Could not load client links." });
 }
 
 async function createReportShare(reportId, body) {
-  const response = await fetch(`/api/reports/${encodeURIComponent(reportId)}/share`, {
-    method: "POST",
-    credentials: "same-origin",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body)
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok || payload.ok !== true) {
-    throw new Error(payload.error || "Could not create client link.");
-  }
-  return payload;
+  return apiFetch(`/api/reports/${encodeURIComponent(reportId)}/share`, { method: "POST", body, fallbackError: "Could not create client link." });
 }
 
 async function revokeReportShare(shareId) {
-  const response = await fetch(`/api/report-shares/${encodeURIComponent(shareId)}`, {
-    method: "DELETE",
-    credentials: "same-origin",
-    headers: { accept: "application/json" }
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok || payload.ok !== true) {
-    throw new Error(payload.error || "Could not revoke client link.");
-  }
-  return payload;
+  return apiFetch(`/api/report-shares/${encodeURIComponent(shareId)}`, { method: "DELETE", fallbackError: "Could not revoke client link." });
 }
 
 async function loadReportCollaboration(reportId) {
-  const response = await fetch(`/api/reports/${encodeURIComponent(reportId)}/collaboration`, {
-    credentials: "same-origin",
-    headers: { accept: "application/json" }
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok || payload.ok !== true) {
-    throw new Error(payload.error || "Could not load repair board.");
-  }
-  return payload;
+  return apiFetch(`/api/reports/${encodeURIComponent(reportId)}/collaboration`, { fallbackError: "Could not load repair board." });
 }
 
 async function saveReportCollaboration(reportId, body) {
-  const response = await fetch(`/api/reports/${encodeURIComponent(reportId)}/collaboration`, {
-    method: "PATCH",
-    credentials: "same-origin",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body)
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok || payload.ok !== true) {
-    throw new Error(payload.error || "Could not save repair board.");
-  }
-  return payload;
+  return apiFetch(`/api/reports/${encodeURIComponent(reportId)}/collaboration`, { method: "PATCH", body, fallbackError: "Could not save repair board." });
 }
 
 async function loadRepairQueue(reportId) {
-  const response = await fetch(`/api/reports/${encodeURIComponent(reportId)}/repair-queue`, {
-    credentials: "same-origin",
-    headers: { accept: "application/json" }
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok || payload.ok !== true) {
-    throw new Error(payload.error || "Could not load repair queue.");
-  }
-  return payload;
+  return apiFetch(`/api/reports/${encodeURIComponent(reportId)}/repair-queue`, { fallbackError: "Could not load repair queue." });
 }
 
 async function saveRepairQueue(reportId, body) {
-  const response = await fetch(`/api/reports/${encodeURIComponent(reportId)}/repair-queue`, {
-    method: "PATCH",
-    credentials: "same-origin",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body)
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok || payload.ok !== true) {
-    throw new Error(payload.error || "Could not save repair queue.");
-  }
-  return payload;
+  return apiFetch(`/api/reports/${encodeURIComponent(reportId)}/repair-queue`, { method: "PATCH", body, fallbackError: "Could not save repair queue." });
 }
 
 async function createRepairAction(reportId, body) {
-  const response = await fetch(`/api/reports/${encodeURIComponent(reportId)}/repair-actions`, {
-    method: "POST",
-    credentials: "same-origin",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body)
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok || payload.ok !== true) {
-    throw new Error(payload.error || "Could not draft agent action.");
-  }
-  return payload;
+  return apiFetch(`/api/reports/${encodeURIComponent(reportId)}/repair-actions`, { method: "POST", body, fallbackError: "Could not draft agent action." });
 }
 
 async function updateRepairAction(reportId, actionId, body) {
   const request = repairActionUpdateRequest(reportId, actionId, body);
-  const response = await fetch(request.endpoint, request.init);
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok || payload.ok !== true) {
-    throw new Error(payload.error || "Could not update agent action.");
-  }
-  return payload;
+  return apiFetch(request.endpoint, { init: request.init, fallbackError: "Could not update agent action." });
 }
 
 async function createTeamMember(member) {
-  const response = await fetch("/api/team/members", {
-    method: "POST",
-    credentials: "same-origin",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(member)
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok || payload.ok !== true) {
-    throw new Error(payload.error || "Could not add teammate.");
-  }
-  return payload;
+  return apiFetch("/api/team/members", { method: "POST", body: member, fallbackError: "Could not add teammate." });
 }
 
 async function revokeTeamMember(memberId) {
-  const response = await fetch(`/api/team/members/${encodeURIComponent(memberId)}`, {
-    method: "DELETE",
-    credentials: "same-origin",
-    headers: { accept: "application/json" }
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok || payload.ok !== true) {
-    throw new Error(payload.error || "Could not remove teammate.");
-  }
-  return payload;
+  return apiFetch(`/api/team/members/${encodeURIComponent(memberId)}`, { method: "DELETE", fallbackError: "Could not remove teammate." });
 }
 
 async function loadReport(id, setReport, setStatus, setMessage, onUnauthorized) {
   setStatus("loading");
   setMessage("Loading saved report.");
   try {
-    const response = await fetch(`/api/reports/${encodeURIComponent(id)}`, {
-      credentials: "same-origin"
+    const payload = await apiFetch(`/api/reports/${encodeURIComponent(id)}`, {
+      requireOkFlag: false,
+      fallbackError: "Could not load report."
     });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      if (response.status === 401) onUnauthorized();
-      throw new Error(payload.error || "Could not load report.");
-    }
     setReport(payload);
     setStatus("success");
     setMessage("Report loaded.");
   } catch (error) {
+    if (error.status === 401) onUnauthorized();
     setStatus("error");
     setMessage(error.message || "Could not load report.");
   }
 }
 
-async function pollAuditJob(jobId, setMessage) {
+async function pollAuditJob(jobId, setMessage, { signal } = {}) {
   const attempts = 80;
   for (let attempt = 0; attempt < attempts; attempt += 1) {
-    const response = await fetch(`/api/audit/jobs/${encodeURIComponent(jobId)}`, {
-      credentials: "same-origin"
+    signal?.throwIfAborted();
+    const payload = await apiFetch(`/api/audit/jobs/${encodeURIComponent(jobId)}`, {
+      signal,
+      fallbackError: "Could not check audit progress."
     });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok || payload.ok !== true) {
-      throw new Error(payload.error || "Could not check audit progress.");
-    }
+    signal?.throwIfAborted();
 
     const job = payload.job || {};
     if (job.status === "completed") {
@@ -5611,14 +5349,28 @@ async function pollAuditJob(jobId, setMessage) {
         ? "Audit queued. Waiting for proof collection to start."
         : "Rendering the site, crawling same-site links, and collecting proof."
     );
-    await delay(Math.min(1500 + attempt * 100, 3500));
+    await delay(Math.min(1500 + attempt * 100, 3500), signal);
   }
 
   throw new Error("The audit is still running. Refresh this page in a moment.");
 }
 
-function delay(milliseconds) {
-  return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+function delay(milliseconds, signal) {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(signal.reason);
+      return;
+    }
+    const onAbort = () => {
+      window.clearTimeout(timer);
+      reject(signal.reason);
+    };
+    const timer = window.setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, milliseconds);
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
 }
 
 async function fetchBrief(id) {
@@ -5639,13 +5391,10 @@ async function fetchBrief(id) {
 
 async function requestFixQuote(reportId, selectedRepair = null) {
   try {
-    const response = await fetch("/api/beta/fix-request", {
+    const { response, payload } = await apiRequest("/api/beta/fix-request", {
       method: "POST",
-      credentials: "same-origin",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(fixPackCheckoutBody(reportId, selectedRepair))
+      body: fixPackCheckoutBody(reportId, selectedRepair)
     });
-    const payload = await response.json().catch(() => ({}));
     return {
       ok: response.ok,
       checkoutUrl: response.ok ? payload.checkoutUrl || "" : "",
@@ -5661,20 +5410,10 @@ async function requestFixQuote(reportId, selectedRepair = null) {
 
 async function patchRepairProposalApproval(reportId, proposalId, body) {
   try {
-    const response = await fetch(
+    return await apiFetch(
       `/api/reports/${encodeURIComponent(reportId)}/repair-proposals/${encodeURIComponent(proposalId)}`,
-      {
-        method: "PATCH",
-        credentials: "same-origin",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(body)
-      }
+      { method: "PATCH", body, fallbackError: "Could not update repair proposal." }
     );
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok || payload.ok !== true) {
-      return { ok: false, error: payload.error || "Could not update repair proposal." };
-    }
-    return payload;
   } catch (error) {
     return { ok: false, error: error.message || "Could not update repair proposal." };
   }
@@ -5684,14 +5423,7 @@ async function loadBillingSummary(setBilling, setStatus, setMessage) {
   setStatus("loading");
   setMessage("Loading billing.");
   try {
-    const response = await fetch("/api/billing/summary", {
-      credentials: "same-origin",
-      headers: { accept: "application/json" }
-    });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok || payload.ok !== true) {
-      throw new Error(payload.error || "Could not load billing.");
-    }
+    const payload = await apiFetch("/api/billing/summary", { fallbackError: "Could not load billing." });
     setBilling(payload);
     setStatus("success");
     setMessage("Billing loaded.");
@@ -5710,12 +5442,10 @@ async function loadAdmin(token, setAdminData, setAdminStatus, setAdminMessage, o
       if (!session.ok) throw new Error(session.error || "Could not unlock admin session.");
       onSessionReady?.();
     }
-    const response = await fetch("/admin/summary", {
-      credentials: "same-origin",
-      headers: adminRequestHeaders("")
+    const payload = await apiFetch("/admin/summary", {
+      headers: adminRequestHeaders(""),
+      fallbackError: "Could not load ops."
     });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok || payload.ok !== true) throw new Error(payload.error || "Could not load ops.");
     setAdminData(payload);
     setAdminStatus("success");
     setAdminMessage("Ops loaded.");
@@ -5727,15 +5457,11 @@ async function loadAdmin(token, setAdminData, setAdminStatus, setAdminMessage, o
 
 async function createAdminSession(token) {
   try {
-    const response = await fetch("/admin/session", {
+    return await apiFetch("/admin/session", {
       method: "POST",
-      credentials: "same-origin",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ token })
+      body: { token },
+      fallbackError: "Could not unlock admin session."
     });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok || payload.ok !== true) return { ok: false, error: payload.error || "Could not unlock admin session." };
-    return payload;
   } catch (error) {
     return { ok: false, error: error.message || "Could not unlock admin session." };
   }
@@ -5743,15 +5469,12 @@ async function createAdminSession(token) {
 
 async function postAdminInvite(token, body) {
   try {
-    const response = await fetch("/admin/invites", {
+    return await apiFetch("/admin/invites", {
       method: "POST",
-      credentials: "same-origin",
       headers: adminRequestHeaders(token, true),
-      body: JSON.stringify(body)
+      body,
+      fallbackError: "Could not create invite."
     });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok || payload.ok !== true) return { ok: false, error: payload.error || "Could not create invite." };
-    return payload;
   } catch (error) {
     return { ok: false, error: error.message || "Could not create invite." };
   }
@@ -5759,17 +5482,12 @@ async function postAdminInvite(token, body) {
 
 async function patchAdminFixRequest(token, id, body) {
   try {
-    const response = await fetch(`/admin/fix-requests/${encodeURIComponent(id)}`, {
+    return await apiFetch(`/admin/fix-requests/${encodeURIComponent(id)}`, {
       method: "PATCH",
-      credentials: "same-origin",
       headers: adminRequestHeaders(token, true),
-      body: JSON.stringify(body)
+      body,
+      fallbackError: "Could not update Fix Pack request."
     });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok || payload.ok !== true) {
-      return { ok: false, error: payload.error || "Could not update Fix Pack request." };
-    }
-    return payload;
   } catch (error) {
     return { ok: false, error: error.message || "Could not update Fix Pack request." };
   }

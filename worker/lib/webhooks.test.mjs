@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { hmacSha256Hex } from "./security.js";
 import { cleanWebhookEvents, deliverApiWebhook, deliverApiWebhooks } from "./webhooks.js";
 
 test("deliverApiWebhooks retries transient failure and keeps one event row", async () => {
@@ -109,6 +110,83 @@ test("deliverApiWebhook rechecks private DNS before retrying", async () => {
     httpStatus: 503,
     error: "Webhook host resolves to a private or internal address."
   });
+});
+
+test("deliverApiWebhooks refuses a host whose DNS resolves privately and records the failure without delivering", async () => {
+  const env = fakeWebhookEnv();
+  env.webhooks[0].url = "https://dns-private-webhook.example.com/seofixkit";
+  let deliveries = 0;
+  const originalFetch = globalThis.fetch;
+  // Exercise the real DNS-over-HTTPS resolver, not an injected stub.
+  globalThis.fetch = async (input) => {
+    const url = new URL(String(input));
+    if (url.origin === "https://cloudflare-dns.com" && url.pathname === "/dns-query") {
+      const answer = url.searchParams.get("type") === "A" ? [{ type: 1, data: "127.0.0.1" }] : [];
+      return new Response(JSON.stringify({ Answer: answer }), {
+        status: 200,
+        headers: { "content-type": "application/dns-json" }
+      });
+    }
+    throw new Error(`Unexpected fetch: ${url}`);
+  };
+  try {
+    await deliverApiWebhooks(env, "owner@example.com", "audit.completed", {}, {
+      fetcher: async () => {
+        deliveries += 1;
+        return new Response(null, { status: 204 });
+      },
+      sleep: async () => {}
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+
+  assert.equal(deliveries, 0);
+  assert.equal(env.events[0].status, "failed");
+  assert.equal(env.webhooks[0].last_delivery_status, "failed");
+  assert.match(env.webhooks[0].last_error, /private or internal/);
+});
+
+test("deliverApiWebhooks records a timed-out delivery on the webhook row", async () => {
+  const env = fakeWebhookEnv();
+  env.SEOFIXKIT_WEBHOOK_MAX_ATTEMPTS = "1";
+  await deliverApiWebhooks(env, "owner@example.com", "audit.completed", {}, {
+    fetcher: async (_url, options = {}) =>
+      new Promise((_resolve, reject) => {
+        options.signal.addEventListener("abort", () => {
+          const error = new Error("aborted");
+          error.name = "AbortError";
+          reject(error);
+        });
+      }),
+    resolvesToPrivateAddress: async () => false,
+    sleep: async () => {}
+  });
+
+  assert.equal(env.events[0].status, "failed");
+  assert.equal(env.webhooks[0].last_delivery_status, "failed");
+  assert.match(env.webhooks[0].last_error, /timed out/i);
+});
+
+test("deliverApiWebhooks signs each delivery with a verifiable t=,v1= HMAC header", async () => {
+  const env = fakeWebhookEnv();
+  const requests = [];
+  await deliverApiWebhooks(env, "owner@example.com", "audit.completed", { audit: { audit_id: "audit-1" } }, {
+    fetcher: async (_url, options = {}) => {
+      requests.push(options);
+      return new Response(null, { status: 204 });
+    },
+    resolvesToPrivateAddress: async () => false,
+    sleep: async () => {}
+  });
+
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].headers["x-seofixkit-event"], "audit.completed");
+  const signature = requests[0].headers["x-seofixkit-signature"];
+  const match = /^t=(\d+),v1=([a-f0-9]{64})$/.exec(signature);
+  assert.ok(match, signature);
+  const secret = `whsec_${(await hmacSha256Hex("test-secret", "webhook-1")).slice(0, 32)}`;
+  assert.equal(match[2], await hmacSha256Hex(secret, `${match[1]}.${requests[0].body}`));
 });
 
 function fakeWebhook() {

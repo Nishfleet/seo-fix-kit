@@ -3401,7 +3401,7 @@ function signedDodoWebhookRequest(payload, webhookId, env, options = {}) {
     const signature = createHmac("sha256", dodoWebhookSecretBytes(secret))
       .update(`${webhookId}.${timestamp}.${body}`)
       .digest("base64");
-    headers["webhook-signature"] = `v1=${signature}`;
+    headers["webhook-signature"] = `v1,${signature}`;
   }
   return new Request("https://seofixkit.test/api/webhooks/dodo", {
     method: "POST",

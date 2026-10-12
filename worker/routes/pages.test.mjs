@@ -472,33 +472,36 @@ const PUBLIC_PAGE_RENDERERS = {
   "/terms": [{ file: "worker/routes/pages.js", lineStart: 1070, lineEnd: 1120 }]
 };
 
+let lastGitLogOutput = "";
+
 function latestCommitIsoIst(renderer) {
   const output = execFileSync(
     "git",
-    ["log", "-1", "--format=%aI", "-L", `${renderer.lineStart},${renderer.lineEnd}:${renderer.file}`],
-    { cwd: REPO_ROOT, encoding: "utf8" }
+    // --no-merges: on pull_request runs CI checks out GitHub's synthetic merge
+    // commit, which authors no renderer change of its own; newer git versions
+    // can surface it (with an empty diff) ahead of the real change.
+    ["log", "-1", "--no-merges", "--format=%aI", "-L", `${renderer.lineStart},${renderer.lineEnd}:${renderer.file}`],
+    { cwd: REPO_ROOT, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 }
   );
-  // %aI is strict ISO 8601 with offset (e.g. 2026-08-19T13:36:30+05:30) and is
-  // emitted as the first line; the -L flag then appends the diff hunk. Take
-  // only the first line so trailing diff hunks cannot leak into the
-  // timestamp. Convert any non-IST offset to IST YYYY-MM-DDTHH:MM:SS so the
-  // comparison can match the published lastmod convention (Z-suffixed IST).
-  const firstLine = output.split("\n", 1)[0];
-  const match = firstLine.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})([+-]\d{2}:?\d{2})?$/);
+  // %aI is strict ISO 8601 with offset (e.g. 2026-08-19T13:36:30+05:30); the
+  // -L flag then appends the diff hunk. Take the first non-empty line so
+  // trailing diff hunks cannot leak into the timestamp. Convert any non-IST
+  // offset to IST YYYY-MM-DDTHH:MM:SS so the comparison can match the
+  // published lastmod convention (Z-suffixed IST).
+  lastGitLogOutput = output;
+  const firstLine = output.split("\n").find((line) => line.trim()) || "";
+  // Git 2.5x prints a UTC offset as "Z" (2026-10-12T09:25:32Z); older git
+  // prints "+00:00". Accept both.
+  const match = firstLine.trim().match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(Z|[+-]\d{2}:?\d{2})?$/);
   if (!match) return "";
   const [, base, tz] = match;
   if (!tz || tz === "+05:30" || tz === "+0530") return base;
-  const ms = Date.parse(`${base}${tz}`);
-  const istMs = ms + (5.5 * 60 * 60 * 1000 - parseTimezoneOffsetMinutes(tz) * 60 * 1000);
+  // Date.parse honours the offset, so this is the true UTC instant; IST is
+  // UTC+05:30.
+  const istMs = Date.parse(`${base}${tz}`) + 5.5 * 60 * 60 * 1000;
   return new Date(istMs).toISOString().slice(0, 19);
 }
 
-function parseTimezoneOffsetMinutes(tz) {
-  const m = tz.match(/^([+-])(\d{2}):?(\d{2})$/);
-  if (!m) return 0;
-  const [, sign, hh, mm] = m;
-  return (sign === "-" ? -1 : 1) * (parseInt(hh, 10) * 60 + parseInt(mm, 10));
-}
 
 test("sitemap lastmod stays truthful relative to the page renderer (freshness discipline)", () => {
   const failures = [];
@@ -520,7 +523,9 @@ test("sitemap lastmod stays truthful relative to the page renderer (freshness di
     for (const renderer of ranges) {
       const commitIst = latestCommitIsoIst(renderer);
       if (!commitIst) {
-        failures.push(`${path}: unable to read latest commit for ${renderer.file}:${renderer.lineStart}-${renderer.lineEnd}`);
+        failures.push(
+          `${path}: unable to read latest commit for ${renderer.file}:${renderer.lineStart}-${renderer.lineEnd} (git log began: ${JSON.stringify(lastGitLogOutput.slice(0, 160))})`
+        );
         missingCommit = true;
         break;
       }
