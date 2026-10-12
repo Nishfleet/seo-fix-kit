@@ -556,6 +556,11 @@ export function checkHtml(origin) {
             const cta = el("a", "Continue to private access", "cta");
             cta.href = "${origin}/";
             result.appendChild(cta);
+            const hostingNote = el("p", "");
+            const hostingLink = el("a", "Slow server response? See fast hosting guide");
+            hostingLink.href = "${origin}/guides/fast-hosting-for-seo";
+            hostingNote.appendChild(hostingLink);
+            result.appendChild(hostingNote);
           } catch (error) {
             result.replaceChildren(el("div", "Could not reach the check service. Try again in a moment.", "error-box"));
           } finally {

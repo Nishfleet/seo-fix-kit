@@ -341,6 +341,12 @@ test("public check page has no 320px floor and reflows below 320px", async () =>
   }
 });
 
+test("check results footer links the fast hosting guide", () => {
+  const html = checkHtml(origin);
+  assert.match(html, /Slow server response\? See fast hosting guide/);
+  assert.match(html, /hostingLink\.href = "https:\/\/seofixkit\.com\/guides\/fast-hosting-for-seo"/);
+});
+
 test("public check page labels generated repair markup as a proposed change, never an exact snippet", () => {
   const html = checkHtml(origin);
   assert.doesNotMatch(html, /exact snippet/i, "the page must not call generated markup an exact snippet");

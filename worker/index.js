@@ -39,6 +39,7 @@ import {
 } from "./routes/pages.js";
 import { checkHtml, runPublicCheck } from "./routes/public-check.js";
 import { GUIDE_ROUTES, goRedirect } from "./routes/guides.js";
+import { checklistCsvResponse, checklistHtml } from "./routes/checklist.js";
 import {
   betaLogin,
   betaLogout,
@@ -708,6 +709,23 @@ export default {
       if (Object.prototype.hasOwnProperty.call(GUIDE_ROUTES, url.pathname)) {
         return new Response(GUIDE_ROUTES[url.pathname](origin), {
           headers: secureHeaders({ "content-type": "text/html; charset=utf-8" })
+        });
+      }
+
+      if (url.pathname === "/checklist") {
+        return new Response(checklistHtml(origin), {
+          headers: secureHeaders({ "content-type": "text/html; charset=utf-8" })
+        });
+      }
+
+      if (url.pathname === "/checklist.csv") {
+        const csv = checklistCsvResponse();
+        return new Response(csv.body, {
+          headers: secureHeaders({
+            "content-type": csv.headers.get("content-type"),
+            "content-disposition": csv.headers.get("content-disposition"),
+            "cache-control": csv.headers.get("cache-control")
+          })
         });
       }
 

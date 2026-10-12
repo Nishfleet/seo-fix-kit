@@ -65,7 +65,7 @@ function bestSeoAuditToolsHtml(origin) {
       </section>
       <section class="band">
         <h2>When you need proof, not a checklist</h2>
-        <p>Crawlers that read raw HTML can flag issues that a real browser render does not have. <a href="${origin}/check">SEO Fix Kit's free one-page check</a> renders the page and separates real findings from static-crawler false positives. It does not replace the suites above for keyword or backlink research.</p>
+        <p>Crawlers that read raw HTML can flag issues that a real browser render does not have. <a href="${origin}/check">SEO Fix Kit's free one-page check</a> renders the page and separates real findings from static-crawler false positives. Work through the free <a href="${origin}/checklist">Proof-First Technical SEO Checklist</a>, then re-measure. It does not replace the suites above for keyword or backlink research.</p>
       </section>`,
     faq: [
       { q: "Do I need a paid SEO tool to start?", a: "No. Google Search Console and PageSpeed Insights are free and cover indexing and performance basics." },
@@ -132,7 +132,7 @@ function fastHostingForSeoHtml(origin) {
       </section>
       <section class="band">
         <h2>After you move</h2>
-        <p>Re-run the same measurements and use <a href="${origin}/check">SEO Fix Kit's free check</a> to confirm the rendered page still serves the right titles, canonicals, and content. No host guarantees rankings.</p>
+        <p>Re-run the same measurements and use <a href="${origin}/check">SEO Fix Kit's free check</a> to confirm the rendered page still serves the right titles, canonicals, and content. The <a href="${origin}/checklist">proof-first checklist</a> has a speed and hosting section. No host guarantees rankings.</p>
       </section>`,
     faq: [
       { q: "Will faster hosting improve my rankings?", a: "It can remove a bottleneck, but no host guarantees rankings. Measure response time before and after." }

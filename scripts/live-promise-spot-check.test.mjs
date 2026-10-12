@@ -16,6 +16,8 @@ import {
   termsHtml
 } from "../worker/routes/pages.js";
 import { checkHtml } from "../worker/routes/public-check.js";
+import { GUIDE_ROUTES } from "../worker/routes/guides.js";
+import { checklistHtml } from "../worker/routes/checklist.js";
 import { canonicalHostSpotChecks, publicPageSpotChecks, publicSurfaceSpotChecks, spotCheckPublicPages } from "./live-promise-spot-check.mjs";
 
 const origin = "https://seofixkit.com";
@@ -27,6 +29,8 @@ const pages = {
   "/small-business-seo-audit": smallBusinessSeoAuditHtml(origin),
   "/rendered-vs-static-seo-audit": renderedVsStaticAuditHtml(origin),
   "/ai-answer-readiness": aiAnswerReadinessHtml(origin),
+  "/checklist": checklistHtml(origin),
+  ...Object.fromEntries(Object.entries(GUIDE_ROUTES).map(([path, render]) => [path, render(origin)])),
   "/proof": proofCaseHtml(origin),
   "/support": supportHtml(origin),
   "/terms": termsHtml(origin),
@@ -101,7 +105,7 @@ function textResponse(body, contentType = "text/plain; charset=utf-8") {
 test("live spot-check covers the public pages including the proof receipt", () => {
   assert.deepEqual(
     publicPageSpotChecks(origin).map((check) => check.path),
-    ["/demo", "/check", "/methodology", "/packages", "/small-business-seo-audit", "/rendered-vs-static-seo-audit", "/ai-answer-readiness", "/proof", "/proof.md", "/support", "/terms", "/privacy"]
+    ["/demo", "/check", "/methodology", "/packages", "/small-business-seo-audit", "/rendered-vs-static-seo-audit", "/ai-answer-readiness", "/checklist", "/guides/best-seo-audit-tools", "/guides/semrush-vs-alternatives", "/guides/fast-hosting-for-seo", "/proof", "/proof.md", "/support", "/terms", "/privacy"]
   );
 });
 
@@ -131,7 +135,7 @@ test("live spot-check covers the www-to-apex canonical redirect", () => {
 
 test("live spot-check passes against the shipped public page copy", async () => {
   const results = await spotCheckPublicPages({ baseUrl: origin, fetcher: pageFetcher() });
-  assert.equal(results.length, 24);
+  assert.equal(results.length, 28);
   for (const result of results) {
     assert.deepEqual(result.failures, [], `${result.path} must pass: ${result.name}`);
   }

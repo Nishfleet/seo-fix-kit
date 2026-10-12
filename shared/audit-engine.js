@@ -3158,12 +3158,13 @@ function wait(ms) {
 // The canonical public route set for the apex host, shared by the sitemap,
 // IndexNow submissions, and any future search-submission surface. Keep in sync
 // with the public page routes in worker/index.js and worker/routes/pages.js.
-export const ROOT_PUBLIC_PATHS = ["/", "/demo", "/check", "/methodology", "/packages", "/small-business-seo-audit", "/rendered-vs-static-seo-audit", "/ai-answer-readiness", "/privacy", "/proof", "/support", "/terms"];
+export const ROOT_PUBLIC_PATHS = ["/", "/demo", "/check", "/methodology", "/packages", "/small-business-seo-audit", "/rendered-vs-static-seo-audit", "/ai-answer-readiness", "/checklist", "/guides/best-seo-audit-tools", "/guides/semrush-vs-alternatives", "/guides/fast-hosting-for-seo", "/privacy", "/proof", "/support", "/terms"];
 
 // Truthful per-page last modification times (W3C datetime, Z-suffixed): the
 // commit timestamp of the last change to the code that renders each page —
 // for "/" the SPA source (src/App.jsx), for the worker-rendered pages the
-// generator in worker/routes/pages.js or worker/routes/public-check.js.
+// generator in worker/routes/pages.js, worker/routes/public-check.js,
+// worker/routes/guides.js, or worker/routes/checklist.js.
 // Times follow the existing sitemap convention: the commit's local IST
 // datetime formatted with a Z suffix (technically not real UTC, but what
 // the sitemap, IndexNow payload, and the freshness-discipline test all
@@ -3175,12 +3176,16 @@ export const ROOT_PUBLIC_PATHS = ["/", "/demo", "/check", "/methodology", "/pack
 export const ROOT_PUBLIC_LASTMODS = {
   "/": "2026-08-20T18:41:39Z",
   "/demo": "2026-08-15T07:14:01Z",
-  "/check": "2026-08-19T12:56:07Z",
-  "/methodology": "2026-08-23T04:56:07Z",
+  "/check": "2026-10-12T12:00:00Z",
+  "/methodology": "2026-10-12T12:00:00Z",
   "/packages": "2026-08-22T05:24:07Z",
-  "/small-business-seo-audit": "2026-08-21T15:52:53Z",
-  "/rendered-vs-static-seo-audit": "2026-08-22T12:07:56Z",
+  "/small-business-seo-audit": "2026-10-12T12:00:00Z",
+  "/rendered-vs-static-seo-audit": "2026-10-12T12:00:00Z",
   "/ai-answer-readiness": "2026-08-23T08:38:32Z",
+  "/checklist": "2026-10-12T12:00:00Z",
+  "/guides/best-seo-audit-tools": "2026-10-12T12:00:00Z",
+  "/guides/semrush-vs-alternatives": "2026-10-12T12:00:00Z",
+  "/guides/fast-hosting-for-seo": "2026-10-12T12:00:00Z",
   "/privacy": "2026-08-15T10:43:48Z",
   "/proof": "2026-08-15T10:43:48Z",
   "/support": "2026-08-15T10:43:48Z",

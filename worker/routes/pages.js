@@ -24,6 +24,10 @@ SEO Fix Kit is a private-beta, self-serve SEO audit and paid Fix Pack workflow.
 - [${origin}/small-business-seo-audit](https://seofixkit.com/small-business-seo-audit): Proof-backed SEO audit for small businesses. Check one page free, pay only when real fixes exist.
 - [${origin}/rendered-vs-static-seo-audit](https://seofixkit.com/rendered-vs-static-seo-audit): Renders pages in a real browser to compare raw HTML with the rendered DOM — guarding static-crawler false positives and showing AI crawler visibility for JavaScript-blind crawlers like GPTBot, ClaudeBot, PerplexityBot, and CCBot.
 - [${origin}/ai-answer-readiness](https://seofixkit.com/ai-answer-readiness): Proof-derived AI Answer Readiness from rendered content, schema, links, sitemap context, and optional llms.txt. Site-proof, not citation monitoring.
+- [${origin}/checklist](https://seofixkit.com/checklist): Free Proof-First Technical SEO Checklist, with a CSV download and no signup.
+- [${origin}/guides/best-seo-audit-tools](https://seofixkit.com/guides/best-seo-audit-tools): How to choose an SEO audit tool by job, with affiliate disclosure.
+- [${origin}/guides/semrush-vs-alternatives](https://seofixkit.com/guides/semrush-vs-alternatives): When Semrush, Ahrefs, or a crawler fits, with affiliate disclosure.
+- [${origin}/guides/fast-hosting-for-seo](https://seofixkit.com/guides/fast-hosting-for-seo): What hosting actually changes for SEO, with affiliate disclosure.
 - [${origin}/support](https://seofixkit.com/support): Support and contact page.
 - [${origin}/privacy](https://seofixkit.com/privacy): Privacy note for access requests, private beta audits, payments, and fulfillment.
 - [${origin}/terms](https://seofixkit.com/terms): Terms of service.
@@ -111,6 +115,10 @@ Useful routes:
 - ${origin}/small-business-seo-audit
 - ${origin}/rendered-vs-static-seo-audit
 - ${origin}/ai-answer-readiness
+- ${origin}/checklist
+- ${origin}/guides/best-seo-audit-tools
+- ${origin}/guides/semrush-vs-alternatives
+- ${origin}/guides/fast-hosting-for-seo
 `;
 }
 
@@ -129,6 +137,10 @@ Public proof before payment:
 - Small-business SEO audit: ${origin}/small-business-seo-audit
 - Rendered vs static audit: ${origin}/rendered-vs-static-seo-audit
 - AI Answer Readiness check: ${origin}/ai-answer-readiness
+- Proof-first technical SEO checklist: ${origin}/checklist
+- Best SEO audit tools: ${origin}/guides/best-seo-audit-tools
+- Semrush vs alternatives: ${origin}/guides/semrush-vs-alternatives
+- Fast hosting for SEO: ${origin}/guides/fast-hosting-for-seo
 
 Start at ${origin}/.
 `;
@@ -310,7 +322,7 @@ function methodologyHtml(origin) {
         <div class="grid two">
           <article class="panel"><strong>No fake scale claim</strong><p>Large 50,000-page rendered crawls are early-access staged jobs. We do not call them complete until every batch has page-level proof and merge readiness is clear.</p></article>
           <article class="panel"><strong>No AI visibility tracking</strong><p>AI Answer Readiness is proof-derived from rendered pages, schema, canonicals, links, sitemap context, and optional llms.txt. Live answer-engine sampling, AI citation monitoring, and AI visibility score tracking are not live.</p></article>
-          <article class="panel"><strong>No backlink database claim</strong><p>Backlink proof starts with supplied/imported rows and link-edge history. SEO Fix Kit does not replace Ahrefs, Semrush, or proprietary backlink discovery.</p></article>
+          <article class="panel"><strong>No backlink database claim</strong><p>Backlink proof starts with supplied/imported rows and link-edge history. SEO Fix Kit does not replace Ahrefs, Semrush, or proprietary backlink discovery. For keyword and backlink research, see the <a href="${origin}/guides/best-seo-audit-tools">best SEO audit tools</a> guide.</p></article>
           <article class="panel"><strong>No hidden site writes</strong><p>Agent actions, implementation packs, proof receipts, and growth briefs are records, handoffs, proof artifacts, and reviewable drafts. The browser does not call CMS admin APIs, publish pages, merge code, or use private provider credentials.</p></article>
         </div>
       </section>
@@ -503,7 +515,7 @@ function smallBusinessSeoAuditHtml(origin) {
       </section>
       <section class="band">
         <h2>What this page does not claim</h2>
-        <p>This page is a landing page, not an audit of your site. The free check covers one public page at one moment; full multi-page reports run inside the private beta. SEO Fix Kit does not replace Ahrefs or Semrush, does not provide live AI citation monitoring or answer-engine sampling, and never guarantees rankings, traffic, indexing, or revenue.</p>
+        <p>This page is a landing page, not an audit of your site. The free check covers one public page at one moment; full multi-page reports run inside the private beta. SEO Fix Kit does not replace <a href="${origin}/guides/semrush-vs-alternatives">Ahrefs or Semrush</a>, does not provide live AI citation monitoring or answer-engine sampling, and never guarantees rankings, traffic, indexing, or revenue.</p>
       </section>
       <section class="band">
         <h2>Start with proof</h2>
@@ -552,7 +564,7 @@ function renderedVsStaticAuditHtml(origin) {
           <li><a href="https://freeseoaudit.vercel.app/" rel="nofollow noopener" target="_blank">Free SEO Auditor</a> (open-source MIT, <a href="https://github.com/ravigupta0210/seo-auditor" rel="nofollow noopener" target="_blank">ravigupta0210/seo-auditor</a>) ships a no-signup audit with copy-paste fixes, a JS-dependency check, cloaking detection across five AI user-agents, and an optional Playwright renderer. Site-wide crawls default to 25 pages from sitemap.xml.</li>
           <li><a href="https://github.com/abouchard11/geo-crawl-audit" rel="nofollow noopener" target="_blank">geo-crawl-audit</a> is a zero-dependency Python+curl probe: baseline browser UA then ~12 real AI crawler UAs, TTFB, bot differentials, and a raw-HTML classification of SSR_FULL / SSR_THIN / CSR_SHELL with no JavaScript execution. A free single-domain scan is at <a href="https://readablebyai.com" rel="nofollow noopener" target="_blank">readablebyai.com</a>.</li>
         </ul>
-        <p>If you only need that one-page diff, those tools are a fair choice. SEO Fix Kit uses the same rendered-vs-static comparison as a false-positive guard so the persistent repair queue only receives proven findings, then issues a rerun proof receipt that says fixed, still-open, new, or regressed. Hosted crawl scope is self-serve audits up to 1,000 pages, sitemap inventory up to 50,000 discovered URLs, and staged large rendered crawl jobs. No live AI-engine sampling, no AI citation monitoring, and no ranking guarantees.</p>
+        <p>If you only need that one-page diff, those tools are a fair choice. SEO Fix Kit uses the same rendered-vs-static comparison as a false-positive guard so the persistent repair queue only receives proven findings, then issues a rerun proof receipt that says fixed, still-open, new, or regressed. Hosted crawl scope is self-serve audits up to 1,000 pages, sitemap inventory up to 50,000 discovered URLs, and staged large rendered crawl jobs. No live AI-engine sampling, no AI citation monitoring, and no ranking guarantees. For how desktop crawlers and paid suites compare on the same job, see <a href="${origin}/guides/best-seo-audit-tools">best SEO audit tools</a>.</p>
       </section>
       <section class="band">
         <h2>Where you can see it live</h2>

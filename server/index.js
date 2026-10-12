@@ -25,6 +25,8 @@ import {
   supportHtml,
   termsHtml
 } from "../worker/routes/pages.js";
+import { GUIDE_ROUTES, goRedirect } from "../worker/routes/guides.js";
+import { checklistCsvResponse, checklistHtml } from "../worker/routes/checklist.js";
 import {
   buildPublicCheckResponse,
   checkHtml,
@@ -1853,6 +1855,38 @@ app.get("/rendered-vs-static-seo-audit", (req, res) => {
 app.get("/ai-answer-readiness", (req, res) => {
   const origin = `http://${req.get("host")}`;
   res.set("content-type", "text/html; charset=utf-8").send(aiAnswerReadinessHtml(origin));
+});
+
+app.get("/checklist", (req, res) => {
+  const origin = `http://${req.get("host")}`;
+  res.set("content-type", "text/html; charset=utf-8").send(checklistHtml(origin));
+});
+
+app.get("/checklist.csv", async (req, res) => {
+  const response = checklistCsvResponse();
+  res
+    .status(response.status)
+    .set("content-type", response.headers.get("content-type"))
+    .set("content-disposition", response.headers.get("content-disposition"))
+    .send(await response.text());
+});
+
+for (const [guidePath, render] of Object.entries(GUIDE_ROUTES)) {
+  app.get(guidePath, (req, res) => {
+    const origin = `http://${req.get("host")}`;
+    res.set("content-type", "text/html; charset=utf-8").send(render(origin));
+  });
+}
+
+app.get("/go/:slug", (req, res) => {
+  const redirect = goRedirect(`/go/${req.params.slug}`);
+  if (!redirect) {
+    res.status(404).type("text").send("Not found");
+    return;
+  }
+  res.set("cache-control", "no-store");
+  res.set("x-robots-tag", "noindex, nofollow");
+  res.redirect(302, redirect.headers.get("location"));
 });
 
 app.get("/privacy", (req, res) => {

@@ -15,6 +15,17 @@ test("each guide has a disclosure and only sponsored /go links", () => {
   }
 });
 
+test("guides link the checklist and keep /go links sponsored", () => {
+  const auditTools = GUIDE_ROUTES["/guides/best-seo-audit-tools"](origin);
+  const hosting = GUIDE_ROUTES["/guides/fast-hosting-for-seo"](origin);
+  assert.match(auditTools, new RegExp(`href="${origin}/checklist"`));
+  assert.match(auditTools, new RegExp(`href="${origin}/check"`));
+  assert.match(hosting, new RegExp(`href="${origin}/checklist"`));
+  for (const html of Object.values(GUIDE_ROUTES).map((render) => render(origin))) {
+    assert.match(html, /rel="sponsored nofollow noopener"/);
+  }
+});
+
 test("go redirects known slugs and rejects unknown ones", () => {
   const r = goRedirect("/go/semrush");
   assert.equal(r.status, 302);

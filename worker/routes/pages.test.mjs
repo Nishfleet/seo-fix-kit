@@ -26,6 +26,8 @@ import {
   supportHtml,
   termsHtml
 } from "./pages.js";
+import { GUIDE_ROUTES } from "./guides.js";
+import { checklistHtml } from "./checklist.js";
 
 const origin = "https://seofixkit.com";
 
@@ -44,6 +46,8 @@ const allWorkerRenderedPublicPages = [
   { name: "/small-business-seo-audit", html: smallBusinessSeoAuditHtml(origin) },
   { name: "/rendered-vs-static-seo-audit", html: renderedVsStaticAuditHtml(origin) },
   { name: "/ai-answer-readiness", html: aiAnswerReadinessHtml(origin) },
+  { name: "/checklist", html: checklistHtml(origin) },
+  ...Object.entries(GUIDE_ROUTES).map(([name, render]) => ({ name, html: render(origin) })),
   { name: "/proof", html: proofCaseHtml(origin) },
   { name: "/privacy", html: privacyHtml(origin) },
   { name: "/support", html: supportHtml(origin) },
@@ -382,7 +386,7 @@ test("machine-readable public surfaces list proof pages and limits", () => {
   const sitemap = rootSitemap(origin);
 
   assert.deepEqual(parseSitemapUrls(sitemap), expectedSitemapUrls);
-  for (const path of ["/demo", "/methodology", "/packages", "/check", "/small-business-seo-audit", "/rendered-vs-static-seo-audit", "/ai-answer-readiness"]) {
+  for (const path of ["/demo", "/methodology", "/packages", "/check", "/small-business-seo-audit", "/rendered-vs-static-seo-audit", "/ai-answer-readiness", "/checklist", "/guides/best-seo-audit-tools", "/guides/semrush-vs-alternatives", "/guides/fast-hosting-for-seo"]) {
     assert.match(llms, new RegExp(`${origin}${path}`));
     assert.match(markdown, new RegExp(`${origin}${path}`));
     assert.match(sitemap, new RegExp(`${origin}${path}`));
@@ -450,26 +454,42 @@ const PUBLIC_PAGE_RENDERERS = {
     { file: "src/App.jsx", lineStart: 35, lineEnd: 400 },
     { file: "index.html", lineStart: 1, lineEnd: 100 }
   ],
-  "/demo": [{ file: "worker/routes/pages.js", lineStart: 156, lineEnd: 263 }],
+  "/demo": [{ file: "worker/routes/pages.js", lineStart: 182, lineEnd: 289 }],
   "/check": [{ file: "worker/routes/public-check.js", lineStart: 296, lineEnd: 800 }],
-  "/methodology": [{ file: "worker/routes/pages.js", lineStart: 265, lineEnd: 375 }],
-  "/packages": [{ file: "worker/routes/pages.js", lineStart: 378, lineEnd: 472 }],
+  "/methodology": [{ file: "worker/routes/pages.js", lineStart: 291, lineEnd: 389 }],
+  "/packages": [{ file: "worker/routes/pages.js", lineStart: 390, lineEnd: 486 }],
   "/small-business-seo-audit": [
-    { file: "worker/routes/pages.js", lineStart: 475, lineEnd: 522 },
-    { file: "worker/routes/pages.js", lineStart: 679, lineEnd: 821 }
+    { file: "worker/routes/pages.js", lineStart: 487, lineEnd: 534 },
+    { file: "worker/routes/pages.js", lineStart: 691, lineEnd: 807 }
   ],
   "/rendered-vs-static-seo-audit": [
-    { file: "worker/routes/pages.js", lineStart: 523, lineEnd: 586 },
-    { file: "worker/routes/pages.js", lineStart: 679, lineEnd: 821 }
+    { file: "worker/routes/pages.js", lineStart: 535, lineEnd: 598 },
+    { file: "worker/routes/pages.js", lineStart: 691, lineEnd: 807 }
   ],
   "/ai-answer-readiness": [
-    { file: "worker/routes/pages.js", lineStart: 587, lineEnd: 678 },
-    { file: "worker/routes/pages.js", lineStart: 679, lineEnd: 821 }
+    { file: "worker/routes/pages.js", lineStart: 599, lineEnd: 690 },
+    { file: "worker/routes/pages.js", lineStart: 691, lineEnd: 807 }
   ],
-  "/proof": [{ file: "worker/routes/pages.js", lineStart: 740, lineEnd: 866 }],
-  "/privacy": [{ file: "worker/routes/pages.js", lineStart: 912, lineEnd: 951 }],
-  "/support": [{ file: "worker/routes/pages.js", lineStart: 953, lineEnd: 986 }],
-  "/terms": [{ file: "worker/routes/pages.js", lineStart: 1070, lineEnd: 1120 }]
+  "/checklist": [
+    { file: "worker/routes/checklist.js", lineStart: 82, lineEnd: 133 },
+    { file: "worker/routes/pages.js", lineStart: 691, lineEnd: 807 }
+  ],
+  "/guides/best-seo-audit-tools": [
+    { file: "worker/routes/guides.js", lineStart: 41, lineEnd: 75 },
+    { file: "worker/routes/pages.js", lineStart: 691, lineEnd: 807 }
+  ],
+  "/guides/semrush-vs-alternatives": [
+    { file: "worker/routes/guides.js", lineStart: 77, lineEnd: 110 },
+    { file: "worker/routes/pages.js", lineStart: 691, lineEnd: 807 }
+  ],
+  "/guides/fast-hosting-for-seo": [
+    { file: "worker/routes/guides.js", lineStart: 112, lineEnd: 141 },
+    { file: "worker/routes/pages.js", lineStart: 691, lineEnd: 807 }
+  ],
+  "/proof": [{ file: "worker/routes/pages.js", lineStart: 834, lineEnd: 1004 }],
+  "/privacy": [{ file: "worker/routes/pages.js", lineStart: 1006, lineEnd: 1045 }],
+  "/support": [{ file: "worker/routes/pages.js", lineStart: 1047, lineEnd: 1081 }],
+  "/terms": [{ file: "worker/routes/pages.js", lineStart: 1082, lineEnd: 1132 }]
 };
 
 function latestCommitIsoIst(renderer) {
@@ -597,6 +617,42 @@ test("intent-matching landing pages carry unique, truthful, machine-readable pro
   assert.match(pages[2].html, /never claims to predict citations/);
   assert.match(pages[2].html, /Content relevance is the citation driver; technical health is the hygiene floor/);
   assert.doesNotMatch(pages[2].html, /live AI citation monitoring is live/i);
+});
+
+test("existing pages add internal guide links without outbound affiliate /go links", () => {
+  const smallBusiness = smallBusinessSeoAuditHtml(origin);
+  const methodology = methodologyHtml(origin);
+  const rendered = renderedVsStaticAuditHtml(origin);
+  const packages = packagesHtml(origin);
+  const check = checkHtml(origin);
+
+  assert.match(
+    smallBusiness,
+    new RegExp(`href="${origin}/guides/semrush-vs-alternatives"`),
+    "small-business limits copy must link Semrush vs alternatives"
+  );
+  assert.match(
+    methodology,
+    new RegExp(`href="${origin}/guides/best-seo-audit-tools"`),
+    "methodology limits must link the audit-tools guide for keyword/backlink research"
+  );
+  assert.match(
+    rendered,
+    new RegExp(`href="${origin}/guides/best-seo-audit-tools"`),
+    "rendered-vs-static crawler comparison must link the audit-tools guide"
+  );
+  assert.match(check, /Slow server response\? See fast hosting guide/);
+  assert.match(check, new RegExp(`${origin}/guides/fast-hosting-for-seo`));
+
+  for (const [name, html] of [
+    ["/small-business-seo-audit", smallBusiness],
+    ["/methodology", methodology],
+    ["/rendered-vs-static-seo-audit", rendered],
+    ["/packages", packages],
+    ["/check", check]
+  ]) {
+    assert.doesNotMatch(html, /\/go\//, `${name} must not add outbound affiliate /go links`);
+  }
 });
 
 test("public proof pages carry a site footer with terms and privacy links", () => {
@@ -868,7 +924,7 @@ test("static public skill and sitemap files keep buyer-facing boundaries", () =>
   const sitemap = readFileSync(new URL("../../public/sitemap.xml", import.meta.url), "utf8");
 
   assert.deepEqual(parseSitemapUrls(sitemap), expectedSitemapUrls);
-  for (const path of ["/demo", "/methodology", "/packages", "/check", "/proof", "/support", "/terms", "/small-business-seo-audit", "/rendered-vs-static-seo-audit", "/ai-answer-readiness"]) {
+  for (const path of ["/demo", "/methodology", "/packages", "/check", "/proof", "/support", "/terms", "/small-business-seo-audit", "/rendered-vs-static-seo-audit", "/ai-answer-readiness", "/checklist", "/guides/best-seo-audit-tools", "/guides/semrush-vs-alternatives", "/guides/fast-hosting-for-seo"]) {
     assert.match(skill, new RegExp(`${origin}${path}`));
     assert.match(sitemap, new RegExp(`${origin}${path}`));
   }
@@ -919,7 +975,7 @@ test("Cloudflare asset routing sends public proof pages through the Worker", () 
   );
   if (Array.isArray(runWorkerFirst)) {
     const covered = new Set(runWorkerFirst);
-    for (const path of ["/demo", "/methodology", "/packages", "/check", "/proof", "/support", "/terms", "/privacy", "/small-business-seo-audit", "/rendered-vs-static-seo-audit", "/ai-answer-readiness"]) {
+    for (const path of ["/demo", "/methodology", "/packages", "/check", "/proof", "/support", "/terms", "/privacy", "/small-business-seo-audit", "/rendered-vs-static-seo-audit", "/ai-answer-readiness", "/checklist", "/guides/best-seo-audit-tools", "/guides/semrush-vs-alternatives", "/guides/fast-hosting-for-seo"]) {
       assert.equal(covered.has(path), true, `${path} must be served by the Worker before SPA assets`);
     }
   }

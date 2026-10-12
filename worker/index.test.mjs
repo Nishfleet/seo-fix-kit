@@ -234,6 +234,30 @@ test("Worker dispatch serves apex-only canonicals, robots, sitemap, and llms.txt
   assert.match(llmsBody, /https:\/\/seofixkit\.com\/check/);
   assert.match(llmsBody, /https:\/\/seofixkit\.com\/proof/);
   assert.match(sitemapBody, /<loc>https:\/\/seofixkit\.com\/proof<\/loc>/);
+  assert.match(sitemapBody, /<loc>https:\/\/seofixkit\.com\/checklist<\/loc>/);
+  assert.match(sitemapBody, /<loc>https:\/\/seofixkit\.com\/guides\/best-seo-audit-tools<\/loc>/);
+});
+
+test("Worker dispatch serves guides, checklist, and /go redirects", async () => {
+  const env = await fakeWorkerEnv();
+
+  const guide = await worker.fetch(new Request("https://seofixkit.com/guides/best-seo-audit-tools"), env, fakeCtx());
+  assert.equal(guide.status, 200);
+  assert.match(await guide.text(), /Disclosure:/);
+
+  const checklist = await worker.fetch(new Request("https://seofixkit.com/checklist"), env, fakeCtx());
+  assert.equal(checklist.status, 200);
+  assert.match(await checklist.text(), /Proof-First Technical SEO Checklist/);
+
+  const csv = await worker.fetch(new Request("https://seofixkit.com/checklist.csv"), env, fakeCtx());
+  assert.equal(csv.status, 200);
+  assert.match(csv.headers.get("content-type") || "", /text\/csv/);
+  assert.match(await csv.text(), /1\. Indexing/);
+
+  const go = await worker.fetch(new Request("https://seofixkit.com/go/semrush"), env, fakeCtx());
+  assert.equal(go.status, 302);
+  assert.equal(go.headers.get("location"), "https://www.semrush.com/");
+  assert.match(go.headers.get("x-robots-tag") || "", /noindex/);
 });
 
 test("Worker dispatch serves the real before/after repair proof receipt", async () => {

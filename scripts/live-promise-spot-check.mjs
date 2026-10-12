@@ -254,6 +254,56 @@ export function publicPageSpotChecks(baseUrl) {
       ]
     },
     {
+      path: "/checklist",
+      name: "proof-first checklist stays public and downloadable",
+      isPage: true,
+      acceptStatuses: [200],
+      expectations: [
+        { reason: "checklist headline", match: "Proof-First Technical SEO Checklist" },
+        { reason: "rendered-page instruction", match: "rendered page" },
+        { reason: "CSV download", match: `href="${baseUrl}/checklist.csv"` },
+        { reason: "link to the one-page check", match: `href="${baseUrl}/check"` },
+        { reason: "link to audit-tools guide", match: `href="${baseUrl}/guides/best-seo-audit-tools"` },
+        { reason: "no ranking guarantee", match: "never guaranteed" }
+      ]
+    },
+    {
+      path: "/guides/best-seo-audit-tools",
+      name: "audit-tools guide keeps disclosure and sponsored /go links",
+      isPage: true,
+      acceptStatuses: [200],
+      expectations: [
+        { reason: "affiliate disclosure", match: "Disclosure:" },
+        { reason: "sponsored go link", match: 'rel="sponsored nofollow' },
+        { reason: "link to the one-page check", match: `href="${baseUrl}/check"` },
+        { reason: "link to the checklist", match: `href="${baseUrl}/checklist"` }
+      ]
+    },
+    {
+      path: "/guides/semrush-vs-alternatives",
+      name: "Semrush comparison guide keeps disclosure and no listed prices",
+      isPage: true,
+      acceptStatuses: [200],
+      expectations: [
+        { reason: "affiliate disclosure", match: "Disclosure:" },
+        { reason: "sponsored go link", match: 'rel="sponsored nofollow' },
+        { reason: "pricing note without listed prices", match: "We do not list prices here" },
+        { reason: "link to the one-page check", match: `href="${baseUrl}/check"` }
+      ]
+    },
+    {
+      path: "/guides/fast-hosting-for-seo",
+      name: "hosting guide keeps disclosure and no ranking promise",
+      isPage: true,
+      acceptStatuses: [200],
+      expectations: [
+        { reason: "affiliate disclosure", match: "Disclosure:" },
+        { reason: "sponsored go link", match: 'rel="sponsored nofollow' },
+        { reason: "no host ranking promise", match: "No host guarantees rankings" },
+        { reason: "link to the one-page check", match: `href="${baseUrl}/check"` }
+      ]
+    },
+    {
       path: "/proof",
       name: "real before/after repair receipt is published at /proof",
       isPage: true,
@@ -364,7 +414,9 @@ export function publicSurfaceSpotChecks(baseUrl) {
         { reason: "sitemap lists the proof loop", match: `<loc>${baseUrl}/demo</loc>` },
         { reason: "sitemap lists the limits page", match: `<loc>${baseUrl}/methodology</loc>` },
         { reason: "sitemap lists the package ladder", match: `<loc>${baseUrl}/packages</loc>` },
-        { reason: "sitemap lists the before/after receipt", match: `<loc>${baseUrl}/proof</loc>` }
+        { reason: "sitemap lists the before/after receipt", match: `<loc>${baseUrl}/proof</loc>` },
+        { reason: "sitemap lists the checklist", match: `<loc>${baseUrl}/checklist</loc>` },
+        { reason: "sitemap lists the audit-tools guide", match: `<loc>${baseUrl}/guides/best-seo-audit-tools</loc>` }
       ]
     },
     {
