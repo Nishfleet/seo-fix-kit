@@ -5,9 +5,15 @@ export function reportIdFromPath(pathname = window.location.pathname) {
   return match ? decodeURIComponent(match[1]) : "";
 }
 
-export function copyText(value) {
-  if (!value) return;
-  navigator.clipboard?.writeText(value);
+// Resolves true only when the value actually reached the clipboard.
+export async function copyText(value) {
+  if (!value || !navigator.clipboard) return false;
+  try {
+    await navigator.clipboard.writeText(value);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function trackingPayload(formStartedAt) {

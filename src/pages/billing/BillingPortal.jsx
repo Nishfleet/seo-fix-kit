@@ -76,7 +76,7 @@ export function BillingPortal() {
         description="Your plan, Fix Packs, and payment history. Payments are processed securely by Dodo Payments."
       />
 
-      {billingQuery.isError && !billing && (
+      {billingQuery.isError && (
         <LoadError
           message={billingQuery.error?.message || "We couldn’t load your billing details."}
           onRetry={() => billingQuery.refetch()}
