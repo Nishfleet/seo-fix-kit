@@ -472,6 +472,15 @@ test("machine-readable public surfaces list proof pages and limits", () => {
 // current sitemap and IndexNow payload use, and the discipline test must
 // agree with the published artefact rather than redefine the convention.
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+// Shared renderer pieces every worker-rendered page pulls in: the share-image
+// constants/meta (pages.js top) and ldBlock/publicAssetHead/siteHeader/
+// pageSocialHead. A change there changes every page's HTML.
+const SHARED_PUBLIC_HEAD = [
+  { file: "worker/routes/pages.js", lineStart: 1, lineEnd: 24 },
+  { file: "worker/routes/pages.js", lineStart: 151, lineEnd: 208 }
+];
+const PRODUCT_PAGE_SHELL = { file: "worker/routes/pages.js", lineStart: 717, lineEnd: 829 };
+const POLICY_PAGE_SHELL = { file: "worker/routes/pages.js", lineStart: 1155, lineEnd: 1189 };
 const PUBLIC_PAGE_RENDERERS = {
   "/": [
     // The SPA landing page component and the logo it renders.
@@ -479,26 +488,29 @@ const PUBLIC_PAGE_RENDERERS = {
     { file: "src/components/LogoMark.jsx", lineStart: 1, lineEnd: 20 },
     { file: "index.html", lineStart: 1, lineEnd: 100 }
   ],
-  "/demo": [{ file: "worker/routes/pages.js", lineStart: 156, lineEnd: 263 }],
-  "/check": [{ file: "worker/routes/public-check.js", lineStart: 296, lineEnd: 800 }],
-  "/methodology": [{ file: "worker/routes/pages.js", lineStart: 265, lineEnd: 375 }],
-  "/packages": [{ file: "worker/routes/pages.js", lineStart: 378, lineEnd: 472 }],
+  "/demo": [...SHARED_PUBLIC_HEAD, { file: "worker/routes/pages.js", lineStart: 210, lineEnd: 315 }],
+  "/check": [...SHARED_PUBLIC_HEAD, { file: "worker/routes/public-check.js", lineStart: 296, lineEnd: 566 }],
+  "/methodology": [...SHARED_PUBLIC_HEAD, { file: "worker/routes/pages.js", lineStart: 317, lineEnd: 415 }, PRODUCT_PAGE_SHELL],
+  "/packages": [...SHARED_PUBLIC_HEAD, { file: "worker/routes/pages.js", lineStart: 416, lineEnd: 512 }, PRODUCT_PAGE_SHELL],
   "/small-business-seo-audit": [
-    { file: "worker/routes/pages.js", lineStart: 475, lineEnd: 522 },
-    { file: "worker/routes/pages.js", lineStart: 679, lineEnd: 821 }
+    ...SHARED_PUBLIC_HEAD,
+    { file: "worker/routes/pages.js", lineStart: 513, lineEnd: 560 },
+    PRODUCT_PAGE_SHELL
   ],
   "/rendered-vs-static-seo-audit": [
-    { file: "worker/routes/pages.js", lineStart: 523, lineEnd: 586 },
-    { file: "worker/routes/pages.js", lineStart: 679, lineEnd: 821 }
+    ...SHARED_PUBLIC_HEAD,
+    { file: "worker/routes/pages.js", lineStart: 561, lineEnd: 624 },
+    PRODUCT_PAGE_SHELL
   ],
   "/ai-answer-readiness": [
-    { file: "worker/routes/pages.js", lineStart: 587, lineEnd: 678 },
-    { file: "worker/routes/pages.js", lineStart: 679, lineEnd: 821 }
+    ...SHARED_PUBLIC_HEAD,
+    { file: "worker/routes/pages.js", lineStart: 625, lineEnd: 716 },
+    PRODUCT_PAGE_SHELL
   ],
-  "/proof": [{ file: "worker/routes/pages.js", lineStart: 740, lineEnd: 866 }],
-  "/privacy": [{ file: "worker/routes/pages.js", lineStart: 912, lineEnd: 951 }],
-  "/support": [{ file: "worker/routes/pages.js", lineStart: 953, lineEnd: 986 }],
-  "/terms": [{ file: "worker/routes/pages.js", lineStart: 1070, lineEnd: 1120 }]
+  "/proof": [...SHARED_PUBLIC_HEAD, { file: "worker/routes/pages.js", lineStart: 830, lineEnd: 977 }],
+  "/privacy": [...SHARED_PUBLIC_HEAD, { file: "worker/routes/pages.js", lineStart: 1022, lineEnd: 1068 }],
+  "/support": [...SHARED_PUBLIC_HEAD, { file: "worker/routes/pages.js", lineStart: 1069, lineEnd: 1103 }, POLICY_PAGE_SHELL],
+  "/terms": [...SHARED_PUBLIC_HEAD, { file: "worker/routes/pages.js", lineStart: 1104, lineEnd: 1154 }, POLICY_PAGE_SHELL]
 };
 
 let lastGitLogOutput = "";

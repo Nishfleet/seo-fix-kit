@@ -3153,7 +3153,7 @@ export const ROOT_PUBLIC_PATHS = ["/", "/demo", "/check", "/methodology", "/pack
 
 // Truthful per-page last modification times (W3C datetime, Z-suffixed): the
 // commit timestamp of the last change to the code that renders each page —
-// for "/" the SPA landing page (src/pages/LandingPage.jsx), for the worker-rendered pages the
+// for "/" the SPA source (src/App.jsx), for the worker-rendered pages the
 // generator in worker/routes/pages.js or worker/routes/public-check.js.
 // Times follow the existing sitemap convention: the commit's local IST
 // datetime formatted with a Z suffix (technically not real UTC, but what
@@ -3165,17 +3165,17 @@ export const ROOT_PUBLIC_PATHS = ["/", "/demo", "/check", "/methodology", "/pack
 // cannot silently ship.
 export const ROOT_PUBLIC_LASTMODS = {
   "/": "2026-10-12T16:12:59Z",
-  "/demo": "2026-08-15T07:14:01Z",
-  "/check": "2026-08-19T12:56:07Z",
-  "/methodology": "2026-08-23T04:56:07Z",
-  "/packages": "2026-08-22T05:24:07Z",
-  "/small-business-seo-audit": "2026-08-21T15:52:53Z",
-  "/rendered-vs-static-seo-audit": "2026-08-22T12:07:56Z",
-  "/ai-answer-readiness": "2026-08-23T08:38:32Z",
-  "/privacy": "2026-08-15T10:43:48Z",
-  "/proof": "2026-08-15T10:43:48Z",
-  "/support": "2026-08-15T10:43:48Z",
-  "/terms": "2026-08-15T03:44:50Z"
+  "/demo": "2026-10-12T16:27:56Z",
+  "/check": "2026-10-12T16:27:56Z",
+  "/methodology": "2026-10-12T16:27:56Z",
+  "/packages": "2026-10-12T16:27:56Z",
+  "/small-business-seo-audit": "2026-10-12T16:27:56Z",
+  "/rendered-vs-static-seo-audit": "2026-10-12T16:27:56Z",
+  "/ai-answer-readiness": "2026-10-12T16:27:56Z",
+  "/privacy": "2026-10-12T16:27:56Z",
+  "/proof": "2026-10-12T16:27:56Z",
+  "/support": "2026-10-12T16:27:56Z",
+  "/terms": "2026-10-12T16:27:56Z"
 };
 
 export function rootSitemap(origin) {
