@@ -87,7 +87,7 @@
 
 .site-header .brand::before,
 .site-foot .brand::before {
-  background: url("/favicon.svg") center / contain no-repeat;
+  background: url("/brand/mark.svg") center / contain no-repeat;
   content: "";
   flex: none;
   height: 24px;

@@ -34,8 +34,15 @@
   <!-- Brand -->
   <g transform="translate(72 64)">
     <g transform="scale(0.6875)">
-      <rect width="64" height="64" rx="15" fill="#98f0cc"/>
-      <path d="M15.5 34.5 25.5 44.5 46 21M35.5 18H48.5V31" fill="none" stroke="#0b1210" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="0" y="0" width="18" height="18" rx="5" fill="#1f3b31"/>
+      <rect x="23" y="0" width="18" height="18" rx="5" fill="#1f3b31"/>
+      <rect x="46" y="0" width="18" height="18" rx="5" fill="#98f0cc"/>
+      <rect x="0" y="23" width="18" height="18" rx="5" fill="#98f0cc"/>
+      <rect x="23" y="23" width="18" height="18" rx="5" fill="#1f3b31"/>
+      <rect x="46" y="23" width="18" height="18" rx="5" fill="#98f0cc"/>
+      <rect x="0" y="46" width="18" height="18" rx="5" fill="#1f3b31"/>
+      <rect x="23" y="46" width="18" height="18" rx="5" fill="#98f0cc"/>
+      <rect x="46" y="46" width="18" height="18" rx="5" fill="#1f3b31"/>
     </g>
     <text x="60" y="30" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="650" letter-spacing="-0.4" fill="#fbf8ef">SEO Fix Kit</text>
   </g>
