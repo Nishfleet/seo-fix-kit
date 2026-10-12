@@ -3153,7 +3153,7 @@ export const ROOT_PUBLIC_PATHS = ["/", "/demo", "/check", "/methodology", "/pack
 
 // Truthful per-page last modification times (W3C datetime, Z-suffixed): the
 // commit timestamp of the last change to the code that renders each page —
-// for "/" the SPA source (src/App.jsx), for the worker-rendered pages the
+// for "/" the SPA landing page (src/pages/LandingPage.jsx), for the worker-rendered pages the
 // generator in worker/routes/pages.js or worker/routes/public-check.js.
 // Times follow the existing sitemap convention: the commit's local IST
 // datetime formatted with a Z suffix (technically not real UTC, but what

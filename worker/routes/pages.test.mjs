@@ -447,7 +447,9 @@ test("machine-readable public surfaces list proof pages and limits", () => {
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const PUBLIC_PAGE_RENDERERS = {
   "/": [
-    { file: "src/App.jsx", lineStart: 35, lineEnd: 400 },
+    // The SPA landing page component and the logo it renders.
+    { file: "src/pages/LandingPage.jsx", lineStart: 1, lineEnd: 250 },
+    { file: "src/components/LogoMark.jsx", lineStart: 1, lineEnd: 20 },
     { file: "index.html", lineStart: 1, lineEnd: 100 }
   ],
   "/demo": [{ file: "worker/routes/pages.js", lineStart: 156, lineEnd: 263 }],
