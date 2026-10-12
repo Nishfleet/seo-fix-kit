@@ -32,20 +32,22 @@
   box-sizing: border-box;
 }
 
+/* clip, not hidden: hidden makes these scroll containers, which pins the
+   sticky site header to them instead of the viewport. */
 html {
   min-width: 320px;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 body {
   margin: 0;
   min-width: 320px;
   background: #070908;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 #root {
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 button,

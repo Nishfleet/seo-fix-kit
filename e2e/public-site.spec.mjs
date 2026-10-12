@@ -97,11 +97,13 @@ test.describe("site header", () => {
     });
   }
 
-  test("stays on screen while the page scrolls", async ({ page }) => {
-    await page.goto("/pricing");
-    await page.mouse.wheel(0, 2000);
-    await expect(page.getByRole("banner")).toBeInViewport();
-  });
+  for (const path of ["/", "/pricing"]) {
+    test(`stays on screen while ${path} scrolls`, async ({ page }) => {
+      await page.goto(path);
+      await page.mouse.wheel(0, 2000);
+      await expect(page.getByRole("banner")).toBeInViewport();
+    });
+  }
 });
 
 test.describe("pricing", () => {
