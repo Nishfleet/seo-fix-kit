@@ -28,7 +28,7 @@ import { jsonNoStore } from "../lib/http.js";
 import { checkQuotaSet, requestIpHash, sha256Hex } from "../lib/security.js";
 import { dayWindow, hourWindow } from "../lib/text.js";
 import { auditUrl } from "./audits.js";
-import { SOCIAL_IMAGE_PATH, publicAssetHead, siteHeader, socialImageMeta } from "./pages.js";
+import { SOCIAL_IMAGE_PATH, publicAssetHead, siteFooter, siteHeader, socialImageMeta } from "./pages.js";
 
 export const CHECK_PAGE_PATH = "/check";
 export const PUBLIC_CHECK_API_PATH = "/api/public-check";
@@ -320,6 +320,7 @@ export function checkHtml(origin) {
       h1 { font-size: clamp(40px, 7.5vw, 84px); line-height: .95; margin: 0 0 20px; max-width: 820px; overflow-wrap: break-word; }
       h2 { font-size: clamp(22px, 3vw, 28px); line-height: 1.2; margin: 0 0 12px; }
       h3 { font-size: 17px; line-height: 1.4; margin: 24px 0 6px; }
+      .site-foot a { overflow-wrap: anywhere; }
       p, li { color: var(--ink-soft); font-size: 17px; line-height: 1.62; }
       .lead { font-size: clamp(18px, 2.2vw, 22px); line-height: 1.55; max-width: 760px; }
       .check-form { background: var(--surface); border: 1px solid var(--line-accent); border-radius: 12px; display: flex; flex-direction: column; gap: 12px; margin: 32px 0 8px; padding: 20px; }
@@ -352,8 +353,6 @@ export function checkHtml(origin) {
       .finding .snippet-label { color: var(--ink-muted); font-size: 12px; font-weight: 600; letter-spacing: .04em; margin: 10px 0 0; text-transform: uppercase; }
       .next-step { background: rgba(152,240,204,.05); border: 1px solid var(--line-accent); border-radius: 12px; margin: 40px 0 32px; padding: 20px 22px; }
       .next-step p:last-child { margin-bottom: 0; }
-      .page-links { border-top: 1px solid var(--line); padding-top: 24px; }
-      .page-links a { font-size: 14px; font-weight: 500; }
       .box-min { min-width: 0; }
       @media (max-width: 760px) { .grid, .measure-grid { grid-template-columns: 1fr; } .check-form .row { flex-direction: column; } main { padding-top: 24px; } }
     </style>
@@ -413,7 +412,7 @@ export function checkHtml(origin) {
         <p>To turn proof into a repair workflow, request a secure email access link: verified sessions get saved proof reports, crawl depth up to 1,000 pages per queued audit, and a repair queue with acceptance checks and one rerun after fixes.</p>
         <p><a class="cta" href="${origin}/">Request private access</a></p>
       </section>
-      <p class="page-links"><a href="${origin}/demo">View proof sample</a> · <a href="${origin}/methodology">Read methodology and limits</a> · <a href="${origin}/packages">View package ladder</a> · <a href="${origin}/support">Support and refunds</a> · <a href="${origin}/terms">Terms</a> · <a href="${origin}/privacy">Privacy</a></p>
+      ${siteFooter(origin)}
     </main>
     <script>
       (function () {

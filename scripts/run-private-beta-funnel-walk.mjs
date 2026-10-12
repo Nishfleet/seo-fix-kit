@@ -5,14 +5,14 @@ import { pathToFileURL } from "node:url";
 // risk: green]").
 //
 // The item's accept clause is: "ux-walk of https://seofixkit.com home →
-// /demo → /packages → access request (observe mode), console clean, links
+// /demo → /pricing → access request (observe mode), console clean, links
 // live, no mobile horizontal scroll; defects filed as fresh items". The
 // verify clause is: "walk JSON summarized in journal". This script does both
 // against the deployed Worker with a real browser (Playwright Chromium):
 //
 //   1. Walks the funnel stops in order on a desktop viewport and again on an
 //      iPhone-13 mobile viewport: home (where the private-beta access request
-//      form lives), /demo, and /packages. The mobile context is created
+//      form lives), /demo, and /pricing. The mobile context is created
 //      through buildContextOptions() and verified after launch (the applied
 //      viewport size is recorded per stop), so a "mobile" pass can never
 //      silently be a desktop pass again.
@@ -81,21 +81,21 @@ export function buildContextOptions({ width, height, isMobile = false, hasTouch 
 export const WALK_EXIT_CODES = { pass: 0, fail: 1, error: 2 };
 
 // The funnel stops in walk order, matching the item's accept clause
-// (home → /demo → /packages → access request). The access request lives on
-// the home stop; /demo and /packages are the public proof stops a visitor
+// (home → /demo → /pricing → access request). The access request lives on
+// the home stop; /demo and /pricing are the public proof stops a visitor
 // reaches from the home nav before deciding to request access.
 export const FUNNEL_STOPS = [
   {
     path: "/",
     name: "home",
     acceptStatuses: [200],
-    titlePattern: /SEO Fix Kit - Proof-Backed SEO Repair Beta/,
+    titlePattern: /SEO Fix Kit - SEO fixes you can prove/,
     copyChecks: [
-      { match: "Private beta access.", reason: "home keeps the locked private-beta copy" },
-      { match: "Email access link", reason: "home keeps the one-use email link CTA" },
-      { match: "for site owners and founders", reason: "home names the intended buyer in the first viewport" }
+      { match: "Now in private beta", reason: "home keeps the locked private-beta copy" },
+      { match: "Get started free", reason: "home keeps the one-use email link CTA" },
+      { match: "for site owners and founders", reason: "home names the intended buyer", ignoreCase: true }
     ],
-    expectedLinks: ["/demo", "/methodology", "/packages", "/check"],
+    expectedLinks: ["/demo", "/methodology", "/pricing", "/check"],
     accessForm: true
   },
   {
@@ -108,17 +108,17 @@ export const FUNNEL_STOPS = [
       { match: "false positive", reason: "demo shows the guarded-false-positive proof boundary", ignoreCase: true },
       { match: "sample", reason: "demo stays a sample, not an anonymous audit", ignoreCase: true }
     ],
-    expectedLinks: ["/", "/packages", "/check"]
+    expectedLinks: ["/", "/pricing", "/check"]
   },
   {
-    path: "/packages",
-    name: "packages",
+    path: "/pricing",
+    name: "pricing",
     acceptStatuses: [200],
-    titlePattern: /Packages - SEO Fix Kit/,
-    canonical: "/packages",
+    titlePattern: /Pricing - SEO Fix Kit/,
+    canonical: "/pricing",
     copyChecks: [
-      { match: "package ladder", reason: "packages shows the package ladder", ignoreCase: true },
-      { match: "No ranking or traffic guarantee", reason: "packages keeps the no-ranking boundary" }
+      { match: "Compare plans", reason: "pricing shows the plan comparison" },
+      { match: "No ranking or traffic guarantee", reason: "pricing keeps the no-ranking boundary" }
     ],
     expectedLinks: ["/", "/check", "/support"]
   }
@@ -133,7 +133,7 @@ export const ACCESS_FORM_EXPECTATIONS = {
   companySelector: "#company",
   companyTabIndex: "-1",
   companyAutocomplete: "off",
-  submitLabel: "Email access link"
+  submitLabel: "Get started free"
 };
 
 // Network request failures that are expected in a headless walk and are not
@@ -527,8 +527,8 @@ function hasContent(text, match, ignoreCase = false) {
 }
 
 // Compares an anchor href (possibly absolute, e.g. the Worker pages emit
-// href="https://seofixkit.com/packages") against an expected site path such
-// as "/packages". Query strings and hash fragments are ignored; absolute
+// href="https://seofixkit.com/pricing") against an expected site path such
+// as "/pricing". Query strings and hash fragments are ignored; absolute
 // anchors must be same-origin with the walked site.
 export function samePathname(anchor, expectedPath, baseUrl) {
   if (typeof anchor !== "string" || typeof expectedPath !== "string") return false;

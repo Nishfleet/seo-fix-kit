@@ -45,7 +45,7 @@ assert.equal(/\$299-\$799\/mo/.test(llms), false);
 assert.equal(app.includes("What happens after I enter a URL?"), true);
 assert.equal(app.includes("What does the paid Fix Pack include?"), true);
 assert.equal(app.includes("How is AI or GEO readiness handled?"), true);
-assert.equal(app.includes("What is not live yet?"), true);
+assert.equal(app.includes("What doesn’t SEO Fix Kit do?"), true);
 assert.equal(app.includes("does not auto-publish content"), true);
 assert.equal(app.includes("guarantee rankings, traffic, indexing, AI citations, or revenue"), true);
 for (const type of ["Organization", "WebSite", "SoftwareApplication", "FAQPage"]) {

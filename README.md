@@ -2,7 +2,7 @@
 
 SEO Fix Kit is a proof-backed SEO repair tool for sites that need clear fixes, not generic audit homework.
 
-The public homepage is currently a private-beta access page. Visitors can request a secure one-use email link or check one public page anonymously before requesting access; full multi-page audits stay inside the private beta.
+The public homepage explains the product and opens the private beta. Visitors can request a secure one-use email link or check one public page anonymously before requesting access; full multi-page audits stay inside the private beta. Plans and prices are on `/pricing` (`/packages` permanently redirects there), and common account URLs such as `/login` and `/signup` lead to the sign-in screen at `/beta`.
 
 It is not trying to replace Ahrefs or Semrush keyword and backlink databases. The first wedge is narrower and sharper:
 
@@ -43,7 +43,7 @@ It is not trying to replace Ahrefs or Semrush keyword and backlink databases. Th
 - Locked private-beta homepage with `/api/waitlist` and `/api/access/request` backed by D1.
 - First-party private-beta funnel instrumentation in D1 `access_events` with ordered steps `beta_view`, `beta_input`, `beta_submit`, `access_requested`, `access_link_sent`, `access_link_verified`, `session_created`, `audit_started`; `GET /admin/funnel` (admin token) returns per-step counts and conversion percentages for any 1-90 day window, and `POST /api/access/track` records a rate-limited client-side beacon so the homepage `beta_view` / `beta_input` events reach storage without any third-party analytics.
 - Public anonymous one-page URL check at `/check` and `POST /api/public-check`: real browser rendering of one public page, static-vs-rendered proof, guarded false positives, actionable findings when present, per-network and per-site rate limits with hashed, short-lived counters, no stored report, and a handoff into private beta access with no ranking promise.
-- Public `/demo`, `/methodology`, `/packages`, and `/proof` pages showing the proof loop, limits, package ladder, and a real before/after repair receipt (founder-owned Tiny Studio portfolio: 85/7 → 99/2 → 100/0 across the same measurement path, with consent and redaction) before payment.
+- Public `/demo`, `/methodology`, `/pricing`, and `/proof` pages showing the proof loop, limits, plans and prices, and a real before/after repair receipt (founder-owned Tiny Studio portfolio: 85/7 → 99/2 → 100/0 across the same measurement path, with consent and redaction) before payment.
 - Intent-matching public landing pages at `/small-business-seo-audit`, `/rendered-vs-static-seo-audit`, and `/ai-answer-readiness`, each with unique title and meta, a visible FAQ rendered from the same source as FAQPage JSON-LD, truthful SoftwareApplication schema, and links into `/check` and `/demo`; none claim live AI-engine sampling or AI citation monitoring. The rendered-vs-static page frames its proof as AI crawler visibility: Search Engine Journal confirms GPTBot, ClaudeBot, PerplexityBot, and CCBot fetch raw HTML without executing JavaScript, so the raw-HTML side of the rendered-vs-static diff is what those crawlers can see.
 - Credential-free IndexNow submission path for Bing (and Bing-derived DuckDuckGo) search coverage: the Worker serves the IndexNow key file at `/{key}.txt` and `/.well-known/{key}.txt` (apex-only, `noindex`), and `npm run submit:indexnow` verifies the key file is live before POSTing the live sitemap URL set to the IndexNow endpoints; the sitemap carries truthful per-page `<lastmod>` freshness hints for all public URLs.
 - Hidden `/beta` private audit workbench protected by invite code login or a secure one-use email access link.
@@ -129,9 +129,9 @@ drift and `npm run format` rewrites files; the existing code has not been
 bulk-reformatted, so format only the files you touch (`npx prettier --write <files>`).
 `npm run lint:fix` applies ESLint autofixes.
 
-For a live spot-check that the public `/check`, `/demo`, `/methodology`, `/packages`,
+For a live spot-check that the public `/check`, `/demo`, `/methodology`, `/pricing`,
 `/proof`, `/support`, `/terms`, and `/privacy` pages on the deployed site still show the anonymous
-proof check, proof loop, stated limits, package ladder, real before/after repair receipt, and
+proof check, proof loop, stated limits, plans and prices, real before/after repair receipt, and
 no-ranking promise the README makes, that `/llms.txt`, `/sitemap.xml`, `/robots.txt`, `/api/health`,
 `/api/deep-health`, and the `POST /api/public-check` route are still served, and that
 `www.seofixkit.com` still 301-redirects onto the apex host:
@@ -158,7 +158,7 @@ which runs inside `npm run check`.
 
 For the repeatable live walk of the private-beta funnel (the backlog item
 "Live-surface walk of the private-beta funnel"): a real-browser (Playwright
-Chromium) walk of the funnel stops home → `/demo` → `/packages`, with the
+Chromium) walk of the funnel stops home → `/demo` → `/pricing`, with the
 access request form inspected in observe mode only (never submitted, so no
 waitlist lead or access token is created), on desktop and an iPhone-13 mobile
 viewport. It verifies each stop serves the expected title, canonical where one
@@ -194,7 +194,7 @@ invitation copy, both prepared 2026-08-12) lives at
 The Worker in `worker/index.js` is the only backend, locally and in production. The deployable path is:
 
 - React UI served by Workers Static Assets from `dist/`
-- Public `/check`, `/demo`, `/methodology`, `/packages`, `/proof`, `/small-business-seo-audit`, `/rendered-vs-static-seo-audit`, `/ai-answer-readiness`, `/privacy`, `/support`, `/terms`, `/sitemap.xml`, and `/llms.txt` stay served by the Worker/public asset path
+- Public `/check`, `/demo`, `/methodology`, `/pricing`, `/proof`, `/small-business-seo-audit`, `/rendered-vs-static-seo-audit`, `/ai-answer-readiness`, `/privacy`, `/support`, `/terms`, `/sitemap.xml`, and `/llms.txt` stay served by the Worker/public asset path
 - `/api/health` is a shallow public runtime check; `/api/deep-health` is a public-safe readiness check for bindings, D1 schema, Dodo checkout/webhook config, and self-serve repair capabilities without exposing secrets, provider ids, checkout URLs, customer data, or table counts
 - `/api/public-check` runs the anonymous one-page URL check for any visitor: one public page rendered in a real browser, proof fields and guarded false positives from the shared audit engine, findings when present, per-network and per-site rate limits with hashed, short-lived counters, and no stored report; `/check` is the indexable public entry page
 - `/api/waitlist` handled by `worker/index.js` and stored in D1

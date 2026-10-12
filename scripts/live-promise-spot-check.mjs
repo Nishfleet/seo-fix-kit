@@ -2,7 +2,7 @@ import { pathToFileURL } from "node:url";
 
 // Live spot-check for the public promise surfaces the README "What is live in
 // this repo" section relies on: /demo (proof loop), /methodology (limits),
-// /packages (package ladder), /check (anonymous one-page check), the
+// /pricing (plans and prices), /check (anonymous one-page check), the
 // no-ranking /support, /terms, and /privacy pages, the machine surfaces
 // the README says stay served by the Worker (/llms.txt, /sitemap.xml,
 // /robots.txt, /api/health, /api/deep-health, and the POST /api/public-check
@@ -133,7 +133,7 @@ export function publicPageSpotChecks(baseUrl) {
         { reason: "no-overclaim section", match: "What this sample does not claim" },
         { reason: "snippet qualifier stays engine-capable", match: "an exact snippet when the engine can generate one" },
         { reason: "link to methodology limits", match: `href="${baseUrl}/methodology"` },
-        { reason: "link to package ladder", match: `href="${baseUrl}/packages"` },
+        { reason: "link to pricing", match: `href="${baseUrl}/pricing"` },
         { reason: "link to terms", match: `href="${baseUrl}/terms"` },
         { reason: "link to privacy", match: `href="${baseUrl}/privacy"` }
       ]
@@ -170,21 +170,18 @@ export function publicPageSpotChecks(baseUrl) {
       ]
     },
     {
-      path: "/packages",
-      name: "packages page shows the package ladder before payment",
+      path: "/pricing",
+      name: "pricing page shows plans and the Fix Pack price before payment",
       isPage: true,
       acceptStatuses: [200],
       expectations: [
-        { reason: "ladder headline", match: "Package ladder" },
-        { reason: "fix pack offer", match: "SEO Fix Pack" },
+        { reason: "pricing headline", match: "Free to find it. Pay only to fix it." },
+        { reason: "fix pack offer", match: "Fix Pack" },
         { reason: "public fix pack price", match: "$99.00 one-time" },
-        { reason: "Dodo is the final price source", match: "Dodo shows the final checkout price" },
-        { reason: "Proof Monitoring is config-gated", match: "Config-gated subscription" },
-        { reason: "Proof Monitoring checkout gated, offer visible", match: "Checkout only opens when the Dodo subscription product and webhook entitlement sync are configured" },
-        { reason: "roadmap packages marked", match: "Roadmap" },
-        { reason: "names the GEO Auditor agent-fix comparison", match: "Compared with GEO Auditor" },
-        { reason: "names the $29 Agent Fix Mode tier", match: "Agent Fix Mode" },
-        { reason: "approval-first wedge answer present", match: "approval-first repair queue" },
+        { reason: "final price shown at checkout", match: "the final price including any local tax is shown at checkout before you pay" },
+        { reason: "Proof Monitoring not on sale", match: "a paid plan is not on sale yet" },
+        { reason: "no ranking promise", match: "No ranking or traffic guarantee is made" },
+        { reason: "names the $29 Agent Fix Mode trade-off", match: "Agent Fix Mode" },
         { reason: "link to terms", match: `href="${baseUrl}/terms"` },
         { reason: "link to privacy", match: `href="${baseUrl}/privacy"` }
       ]
@@ -272,7 +269,7 @@ export function publicPageSpotChecks(baseUrl) {
         { reason: "no CMS/GitHub-publishing boundary", match: "SEO Fix Kit did not publish CMS changes, open GitHub pull requests, merge code" },
         { reason: "markdown receipt CTA", match: `href="${baseUrl}/proof.md"` },
         { reason: "link to methodology limits", match: `href="${baseUrl}/methodology"` },
-        { reason: "link to package ladder", match: `href="${baseUrl}/packages"` }
+        { reason: "link to pricing", match: `href="${baseUrl}/pricing"` }
       ]
     },
     {
@@ -363,7 +360,7 @@ export function publicSurfaceSpotChecks(baseUrl) {
         { reason: "sitemap lists the one-page check", match: `<loc>${baseUrl}/check</loc>` },
         { reason: "sitemap lists the proof loop", match: `<loc>${baseUrl}/demo</loc>` },
         { reason: "sitemap lists the limits page", match: `<loc>${baseUrl}/methodology</loc>` },
-        { reason: "sitemap lists the package ladder", match: `<loc>${baseUrl}/packages</loc>` },
+        { reason: "sitemap lists pricing", match: `<loc>${baseUrl}/pricing</loc>` },
         { reason: "sitemap lists the before/after receipt", match: `<loc>${baseUrl}/proof</loc>` }
       ]
     },
