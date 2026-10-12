@@ -48,7 +48,10 @@ function flag() {
 
 // Optional plain object (for example `utm` or `billing_address`).
 function record() {
-  return z.record(z.string(), z.unknown()).nullish().transform((value) => value || {});
+  return z
+    .record(z.string(), z.unknown())
+    .nullish()
+    .transform((value) => value || {});
 }
 
 // --- Identifiers and formats -----------------------------------------------
@@ -69,7 +72,10 @@ function email(message = "Enter a valid email address.") {
 
 // Optional email: "" when absent, blank, or not a valid address.
 function optionalEmail() {
-  return z.unknown().optional().transform((value) => parsedOrEmpty(emailSchema, String(value || "")));
+  return z
+    .unknown()
+    .optional()
+    .transform((value) => parsedOrEmpty(emailSchema, String(value || "")));
 }
 
 const inviteCodeSchema = z
@@ -121,10 +127,18 @@ function body(shape, aliases = {}) {
   }, schema);
 }
 
+function typeName(expected) {
+  if (expected === "string") return "text";
+  return `${/^[aeiou]/.test(expected) ? "an" : "a"} ${expected}`;
+}
+
 function describeIssue(issue) {
   const field = issue.path?.length ? issue.path.join(".") : "Request body";
-  if (issue.code === "invalid_type") {
-    return `${field} must be ${issue.expected === "string" ? "text" : `a ${issue.expected}`}.`;
+  if (issue.code === "invalid_type") return `${field} must be ${typeName(issue.expected)}.`;
+  // A union of plain types (text or a number, text or a list) failed on type.
+  if (issue.code === "invalid_union" && issue.errors?.length) {
+    const expected = issue.errors.map((branch) => branch[0]?.code === "invalid_type" && branch[0].expected);
+    if (expected.every(Boolean)) return `${field} must be ${expected.map(typeName).join(" or ")}.`;
   }
   if (issue.code === "too_big") return `${field} is too long or too large.`;
   if (issue.code === "too_small") return `${field} is too short or too small.`;

@@ -14,6 +14,38 @@ import {
 } from "../lib/report-data.js";
 import { fixRequestResponse, repairProposalResponse } from "../lib/serializers.js";
 import { cleanText, isSafeReportId, isSafeUuid, normalizeEmail, parseJson } from "../lib/text.js";
+import { body, parseJsonBody, text, z } from "../lib/validation.js";
+
+// Unknown roles fall back to "editor" (see cleanTeamRole).
+const TeamMemberBody = body({
+  email: z.string().nullish(),
+  memberEmail: z.string().nullish(),
+  name: text(120),
+  memberName: text(120),
+  role: text(40)
+});
+
+const CollaborationItemBody = body({
+  issueId: text(160),
+  issue_id: text(160),
+  assigneeEmail: z.string().nullish(),
+  assignee_email: z.string().nullish(),
+  status: text(40),
+  note: text(1200)
+});
+
+const CollaborationBody = body({
+  items: z
+    .array(CollaborationItemBody, { error: "Send collaboration items as a list." })
+    .nullish()
+    .transform((items) => items || [])
+});
+
+const RepairProposalApprovalBody = body({
+  action: text(40),
+  ownerNote: text(1000),
+  owner_note: text(1000)
+});
 
 const REPAIR_PROPOSAL_ACTIVE_FIX_REQUEST_STATUSES = new Set(["paid", "in_progress"]);
 
@@ -28,10 +60,12 @@ async function getTeamMembers(request, env) {
 }
 
 async function createTeamMember(request, env) {
-  const body = await request.json().catch(() => ({}));
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
   if (!env.WAITLIST_DB) return json({ error: "Team collaboration storage is not configured." }, 503);
+  const parsed = await parseJsonBody(request, TeamMemberBody);
+  if (parsed.error) return jsonNoStore(parsed.error, 400);
+  const body = parsed.data;
   const memberEmail = normalizeEmail(body.email || body.memberEmail);
   if (!memberEmail) return jsonNoStore({ error: "Enter a valid teammate email." }, 400);
   if (memberEmail === access.ownerEmail) return jsonNoStore({ error: "You are already the workspace owner." }, 400);
@@ -75,7 +109,7 @@ async function createTeamMember(request, env) {
     id: crypto.randomUUID(),
     owner_email: access.ownerEmail,
     member_email: memberEmail,
-    member_name: cleanText(body.name || body.memberName || "", 120),
+    member_name: body.name || body.memberName,
     role: cleanTeamRole(body.role),
     status: "active",
     created_at: now,
@@ -136,16 +170,18 @@ async function getReportCollaboration(request, env) {
 }
 
 async function saveReportCollaboration(request, env) {
-  const body = await request.json().catch(() => ({}));
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
   if (!env.WAITLIST_DB) return json({ error: "Team collaboration storage is not configured." }, 503);
+  const parsed = await parseJsonBody(request, CollaborationBody);
+  if (parsed.error) return jsonNoStore(parsed.error, 400);
+  const body = parsed.data;
   const url = new URL(request.url);
   const reportId = reportIdFromSuffixPath(url.pathname, "/collaboration");
   const row = await ownerReportRow(env, reportId, access);
   if (!row) return json({ error: "Report not found." }, 404);
   const report = parseJson(row.report_json, {});
-  const result = await saveIssueCollaborations(env, access, reportId, report, body.items || []);
+  const result = await saveIssueCollaborations(env, access, reportId, report, body.items);
   if (!result.ok) return jsonNoStore({ error: result.error }, 400);
   return jsonNoStore(await reportCollaborationResponse(env, access, reportId, report));
 }
@@ -175,8 +211,10 @@ async function updateRepairProposalApproval(request, env) {
     .first();
   if (!existing?.id) return json({ error: "Repair proposal not found." }, 404);
 
-  const body = await request.json().catch(() => ({}));
-  const action = cleanText(body.action || "", 40).toLowerCase();
+  const parsed = await parseJsonBody(request, RepairProposalApprovalBody);
+  if (parsed.error) return jsonNoStore(parsed.error, 400);
+  const body = parsed.data;
+  const action = body.action.toLowerCase();
   if (!["approve", "dismiss"].includes(action)) {
     return jsonNoStore({ error: "Choose approve or dismiss." }, 400);
   }
@@ -187,7 +225,7 @@ async function updateRepairProposalApproval(request, env) {
     return jsonNoStore({ error: "This repair item is not executable yet and cannot be approved for delivery." }, 400);
   }
   const now = new Date().toISOString();
-  const ownerNote = cleanText(body.ownerNote || body.owner_note || "", 1000);
+  const ownerNote = body.ownerNote || body.owner_note;
   const nextApprovalStatus = action === "approve" ? "approved" : "dismissed";
   const updateResult = await env.WAITLIST_DB.prepare(
     `UPDATE repair_proposals

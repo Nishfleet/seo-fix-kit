@@ -27,11 +27,15 @@ import { resolvesToPrivateAddress } from "../../shared/url-safety.js";
 import { jsonNoStore } from "../lib/http.js";
 import { checkQuotaSet, requestIpHash, sha256Hex } from "../lib/security.js";
 import { dayWindow, hourWindow } from "../lib/text.js";
+import { body, parseJsonBody, z } from "../lib/validation.js";
 import { auditUrl } from "./audits.js";
 import { SOCIAL_IMAGE_PATH, publicAssetHead, siteHeader, socialImageMeta } from "./pages.js";
 
 export const CHECK_PAGE_PATH = "/check";
 export const PUBLIC_CHECK_API_PATH = "/api/public-check";
+
+// The URL stays raw: validatePublicCheckUrl() normalizes and vets it.
+const PublicCheckBody = body({ url: z.string().nullish() });
 
 // Rate limits for the anonymous surface. Deliberately small: the point is a
 // proof preview, not a free full audit. Buckets live in the existing
@@ -190,9 +194,9 @@ export function buildPublicCheckResponse(report) {
 // site, so the database never holds a readable target hostname, URL, or
 // visitor identifier.
 export async function runPublicCheck(request, env) {
-  const body = await request.json().catch(() => ({}));
-  const input = typeof body?.url === "string" ? body.url : "";
-  const validated = validatePublicCheckUrl(input);
+  const parsed = await parseJsonBody(request, PublicCheckBody);
+  if (parsed.error) return jsonNoStore(parsed.error, 400);
+  const validated = validatePublicCheckUrl(parsed.data.url || "");
   if (!validated.ok) {
     return jsonNoStore({ error: validated.error }, 400);
   }

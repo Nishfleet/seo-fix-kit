@@ -215,8 +215,8 @@ app.use("*", async (c, next) => {
 });
 
 // A JSON body that does not parse is a client error. Handlers read bodies with
-// `request.json().catch(() => ({}))`, which would otherwise treat a malformed
-// payload as an empty one and answer with a misleading field-level error.
+// `parseJsonBody()`, which treats a malformed payload as an empty one and
+// would otherwise answer with a misleading field-level error.
 // Empty bodies stay allowed; the Dodo webhook verifies its own raw body.
 const JSON_BODY_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 

@@ -23,6 +23,55 @@ import {
 import { repairTableAll } from "./repair-tables.js";
 import { reportJsonForRow } from "./report-data.js";
 import { cleanText, parseJson } from "./text.js";
+import { body, text, z } from "./validation.js";
+
+// Request bodies for the repair queue and repair actions, shared by the beta
+// app routes and the public v1 API. The state, mode, and type fields stay
+// `unknown` because the shared repair rules check whether each key is present
+// and answer an unknown value with their own message. Both camelCase and
+// snake_case keys are kept since those rules read both.
+const repairQueueItemFields = {
+  issueId: text(160),
+  issue_id: text(160),
+  status: z.unknown().optional(),
+  actionMode: z.unknown().optional(),
+  action_mode: z.unknown().optional(),
+  rerunStatus: z.unknown().optional(),
+  rerun_status: z.unknown().optional()
+};
+
+// One queue item, either as `items: [item]` or as the body itself.
+const RepairQueuePatchBody = body({
+  ...repairQueueItemFields,
+  items: z.array(body(repairQueueItemFields)).nullish()
+});
+
+const RepairActionCreateBody = body({
+  issueId: text(160),
+  issue_id: text(160),
+  proposedChange: text(4000),
+  proposed_change: text(4000),
+  acceptance: text(1000),
+  actionMode: z.unknown().optional(),
+  action_mode: z.unknown().optional(),
+  actionType: z.unknown().optional(),
+  action_type: z.unknown().optional()
+});
+
+// The rerun report id keys are read with `??`, so an absent key must stay
+// absent rather than become "".
+const RepairActionPatchBody = body({
+  approvalState: z.unknown().optional(),
+  approval_state: z.unknown().optional(),
+  executionState: z.unknown().optional(),
+  execution_state: z.unknown().optional(),
+  rerunState: z.unknown().optional(),
+  rerun_state: z.unknown().optional(),
+  rerunReportId: z.string().nullish(),
+  rerun_report_id: z.string().nullish(),
+  lastRerunReportId: z.string().nullish(),
+  last_rerun_report_id: z.string().nullish()
+});
 
 async function saveRepairQueueItems(env, access, reportId, report, body = {}) {
   const ensured = await ensureRepairQueueRows(env, access, reportId, report);
@@ -426,6 +475,9 @@ function repairActionError(error, status = 400) {
 }
 
 export {
+  RepairActionCreateBody,
+  RepairActionPatchBody,
+  RepairQueuePatchBody,
   createRepairActionRecord,
   ensureRepairQueueRows,
   saveRepairQueueItems,
