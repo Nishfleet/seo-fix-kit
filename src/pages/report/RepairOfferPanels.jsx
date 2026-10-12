@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { repairSprintEligibilityFromProposals } from "../../../shared/offers.js";
 import { apiErrorMessage, apiRequest } from "../../api.js";
@@ -100,6 +100,7 @@ export function FixRequestStatusPanel({ fixRequest, checkoutReturned }) {
 export function RepairProposalPanel({ reportId, initialProposals = [], repairSprint = null }) {
   // Proposals come from the report; approvals made here override them by id.
   const [updatedById, setUpdatedById] = useState({});
+  const queryClient = useQueryClient();
   const proposals = initialProposals.map((proposal) => updatedById[proposal.id] || proposal);
   const [savingId, setSavingId] = useState("");
   const [sprintCheckoutStatus, setSprintCheckoutStatus] = useState("idle");
@@ -121,6 +122,8 @@ export function RepairProposalPanel({ reportId, initialProposals = [], repairSpr
       return;
     }
     setUpdatedById((current) => ({ ...current, [proposal.id]: result.proposal }));
+    // Keep the cached report (and its Repair Sprint eligibility) in step.
+    queryClient.invalidateQueries({ queryKey: queryKeys.report(reportId), exact: true });
     // A later success must clear the styling left by an earlier failed checkout.
     setSprintCheckoutStatus("idle");
     showMessage(action === "approve" ? "Repair approved." : "Repair dismissed.");

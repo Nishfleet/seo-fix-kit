@@ -12,7 +12,7 @@ import {
   sendUrgentOpsAlerts,
   updateFixRequestAdmin
 } from "./routes/admin.js";
-import { getAccountSummary } from "./routes/account.js";
+import { getAccountSummary, listReports } from "./routes/account.js";
 import { json, secureHeaders, withPrivateHeaders, withSecurityHeaders } from "./lib/http.js";
 import { getDeepHealth } from "./routes/health.js";
 import { isSafeUuid } from "./lib/text.js";
@@ -271,6 +271,7 @@ app.post("/api/webhooks/dodo", route(handleDodoWebhook));
 
 // --- Account, team, branding, developer settings -----------------------------
 app.get("/api/account/summary", route(getAccountSummary));
+app.get("/api/reports", route(listReports));
 app.get("/api/developer", route(getDeveloperApiSummary));
 app.post("/api/developer/tokens", route(createDeveloperApiToken));
 app.delete("/api/developer/tokens/:id", route(revokeDeveloperApiToken));

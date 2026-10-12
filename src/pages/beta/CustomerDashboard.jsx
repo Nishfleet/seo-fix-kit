@@ -1,8 +1,11 @@
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { Link } from "react-router";
 import StatusMessage from "../../StatusMessage.jsx";
 import { PageHeader } from "../../components/AppShell.jsx";
 import { Metric } from "../../components/Metric.jsx";
 import { copyText } from "../../lib/browser.js";
+import { queryKeys } from "../../lib/queries.js";
+import { fetchReportsPage } from "../../lib/requests.js";
 import { hostKey, formatDate, safeHostnameLabel, safeUrlLabel } from "../../lib/format.js";
 import {
   repairStatusLabel,
@@ -174,7 +177,16 @@ function ScoreBadge({ score }) {
 // Reports: audits that are still running, every saved report, and Fix Pack
 // status.
 export function ReportsPage({ accountData, message, status }) {
-  const reports = accountData?.recentReports || [];
+  // The account summary only carries the newest few; this lists every report.
+  const reportPages = useInfiniteQuery({
+    queryKey: queryKeys.reports,
+    queryFn: ({ pageParam }) => fetchReportsPage(pageParam),
+    initialPageParam: "",
+    getNextPageParam: (lastPage) => lastPage.nextCursor || undefined
+  });
+  const reports = reportPages.data
+    ? reportPages.data.pages.flatMap((page) => page.reports || [])
+    : accountData?.recentReports || [];
   const auditJobs = (accountData?.recentAuditJobs || []).filter((job) => !job.reportPath);
   const fixRequests = accountData?.fixRequests || [];
   return (
@@ -213,6 +225,16 @@ export function ReportsPage({ accountData, message, status }) {
           <h2 id="all-reports-title">Saved reports</h2>
         </div>
         <ReportRows reports={reports} />
+        {reportPages.hasNextPage && (
+          <button
+            className="app-button-secondary app-load-more"
+            disabled={reportPages.isFetchingNextPage}
+            onClick={() => reportPages.fetchNextPage()}
+            type="button"
+          >
+            {reportPages.isFetchingNextPage ? "Loading…" : "Show older reports"}
+          </button>
+        )}
       </section>
       <section className="app-card" aria-labelledby="fix-packs-title">
         <div className="app-card-head">

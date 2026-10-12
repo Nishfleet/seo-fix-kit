@@ -16,6 +16,7 @@ export const queryClient = new QueryClient({
 export const queryKeys = {
   session: ["session"],
   account: ["account-summary"],
+  reports: ["reports"],
   developer: ["developer"],
   billing: ["billing-summary"],
   pricing: ["pricing-preview"],

@@ -4692,3 +4692,7 @@ a.app-table-row:hover {
 .signin-alt .text-button {
   padding: 6px 4px;
 }
+
+.app-load-more {
+  margin-top: 14px;
+}

@@ -57,6 +57,11 @@ export async function fetchAccountSummary() {
   return apiFetch("/api/account/summary", { fallbackError: "Could not load your workspace." });
 }
 
+export async function fetchReportsPage(cursor = "") {
+  const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : "";
+  return apiFetch(`/api/reports${query}`, { fallbackError: "Could not load your reports." });
+}
+
 export async function fetchDeveloperSummary() {
   return apiFetch("/api/developer", { fallbackError: "Could not load developer API." });
 }

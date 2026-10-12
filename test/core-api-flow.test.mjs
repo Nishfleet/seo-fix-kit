@@ -772,6 +772,34 @@ test("one owner's API key cannot read or change another owner's data", async () 
 
 // --- Account summary ------------------------------------------------------------
 
+test("GET /api/reports pages through every unexpired report of the signed-in owner", async () => {
+  const world = createWorld();
+  const session = signIn(world, OWNER);
+  const ids = Array.from({ length: 30 }, (_, index) => `shop-example-com-list-${String(index).padStart(3, "0")}`);
+  for (const id of ids) seedReport(world, { id, ownerEmail: OWNER });
+  seedReport(world, { id: "shop-example-com-list-expired", ownerEmail: OWNER, expiresAt: isoFromNow(-60_000) });
+  seedReport(world, { id: "rival-example-org-list-001", ownerEmail: OTHER, url: "https://rival.example.org/" });
+
+  const first = await call(world, "/api/reports", { session });
+  assert.equal(first.status, 200);
+  assert.match(first.headers.get("cache-control") || "", /no-store/);
+  const page1 = await first.json();
+  assert.equal(page1.reports.length, 25);
+  assert.ok(page1.nextCursor, "a second page is offered");
+
+  const page2 = await (
+    await call(world, `/api/reports?cursor=${encodeURIComponent(page1.nextCursor)}`, { session })
+  ).json();
+  assert.equal(page2.reports.length, 5);
+  assert.equal(page2.nextCursor, "", "the last page offers no cursor");
+
+  const listed = [...page1.reports, ...page2.reports].map((report) => report.id);
+  assert.deepEqual([...listed].sort(), [...ids].sort(), "every live report appears exactly once");
+  assert.equal(page1.reports[0].reportPath, `/beta/reports/${page1.reports[0].id}`);
+
+  assert.equal((await call(world, "/api/reports")).status, 401);
+});
+
 test("GET /api/account/summary returns only the signed-in owner's data", async () => {
   const world = createWorld();
   const session = signIn(world, OWNER);
