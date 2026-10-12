@@ -292,7 +292,7 @@ test("Worker dispatch serves the real before/after repair proof receipt", async 
   assert.equal(proof.status, 200);
   assert.match(proof.headers.get("content-type"), /text\/html; charset=utf-8/);
   const proofBody = await proof.text();
-  assert.match(proofBody, /One real repair, with the same measurement path before and after\./);
+  assert.match(proofBody, /85 to 100, with a receipt for every step\./);
   assert.match(proofBody, /Score <strong>85<\/strong>\/100 &middot; 7 findings/);
   assert.match(proofBody, /Score <strong>99<\/strong>\/100 &middot; 2 findings/);
   assert.match(proofBody, /Score <strong>100<\/strong>\/100 &middot; 0 findings/);

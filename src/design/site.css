@@ -492,6 +492,48 @@
   color: var(--ink);
 }
 
+/* ------------------------------------------------------------ Closing CTA */
+
+/* siteCtaBand() in worker/routes/pages.js: a dark island that closes every
+   marketing page with a next step. */
+.site-cta {
+  background:
+    radial-gradient(70% 120% at 100% 0%, rgba(152, 240, 204, 0.16), transparent 60%),
+    radial-gradient(50% 90% at 0% 100%, rgba(214, 177, 95, 0.1), transparent 60%), var(--bg);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  margin: var(--space-64) 0 0;
+  padding: clamp(32px, 6vw, 64px);
+}
+
+.site-cta h2 {
+  font-size: clamp(28px, 3.6vw, 40px);
+  letter-spacing: var(--tracking-heading);
+  line-height: 1.12;
+  margin: 0;
+  max-width: 18ch;
+}
+
+.site-cta p {
+  color: var(--ink-soft);
+  font-size: var(--text-18);
+  margin: var(--space-16) 0 0;
+  max-width: 34em;
+}
+
+.site-cta-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-12);
+  margin-top: var(--space-32);
+}
+
+@media (max-width: 480px) {
+  .site-cta-actions .btn {
+    width: 100%;
+  }
+}
+
 /* ---------------------------------------------------------------- Buttons */
 
 /* `.cta` is the historical class on page CTAs; it shares .btn-primary. */
