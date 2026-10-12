@@ -312,7 +312,7 @@ export async function loadBillingSummary(setBilling, setStatus, setMessage) {
     const payload = await apiFetch("/api/billing/summary", { fallbackError: "Could not load billing." });
     setBilling(payload);
     setStatus("success");
-    setMessage("Billing loaded.");
+    setMessage("");
   } catch (error) {
     setStatus("error");
     setMessage(error.message || "Could not load billing.");
@@ -334,7 +334,7 @@ export async function loadAdmin(token, setAdminData, setAdminStatus, setAdminMes
     });
     setAdminData(payload);
     setAdminStatus("success");
-    setAdminMessage("Ops loaded.");
+    setAdminMessage("");
   } catch (error) {
     setAdminStatus("error");
     setAdminMessage(error.message || "Could not load ops.");

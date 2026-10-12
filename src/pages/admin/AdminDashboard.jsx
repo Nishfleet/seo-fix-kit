@@ -19,6 +19,9 @@ export function AdminDashboard({
   const [inviteLabel, setInviteLabel] = useState("");
   const [inviteResult, setInviteResult] = useState(null);
   const metrics = adminData?.metrics || {};
+  const opsLoaded = Boolean(adminData) && adminStatus !== "error";
+  // Show a dash, not a misleading 0, until ops data has loaded.
+  const stat = (value) => (adminData ? value || 0 : "—");
 
   async function createInvite(event) {
     event.preventDefault();
@@ -42,29 +45,31 @@ export function AdminDashboard({
           <p className="beta-eyebrow">Admin</p>
           <h1>Beta ops</h1>
         </div>
-        <form className="admin-token-form" onSubmit={(event) => { event.preventDefault(); onLoad(); }}>
-          <label htmlFor="admin-token">Admin token</label>
-          <input
-            id="admin-token"
-            onChange={(event) => onTokenChange(event.target.value)}
-            placeholder="Bearer token"
-            type="password"
-            value={adminToken}
-          />
-          <button className="action-link" type="submit">
-            {adminStatus === "loading" ? "Loading" : "Load ops"}
-          </button>
-        </form>
+        {!opsLoaded && (
+          <form className="admin-token-form" onSubmit={(event) => { event.preventDefault(); onLoad(); }}>
+            <label htmlFor="admin-token">Admin token</label>
+            <input
+              id="admin-token"
+              onChange={(event) => onTokenChange(event.target.value)}
+              placeholder="Bearer token"
+              type="password"
+              value={adminToken}
+            />
+            <button className="action-link" type="submit">
+              {adminStatus === "loading" ? "Loading" : "Load ops"}
+            </button>
+          </form>
+        )}
       </div>
 
       <StatusMessage tone={adminStatus}>{adminMessage}</StatusMessage>
 
       <section className="metric-strip admin-metrics" aria-label="Beta ops summary">
-        <Metric label="Waitlist" value={metrics.waitlist || 0} />
-        <Metric label="Invites" value={metrics.invites || 0} />
-        <Metric label="Audits today" value={metrics.auditsToday || 0} />
-        <Metric label="Expiring" value={metrics.reportsExpiringSoon || 0} />
-        <Metric label="Fix requests" value={metrics.fixRequests || 0} />
+        <Metric label="Waitlist" value={stat(metrics.waitlist)} />
+        <Metric label="Invites" value={stat(metrics.invites)} />
+        <Metric label="Audits today" value={stat(metrics.auditsToday)} />
+        <Metric label="Expiring" value={stat(metrics.reportsExpiringSoon)} />
+        <Metric label="Fix requests" value={stat(metrics.fixRequests)} />
       </section>
 
       <FixPackQueue
@@ -101,14 +106,18 @@ export function AdminDashboard({
             <h2>Create a beta invite</h2>
           </div>
           <form className="invite-form" onSubmit={createInvite}>
+            <label htmlFor="invite-email">Invite email</label>
             <input
+              id="invite-email"
               onChange={(event) => setInviteEmail(event.target.value)}
               placeholder="founder@example.com"
               required
               type="email"
               value={inviteEmail}
             />
+            <label htmlFor="invite-label">Label (optional)</label>
             <input
+              id="invite-label"
               onChange={(event) => setInviteLabel(event.target.value)}
               placeholder="Label"
               value={inviteLabel}

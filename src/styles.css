@@ -2916,7 +2916,16 @@ h1 {
   grid-template-columns: minmax(0, 1fr) auto;
 }
 
-.admin-token-form label {
+.invite-form {
+  margin-top: 14px;
+}
+
+.invite-form label:not(:first-child) {
+  margin-top: 6px;
+}
+
+.admin-token-form label,
+.invite-form label {
   color: var(--ink-muted);
   font-size: 12px;
   font-weight: 800;
