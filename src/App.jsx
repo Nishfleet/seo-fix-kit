@@ -306,12 +306,12 @@ function BetaApp() {
   const inviteParams = new URLSearchParams(window.location.search);
   const accessToken = inviteParams.get("access") || "";
   const [ownerEmail, setOwnerEmail] = useState(
-    () => inviteParams.get("email") || window.sessionStorage.getItem(BETA_EMAIL_KEY) || ""
+    () => inviteParams.get("email") || storageGet(BETA_EMAIL_KEY) || ""
   );
   const [loginEmail, setLoginEmail] = useState(ownerEmail || inviteParams.get("email") || "");
   const [inviteCode, setInviteCode] = useState(inviteParams.get("invite") || "");
   const [isAuthed, setIsAuthed] = useState(
-    () => window.sessionStorage.getItem(BETA_SESSION_KEY) === "1"
+    () => storageGet(BETA_SESSION_KEY) === "1"
   );
   const [loginStatus, setLoginStatus] = useState(accessToken ? "submitting" : "idle");
   const [loginMessage, setLoginMessage] = useState("");
@@ -367,7 +367,7 @@ function BetaApp() {
   }, [isAdminRoute, isBillingRoute, report?.url]);
 
   useEffect(() => {
-    if (window.sessionStorage.getItem(BETA_SESSION_KEY) === "1" || reportId || isAdminRoute || isBillingRoute) {
+    if (storageGet(BETA_SESSION_KEY) === "1" || reportId || isAdminRoute || isBillingRoute) {
       refreshSession(setIsAuthed, setOwnerEmail);
     }
   }, [reportId, isAdminRoute, isBillingRoute]);
@@ -384,12 +384,12 @@ function BetaApp() {
     let cancelled = false;
     setLoginStatus("submitting");
     setLoginMessage("Opening secure access link.");
-    const storedFunnelKey = window.sessionStorage.getItem(FUNNEL_KEY) || "";
+    const storedFunnelKey = storageGet(FUNNEL_KEY) || "";
     verifyAccessToken(accessToken, storedFunnelKey)
       .then((payload) => {
         if (cancelled) return;
-        window.sessionStorage.setItem(BETA_SESSION_KEY, "1");
-        window.sessionStorage.setItem(BETA_EMAIL_KEY, payload.ownerEmail || loginEmail);
+        storageSet(BETA_SESSION_KEY, "1");
+        storageSet(BETA_EMAIL_KEY, payload.ownerEmail || loginEmail);
         setOwnerEmail(payload.ownerEmail || loginEmail);
         setIsAuthed(true);
         setLoginStatus("success");
