@@ -215,6 +215,19 @@ function siteHeader(origin, currentPath = "") {
     </header>`;
 }
 
+// Closing call to action shared by the marketing pages: a dark band that
+// mirrors the homepage's final section, so every page ends on a next step.
+function siteCtaBand(origin) {
+  return `<section class="site-cta" data-theme="dark" aria-labelledby="site-cta-title">
+        <h2 id="site-cta-title">Find out what is really wrong with your site.</h2>
+        <p>Check one page free, no account. Or audit the whole site and get fixes you can prove.</p>
+        <div class="site-cta-actions">
+          <a class="btn btn-primary btn-lg" href="${origin}/check">Check a page free <span class="arrow" aria-hidden="true">→</span></a>
+          <a class="btn btn-secondary btn-lg" href="${origin}/#get-started">Create a free account</a>
+        </div>
+      </section>`;
+}
+
 // The one site footer every worker-rendered public page uses (twinned by
 // SiteFooter in src/components/SiteChrome.jsx). Links come from
 // shared/site-nav.js; styles live in src/design/site.css under .site-foot.
@@ -361,7 +374,7 @@ ${DEMO_PROOF.repairPlan.map((item) => `          <li><strong>${escapeHtml(item.s
         <h2>What this sample does not claim</h2>
         <p>This page is a sample, not an audit of your site. The proof excerpt above is the engine's real output for the test page, not a preview of your site's results. Anonymous one-page checks are live at ${origin}/check: paste a public URL and get real-browser evidence, the false alarms it rules out, and real problems with fixes — with no account, no email, and no stored report. Full reports still run inside the private beta after secure email access and, for deeper crawls, site verification. Neither the sample nor the one-page check promises rankings, traffic, indexing, revenue, AI citations, or live answer-engine visibility. The product standard is the same everywhere: prove the issue, avoid false positives, ask for approval, then rerun the same measurement after the fix.</p>
       </section>
-      <p><a class="cta" href="${origin}/check">Check one page now</a></p>
+      ${siteCtaBand(origin)}
     </main>
     ${siteFooter(origin)}
   </body>
@@ -1027,6 +1040,7 @@ ${extraLd.join("\n")}
       </section>
       ${body}
       ${faqSection}
+      ${siteCtaBand(origin)}
     </main>
     ${siteFooter(origin)}
   </body>
@@ -1105,11 +1119,15 @@ ${ldBlock({
       .panel { display: grid; gap: 4px; min-width: 0; }
       .panel p { margin: 0; }
       .panel strong { color: var(--gold); display: block; font-size: 12px; font-weight: 600; letter-spacing: .08em; margin-bottom: 4px; text-transform: uppercase; }
-      .panel.score p strong { color: var(--ink); display: inline; font-size: 28px; font-weight: 700; letter-spacing: -0.01em; margin: 0; text-transform: none; }
+      .panel.score p strong { color: var(--ink); display: inline; font-size: clamp(36px, 4vw, 48px); font-weight: 700; letter-spacing: -0.04em; margin: 0; text-transform: none; }
       .panel.before { border-color: var(--gold-line); }
       .panel.intermediate { border-color: var(--line-strong); }
       .panel.after { border-color: var(--line-accent); }
       .panel.after > strong { color: var(--accent); }
+      .panel.score { gap: 10px; padding: 24px; }
+      .panel.score::after { background: linear-gradient(90deg, var(--accent) calc(var(--score) * 1%), var(--surface-strong) 0); border-radius: 999px; content: ""; height: 6px; order: 2; }
+      .panel.before.score::after { background: linear-gradient(90deg, var(--gold) calc(var(--score) * 1%), var(--surface-strong) 0); }
+      .panel.score p:last-child { order: 3; }
       .receipt { background: var(--surface-sunken); border: 1px solid var(--line-accent); border-radius: var(--radius-lg); padding: 20px 22px; margin: 24px 0; min-width: 0; }
       .receipt h3 { color: var(--accent); font-size: 12px; font-weight: 600; letter-spacing: .08em; margin: 0 0 12px; text-transform: uppercase; }
       .receipt dl { display: grid; grid-template-columns: max-content 1fr; gap: 8px 16px; margin: 0; }
@@ -1123,23 +1141,23 @@ ${ldBlock({
     ${siteHeader(origin)}
     <main class="hero-light" id="main">
       <section class="enter">
-        <p class="kicker">Real before/after · Repair proof receipt</p>
-        <h1>One real repair, with the same measurement path before and after.</h1>
-        <p>This page is a proof receipt for the first completed beta repair done with SEO Fix Kit: the founder-owned Tiny Studio portfolio site, audited with consent, repaired by the operator with the help of an SEO Fix Kit implementation pack, and rerun on the same host with the same measurement path. The receipt states the founder-owned scope, names the owner-approved change, links the same audit path before and after, and restates the no-ranking boundary.</p>
+        <p class="kicker">Customer proof · Real before and after</p>
+        <h1>85 to 100, with a receipt for every step.</h1>
+        <p>Our founder’s own portfolio site, Tiny Studio, was the first real repair done with SEO Fix Kit. We audited it, the owner shipped the fixes in two small changes, and we ran the exact same audit again after each one. Seven problems went to zero, and every report is linked below so you can check the numbers yourself.</p>
         <p><a class="cta" href="${origin}/proof.md">Get the markdown receipt</a></p>
       </section>
       <section class="grid" aria-label="Audit scores before, intermediate, and after">
-        <article class="panel before score">
+        <article class="panel before score" style="--score: ${PROOF_CASE.before.score}">
           <strong>Before</strong>
           <p>Score <strong>${PROOF_CASE.before.score}</strong>/100 &middot; ${PROOF_CASE.before.findings} findings</p>
           <p><a href="${PROOF_CASE.before.reportUrl}">Source report</a></p>
         </article>
-        <article class="panel intermediate score">
+        <article class="panel intermediate score" style="--score: ${PROOF_CASE.intermediate.score}">
           <strong>Intermediate rerun</strong>
           <p>Score <strong>${PROOF_CASE.intermediate.score}</strong>/100 &middot; ${PROOF_CASE.intermediate.findings} findings</p>
           <p><a href="${PROOF_CASE.intermediate.reportUrl}">Rerun report</a></p>
         </article>
-        <article class="panel after score">
+        <article class="panel after score" style="--score: ${PROOF_CASE.after.score}">
           <strong>After</strong>
           <p>Score <strong>${PROOF_CASE.after.score}</strong>/100 &middot; ${PROOF_CASE.after.findings} findings</p>
           <p><a href="${PROOF_CASE.after.reportUrl}">Final rerun report</a></p>
@@ -1177,6 +1195,7 @@ ${PROOF_CASE.changes.map((change) => `          <li><strong>${escapeHtml(change.
         <p>The same audit path ran three times against the same host: once before the repair, once after the first merge, and once after the second. The proof receipt pins the report ids, scores, finding counts, and merged PR refs so anyone can rerun the same measurement path against <code>https://${PROOF_CASE.site}/</code> and compare. SEO Fix Kit does not claim this receipt represents the result you will see on your site; it is evidence that the same measurement path can connect a real issue to a real operator-applied fix and a real rerun.</p>
         <p>For an anonymous one-page check on any public URL, see <a href="${origin}/check">${origin}/check</a>. For methodology and limits, see <a href="${origin}/methodology">${origin}/methodology</a>. For plans and prices, see <a href="${origin}/pricing">${origin}/pricing</a>.</p>
       </section>
+      ${siteCtaBand(origin)}
     </main>
     ${siteFooter(origin)}
   </body>
