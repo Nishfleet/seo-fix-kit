@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import { Icon } from "../components/Icon.jsx";
+import { ProofField } from "../components/ProofField.jsx";
 import { SiteFooter, SiteHeader } from "../components/SiteChrome.jsx";
 import { readOrCreateFunnelKey, sendAccessBeacon } from "../lib/browser.js";
 import { postAccessRequest } from "../lib/requests.js";
 import "./landing.css";
+
+const PLATFORMS = ["Shopify", "WordPress", "Webflow", "Squarespace", "Wix", "Framer", "Next.js", "Ghost", "HubSpot"];
 
 const STEPS = [
   {
@@ -83,6 +86,13 @@ const PLANS = [
 export function WaitlistPage() {
   useEffect(() => {
     document.title = "SEO Fix Kit - SEO fixes you can prove";
+    // The public site is light (prerendered with data-theme="light"); the
+    // signed-in app is dark.
+    const root = document.documentElement;
+    root.dataset.theme = "light";
+    return () => {
+      delete root.dataset.theme;
+    };
   }, []);
 
   return (
@@ -90,20 +100,43 @@ export function WaitlistPage() {
       <SiteHeader />
 
       <main id="main">
-        <section className="landing-hero hero-light" aria-labelledby="page-title">
-          <p className="pill enter">Now in private beta · Free to try</p>
-          <h1 className="enter ink-gradient" id="page-title" style={{ "--enter-delay": "60ms" }}>
-            SEO fixes you can prove.
-          </h1>
-          <p className="landing-lead enter" style={{ "--enter-delay": "120ms" }}>
-            SEO Fix Kit checks your site in a real browser, shows exactly what is broken with the evidence, and hands
-            your developer ready-to-paste fixes. Then it reruns the check to prove they worked.
-          </p>
-          <div className="enter" style={{ "--enter-delay": "180ms" }}>
-            <AccessForm />
+        <section className="hero" aria-labelledby="page-title">
+          <div className="hero-art">
+            <ProofField />
           </div>
-          <ProductShot />
+          <div className="hero-copy">
+            <ProofTicker />
+            <h1 className="hero-title enter" id="page-title" style={{ "--enter-delay": "60ms" }}>
+              SEO fixes you can prove.{" "}
+              <span className="hero-title-soft">
+                Find what is really broken, ship the fix, and rerun the check that shows it worked.
+              </span>
+            </h1>
+            <div className="enter" style={{ "--enter-delay": "140ms" }}>
+              <AccessForm />
+            </div>
+          </div>
         </section>
+
+        <section className="platforms" aria-label="Works with any public site">
+          <p>Works on any public site, whatever it is built on</p>
+          <div className="platforms-track">
+            <ul>
+              {PLATFORMS.map((name) => (
+                <li key={name}>{name}</li>
+              ))}
+            </ul>
+            <ul aria-hidden="true">
+              {PLATFORMS.map((name) => (
+                <li key={name}>{name}</li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        <div className="stage" data-theme="dark">
+          <ProductShot />
+        </div>
 
         <section className="landing-facts reveal" aria-label="At a glance">
           <div>
@@ -123,6 +156,8 @@ export function WaitlistPage() {
             <span>after every fix</span>
           </div>
         </section>
+
+        <ProductTour />
 
         <section className="landing-section" aria-labelledby="how-title">
           <header className="landing-section-head reveal">
@@ -173,7 +208,7 @@ export function WaitlistPage() {
                   page.
                 </p>
               </div>
-              <pre className="landing-snippet" aria-label="Example fix">
+              <pre className="landing-snippet" aria-label="Example fix" data-theme="dark">
                 <code>
                   <span className="tok-tag">&lt;meta</span> <span className="tok-attr">property</span>=
                   <span className="tok-str">&quot;og:image&quot;</span>
@@ -276,6 +311,108 @@ export function WaitlistPage() {
 
       <SiteFooter />
     </div>
+  );
+}
+
+const TOUR = [
+  {
+    key: "report",
+    label: "The report",
+    title: "Every problem, ranked, with the proof attached.",
+    text: "Fix-first order, severity, the evidence from the rendered page, and the exact snippet to paste.",
+    src: "/tour/report.webp",
+    alt: "SEO Fix Kit report: a score, problem counts, and a fix-first list"
+  },
+  {
+    key: "pages",
+    label: "Every page",
+    title: "Each page, checked in a real browser.",
+    text: "Scores, headings, word counts, links and load times for every page the audit opened.",
+    src: "/tour/pages.webp",
+    alt: "SEO Fix Kit pages table: a score and checks for each page of the site"
+  }
+];
+
+// Real screenshots of the signed-in app, showing a sample report for a demo
+// site (acme-widgets.example).
+function ProductTour() {
+  const [active, setActive] = useState(TOUR[0].key);
+  const current = TOUR.find((item) => item.key === active);
+
+  return (
+    <section className="landing-section tour" aria-labelledby="tour-title">
+      <header className="landing-section-head reveal">
+        <p className="eyebrow">The product</p>
+        <h2 id="tour-title">This is what you get. Not a mockup.</h2>
+      </header>
+      <div className="tour-tabs" role="tablist" aria-label="Product screens">
+        {TOUR.map((item) => (
+          <button
+            aria-controls="tour-panel"
+            aria-selected={item.key === active}
+            className="tour-tab"
+            id={`tour-tab-${item.key}`}
+            key={item.key}
+            onClick={() => setActive(item.key)}
+            role="tab"
+            type="button"
+          >
+            <strong>{item.label}</strong>
+            <span>{item.title}</span>
+          </button>
+        ))}
+      </div>
+      <div aria-labelledby={`tour-tab-${current.key}`} className="tour-panel" id="tour-panel" role="tabpanel">
+        <p>{current.text}</p>
+        <div className="tour-frame">
+          {TOUR.map((item) => (
+            <img
+              alt={item.alt}
+              decoding="async"
+              height="1012"
+              hidden={item.key !== active}
+              key={item.key}
+              loading="lazy"
+              src={item.src}
+              width="1600"
+            />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// Live proof line above the headline, the way Stripe leads with a live
+// number. It counts up the latest proven result (the case study on /proof);
+// the prerendered HTML already shows the final score.
+function ProofTicker() {
+  const [score, setScore] = useState(100);
+
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return undefined;
+    let frame = 0;
+    const begin = performance.now() + 500;
+    const step = (now) => {
+      const t = Math.min(1, Math.max(0, (now - begin) / 1600));
+      setScore(Math.round(85 + 15 * (1 - Math.pow(1 - t, 3))));
+      if (t < 1) frame = requestAnimationFrame(step);
+    };
+    frame = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
+  return (
+    <a className="hero-ticker enter" href="/proof">
+      <span className="hero-ticker-label">Latest proof</span>
+      <span className="hero-ticker-value">
+        85 → <strong>{score}</strong>
+      </span>
+      <span className="hero-ticker-note">7 problems fixed, rerun verified</span>
+      <span aria-hidden="true" className="arrow">
+        →
+      </span>
+    </a>
   );
 }
 
@@ -421,7 +558,7 @@ const SHOT_ROWS = [
 // false alarm, a fix snippet, rerun proof) and is labelled as an example.
 function ProductShot() {
   return (
-    <figure className="shot enter" aria-label="Example SEO Fix Kit report" style={{ "--enter-delay": "260ms" }}>
+    <figure className="shot enter" aria-label="Example SEO Fix Kit report" style={{ "--enter-delay": "220ms" }}>
       <div className="shot-bar">
         <span className="shot-dots" aria-hidden="true">
           <i />
@@ -529,7 +666,7 @@ function ShotRing({ before, after }) {
 // Raw HTML vs rendered page, the comparison behind "no false alarms".
 function FalseAlarmDiff() {
   return (
-    <div className="landing-diff" aria-label="Raw HTML compared with the rendered page">
+    <div className="landing-diff" aria-label="Raw HTML compared with the rendered page" data-theme="dark">
       <div>
         <p className="landing-diff-head">Raw HTML</p>
         <p className="landing-diff-row is-bad">

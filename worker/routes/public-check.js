@@ -306,7 +306,7 @@ export function checkJsonLd(origin) {
 
 export function checkHtml(origin) {
   return `<!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -349,20 +349,20 @@ export function checkHtml(origin) {
       .band { border-top: 1px solid var(--line); padding: 40px 0; }
       .result { display: none; margin: 32px 0 0; }
       .result.show { display: block; }
-      .error-box { background: rgba(255,180,169,.06); border: 1px solid var(--error-line); border-radius: var(--radius-lg); color: var(--error); padding: 14px 16px; }
+      .error-box { background: var(--error-surface); border: 1px solid var(--error-line); border-radius: var(--radius-lg); color: var(--error); padding: 14px 16px; }
       .measure-grid { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .measure { background: var(--surface-sunken); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 12px 14px; }
       .measure .label { color: var(--ink-muted); font-size: 12px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; }
       .measure .value { font-size: 16px; margin-top: 4px; overflow-wrap: anywhere; }
       .finding { border-left: 3px solid var(--gold); margin: 12px 0; padding-left: 12px; }
-      .finding.critical { border-left-color: #ff8f7d; }
-      .finding.warning { border-left-color: #f4c95d; }
-      .finding.notice { border-left-color: #8fd3ff; }
+      .finding.critical { border-left-color: var(--error); }
+      .finding.warning { border-left-color: var(--warning); }
+      .finding.notice { border-left-color: var(--info); }
       .finding h3 { font-size: 17px; margin: 0 0 6px; }
       .finding p { font-size: 15px; margin: 0 0 6px; }
       .snippet { background: var(--surface-field); border: 1px solid var(--line); border-radius: var(--radius-lg); color: var(--ink); display: block; font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size: 13px; margin: 8px 0 0; overflow-x: auto; padding: 12px; white-space: pre-wrap; }
       .finding .snippet-label { color: var(--ink-muted); font-size: 12px; font-weight: 600; letter-spacing: .04em; margin: 10px 0 0; text-transform: uppercase; }
-      .next-step { background: rgba(152,240,204,.05); border: 1px solid var(--line-accent); border-radius: 12px; margin: 40px 0 32px; padding: 20px 22px; }
+      .next-step { background: var(--accent-surface); border: 1px solid var(--line-accent); border-radius: 12px; margin: 40px 0 32px; padding: 20px 22px; }
       .next-step p:last-child { margin-bottom: 0; }
       .box-min { min-width: 0; }
       @media (max-width: 760px) { .grid, .measure-grid { grid-template-columns: 1fr; } .check-form .row { flex-direction: column; } main { padding-top: 32px; } }

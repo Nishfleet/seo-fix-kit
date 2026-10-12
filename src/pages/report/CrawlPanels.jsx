@@ -12,11 +12,12 @@ export function CrawlInventoryPanel({ inventory }) {
         <p className="beta-eyebrow">Crawl inventory</p>
         <h2>
           {summary.urlsDiscovered
-            ? `${formatCount(summary.urlsDiscovered)} sitemap ${summary.urlsDiscovered === 1 ? "URL" : "URLs"} discovered.`
-            : "No sitemap inventory URLs were discovered."}
+            ? `${formatCount(summary.urlsDiscovered)} ${summary.urlsDiscovered === 1 ? "URL" : "URLs"} found in your sitemaps.`
+            : "We didn’t find any URLs in a sitemap."}
         </h2>
         <p>
-          Sitemap inventory proof up to CrawlRaven public scale. Rendered repairs still use the selected crawl depth.
+          Every URL your sitemaps list, up to 50,000. Fixes are still based on the pages this audit checked in a real
+          browser.
         </p>
       </div>
 
@@ -70,7 +71,8 @@ export function RenderedCrawlScalePanel({ plan }) {
           proof.
         </h2>
         <p>
-          Large-crawl manifest for CrawlRaven-scale parity. This is a plan, not a completed 50K rendered crawl claim.
+          How a full-site browser check would be split into batches. This is a plan: not every page here has been
+          checked yet.
         </p>
       </div>
 

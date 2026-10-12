@@ -7,19 +7,31 @@ import { SITE_FOOTER, SITE_NAV, SITE_TAGLINE } from "../../shared/site-nav.js";
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
+  const [group, setGroup] = useState(null);
 
   useEffect(() => {
-    if (!open) return undefined;
-    const onKey = (event) => event.key === "Escape" && setOpen(false);
+    const onKey = (event) => {
+      if (event.key !== "Escape") return;
+      setGroup(null);
+      if (!group) setOpen(false);
+    };
+    const onClick = (event) => {
+      if (!event.target.closest("[data-nav-group]")) setGroup(null);
+    };
     const wide = window.matchMedia("(min-width: 761px)");
-    const onWide = () => setOpen(false);
+    const onWide = () => {
+      setOpen(false);
+      setGroup(null);
+    };
     document.addEventListener("keydown", onKey);
+    document.addEventListener("click", onClick);
     wide.addEventListener("change", onWide);
     return () => {
       document.removeEventListener("keydown", onKey);
+      document.removeEventListener("click", onClick);
       wide.removeEventListener("change", onWide);
     };
-  }, [open]);
+  }, [group]);
 
   return (
     <>
@@ -32,11 +44,49 @@ export function SiteHeader() {
             SEO Fix Kit
           </a>
           <nav aria-label="Main" className="site-nav" data-open={open || undefined} id="site-nav">
-            {SITE_NAV.map(({ href, label }) => (
-              <a href={href} key={href}>
-                {label}
-              </a>
-            ))}
+            {SITE_NAV.map((entry) =>
+              entry.items ? (
+                <div
+                  className="site-nav-group"
+                  data-nav-group
+                  data-open={group === entry.id || undefined}
+                  key={entry.id}
+                >
+                  <button
+                    aria-controls={`site-nav-${entry.id}`}
+                    aria-expanded={group === entry.id}
+                    className="site-nav-trigger"
+                    onClick={() => setGroup((value) => (value === entry.id ? null : entry.id))}
+                    type="button"
+                  >
+                    {entry.label}
+                    <svg
+                      aria-hidden="true"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="1.5"
+                      viewBox="0 0 12 12"
+                    >
+                      <path d="m3 4.5 3 3 3-3" />
+                    </svg>
+                  </button>
+                  <div className="site-nav-menu" id={`site-nav-${entry.id}`}>
+                    {entry.items.map(({ href, label, text }) => (
+                      <a href={href} key={href}>
+                        <strong>{label}</strong>
+                        <span>{text}</span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <a className={entry.kind ? `site-nav-${entry.kind}` : undefined} href={entry.href} key={entry.href}>
+                  {entry.label}
+                </a>
+              )
+            )}
           </nav>
           <div className="site-header-actions">
             <a className="btn btn-primary btn-sm header-cta" href="/check">

@@ -34,7 +34,7 @@
 .site-header {
   -webkit-backdrop-filter: saturate(160%) blur(14px);
   backdrop-filter: saturate(160%) blur(14px);
-  background: rgba(7, 9, 8, 0.72);
+  background: var(--header-bg);
   border-bottom: 1px solid var(--line);
   position: sticky;
   top: 0;
@@ -53,11 +53,11 @@
 
 @keyframes sfk-header-solid {
   from {
-    background-color: rgba(7, 9, 8, 0);
-    border-bottom-color: rgba(251, 248, 239, 0);
+    background-color: var(--header-bg-clear);
+    border-bottom-color: transparent;
   }
   to {
-    background-color: rgba(7, 9, 8, 0.78);
+    background-color: var(--header-bg);
     border-bottom-color: var(--line);
   }
 }
@@ -97,18 +97,26 @@
 .site-nav {
   align-items: center;
   display: flex;
+  flex: 1;
   flex-wrap: wrap;
-  gap: var(--space-4) var(--space-8);
-  margin-left: auto;
+  gap: var(--space-4) var(--space-4);
+  margin-left: var(--space-16);
   min-width: 0;
 }
 
-.site-nav a {
+.site-nav a,
+.site-nav-trigger {
+  background: transparent;
+  border: 0;
   border-radius: var(--radius-sm);
   color: var(--ink-soft);
-  display: inline-block;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  font-family: inherit;
   font-size: var(--text-14);
   font-weight: var(--weight-medium);
+  gap: 4px;
   padding: 8px 10px;
   text-decoration: none;
   transition:
@@ -117,9 +125,109 @@
 }
 
 .site-nav a:hover,
-.site-nav a[aria-current="page"] {
+.site-nav a[aria-current="page"],
+.site-nav-trigger:hover,
+.site-nav-group[data-open] > .site-nav-trigger {
   background: var(--surface);
   color: var(--ink);
+  text-decoration: none;
+}
+
+.site-nav .site-nav-sign-in {
+  margin-left: auto;
+}
+
+.site-nav-trigger svg {
+  height: 12px;
+  opacity: 0.7;
+  transition: transform var(--duration) var(--ease-out);
+  width: 12px;
+}
+
+.site-nav-group[data-open] > .site-nav-trigger svg {
+  transform: rotate(180deg);
+}
+
+/* Product and Use cases menus. They open on hover and keyboard focus with
+   no JavaScript; /site.js and SiteHeader add click, Escape and outside-click
+   handling. The transparent top padding bridges the gap from the trigger so
+   the pointer can travel into the panel without it closing. */
+.site-nav-group {
+  position: relative;
+}
+
+.site-nav-menu {
+  display: grid;
+  gap: 2px;
+  grid-template-columns: repeat(2, 264px);
+  left: -8px;
+  opacity: 0;
+  padding: 8px;
+  position: absolute;
+  top: calc(100% + 10px);
+  transform: translateY(-4px);
+  transition:
+    opacity var(--duration) var(--ease-out),
+    transform var(--duration) var(--ease-out),
+    visibility 0s linear var(--duration);
+  visibility: hidden;
+  z-index: 60;
+}
+
+.site-nav-menu::before {
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  content: "";
+  inset: 0;
+  position: absolute;
+  z-index: -1;
+}
+
+.site-nav-menu::after {
+  content: "";
+  height: 12px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: -12px;
+}
+
+.site-nav-menu:has(> a:nth-child(3):last-child) {
+  grid-template-columns: 300px;
+}
+
+/* Keyboard focus opens a menu only without JavaScript; with it, the trigger
+   button's open state decides, so Escape and a second click really close. */
+.site-nav-group:hover > .site-nav-menu,
+:root:not(.js) .site-nav-group:focus-within > .site-nav-menu,
+.site-nav-group[data-open] > .site-nav-menu {
+  opacity: 1;
+  transform: none;
+  transition-delay: 0s;
+  visibility: visible;
+}
+
+.site-nav .site-nav-menu a {
+  align-items: start;
+  display: grid;
+  gap: 2px;
+  padding: 12px 14px;
+  white-space: normal;
+}
+
+.site-nav-menu strong {
+  color: var(--ink);
+  font-size: var(--text-14);
+  font-weight: var(--weight-semibold);
+}
+
+.site-nav-menu span {
+  color: var(--ink-muted);
+  font-size: var(--text-13);
+  font-weight: var(--weight-regular);
+  line-height: 1.45;
 }
 
 .site-header-actions {
@@ -168,9 +276,26 @@
   }
 
   .site-nav {
+    flex: 0 0 100%;
     margin-left: 0;
     order: 3;
     width: 100%;
+  }
+
+  /* Without JavaScript, menus open as one column spanning the nav row. */
+  .site-nav {
+    position: relative;
+  }
+
+  .site-nav-group {
+    position: static;
+  }
+
+  .site-nav .site-nav-menu,
+  .site-nav .site-nav-menu:has(> a:nth-child(n):last-child) {
+    grid-template-columns: minmax(0, 1fr);
+    left: 0;
+    right: 0;
   }
 
   /* With JavaScript, the nav becomes a disclosure menu. */
@@ -189,7 +314,7 @@
   }
 
   .js .site-nav {
-    background: rgba(7, 9, 8, 0.96);
+    background: var(--sheet-bg);
     border-bottom: 1px solid var(--line);
     display: none;
     flex-direction: column;
@@ -197,6 +322,9 @@
     gap: 0;
     left: 0;
     padding: var(--space-8) var(--gutter) var(--space-16);
+    max-height: calc(100dvh - var(--header-height));
+    overflow-y: auto;
+    overscroll-behavior: contain;
     position: absolute;
     right: 0;
     top: 100%;
@@ -207,23 +335,63 @@
     display: flex;
   }
 
-  .js .site-nav a {
+  .js .site-nav a,
+  .js .site-nav-trigger {
     border-bottom: 1px solid var(--line);
     border-radius: 0;
     font-size: var(--text-16);
+    justify-content: space-between;
     padding: 14px 0;
+    width: 100%;
   }
 
-  .js .site-nav a:last-child {
+  .js .site-nav > a:last-child {
     border-bottom: 0;
   }
 
-  .js .site-nav a:hover {
+  .js .site-nav a:hover,
+  .js .site-nav-trigger:hover,
+  .js .site-nav-group[data-open] > .site-nav-trigger {
     background: transparent;
+  }
+
+  .js .site-nav .site-nav-sign-in {
+    margin-left: 0;
+  }
+
+  /* In the small-screen sheet the menus become accordions. */
+  .js .site-nav-menu,
+  .js .site-nav-group:hover > .site-nav-menu,
+  .js .site-nav-group:focus-within > .site-nav-menu {
+    display: none;
+    grid-template-columns: minmax(0, 1fr);
+    opacity: 1;
+    padding: 0 0 8px;
+    position: static;
+    transform: none;
+    visibility: visible;
+  }
+
+  .js .site-nav-group[data-open] > .site-nav-menu {
+    display: grid;
+  }
+
+  .js .site-nav-menu:has(> a:nth-child(n):last-child) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .js .site-nav-menu::before,
+  .js .site-nav-menu::after {
+    content: none;
+  }
+
+  .js .site-nav .site-nav-menu a {
+    border-bottom: 0;
+    padding: 10px 0 10px 12px;
   }
 }
 
-@media (max-width: 380px) {
+@media (max-width: 420px) {
   .site-header .brand {
     font-size: 0;
     gap: 0;
@@ -318,6 +486,12 @@
   }
 }
 
+/* A dark island inside a light page (see tokens.css) sets its own text
+   colour, since inherited colour was resolved against the light theme. */
+[data-theme="dark"] {
+  color: var(--ink);
+}
+
 /* ---------------------------------------------------------------- Buttons */
 
 /* `.cta` is the historical class on page CTAs; it shares .btn-primary. */
@@ -369,21 +543,15 @@
 
 .btn-primary,
 .cta {
-  background: linear-gradient(180deg, #aaf4d6, var(--accent));
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.35) inset,
-    0 0 0 1px rgba(152, 240, 204, 0.4),
-    0 6px 20px -8px rgba(152, 240, 204, 0.55);
+  background: var(--btn-primary-bg);
+  box-shadow: var(--btn-primary-shadow);
   color: var(--accent-ink);
 }
 
 .btn-primary:hover,
 .cta:hover {
-  background: linear-gradient(180deg, #c4f8e2, var(--accent-hover));
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.4) inset,
-    0 0 0 1px rgba(152, 240, 204, 0.55),
-    0 10px 28px -8px rgba(152, 240, 204, 0.65);
+  background: var(--btn-primary-bg-hover);
+  box-shadow: var(--btn-primary-shadow-hover);
   color: var(--accent-ink);
 }
 
@@ -396,7 +564,7 @@
 
 .btn-secondary:hover {
   background: var(--surface-hover);
-  border-color: rgba(251, 248, 239, 0.3);
+  border-color: var(--line-hover);
   color: var(--ink);
 }
 
@@ -464,7 +632,7 @@
 
 /* An interactive or emphasised card: lifts slightly on hover. */
 .card {
-  background: linear-gradient(180deg, rgba(251, 248, 239, 0.055), rgba(251, 248, 239, 0.025));
+  background: var(--card-bg);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
@@ -510,7 +678,7 @@
   animation: sfk-pulse 2.4s var(--ease-in-out) infinite;
   background: var(--accent);
   border-radius: 50%;
-  box-shadow: 0 0 0 3px rgba(152, 240, 204, 0.18);
+  box-shadow: 0 0 0 3px var(--accent-glow);
   content: "";
   height: 6px;
   width: 6px;
@@ -520,7 +688,7 @@
 .ink-gradient {
   -webkit-background-clip: text;
   background-clip: text;
-  background-image: linear-gradient(180deg, var(--ink) 30%, rgba(251, 248, 239, 0.62));
+  background-image: linear-gradient(180deg, var(--ink) 30%, var(--ink-fade));
   color: transparent;
 }
 

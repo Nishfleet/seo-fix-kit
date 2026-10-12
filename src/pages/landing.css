@@ -2,12 +2,16 @@
    eyebrows and motion come from src/design/site.css. */
 @import "../design/site.css";
 
+/* The homepage is light. :root[data-theme="light"] (tokens.css) outranks the
+   app's own :root aliases in src/styles.css. */
+:root[data-theme="light"] {
+  background: var(--bg);
+}
+
 .landing {
-  /* The app's :root keeps older, stronger aliases; the landing page uses the
-     design tokens as specified. */
-  --line: rgba(251, 248, 239, 0.1);
-  --ink-soft: rgba(251, 248, 239, 0.76);
-  --ink-muted: rgba(251, 248, 239, 0.6);
+  /* Resolved here, on the light page, so dark islands can still fade into
+     the page around them. */
+  --page-bg: var(--bg);
   background: var(--bg);
   color: var(--ink);
   font-family: var(--font-sans);
@@ -58,32 +62,182 @@
 
 /* ------------------------------------------------------------------ Hero */
 
-.landing-hero {
-  align-items: center;
-  display: flex;
-  flex-direction: column;
-  padding: clamp(56px, 9vw, 112px) 0 0;
-  text-align: center;
+/* Editorial, left-aligned hero over the signature graphic, which bleeds off
+   the right edge of the viewport. */
+.hero {
+  isolation: isolate;
+  min-height: clamp(560px, 74vh, 720px);
+  padding: clamp(48px, 8vw, 104px) 0 clamp(40px, 5vw, 64px);
+  position: relative;
 }
 
-.landing-hero .pill {
-  margin: 0 0 28px;
+.hero-art {
+  height: calc(100% + var(--header-height) + 40px);
+  left: 44%;
+  -webkit-mask-image:
+    linear-gradient(90deg, transparent 0%, #000 40%), linear-gradient(180deg, #000 72%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(90deg, transparent 0%, #000 40%), linear-gradient(180deg, #000 72%, transparent 100%);
+  mask-composite: intersect;
+  pointer-events: none;
+  position: absolute;
+  right: calc(50% - 50vw);
+  top: calc((var(--header-height) + 40px) * -1);
+  z-index: -1;
 }
 
-.landing-hero h1 {
-  font-size: var(--text-display);
-  letter-spacing: var(--tracking-display);
-  line-height: var(--leading-display);
-  max-width: 14ch;
-  padding-bottom: 0.06em;
+.proof-field {
+  animation: sfk-fade 1.2s var(--ease-out) both;
+  display: block;
+  height: 100%;
+  width: 100%;
 }
 
-.landing-lead {
+.hero-copy {
+  max-width: 720px;
+}
+
+.hero-ticker {
+  align-items: baseline;
   color: var(--ink-soft);
-  font-size: clamp(17px, 1.5vw, 20px);
-  line-height: var(--leading-body);
-  margin: 24px auto 0;
-  max-width: 38em;
+  display: inline-flex;
+  flex-wrap: wrap;
+  font-size: var(--text-14);
+  font-weight: var(--weight-medium);
+  gap: 4px 10px;
+  margin: 0 0 28px;
+  text-decoration: none;
+}
+
+.hero-ticker:hover {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.hero-ticker-label {
+  color: var(--ink);
+  font-weight: var(--weight-semibold);
+}
+
+.hero-ticker-value {
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.hero-ticker-value strong {
+  color: var(--accent);
+  display: inline-block;
+  font-weight: var(--weight-semibold);
+  min-width: 3ch;
+}
+
+.hero-ticker-note {
+  color: var(--ink-muted);
+}
+
+.hero-ticker .arrow {
+  color: var(--accent);
+  transition: transform var(--duration) var(--ease-out);
+}
+
+.hero-ticker:hover .arrow {
+  transform: translateX(3px);
+}
+
+.landing .hero-title {
+  font-size: clamp(36px, 4.6vw, 58px);
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.035em;
+  line-height: 1.06;
+  text-wrap: pretty;
+}
+
+.hero-title-soft {
+  color: #5d6c66;
+}
+
+.hero .landing-form {
+  margin: 40px 0 0;
+}
+
+/* ------------------------------------------------------------ Platforms */
+
+.platforms {
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 32px;
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: 22px 0;
+}
+
+.landing .platforms p {
+  color: var(--ink-muted);
+  font-size: var(--text-13);
+  margin: 0;
+  max-width: 15em;
+}
+
+.platforms-track {
+  display: flex;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  overflow: hidden;
+}
+
+.platforms ul {
+  animation: sfk-marquee 40s linear infinite;
+  display: flex;
+  flex: none;
+  gap: 56px;
+  list-style: none;
+  margin: 0;
+  padding: 0 28px;
+}
+
+.platforms li {
+  color: var(--ink);
+  font-size: 21px;
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.03em;
+  opacity: 0.55;
+  white-space: nowrap;
+}
+
+.platforms li:nth-child(3n + 2) {
+  font-weight: var(--weight-bold);
+  letter-spacing: -0.045em;
+}
+
+.platforms li:nth-child(3n) {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: var(--weight-medium);
+  letter-spacing: -0.02em;
+}
+
+@keyframes sfk-marquee {
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+/* --------------------------------------------------------------- Stage */
+
+/* A dark island: the product shot keeps the app's own dark theme. */
+.stage {
+  background: transparent;
+  margin-top: clamp(40px, 6vw, 72px);
+}
+
+.stage .shot {
+  margin: 0;
+}
+
+.stage .shot::after {
+  content: none;
 }
 
 .landing-form {
@@ -93,7 +247,7 @@
 }
 
 .landing-form-row {
-  background: rgba(12, 18, 16, 0.8);
+  background: var(--surface-field);
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
@@ -108,7 +262,7 @@
 .landing-form-row:focus-within {
   border-color: var(--accent);
   box-shadow:
-    0 0 0 4px rgba(152, 240, 204, 0.14),
+    0 0 0 4px var(--accent-glow),
     var(--shadow-md);
 }
 
@@ -177,7 +331,7 @@
 
 .shot::after {
   /* Fade the bottom edge into the page, like a screenshot under glass. */
-  background: linear-gradient(180deg, transparent, var(--bg));
+  background: linear-gradient(180deg, transparent, var(--page-bg, var(--bg)));
   bottom: 0;
   content: "";
   height: 72px;
@@ -489,7 +643,7 @@
 }
 
 .landing-snippet {
-  background: rgba(7, 9, 8, 0.7);
+  background: #0b0f0d;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   color: var(--ink-soft);
@@ -512,6 +666,80 @@
 
 .tok-str {
   color: #f2cf7e;
+}
+
+/* -------------------------------------------------------------- Tour */
+
+.tour-tabs {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.tour-tab {
+  background: transparent;
+  border: 0;
+  border-top: 2px solid var(--line);
+  color: var(--ink-muted);
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 4px;
+  padding: 16px 0 0;
+  text-align: left;
+  transition:
+    border-color var(--duration) var(--ease-out),
+    color var(--duration) var(--ease-out);
+}
+
+.tour-tab strong {
+  color: inherit;
+  font-size: var(--text-14);
+  font-weight: var(--weight-semibold);
+}
+
+.tour-tab span {
+  font-size: 17px;
+  font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-tight);
+  line-height: 1.35;
+}
+
+.tour-tab:hover,
+.tour-tab[aria-selected="true"] {
+  color: var(--ink);
+}
+
+.tour-tab[aria-selected="true"] {
+  border-top-color: var(--accent);
+}
+
+.landing .tour-panel > p {
+  color: var(--ink-soft);
+  font-size: 15px;
+  line-height: var(--leading-body);
+  margin: 20px 0 24px;
+  max-width: 40em;
+}
+
+.tour-frame {
+  background: #0b0f0d;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  padding: 6px;
+}
+
+.tour-frame img {
+  border-radius: calc(var(--radius-xl) - 6px);
+  display: block;
+  height: auto;
+  width: 100%;
+}
+
+.tour-frame img[hidden] {
+  display: none;
 }
 
 /* ------------------------------------------------------------- Facts */
@@ -601,7 +829,7 @@
 .landing-step-icon,
 .landing-feature-icon {
   align-items: center;
-  background: linear-gradient(180deg, rgba(152, 240, 204, 0.16), rgba(152, 240, 204, 0.04));
+  background: var(--accent-surface);
   border: 1px solid var(--line-accent);
   border-radius: var(--radius);
   color: var(--accent);
@@ -645,7 +873,7 @@
 }
 
 .landing-diff > div {
-  background: rgba(7, 9, 8, 0.6);
+  background: var(--bg-raised);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 14px;
@@ -681,9 +909,7 @@
 
 .landing-proof {
   align-items: center;
-  background:
-    radial-gradient(80% 120% at 100% 0%, rgba(152, 240, 204, 0.1), transparent 60%),
-    linear-gradient(180deg, rgba(251, 248, 239, 0.05), rgba(251, 248, 239, 0.015));
+  background: radial-gradient(80% 120% at 100% 0%, var(--accent-surface), transparent 60%), var(--card-bg);
   border: 1px solid var(--line);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-md);
@@ -711,7 +937,7 @@
 }
 
 .landing-proof-scores div {
-  background: rgba(7, 9, 8, 0.6);
+  background: var(--surface-sunken);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   display: grid;
@@ -742,7 +968,7 @@
 }
 
 .landing-proof-bar {
-  background: rgba(251, 248, 239, 0.08);
+  background: var(--surface-strong);
   border-radius: var(--radius-full);
   height: 4px;
   margin: 6px 0 2px;
@@ -778,8 +1004,8 @@
 }
 
 .landing-plans .featured {
-  background: linear-gradient(180deg, rgba(152, 240, 204, 0.09), rgba(152, 240, 204, 0.015));
-  border-color: rgba(152, 240, 204, 0.5);
+  background: linear-gradient(180deg, var(--accent-surface), transparent 60%), var(--card-bg);
+  border-color: var(--line-accent);
   box-shadow: var(--shadow-accent);
 }
 
@@ -1003,9 +1229,43 @@
   }
 }
 
+@media (max-width: 680px) {
+  .tour-tabs {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .hero {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  /* On small screens the graphic becomes a band under the headline. */
+  .hero-art {
+    height: 240px;
+    left: auto;
+    margin: 40px calc(50% - 50vw) 0;
+    -webkit-mask-image: linear-gradient(180deg, transparent, #000 25%, #000 75%, transparent);
+    mask-image: linear-gradient(180deg, transparent, #000 25%, #000 75%, transparent);
+    order: 2;
+    position: relative;
+    right: auto;
+    top: auto;
+  }
+
+  .platforms {
+    gap: 12px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .shot-ring-after,
-  .landing-faq details[open] p {
+  .landing-faq details[open] p,
+  .platforms ul,
+  .proof-field {
     animation: none;
   }
 }

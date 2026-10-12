@@ -1871,7 +1871,10 @@ a {
 .ai-readiness-metrics div,
 .growth-opportunities-metrics div,
 .geo-readiness-metrics div {
+  align-content: start;
   background: rgba(7, 13, 10, 0.58);
+  display: grid;
+  gap: 4px;
   padding: 16px;
 }
 
