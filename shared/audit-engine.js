@@ -3205,7 +3205,7 @@ export const ROOT_PUBLIC_PATHS = [
 // worker/routes/pages.test.mjs refuses a stale lastmod so the update
 // cannot silently ship.
 export const ROOT_PUBLIC_LASTMODS = {
-  "/": "2026-10-12T17:35:12Z",
+  "/": "2026-10-12T17:35:13Z",
   "/demo": "2026-10-12T17:35:11Z",
   "/check": "2026-10-12T17:35:11Z",
   "/methodology": "2026-10-12T17:35:10Z",
