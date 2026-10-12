@@ -1,12 +1,9 @@
+import { parse as parseCookie } from "cookie";
+
 function cookieValue(request, name) {
-  const cookie = request.headers.get("cookie") || "";
-  for (const part of cookie.split(";")) {
-    const [rawKey, ...rawValue] = part.trim().split("=");
-    if (rawKey === name) {
-      return decodeURIComponent(rawValue.join("=") || "");
-    }
-  }
-  return "";
+  // `cookie.parse` tolerates malformed percent-encoding (it returns the raw
+  // value instead of throwing), so one bad cookie cannot 500 every route.
+  return parseCookie(request.headers.get("cookie") || "")[name] || "";
 }
 
 function json(value, status = 200) {

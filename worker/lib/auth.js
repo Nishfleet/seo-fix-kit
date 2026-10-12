@@ -1,3 +1,4 @@
+import { serialize as serializeCookie } from "cookie";
 import { cookieValue, jsonNoStore } from "./http.js";
 import {
   checkQuotaSet,
@@ -346,24 +347,48 @@ function betaSessionTokenFromRequest(request) {
   return cookieValue(request, SESSION_COOKIE);
 }
 
+function isHttps(request) {
+  return Boolean(request) && new URL(request.url).protocol === "https:";
+}
+
 function sessionCookie(request, token, maxAge) {
-  const secure = new URL(request.url).protocol === "https:" ? "; Secure" : "";
-  return `${SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${secure}`;
+  return serializeCookie(SESSION_COOKIE, token, {
+    path: "/",
+    httpOnly: true,
+    sameSite: "strict",
+    maxAge,
+    secure: isHttps(request)
+  });
 }
 
 function clearSessionCookie(request) {
-  const secure = request && new URL(request.url).protocol === "https:" ? "; Secure" : "";
-  return `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0${secure}`;
+  return serializeCookie(SESSION_COOKIE, "", {
+    path: "/",
+    httpOnly: true,
+    sameSite: "strict",
+    maxAge: 0,
+    secure: isHttps(request)
+  });
 }
 
 function adminSessionCookie(request, token, maxAge) {
-  const secure = new URL(request.url).protocol === "https:" ? "; Secure" : "";
-  return `${ADMIN_SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/admin; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${secure}`;
+  return serializeCookie(ADMIN_SESSION_COOKIE, token, {
+    path: "/admin",
+    httpOnly: true,
+    sameSite: "strict",
+    maxAge,
+    secure: isHttps(request)
+  });
 }
 
 function clearAdminSessionCookie(request) {
-  const secure = request && new URL(request.url).protocol === "https:" ? "; Secure" : "";
-  return `${ADMIN_SESSION_COOKIE}=; Path=/admin; HttpOnly; SameSite=Strict; Max-Age=0${secure}`;
+  return serializeCookie(ADMIN_SESSION_COOKIE, "", {
+    path: "/admin",
+    httpOnly: true,
+    sameSite: "strict",
+    maxAge: 0,
+    secure: isHttps(request)
+  });
 }
 
 export {
