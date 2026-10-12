@@ -4,6 +4,7 @@ import { RENDERED_CRAWL_TARGETS } from "../shared/rendered-crawl-scale.js";
 import { repairSprintEligibilityFromProposals } from "../shared/offers.js";
 import { apiErrorMessage, apiFetch, apiRequest, isAbortError } from "./api.js";
 import { developerWebhookRequest } from "./developer-webhooks.js";
+import StatusMessage from "./StatusMessage.jsx";
 import { storageGet, storageRemove, storageSet } from "./storage.js";
 import { deliveryReadinessLabel, deliveryReadinessText } from "./delivery-readiness-copy.js";
 import {
@@ -1025,7 +1026,7 @@ function CustomerDashboard({
       <div className="section-heading">
         <p className="beta-eyebrow">Your workspace</p>
         <h2>{verifiedSites.length ? "Recent proof audits" : "Verify a site first"}</h2>
-        {message && status !== "success" && <p className={`form-message ${status}`}>{message}</p>}
+        {message && status !== "success" && <StatusMessage tone={status}>{message}</StatusMessage>}
       </div>
       <section className="metric-strip account-metrics" aria-label="Account summary">
         <Metric label="Reports" value={metrics.reports || 0} />
@@ -1073,10 +1074,10 @@ function CustomerDashboard({
               {siteStatus === "loading" ? "Checking" : "Add site"}
             </button>
           </div>
-          {siteMessage && <p className={`form-message ${siteStatus}`}>{siteMessage}</p>}
+          <StatusMessage tone={siteStatus}>{siteMessage}</StatusMessage>
         </form>
       </div>
-      {scheduleMessage && <p className={`form-message ${scheduleStatus}`}>{scheduleMessage}</p>}
+      <StatusMessage tone={scheduleStatus}>{scheduleMessage}</StatusMessage>
       {Boolean(sites.length) && (
         <div className="site-claim-list">
           {sites.map((site) => {
@@ -1303,7 +1304,7 @@ function DeveloperApiPanel({
       <div className="section-heading">
         <p className="beta-eyebrow">Developer API</p>
         <h3>Run proof audits from your own tools.</h3>
-        {developerMessage && <p className={`form-message ${developerStatus}`}>{developerMessage}</p>}
+        <StatusMessage tone={developerStatus}>{developerMessage}</StatusMessage>
       </div>
       <div className="developer-api-grid">
         <div className="developer-api-column">
@@ -2728,7 +2729,7 @@ function ClientReportPanel({ report }) {
       <div className="section-heading">
         <p className="beta-eyebrow">Client reports</p>
         <h2>White-label report links</h2>
-        {message && <p className={`form-message ${status}`}>{message}</p>}
+        <StatusMessage tone={status}>{message}</StatusMessage>
       </div>
       <div className={`agency-workspace-strip ${agencyWorkspace.status || "beta_allowance"}`}>
         <div>
@@ -3123,7 +3124,7 @@ function TeamRepairBoard({ report }) {
         <div>
           <p className="beta-eyebrow">Repair agent</p>
           <h2>Proof-backed queue and safe action drafts</h2>
-          {message && <p className={`form-message ${status}`}>{message}</p>}
+          <StatusMessage tone={status}>{message}</StatusMessage>
         </div>
         <label className="repair-filter">
           View
@@ -3863,7 +3864,7 @@ function RepairProposalPanel({ reportId, initialProposals = [], repairSprint = n
           )}
         </div>
       )}
-      {message && <p className={`form-message ${messageIsError ? "error" : "success"}`}>{message}</p>}
+      <StatusMessage tone={messageIsError ? "error" : "success"}>{message}</StatusMessage>
       <div className="repair-proposal-list">
         {proposals.map((proposal) => (
           <article className={`repair-proposal-card ${proposal.approvalStatus}`} key={proposal.id}>
@@ -4596,7 +4597,7 @@ function BillingPortal({ ownerEmail }) {
         </button>
       </div>
 
-      {message && <p className={`form-message ${status}`}>{message}</p>}
+      <StatusMessage tone={status}>{message}</StatusMessage>
 
       <section className="metric-strip billing-metrics" aria-label="Billing summary">
         <Metric label="Product" value={billing?.product?.name || "Fix Pack"} />
@@ -4648,9 +4649,7 @@ function BillingPortal({ ownerEmail }) {
           >
             {monitoringCheckoutStatus === "submitting" ? "Opening checkout" : "Start monitoring checkout"}
           </button>
-          {monitoringCheckoutMessage && (
-            <p className={`form-message ${monitoringCheckoutStatus}`}>{monitoringCheckoutMessage}</p>
-          )}
+          <StatusMessage tone={monitoringCheckoutStatus}>{monitoringCheckoutMessage}</StatusMessage>
           <p className="quiet-note">
             Entitlement activates only after Dodo sends the subscription webhook. This does not execute repairs.
           </p>
@@ -4816,7 +4815,7 @@ function AdminDashboard({
         </form>
       </div>
 
-      {adminMessage && <p className={`form-message ${adminStatus}`}>{adminMessage}</p>}
+      <StatusMessage tone={adminStatus}>{adminMessage}</StatusMessage>
 
       <section className="metric-strip admin-metrics" aria-label="Beta ops summary">
         <Metric label="Waitlist" value={metrics.waitlist || 0} />
@@ -4885,7 +4884,7 @@ function AdminDashboard({
               <code>{inviteResult.invite.url}</code>
             </div>
           )}
-          {inviteResult?.error && <p className="form-message error">{inviteResult.error}</p>}
+          <StatusMessage tone="error">{inviteResult?.error}</StatusMessage>
           <div className="invite-list">
             {(adminData?.invites || []).slice(0, 6).map((invite) => (
               <div key={invite.id}>
@@ -4987,7 +4986,7 @@ function FixPackQueue({ adminToken, emailConfigured, requests, opsHealth, status
           <span>{emailConfigured ? "Email on" : "Email config missing"}</span>
         </div>
       </div>
-      {message && <p className={`form-message ${message.includes("Could") ? "error" : "success"}`}>{message}</p>}
+      {message && <StatusMessage tone={message.includes("Could") ? "error" : "success"}>{message}</StatusMessage>}
       <div className="fix-queue-list">
         {requests.map((request) => {
           const draft = draftFor(request);
