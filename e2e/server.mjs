@@ -158,4 +158,9 @@ const server = http.createServer(async (request, response) => {
   }
 });
 
+// Keep idle sockets open for the whole run. With Node's 5s default the server
+// can close a pooled connection just as Playwright reuses it, and the request
+// fails with "socket hang up" through no fault of the page under test.
+server.keepAliveTimeout = 120_000;
+server.headersTimeout = 125_000;
 server.listen(PORT, "127.0.0.1", () => console.log(`e2e server on ${ORIGIN}`));
