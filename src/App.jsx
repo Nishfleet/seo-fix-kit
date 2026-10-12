@@ -4,6 +4,7 @@ import { RENDERED_CRAWL_TARGETS } from "../shared/rendered-crawl-scale.js";
 import { repairSprintEligibilityFromProposals } from "../shared/offers.js";
 import { apiErrorMessage, apiFetch, apiRequest, isAbortError } from "./api.js";
 import { developerWebhookRequest } from "./developer-webhooks.js";
+import { storageGet, storageRemove, storageSet } from "./storage.js";
 import { deliveryReadinessLabel, deliveryReadinessText } from "./delivery-readiness-copy.js";
 import {
   fixPackCheckoutBody,
@@ -411,8 +412,8 @@ function BetaApp() {
     if (!isAuthed || !reportId) return;
     loadReport(reportId, setReport, setAuditStatus, setAuditMessage, () => {
       setIsAuthed(false);
-      window.sessionStorage.removeItem(BETA_SESSION_KEY);
-      window.sessionStorage.removeItem(BETA_EMAIL_KEY);
+      storageRemove(BETA_SESSION_KEY);
+      storageRemove(BETA_EMAIL_KEY);
     });
   }, [isAuthed, reportId]);
 
@@ -449,8 +450,8 @@ function BetaApp() {
         requireOkFlag: false,
         fallbackError: "Private beta invite code required."
       });
-      window.sessionStorage.setItem(BETA_SESSION_KEY, "1");
-      window.sessionStorage.setItem(BETA_EMAIL_KEY, payload.ownerEmail || loginEmail);
+      storageSet(BETA_SESSION_KEY, "1");
+      storageSet(BETA_EMAIL_KEY, payload.ownerEmail || loginEmail);
       setOwnerEmail(payload.ownerEmail || loginEmail);
       setIsAuthed(true);
       setLoginStatus("success");
@@ -649,8 +650,8 @@ function BetaApp() {
         }
         await loadReport(job.reportId, setReport, setAuditStatus, setAuditMessage, () => {
           setIsAuthed(false);
-          window.sessionStorage.removeItem(BETA_SESSION_KEY);
-          window.sessionStorage.removeItem(BETA_EMAIL_KEY);
+          storageRemove(BETA_SESSION_KEY);
+          storageRemove(BETA_EMAIL_KEY);
         });
         loadAccountSummary(setAccountData, setAccountStatus, setAccountMessage);
         window.requestAnimationFrame(() => window.scrollTo(0, 0));
@@ -672,8 +673,8 @@ function BetaApp() {
         error.message.toLowerCase().includes("invite")
       ) {
         setIsAuthed(false);
-        window.sessionStorage.removeItem(BETA_SESSION_KEY);
-        window.sessionStorage.removeItem(BETA_EMAIL_KEY);
+        storageRemove(BETA_SESSION_KEY);
+        storageRemove(BETA_EMAIL_KEY);
       }
       setAuditStatus("error");
       setAuditMessage(error.message || "The audit failed. Try another URL.");
@@ -682,8 +683,8 @@ function BetaApp() {
 
   function lock() {
     fetch("/api/beta/logout", { method: "POST", credentials: "same-origin" }).catch(() => {});
-    window.sessionStorage.removeItem(BETA_SESSION_KEY);
-    window.sessionStorage.removeItem(BETA_EMAIL_KEY);
+    storageRemove(BETA_SESSION_KEY);
+    storageRemove(BETA_EMAIL_KEY);
     setOwnerEmail("");
     setLoginEmail("");
     setInviteCode("");
@@ -5121,19 +5122,19 @@ async function refreshSession(setIsAuthed, setOwnerEmail) {
   try {
     const { response, payload } = await apiRequest("/api/beta/session");
     if (!response.ok) {
-      window.sessionStorage.removeItem(BETA_SESSION_KEY);
-      window.sessionStorage.removeItem(BETA_EMAIL_KEY);
+      storageRemove(BETA_SESSION_KEY);
+      storageRemove(BETA_EMAIL_KEY);
       setOwnerEmail("");
       setIsAuthed(false);
       return;
     }
-    window.sessionStorage.setItem(BETA_SESSION_KEY, "1");
-    window.sessionStorage.setItem(BETA_EMAIL_KEY, payload.ownerEmail || "");
+    storageSet(BETA_SESSION_KEY, "1");
+    storageSet(BETA_EMAIL_KEY, payload.ownerEmail || "");
     setOwnerEmail(payload.ownerEmail || "");
     setIsAuthed(true);
   } catch {
-    window.sessionStorage.removeItem(BETA_SESSION_KEY);
-    window.sessionStorage.removeItem(BETA_EMAIL_KEY);
+    storageRemove(BETA_SESSION_KEY);
+    storageRemove(BETA_EMAIL_KEY);
     setOwnerEmail("");
     setIsAuthed(false);
   }
