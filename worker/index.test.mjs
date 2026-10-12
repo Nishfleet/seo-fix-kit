@@ -234,6 +234,21 @@ test("Worker dispatch serves apex-only canonicals, robots, sitemap, and llms.txt
   assert.match(llmsBody, /https:\/\/seofixkit\.com\/check/);
   assert.match(llmsBody, /https:\/\/seofixkit\.com\/proof/);
   assert.match(sitemapBody, /<loc>https:\/\/seofixkit\.com\/proof<\/loc>/);
+  assert.match(sitemapBody, /<loc>https:\/\/seofixkit\.com\/methodology<\/loc>/);
+  assert.doesNotMatch(sitemapBody, /\/llms\.txt/);
+  assert.doesNotMatch(sitemapBody, /\/fixture\//);
+});
+
+test("Worker dispatch serves the deterministic fixture's own robots.txt and sitemap", async () => {
+  const env = await fakeWorkerEnv();
+
+  const robots = await worker.fetch(new Request("https://seofixkit.com/fixture/robots.txt"), env, fakeCtx());
+  assert.equal(robots.status, 200);
+  assert.match(await robots.text(), /Sitemap: https:\/\/seofixkit\.com\/fixture\/sitemap\.xml/);
+
+  const sitemap = await worker.fetch(new Request("https://seofixkit.com/fixture/sitemap.xml"), env, fakeCtx());
+  assert.equal(sitemap.status, 200);
+  assert.match(await sitemap.text(), /<loc>https:\/\/seofixkit\.com\/fixture\/rendered-page<\/loc>/);
 });
 
 test("Worker dispatch serves the real before/after repair proof receipt", async () => {

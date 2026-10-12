@@ -575,6 +575,7 @@ test("Developer API repair action webhooks deliver lifecycle transitions without
   }];
   const waitUntilPromises = [];
   const sentPayloads = [];
+  const sentHeaders = [];
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, options = {}) => {
     const target = String(url);
@@ -585,6 +586,7 @@ test("Developer API repair action webhooks deliver lifecycle transitions without
       });
     }
     sentPayloads.push(JSON.parse(options.body || "{}"));
+    sentHeaders.push(options.headers || {});
     return new Response("", { status: 200 });
   };
 
@@ -674,6 +676,15 @@ test("Developer API repair action webhooks deliver lifecycle transitions without
   assert.equal(sentPayloads[4].data.repair_action.rerun_state, "regressed");
   assert.equal(sentPayloads[4].data.repair_action.rerun_report_id, "rerun-regressed-report-1");
   assert.doesNotMatch(JSON.stringify(sentPayloads), /Private draft title copy|source_proof|proposed_change/i);
+  assert.equal(sentPayloads[0].data.repair_action.issue_id, "issue-1");
+  assert.equal(sentPayloads[0].data.repair_action.report_id, env.reportId);
+  assert.equal(sentPayloads[0].data.repair_action.issue_title, "Missing title");
+  for (const [index, payload] of sentPayloads.entries()) {
+    assert.equal(Object.hasOwn(payload.data.repair_action, "proposed_change"), false);
+    assert.equal(Object.hasOwn(payload.data.repair_action, "source_proof"), false);
+    assert.equal(sentHeaders[index]["x-seofixkit-event"], payload.event);
+    assert.match(sentHeaders[index]["x-seofixkit-signature"], /^t=\d+,v1=[a-f0-9]{64}$/);
+  }
   assert.equal(env.webhooks[0].last_delivery_status, "delivered");
 });
 
@@ -848,6 +859,61 @@ test("Developer API audit delete removes report, repair rows, and audit job toge
   assert.equal(env.reports.length, 0);
   assert.equal(env.queueItems.length, 0);
   assert.equal(env.actions.length, 0);
+});
+
+test("Developer API audit delete of a rerun-proof audit clears that proof from the source repair", async () => {
+  const env = await fakeDeveloperApiEnv();
+  env.actions[0].id = "99999999-9999-4999-8999-999999999999";
+  const applied = await apiUpdateRepairAction(apiRequest(
+    `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`,
+    env.apiToken,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ approvalState: "approved", executionState: "applied" })
+    }
+  ), env);
+  assert.equal(applied.status, 200);
+
+  const rerunAuditId = "22222222-2222-4222-8222-222222222222";
+  const rerunReportId = "rerun-proof-report-1";
+  const later = new Date(Date.now() + 60_000).toISOString();
+  env.jobs.push({ ...env.jobs[0], id: rerunAuditId, report_id: rerunReportId, created_at: later, updated_at: later, completed_at: later });
+  env.reports.push({
+    id: rerunReportId,
+    owner_email: "owner@example.com",
+    expires_at: new Date(Date.now() + 7_200_000).toISOString(),
+    created_at: later,
+    updated_at: later,
+    url: "https://example.com/",
+    target_host: "example.com",
+    report_json: JSON.stringify(stillOpenRerunReport(rerunReportId))
+  });
+
+  const stillOpen = await apiUpdateRepairAction(apiRequest(
+    `/v1/audits/${env.auditId}/repair-actions/${env.actions[0].id}`,
+    env.apiToken,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ rerunState: "still_open", rerunReportId })
+    }
+  ), env);
+  assert.equal(stillOpen.status, 200);
+  const stillOpenBody = await stillOpen.json();
+  assert.equal(stillOpenBody.queue.items[0].rerun_status, "still_open");
+  assert.equal(stillOpenBody.queue.items[0].last_rerun_report_id, rerunReportId);
+
+  const deleted = await apiDeleteAudit(apiRequest(`/v1/audits/${rerunAuditId}`, env.apiToken, { method: "DELETE" }), env);
+  assert.equal(deleted.status, 200);
+  assert.equal(env.reports.some((row) => row.id === rerunReportId), false);
+
+  const queueResponse = await apiGetRepairQueue(apiRequest(`/v1/audits/${env.auditId}/repair-queue`, env.apiToken), env);
+  assert.equal(queueResponse.status, 200);
+  const queueBody = await queueResponse.json();
+  assert.equal(queueBody.items[0].status, "applied");
+  assert.equal(queueBody.items[0].rerun_status, "not_run");
+  assert.equal(queueBody.items[0].last_rerun_report_id, "");
+  assert.equal(env.actions[0].rerun_state, "not_run");
+  assert.equal(env.actions[0].rerun_report_id, null);
 });
 
 test("Developer API audit delete keeps job when report cleanup fails", async () => {
@@ -1581,11 +1647,30 @@ function run(sql, values, env) {
   }
   if (sql.includes("UPDATE repair_agent_actions") && sql.includes("WHERE rerun_report_id =")) {
     if (env.reportCleanupFails) throw new Error("repair cleanup unavailable");
-    return { meta: { changes: 0 } };
+    if (isProtectedReport(env, values[2])) return { meta: { changes: 0 } };
+    let changes = 0;
+    for (const row of env.actions) {
+      if (!row.rerun_report_id || row.rerun_report_id !== values[1]) continue;
+      Object.assign(row, { rerun_state: "not_run", rerun_report_id: null, updated_at: values[0] });
+      changes += 1;
+    }
+    return { meta: { changes } };
   }
   if (sql.includes("UPDATE repair_queue_items") && sql.includes("WHERE last_rerun_report_id =")) {
     if (env.reportCleanupFails) throw new Error("repair cleanup unavailable");
-    return { meta: { changes: 0 } };
+    if (isProtectedReport(env, values[2])) return { meta: { changes: 0 } };
+    let changes = 0;
+    for (const row of env.queueItems) {
+      if (!row.last_rerun_report_id || row.last_rerun_report_id !== values[1]) continue;
+      Object.assign(row, {
+        status: ["fixed", "regressed"].includes(row.status) ? "applied" : row.status,
+        rerun_status: "not_run",
+        last_rerun_report_id: null,
+        updated_at: values[0]
+      });
+      changes += 1;
+    }
+    return { meta: { changes } };
   }
   if (sql.includes("DELETE FROM repair_agent_actions")) {
     if (env.reportCleanupFails) throw new Error("repair cleanup unavailable");
