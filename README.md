@@ -10,7 +10,7 @@ It is not trying to replace Ahrefs or Semrush keyword and backlink databases. Th
 
 ## What is live in this repo
 
-- Rendered-page audit powered by Cloudflare Browser Run in the deployed Worker and Playwright for local development.
+- Rendered-page audit powered by Cloudflare Browser Run in the Worker (emulated by `wrangler dev` locally); the offline audit smoke tests use Playwright.
 - Static HTML vs rendered DOM comparison.
 - Evidence-backed findings.
 - Self-serve crawl-depth tiers up to 1,000 pages per queued audit, with per-page scores and page proof.
@@ -74,6 +74,45 @@ npm run dev
 ```
 
 Open `http://127.0.0.1:5173`.
+
+There is one backend: the Cloudflare Worker in `worker/index.js`. `npm run dev`
+builds `dist/` (the Worker's static-asset directory), applies the D1 migrations to
+a local database (`npm run db:migrate:local`, i.e.
+`wrangler d1 migrations apply WAITLIST_DB --local`), then runs the Worker with
+`wrangler dev --local` on `http://127.0.0.1:8787` next to the Vite dev server on
+`:5173`, which proxies `/api`, `/admin`, and `/r` to the Worker. `npm start` runs
+only the Worker (after the same build and migration) and serves the whole app from
+`:8787`, as production does.
+
+Local mode keeps every binding on your machine: D1, R2, the audit queue, and Workers
+Assets are simulated under `.wrangler/state/`, so no Cloudflare account or network
+is needed to boot. Put local secrets in `.dev.vars` (gitignored), for example:
+
+```bash
+BETA_ACCESS_PASSWORD=local-founder-pass   # founder-override invite code for /api/beta/login (8+ chars)
+SEOFIXKIT_COOKIE_SECRET=any-local-value   # needed for white-label report share cookies
+SEOFIXKIT_API_WEBHOOK_SECRET=any-local-value
+```
+
+Limits of local mode:
+
+- `BROWSER` (Cloudflare Browser Run) is emulated by a Chromium that wrangler downloads
+  on first use. It needs network access for that download, and Chromium refuses to
+  start as root without `--no-sandbox`, so rendered audits and `/api/public-check`
+  return 503 when wrangler runs as root (e.g. in a container). Everything else works.
+- Audits only accept public URLs, so the Worker's own `http://127.0.0.1:8787/fixture/...`
+  pages cannot be audited locally (the SSRF guard rejects private addresses).
+- `EMAIL` (send_email) is simulated by wrangler and never delivers real mail; email
+  flows such as `/api/access/request` also need `SEOFIXKIT_EMAIL_FROM` in `.dev.vars`.
+- Offline, wrangler logs a harmless "Unable to fetch the `Request.cf` object" warning
+  and uses placeholder `request.cf` data (country, colo).
+- Cron triggers do not fire on their own; hit
+  `http://127.0.0.1:8787/cdn-cgi/handler/scheduled` to run one.
+- `DODO_SEOFIXKIT_ENVIRONMENT` is `live` in `wrangler.jsonc`; checkout stays
+  unconfigured locally unless you add Dodo keys to `.dev.vars` (do not use live keys).
+
+`npm run dev:cf` runs the same Worker against remote Cloudflare bindings
+(`wrangler dev --remote`) when you need the real Browser Run or production-like data.
 
 ## Check
 
@@ -152,7 +191,7 @@ invitation copy, both prepared 2026-08-12) lives at
 
 ## Cloudflare path
 
-Cloudflare cannot run the local Express + Chromium server directly. The deployable path is:
+The Worker in `worker/index.js` is the only backend, locally and in production. The deployable path is:
 
 - React UI served by Workers Static Assets from `dist/`
 - Public `/check`, `/demo`, `/methodology`, `/packages`, `/proof`, `/small-business-seo-audit`, `/rendered-vs-static-seo-audit`, `/ai-answer-readiness`, `/privacy`, `/support`, `/terms`, `/sitemap.xml`, and `/llms.txt` stay served by the Worker/public asset path
@@ -192,7 +231,7 @@ Cloudflare cannot run the local Express + Chromium server directly. The deployab
 - rendered checks powered by Cloudflare Browser Run through the `BROWSER` binding
 - `/llms.txt` and same-URL Markdown for `/` kept truthful to the visible product
 
-Local Cloudflare development needs remote bindings for Browser Run:
+Local development with remote bindings (real Browser Run; see Run locally for local mode):
 
 ```bash
 npm run dev:cf
