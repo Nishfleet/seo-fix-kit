@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CRAWL_DEPTH_TIERS, DEFAULT_CRAWL_PAGES, SELF_SERVE_MAX_CRAWL_PAGES } from "../shared/crawl-depth.js";
 import { RENDERED_CRAWL_TARGETS } from "../shared/rendered-crawl-scale.js";
 import { repairSprintEligibilityFromProposals } from "../shared/offers.js";
-import { apiErrorMessage, apiFetch, apiRequest } from "./api.js";
+import { apiErrorMessage, apiFetch, apiRequest, isAbortError } from "./api.js";
 import { developerWebhookRequest } from "./developer-webhooks.js";
 import { deliveryReadinessLabel, deliveryReadinessText } from "./delivery-readiness-copy.js";
 import {
@@ -431,6 +431,12 @@ function BetaApp() {
     return () => window.clearInterval(interval);
   }, [isAuthed, reportId, isAdminRoute, isBillingRoute, accountData?.metrics?.runningAudits]);
 
+  // Queued audits are polled for minutes; tie that loop to this component so
+  // unmounting (or starting another audit) stops it instead of leaking
+  // requests and setState calls.
+  const auditPollRef = useRef(null);
+  useEffect(() => () => auditPollRef.current?.abort(), []);
+
   async function login(event) {
     event.preventDefault();
     setLoginStatus("submitting");
@@ -620,6 +626,9 @@ function BetaApp() {
         : "Rendering the site, crawling same-site links, and collecting proof."
     );
     setReport(null);
+    auditPollRef.current?.abort();
+    const auditPoll = new AbortController();
+    auditPollRef.current = auditPoll;
 
     try {
       const payload = await apiFetch("/api/audit", {
@@ -631,7 +640,7 @@ function BetaApp() {
       if (payload.mode === "queued" && (payload.jobId || payload.job?.id)) {
         const jobId = payload.jobId || payload.job.id;
         setAuditMessage("Audit queued. Waiting for proof collection to start.");
-        const job = await pollAuditJob(jobId, setAuditMessage);
+        const job = await pollAuditJob(jobId, setAuditMessage, { signal: auditPoll.signal });
         if (!job.reportId) {
           throw new Error("Audit finished without a saved report.");
         }
@@ -656,6 +665,7 @@ function BetaApp() {
       }
       window.requestAnimationFrame(() => window.scrollTo(0, 0));
     } catch (error) {
+      if (isAbortError(error) || auditPoll.signal.aborted) return;
       if (
         error.message.toLowerCase().includes("session") ||
         error.message.toLowerCase().includes("password") ||
@@ -5311,12 +5321,15 @@ async function loadReport(id, setReport, setStatus, setMessage, onUnauthorized) 
   }
 }
 
-async function pollAuditJob(jobId, setMessage) {
+async function pollAuditJob(jobId, setMessage, { signal } = {}) {
   const attempts = 80;
   for (let attempt = 0; attempt < attempts; attempt += 1) {
+    signal?.throwIfAborted();
     const payload = await apiFetch(`/api/audit/jobs/${encodeURIComponent(jobId)}`, {
+      signal,
       fallbackError: "Could not check audit progress."
     });
+    signal?.throwIfAborted();
 
     const job = payload.job || {};
     if (job.status === "completed") {
@@ -5332,14 +5345,28 @@ async function pollAuditJob(jobId, setMessage) {
         ? "Audit queued. Waiting for proof collection to start."
         : "Rendering the site, crawling same-site links, and collecting proof."
     );
-    await delay(Math.min(1500 + attempt * 100, 3500));
+    await delay(Math.min(1500 + attempt * 100, 3500), signal);
   }
 
   throw new Error("The audit is still running. Refresh this page in a moment.");
 }
 
-function delay(milliseconds) {
-  return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+function delay(milliseconds, signal) {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(signal.reason);
+      return;
+    }
+    const onAbort = () => {
+      window.clearTimeout(timer);
+      reject(signal.reason);
+    };
+    const timer = window.setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, milliseconds);
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
 }
 
 async function fetchBrief(id) {
