@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { repairSprintEligibilityFromProposals } from "../../../shared/offers.js";
 import { apiErrorMessage, apiRequest } from "../../api.js";
 import StatusMessage from "../../StatusMessage.jsx";
@@ -13,6 +14,7 @@ import { CopyButton } from "../../components/CopyButton.jsx";
 import { usePricingPreview } from "../../hooks/usePricingPreview.js";
 import { beforeAfterText, formatDate } from "../../lib/format.js";
 import { proposalStatusLabel, checkoutMessage, statusLabel } from "../../lib/labels.js";
+import { queryKeys } from "../../lib/queries.js";
 import { loadRepairQueue, requestFixQuote, patchRepairProposalApproval } from "../../lib/requests.js";
 
 export function FixRequestStatusPanel({ fixRequest, checkoutReturned }) {
@@ -96,15 +98,13 @@ export function FixRequestStatusPanel({ fixRequest, checkoutReturned }) {
 }
 
 export function RepairProposalPanel({ reportId, initialProposals = [], repairSprint = null }) {
-  const [proposals, setProposals] = useState(initialProposals);
+  // Proposals come from the report; approvals made here override them by id.
+  const [updatedById, setUpdatedById] = useState({});
+  const proposals = initialProposals.map((proposal) => updatedById[proposal.id] || proposal);
   const [savingId, setSavingId] = useState("");
   const [sprintCheckoutStatus, setSprintCheckoutStatus] = useState("idle");
   const [message, setMessage] = useState("");
   const [messageIsError, setMessageIsError] = useState(false);
-
-  useEffect(() => {
-    setProposals(initialProposals);
-  }, [initialProposals]);
 
   function showMessage(text, isError = false) {
     setMessage(text);
@@ -120,7 +120,7 @@ export function RepairProposalPanel({ reportId, initialProposals = [], repairSpr
       showMessage(result.error || "Could not update repair proposal.", true);
       return;
     }
-    setProposals((current) => current.map((item) => (item.id === proposal.id ? result.proposal : item)));
+    setUpdatedById((current) => ({ ...current, [proposal.id]: result.proposal }));
     // A later success must clear the styling left by an earlier failed checkout.
     setSprintCheckoutStatus("idle");
     showMessage(action === "approve" ? "Repair approved." : "Repair dismissed.");
@@ -264,28 +264,16 @@ export function RepairProposalPanel({ reportId, initialProposals = [], repairSpr
 export function FixQuotePanel({ report, hasPriorityFixes }) {
   const [status, setStatus] = useState("idle");
   const [message, setMessage] = useState("");
-  const [repairQueue, setRepairQueue] = useState({ status: "idle", items: [] });
   const pricing = usePricingPreview(hasPriorityFixes);
-  useEffect(() => {
-    if (!hasPriorityFixes || !report.id) {
-      setRepairQueue({ status: "idle", items: [] });
-      return undefined;
-    }
-    let cancelled = false;
-    setRepairQueue((current) => ({ ...current, status: "loading" }));
-    loadRepairQueue(report.id)
-      .then((payload) => {
-        if (cancelled) return;
-        setRepairQueue({ status: "success", items: payload.items || [] });
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setRepairQueue({ status: "error", items: [] });
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [hasPriorityFixes, report.id]);
+  const repairQueueQuery = useQuery({
+    queryKey: queryKeys.repairQueue(report.id),
+    queryFn: () => loadRepairQueue(report.id),
+    enabled: Boolean(hasPriorityFixes && report.id)
+  });
+  const repairQueue = {
+    status: repairQueueQuery.isLoading ? "loading" : repairQueueQuery.isError ? "error" : "idle",
+    items: repairQueueQuery.data?.items || []
+  };
   const selectedRepair = fixPackRepairTarget(report, repairQueue.items);
   const selectedRepairIsLive = selectedRepair?.source === "repair_queue";
   const checkoutDisabled = fixPackCheckoutDisabled({

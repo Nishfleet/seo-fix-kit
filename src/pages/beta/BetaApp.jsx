@@ -1,3 +1,4 @@
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { CRAWL_DEPTH_TIERS, DEFAULT_CRAWL_PAGES, SELF_SERVE_MAX_CRAWL_PAGES } from "../../../shared/crawl-depth.js";
@@ -9,13 +10,14 @@ import { LoadingAuditState, ErrorAuditState } from "../../components/AuditStates
 import { reportIdFromPath, readOrCreateFunnelKey } from "../../lib/browser.js";
 import { BETA_SESSION_KEY, BETA_EMAIL_KEY, FUNNEL_KEY } from "../../lib/constants.js";
 import { sectionFromPath } from "../../lib/app-sections.js";
+import { queryKeys } from "../../lib/queries.js";
 import { formatCount, safeHostnameLabel } from "../../lib/format.js";
 import {
-  refreshSession,
+  fetchSession,
   postAccessRequest,
   verifyAccessToken,
-  loadAccountSummary,
-  loadDeveloperSummary,
+  fetchAccountSummary,
+  fetchDeveloperSummary,
   postSiteClaim,
   postSiteVerify,
   postAuditSchedule,
@@ -24,7 +26,7 @@ import {
   deleteDeveloperToken,
   postDeveloperWebhook,
   deleteDeveloperWebhook,
-  loadReport,
+  fetchReport,
   pollAuditJob,
   loadAdmin
 } from "../../lib/requests.js";
@@ -45,12 +47,71 @@ export function BetaApp({ mountKey }) {
   // this BetaApp mounted; see BetaRoute in App.jsx.
   const replaceUrl = (path) => navigate(path, { replace: true, state: { betaMountKey: mountKey } });
   const accessToken = inviteParams.get("access") || "";
-  const [ownerEmail, setOwnerEmail] = useState(() => inviteParams.get("email") || storageGet(BETA_EMAIL_KEY) || "");
-  const [loginEmail, setLoginEmail] = useState(ownerEmail || inviteParams.get("email") || "");
+  const hasInviteParam = inviteParams.has("invite");
+  const queryClient = useQueryClient();
+  const [loginEmail, setLoginEmail] = useState(() => inviteParams.get("email") || storageGet(BETA_EMAIL_KEY) || "");
   const [inviteCode, setInviteCode] = useState(inviteParams.get("invite") || "");
-  const [isAuthed, setIsAuthed] = useState(() => storageGet(BETA_SESSION_KEY) === "1");
-  const [loginStatus, setLoginStatus] = useState(accessToken ? "submitting" : "idle");
+  const [loginStatus, setLoginStatus] = useState("idle");
   const [loginMessage, setLoginMessage] = useState("");
+
+  // Session: undefined until checked, null when signed out, else the owner.
+  // Until the server answers, the stored hint decides what to show.
+  const sessionCheckNeeded =
+    storageGet(BETA_SESSION_KEY) === "1" || Boolean(reportId) || isAdminRoute || isBillingRoute;
+  const sessionQuery = useQuery({
+    queryKey: queryKeys.session,
+    queryFn: fetchSession,
+    enabled: sessionCheckNeeded && !accessToken,
+    staleTime: 5 * 60_000
+  });
+  const session = sessionQuery.data;
+  const isAuthed = session === undefined ? storageGet(BETA_SESSION_KEY) === "1" : Boolean(session);
+  const ownerEmail =
+    session === undefined ? inviteParams.get("email") || storageGet(BETA_EMAIL_KEY) || "" : session?.ownerEmail || "";
+
+  function setSignedIn(email) {
+    storageSet(BETA_SESSION_KEY, "1");
+    storageSet(BETA_EMAIL_KEY, email);
+    queryClient.setQueryData(queryKeys.session, { ownerEmail: email });
+  }
+
+  function markSignedOut() {
+    storageRemove(BETA_SESSION_KEY);
+    storageRemove(BETA_EMAIL_KEY);
+    queryClient.setQueryData(queryKeys.session, null);
+  }
+
+  // One-use sign-in links are verified once per token; the cached result
+  // survives remounts so the token is never spent twice.
+  const accessQuery = useQuery({
+    queryKey: ["access-token", accessToken],
+    queryFn: async () => {
+      const payload = await verifyAccessToken(accessToken, storageGet(FUNNEL_KEY) || "");
+      const email = payload.ownerEmail || loginEmail;
+      setSignedIn(email);
+      const cleanUrl = new URL(window.location.href);
+      cleanUrl.searchParams.delete("access");
+      cleanUrl.searchParams.delete("email");
+      replaceUrl(`${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`);
+      return { ownerEmail: email };
+    },
+    enabled: Boolean(accessToken),
+    retry: false,
+    staleTime: Infinity,
+    gcTime: Infinity
+  });
+  const signInStatus =
+    loginStatus === "idle" && accessToken && accessQuery.isPending
+      ? "submitting"
+      : loginStatus === "idle" && accessQuery.isError
+        ? "error"
+        : loginStatus;
+  const signInMessage =
+    loginStatus === "idle" && accessToken && accessQuery.isPending
+      ? "Signing you in…"
+      : loginStatus === "idle" && accessQuery.isError
+        ? accessQuery.error?.message || "This sign-in link has expired or was already used. Request a new one below."
+        : loginMessage;
   const [targetUrl, setTargetUrl] = useState("");
   const [maxPages, setMaxPages] = useState(String(DEFAULT_CRAWL_PAGES));
   const [renderedCrawlTarget, setRenderedCrawlTarget] = useState("0");
@@ -63,20 +124,15 @@ export function BetaApp({ mountKey }) {
   const [googleBusinessProfileUrl, setGoogleBusinessProfileUrl] = useState("");
   const [localKeywords, setLocalKeywords] = useState("");
   const [localCitations, setLocalCitations] = useState("");
-  const [auditStatus, setAuditStatus] = useState(reportId ? "loading" : "idle");
+  const [auditStatus, setAuditStatus] = useState("idle");
   const [auditMessage, setAuditMessage] = useState("");
-  const [report, setReport] = useState(null);
-  const [accountData, setAccountData] = useState(null);
-  const [accountStatus, setAccountStatus] = useState("idle");
-  const [accountMessage, setAccountMessage] = useState("");
   const [siteHost, setSiteHost] = useState("");
   const [siteStatus, setSiteStatus] = useState("idle");
   const [siteMessage, setSiteMessage] = useState("");
   const [scheduleStatus, setScheduleStatus] = useState("idle");
   const [scheduleMessage, setScheduleMessage] = useState("");
-  const [developerData, setDeveloperData] = useState(null);
-  const [developerStatus, setDeveloperStatus] = useState("idle");
-  const [developerMessage, setDeveloperMessage] = useState("");
+  const [developerActionStatus, setDeveloperStatus] = useState("idle");
+  const [developerActionMessage, setDeveloperMessage] = useState("");
   const [apiTokenSecret, setApiTokenSecret] = useState("");
   const [webhookUrl, setWebhookUrl] = useState("");
   const [webhookSecret, setWebhookSecret] = useState("");
@@ -85,6 +141,46 @@ export function BetaApp({ mountKey }) {
   const [adminStatus, setAdminStatus] = useState("idle");
   const [adminMessage, setAdminMessage] = useState("");
   const [accessFormStartedAt] = useState(() => Date.now());
+
+  const reportQuery = useQuery({
+    queryKey: queryKeys.report(reportId),
+    queryFn: async () => {
+      try {
+        return await fetchReport(reportId);
+      } catch (error) {
+        if (error.status === 401) markSignedOut();
+        throw error;
+      }
+    },
+    enabled: isAuthed && Boolean(reportId)
+  });
+  const report = reportQuery.data || null;
+
+  const accountQuery = useQuery({
+    queryKey: queryKeys.account,
+    queryFn: fetchAccountSummary,
+    enabled: isAuthed && !isAdminRoute,
+    // Keep the dashboard live while an audit is running.
+    refetchInterval: (query) =>
+      !reportId && !isBillingRoute && Number(query.state.data?.metrics?.runningAudits || 0) ? 3500 : false
+  });
+  const accountData = accountQuery.data || null;
+  const accountStatus = accountQuery.isError ? "error" : accountQuery.isLoading ? "loading" : "success";
+  const accountMessage = accountQuery.isError ? accountQuery.error?.message || "Could not load your workspace." : "";
+  const refreshAccount = () => queryClient.invalidateQueries({ queryKey: queryKeys.account });
+
+  const developerQuery = useQuery({
+    queryKey: queryKeys.developer,
+    queryFn: fetchDeveloperSummary,
+    enabled: isAuthed && !reportId && !isAdminRoute && !isBillingRoute
+  });
+  const developerData = developerQuery.data || null;
+  const developerStatus =
+    developerActionStatus !== "idle" ? developerActionStatus : developerQuery.isError ? "error" : "idle";
+  const developerMessage =
+    developerActionMessage ||
+    (developerQuery.isError ? developerQuery.error?.message || "Could not load developer API." : "");
+  const refreshDeveloper = () => queryClient.invalidateQueries({ queryKey: queryKeys.developer });
 
   useEffect(() => {
     if (isAdminRoute) {
@@ -99,76 +195,19 @@ export function BetaApp({ mountKey }) {
       document.title = `SEO Fix Kit report - ${safeHostnameLabel(report.url)}`;
       return;
     }
-    document.title = "SEO Fix Kit Beta";
+    document.title = "SEO Fix Kit";
   }, [isAdminRoute, isBillingRoute, report?.url]);
 
+  // Drop a consumed ?invite= code from the address bar.
   useEffect(() => {
-    if (storageGet(BETA_SESSION_KEY) === "1" || reportId || isAdminRoute || isBillingRoute) {
-      refreshSession(setIsAuthed, setOwnerEmail);
-    }
-  }, [reportId, isAdminRoute, isBillingRoute]);
-
-  useEffect(() => {
-    if (!inviteParams.get("invite")) return;
+    if (!hasInviteParam) return;
     const cleanUrl = new URL(window.location.href);
     cleanUrl.searchParams.delete("invite");
-    replaceUrl(`${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`);
-  }, []);
-
-  useEffect(() => {
-    if (!accessToken) return;
-    let cancelled = false;
-    setLoginStatus("submitting");
-    setLoginMessage("Signing you in…");
-    const storedFunnelKey = storageGet(FUNNEL_KEY) || "";
-    verifyAccessToken(accessToken, storedFunnelKey)
-      .then((payload) => {
-        if (cancelled) return;
-        storageSet(BETA_SESSION_KEY, "1");
-        storageSet(BETA_EMAIL_KEY, payload.ownerEmail || loginEmail);
-        setOwnerEmail(payload.ownerEmail || loginEmail);
-        setIsAuthed(true);
-        setLoginStatus("success");
-        setLoginMessage("");
-        const cleanUrl = new URL(window.location.href);
-        cleanUrl.searchParams.delete("access");
-        cleanUrl.searchParams.delete("email");
-        replaceUrl(`${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`);
-      })
-      .catch((error) => {
-        if (cancelled) return;
-        setLoginStatus("error");
-        setLoginMessage(error.message || "This sign-in link has expired or was already used. Request a new one below.");
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [accessToken]);
-
-  useEffect(() => {
-    if (!isAuthed || !reportId) return;
-    loadReport(reportId, setReport, setAuditStatus, setAuditMessage, () => {
-      setIsAuthed(false);
-      storageRemove(BETA_SESSION_KEY);
-      storageRemove(BETA_EMAIL_KEY);
+    navigate(`${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`, {
+      replace: true,
+      state: { betaMountKey: mountKey }
     });
-  }, [isAuthed, reportId]);
-
-  useEffect(() => {
-    if (!isAuthed || isAdminRoute) return;
-    loadAccountSummary(setAccountData, setAccountStatus, setAccountMessage);
-    if (reportId || isBillingRoute) return;
-    loadDeveloperSummary(setDeveloperData, setDeveloperStatus, setDeveloperMessage);
-  }, [isAuthed, reportId, isAdminRoute, isBillingRoute]);
-
-  useEffect(() => {
-    if (!isAuthed || reportId || isAdminRoute || isBillingRoute) return;
-    if (!Number(accountData?.metrics?.runningAudits || 0)) return;
-    const interval = window.setInterval(() => {
-      loadAccountSummary(setAccountData, setAccountStatus, setAccountMessage);
-    }, 3500);
-    return () => window.clearInterval(interval);
-  }, [isAuthed, reportId, isAdminRoute, isBillingRoute, accountData?.metrics?.runningAudits]);
+  }, [hasInviteParam, navigate, mountKey]);
 
   // Queued audits are polled for minutes; tie that loop to this component so
   // unmounting (or starting another audit) stops it instead of leaking
@@ -188,10 +227,7 @@ export function BetaApp({ mountKey }) {
         requireOkFlag: false,
         fallbackError: "That invite code didn’t work."
       });
-      storageSet(BETA_SESSION_KEY, "1");
-      storageSet(BETA_EMAIL_KEY, payload.ownerEmail || loginEmail);
-      setOwnerEmail(payload.ownerEmail || loginEmail);
-      setIsAuthed(true);
+      setSignedIn(payload.ownerEmail || loginEmail);
       setLoginStatus("success");
       setInviteCode("");
     } catch (error) {
@@ -232,7 +268,7 @@ export function BetaApp({ mountKey }) {
       setSiteStatus("success");
       setSiteMessage(`Verification challenge ready for ${payload.site?.host || siteHost}.`);
       setSiteHost("");
-      await loadAccountSummary(setAccountData, setAccountStatus, setAccountMessage);
+      await refreshAccount();
     } catch (error) {
       setSiteStatus("error");
       setSiteMessage(error.message || "Could not create site verification.");
@@ -250,7 +286,7 @@ export function BetaApp({ mountKey }) {
           ? `${payload.site.host} is verified.`
           : payload.message || "Verification proof was not found yet."
       );
-      await loadAccountSummary(setAccountData, setAccountStatus, setAccountMessage);
+      await refreshAccount();
     } catch (error) {
       setSiteStatus("error");
       setSiteMessage(error.message || "Could not verify site.");
@@ -264,7 +300,7 @@ export function BetaApp({ mountKey }) {
       const payload = await postAuditSchedule(url, { intervalDays: 7, maxPages: DEFAULT_CRAWL_PAGES });
       setScheduleStatus("success");
       setScheduleMessage(`${payload.schedule?.targetHost || safeHostnameLabel(url)} will be checked weekly.`);
-      await loadAccountSummary(setAccountData, setAccountStatus, setAccountMessage);
+      await refreshAccount();
     } catch (error) {
       setScheduleStatus("error");
       setScheduleMessage(error.message || "Could not add monitor.");
@@ -278,7 +314,7 @@ export function BetaApp({ mountKey }) {
       await pauseAuditSchedule(scheduleId);
       setScheduleStatus("success");
       setScheduleMessage("Monitor paused.");
-      await loadAccountSummary(setAccountData, setAccountStatus, setAccountMessage);
+      await refreshAccount();
     } catch (error) {
       setScheduleStatus("error");
       setScheduleMessage(error.message || "Could not pause monitor.");
@@ -294,7 +330,7 @@ export function BetaApp({ mountKey }) {
       setApiTokenSecret(payload.tokenSecret || "");
       setDeveloperStatus("success");
       setDeveloperMessage(payload.message || "API key created.");
-      await loadDeveloperSummary(setDeveloperData, setDeveloperStatus, setDeveloperMessage);
+      await refreshDeveloper();
     } catch (error) {
       setDeveloperStatus("error");
       setDeveloperMessage(error.message || "Could not create API key.");
@@ -308,7 +344,7 @@ export function BetaApp({ mountKey }) {
       await deleteDeveloperToken(tokenId);
       setDeveloperStatus("success");
       setDeveloperMessage("API key revoked.");
-      await loadDeveloperSummary(setDeveloperData, setDeveloperStatus, setDeveloperMessage);
+      await refreshDeveloper();
     } catch (error) {
       setDeveloperStatus("error");
       setDeveloperMessage(error.message || "Could not revoke API key.");
@@ -326,7 +362,7 @@ export function BetaApp({ mountKey }) {
       setWebhookSecret(payload.signingSecret || "");
       setDeveloperStatus("success");
       setDeveloperMessage("Webhook added.");
-      await loadDeveloperSummary(setDeveloperData, setDeveloperStatus, setDeveloperMessage);
+      await refreshDeveloper();
     } catch (error) {
       setDeveloperStatus("error");
       setDeveloperMessage(error.message || "Could not add webhook.");
@@ -340,7 +376,7 @@ export function BetaApp({ mountKey }) {
       await deleteDeveloperWebhook(webhookId);
       setDeveloperStatus("success");
       setDeveloperMessage("Webhook revoked.");
-      await loadDeveloperSummary(setDeveloperData, setDeveloperStatus, setDeveloperMessage);
+      await refreshDeveloper();
     } catch (error) {
       setDeveloperStatus("error");
       setDeveloperMessage(error.message || "Could not revoke webhook.");
@@ -366,7 +402,6 @@ export function BetaApp({ mountKey }) {
         ? "Rendering the site, checking comparison inputs, and collecting proof."
         : "Rendering the site, crawling same-site links, and collecting proof."
     );
-    setReport(null);
     auditPollRef.current?.abort();
     const auditPoll = new AbortController();
     auditPollRef.current = auditPoll;
@@ -393,22 +428,17 @@ export function BetaApp({ mountKey }) {
         if (!job.reportId) {
           throw new Error("Audit finished without a saved report.");
         }
-        if (job.reportPath) {
-          replaceUrl(job.reportPath);
-        }
-        await loadReport(job.reportId, setReport, setAuditStatus, setAuditMessage, () => {
-          setIsAuthed(false);
-          storageRemove(BETA_SESSION_KEY);
-          storageRemove(BETA_EMAIL_KEY);
-        });
-        loadAccountSummary(setAccountData, setAccountStatus, setAccountMessage);
+        setAuditStatus("idle");
+        setAuditMessage("");
+        refreshAccount();
+        replaceUrl(job.reportPath || `/beta/reports/${encodeURIComponent(job.reportId)}`);
         window.requestAnimationFrame(() => window.scrollTo(0, 0));
         return;
       }
-      setReport(payload);
-      setAuditStatus("success");
-      setAuditMessage("Audit saved. Private report URL is ready.");
-      loadAccountSummary(setAccountData, setAccountStatus, setAccountMessage);
+      if (payload.id) queryClient.setQueryData(queryKeys.report(payload.id), payload);
+      setAuditStatus("idle");
+      setAuditMessage("");
+      refreshAccount();
       if (payload.reportPath) {
         replaceUrl(payload.reportPath);
       }
@@ -420,9 +450,7 @@ export function BetaApp({ mountKey }) {
         error.message.toLowerCase().includes("password") ||
         error.message.toLowerCase().includes("invite")
       ) {
-        setIsAuthed(false);
-        storageRemove(BETA_SESSION_KEY);
-        storageRemove(BETA_EMAIL_KEY);
+        markSignedOut();
       }
       setAuditStatus("error");
       setAuditMessage(error.message || "The audit failed. Try another URL.");
@@ -431,18 +459,13 @@ export function BetaApp({ mountKey }) {
 
   function signOut() {
     fetch("/api/beta/logout", { method: "POST", credentials: "same-origin" }).catch(() => {});
-    storageRemove(BETA_SESSION_KEY);
-    storageRemove(BETA_EMAIL_KEY);
-    setOwnerEmail("");
+    queryClient.clear();
+    markSignedOut();
     setLoginEmail("");
     setInviteCode("");
-    setIsAuthed(false);
-    setReport(null);
-    setAccountData(null);
     navigate("/beta", { replace: true });
   }
 
-  const showingReport = Boolean(report && auditStatus === "success");
   const section = sectionFromPath(location.pathname);
   const shell = (children) => (
     <AppShell
@@ -478,13 +501,13 @@ export function BetaApp({ mountKey }) {
       <SignIn
         email={loginEmail}
         inviteCode={inviteCode}
-        message={loginMessage}
+        message={signInMessage}
         onCodeSubmit={login}
         onEmailChange={setLoginEmail}
         onInviteCodeChange={setInviteCode}
         onLinkRequest={requestGateAccess}
         returningToReport={Boolean(reportId)}
-        status={loginStatus}
+        status={signInStatus}
       />
     );
   }
@@ -504,9 +527,19 @@ export function BetaApp({ mountKey }) {
           <span>{report?.url ? safeHostnameLabel(report.url) : "Report"}</span>
         </nav>
         <section className="audit-stage" aria-live="polite">
-          {auditStatus === "loading" && <LoadingAuditState message={auditMessage} />}
-          {auditStatus === "error" && <ErrorAuditState message={auditMessage} />}
-          {showingReport && <ReportView report={report} />}
+          {reportQuery.isPending && <LoadingAuditState message="Loading saved report." />}
+          {reportQuery.isError && (
+            <ErrorAuditState
+              hint="It may have expired, or it belongs to a different account."
+              message={reportQuery.error?.message || "Could not load report."}
+              title="Report unavailable"
+            >
+              <Link className="app-button-secondary" discover="none" to="/beta/reports">
+                Back to reports
+              </Link>
+            </ErrorAuditState>
+          )}
+          {report && <ReportView report={report} />}
         </section>
       </div>
     );

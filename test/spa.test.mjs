@@ -336,6 +336,32 @@ test("homepage FAQ shows the buyer questions, the anonymous /check path, and no-
 
 // --- Beta workspace ---------------------------------------------------------
 
+test("a one-use sign-in link signs in once, cleans the address bar, and opens the dashboard", async (t) => {
+  const { page, requests } = await openApp(t, {
+    "POST /api/access/verify": () => ({ ok: true, status: "unlocked", ownerEmail: OWNER }),
+    "GET /api/beta/session": () => ({ ok: true, status: "active", ownerEmail: OWNER, accessMode: "invite" }),
+    "GET /api/account/summary": () => accountSummary(),
+    "GET /api/developer": () => ({ ok: true, tokens: [], webhooks: [] })
+  });
+  await page.goto(`${baseUrl}/beta?access=one-use-token&email=${encodeURIComponent(OWNER)}`);
+  await visible(page.getByRole("heading", { name: "Overview" }));
+  const url = new URL(page.url());
+  assert.equal(url.pathname, "/beta");
+  assert.equal(url.search, "", "the token and email are removed from the address bar");
+  const verifies = requests.filter((request) => request.path === "/api/access/verify");
+  assert.equal(verifies.length, 1, "the one-use token is spent exactly once");
+  assert.equal(verifies[0].body.token, "one-use-token");
+});
+
+test("an expired sign-in link shows the reason on the sign-in screen", async (t) => {
+  const { page } = await openApp(t, {
+    "POST /api/access/verify": () => ({ status: 401, body: { error: "This sign-in link has expired." } })
+  });
+  await page.goto(`${baseUrl}/beta?access=old-token`);
+  await visible(page.getByText("This sign-in link has expired."));
+  await visible(page.getByRole("button", { name: "Email me a sign-in link" }));
+});
+
 test("a queued audit polls /api/audit/jobs/:id until completed before the private report loads", async (t) => {
   assert.match(
     LIVE_SECTION,

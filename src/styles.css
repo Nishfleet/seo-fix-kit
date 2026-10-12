@@ -4676,3 +4676,7 @@ a.app-table-row:hover {
   height: 32px;
   width: 32px;
 }
+
+.error-state .app-button-secondary {
+  margin-top: 14px;
+}

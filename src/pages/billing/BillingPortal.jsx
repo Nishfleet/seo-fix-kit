@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { Link } from "react-router";
 import { apiErrorMessage, apiRequest } from "../../api.js";
 import StatusMessage from "../../StatusMessage.jsx";
@@ -11,18 +12,14 @@ import {
 import { PageHeader } from "../../components/AppShell.jsx";
 import { formatDate } from "../../lib/format.js";
 import { statusLabel } from "../../lib/labels.js";
-import { loadBillingSummary } from "../../lib/requests.js";
+import { queryKeys } from "../../lib/queries.js";
+import { fetchBillingSummary } from "../../lib/requests.js";
 
 export function BillingPortal() {
-  const [billing, setBilling] = useState(null);
-  const [status, setStatus] = useState("loading");
-  const [message, setMessage] = useState("Loading billing.");
+  const billingQuery = useQuery({ queryKey: queryKeys.billing, queryFn: fetchBillingSummary });
+  const billing = billingQuery.data || null;
   const [monitoringCheckoutStatus, setMonitoringCheckoutStatus] = useState("idle");
   const [monitoringCheckoutMessage, setMonitoringCheckoutMessage] = useState("");
-
-  useEffect(() => {
-    loadBillingSummary(setBilling, setStatus, setMessage);
-  }, []);
 
   const requests = billing?.requests || [];
   const payments = billing?.payments || [];
@@ -69,19 +66,11 @@ export function BillingPortal() {
       <PageHeader
         title="Billing"
         description="Your plan, Fix Packs, and payment history. Payments are processed securely by Dodo Payments."
-        actions={
-          <button
-            className="app-button-secondary"
-            disabled={status === "loading"}
-            onClick={() => loadBillingSummary(setBilling, setStatus, setMessage)}
-            type="button"
-          >
-            {status === "loading" ? "Refreshing…" : "Refresh"}
-          </button>
-        }
       />
 
-      {status === "error" && <StatusMessage tone={status}>{message}</StatusMessage>}
+      {billingQuery.isError && (
+        <StatusMessage tone="error">{billingQuery.error?.message || "Could not load billing."}</StatusMessage>
+      )}
 
       <section className="app-card" aria-labelledby="plan-title">
         <div className="app-card-head">

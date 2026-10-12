@@ -71,6 +71,7 @@
   },
   "dependencies": {
     "@cloudflare/puppeteer": "^1.1.0",
+    "@tanstack/react-query": "^5.104.2",
     "cookie": "^1.1.1",
     "hono": "^4.13.13",
     "playwright": "^1.57.0",

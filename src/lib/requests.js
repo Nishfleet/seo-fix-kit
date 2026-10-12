@@ -7,26 +7,24 @@ import { repairActionUpdateRequest } from "../repair-action-requests.js";
 import { trackingPayload } from "./browser.js";
 import { BETA_SESSION_KEY, BETA_EMAIL_KEY } from "./constants.js";
 
-export async function refreshSession(setIsAuthed, setOwnerEmail) {
+// Returns the signed-in owner, or null when there is no live session. Keeps
+// the local "signed in" hint in step with the server.
+export async function fetchSession() {
+  let result;
   try {
-    const { response, payload } = await apiRequest("/api/beta/session");
-    if (!response.ok) {
-      storageRemove(BETA_SESSION_KEY);
-      storageRemove(BETA_EMAIL_KEY);
-      setOwnerEmail("");
-      setIsAuthed(false);
-      return;
-    }
-    storageSet(BETA_SESSION_KEY, "1");
-    storageSet(BETA_EMAIL_KEY, payload.ownerEmail || "");
-    setOwnerEmail(payload.ownerEmail || "");
-    setIsAuthed(true);
+    result = await apiRequest("/api/beta/session");
   } catch {
+    result = { response: { ok: false }, payload: {} };
+  }
+  const { response, payload } = result;
+  if (!response.ok) {
     storageRemove(BETA_SESSION_KEY);
     storageRemove(BETA_EMAIL_KEY);
-    setOwnerEmail("");
-    setIsAuthed(false);
+    return null;
   }
+  storageSet(BETA_SESSION_KEY, "1");
+  storageSet(BETA_EMAIL_KEY, payload.ownerEmail || "");
+  return { ownerEmail: payload.ownerEmail || "" };
 }
 
 export async function postAccessRequest({ email, company = "", source, formStartedAt, returnTo = "", funnelKey = "" }) {
@@ -55,32 +53,12 @@ export async function verifyAccessToken(token, funnelKey = "") {
   });
 }
 
-export async function loadAccountSummary(setAccountData, setStatus, setMessage) {
-  setStatus("loading");
-  setMessage("Loading your workspace.");
-  try {
-    const payload = await apiFetch("/api/account/summary", { fallbackError: "Could not load your workspace." });
-    setAccountData(payload);
-    setStatus("success");
-    setMessage("");
-  } catch (error) {
-    setStatus("error");
-    setMessage(error.message || "Could not load your workspace.");
-  }
+export async function fetchAccountSummary() {
+  return apiFetch("/api/account/summary", { fallbackError: "Could not load your workspace." });
 }
 
-export async function loadDeveloperSummary(setDeveloperData, setStatus, setMessage) {
-  setStatus("loading");
-  setMessage("Loading developer API.");
-  try {
-    const payload = await apiFetch("/api/developer", { fallbackError: "Could not load developer API." });
-    setDeveloperData(payload);
-    setStatus("success");
-    setMessage("");
-  } catch (error) {
-    setStatus("error");
-    setMessage(error.message || "Could not load developer API.");
-  }
+export async function fetchDeveloperSummary() {
+  return apiFetch("/api/developer", { fallbackError: "Could not load developer API." });
 }
 
 export async function postSiteClaim(host) {
@@ -253,22 +231,11 @@ export async function revokeTeamMember(memberId) {
   });
 }
 
-export async function loadReport(id, setReport, setStatus, setMessage, onUnauthorized) {
-  setStatus("loading");
-  setMessage("Loading saved report.");
-  try {
-    const payload = await apiFetch(`/api/reports/${encodeURIComponent(id)}`, {
-      requireOkFlag: false,
-      fallbackError: "Could not load report."
-    });
-    setReport(payload);
-    setStatus("success");
-    setMessage("Report loaded.");
-  } catch (error) {
-    if (error.status === 401) onUnauthorized();
-    setStatus("error");
-    setMessage(error.message || "Could not load report.");
-  }
+export async function fetchReport(id) {
+  return apiFetch(`/api/reports/${encodeURIComponent(id)}`, {
+    requireOkFlag: false,
+    fallbackError: "Could not load report."
+  });
 }
 
 export async function pollAuditJob(jobId, setMessage, { signal } = {}) {
@@ -365,18 +332,18 @@ export async function patchRepairProposalApproval(reportId, proposalId, body) {
   }
 }
 
-export async function loadBillingSummary(setBilling, setStatus, setMessage) {
-  setStatus("loading");
-  setMessage("Loading billing.");
-  try {
-    const payload = await apiFetch("/api/billing/summary", { fallbackError: "Could not load billing." });
-    setBilling(payload);
-    setStatus("success");
-    setMessage("");
-  } catch (error) {
-    setStatus("error");
-    setMessage(error.message || "Could not load billing.");
-  }
+export async function fetchBillingSummary() {
+  return apiFetch("/api/billing/summary", { fallbackError: "Could not load billing." });
+}
+
+export async function fetchPricingPreview() {
+  const payload = await apiFetch("/api/pricing-preview", {
+    credentials: "include",
+    requireOkFlag: false,
+    errorKeys: ["message"],
+    fallbackError: "Pricing unavailable."
+  });
+  return payload.pricing || {};
 }
 
 export async function loadAdmin(token, setAdminData, setAdminStatus, setAdminMessage, onSessionReady = null) {

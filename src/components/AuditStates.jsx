@@ -11,12 +11,18 @@ export function LoadingAuditState({ message }) {
   );
 }
 
-export function ErrorAuditState({ message }) {
+export function ErrorAuditState({
+  message,
+  title = "Needs another try",
+  hint = "Check the URL and run again. Some sites block automated browsers.",
+  children
+}) {
   return (
     <div className="empty-state error-state">
-      <p className="beta-eyebrow">Needs another try</p>
+      <p className="beta-eyebrow">{title}</p>
       <h2>{message}</h2>
-      <p>Check the URL and run again. Some sites block automated browsers.</p>
+      <p>{hint}</p>
+      {children}
     </div>
   );
 }
