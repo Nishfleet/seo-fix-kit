@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useRef, useState } from "react";
 import { DEFAULT_CRAWL_PAGES } from "../../../shared/crawl-depth.js";
 import { CopyButton } from "../../components/CopyButton.jsx";
 import { Metric } from "../../components/Metric.jsx";
@@ -42,7 +42,15 @@ export function ReportView({ report }) {
   const remediationBrief = report.remediationBrief || report.remediation_brief || null;
   const pageSummaries = report.pageSummaries || summarizePages(report.pages || [], report.findings || [], report.url);
   const shareUrl = report.reportUrl || `${window.location.origin}${report.reportPath || window.location.pathname}`;
-  const topThree = topFixes.slice(0, 3);
+  // Without a repair plan, lead with the most serious problems instead of
+  // claiming nothing needs fixing.
+  const SEVERITY_ORDER = { critical: 0, warning: 1, notice: 2 };
+  const topThree = topFixes.length
+    ? topFixes.slice(0, 3)
+    : [...issues]
+        .sort((a, b) => (SEVERITY_ORDER[a.severity] ?? 3) - (SEVERITY_ORDER[b.severity] ?? 3))
+        .slice(0, 3)
+        .map((finding) => ({ title: finding.title, workType: finding.severity, estimatedEffort: finding.pageLabel }));
   const scannedAt = report.scannedAt
     ? new Intl.DateTimeFormat(undefined, {
         dateStyle: "medium",
@@ -56,201 +64,286 @@ export function ReportView({ report }) {
       }).format(new Date(report.retention.expiresAt))
     : "";
   const hasPriorityFixes = topFixes.length > 0;
+  const insightPanels = [
+    ["ready", "first_run"].includes(reportDelta?.status) && <ReportDeltaPanel key="delta" delta={reportDelta} />,
+    competitorBenchmark?.status === "ready" && (
+      <CompetitorBenchmarkPanel key="benchmark" benchmark={competitorBenchmark} />
+    ),
+    aiAnswerReadiness?.status === "ready" && <AiAnswerReadinessPanel key="ai" audit={aiAnswerReadiness} />,
+    growthOpportunities?.status === "ready" && <GrowthOpportunitiesPanel key="growth" growth={growthOpportunities} />,
+    geoReadiness?.status === "ready" && <GeoReadinessPanel key="geo" audit={geoReadiness} />,
+    backlinkAudit?.status === "ready" && <BacklinkAuditPanel key="backlinks" audit={backlinkAudit} />,
+    localSeoAudit?.status === "ready" && <LocalSeoAuditPanel key="local" audit={localSeoAudit} />,
+    keywordRankAudit?.status === "ready" && <KeywordRankAuditPanel key="keywords" audit={keywordRankAudit} />,
+    platformSeoAudit?.status === "ready" && <PlatformSeoAuditPanel key="platform" audit={platformSeoAudit} />
+  ].filter(Boolean);
+  const tabs = [
+    { key: "problems", label: "Problems", count: issues.length },
+    { key: "repair", label: "Repair board" },
+    { key: "pages", label: "Pages", count: pageSummaries.length },
+    ...(insightPanels.length ? [{ key: "insights", label: "Insights" }] : []),
+    { key: "share", label: "Share" }
+  ];
   const checkoutParam = new URLSearchParams(window.location.search).get("checkout");
   const checkoutReturned = checkoutParam === "return" || checkoutParam === "repair-sprint-return";
 
+  const pagesScanned = report.summary?.pagesScanned || 0;
+  const maxPages = report.summary?.maxPages || DEFAULT_CRAWL_PAGES;
+  const score = Number(report.score);
+  const scoreTone = score >= 90 ? "good" : score >= 70 ? "ok" : "bad";
+
   return (
     <div className="report-layout">
-      <section className="score-panel">
-        <div>
-          <p className="beta-eyebrow">Saved report</p>
-          <h2>{new URL(report.url).hostname}</h2>
-          <p>{report.url}</p>
-          <div className="score-meta">
-            <span>{scannedAt}</span>
-            <span>Rendered browser scan</span>
-            <span>{report.summary?.crawlLimitHit ? "Crawl limit reached" : "Crawl completed"}</span>
-            {report.owner?.email && <span>Owner: {report.owner.email}</span>}
-            {expiresAt && <span>Expires: {expiresAt}</span>}
+      <header className="report-header">
+        <div className="report-header-main">
+          <h1>{new URL(report.url).hostname}</h1>
+          <a className="report-header-url" href={report.url} target="_blank" rel="noreferrer">
+            {report.url}
+          </a>
+          <p className="report-header-meta">
+            <span>Scanned {scannedAt}</span>
+            <span>
+              {formatCount(pagesScanned)} of {formatCount(maxPages)} pages
+              {report.summary?.crawlLimitHit ? " (limit reached)" : ""}
+            </span>
+            {expiresAt && <span>Kept until {expiresAt}</span>}
             {report.storageNote && <span>{report.storageNote}</span>}
+          </p>
+          <div className="report-header-actions">
+            <CopyButton className="app-button-secondary" label="Copy link" value={shareUrl} />
+            <a className="app-button-secondary" href={`/api/reports/${report.id}/client.pdf`}>
+              Download PDF
+            </a>
+            <a
+              className="app-button-secondary"
+              href={`/api/reports/${report.id}/brief.md`}
+              onClick={(event) => {
+                event.preventDefault();
+                fetchBrief(report.id);
+              }}
+            >
+              Download brief
+            </a>
           </div>
         </div>
         <div
-          className="score-ring"
+          className={`score-ring ${scoreTone}`}
           style={{ "--score": report.score }}
+          role="img"
           aria-label={`SEO score ${report.score} out of 100`}
         >
           <strong>{report.score}</strong>
           <span>/100</span>
         </div>
-      </section>
+      </header>
 
       {(checkoutReturned || report.fixRequest) && (
         <FixRequestStatusPanel fixRequest={report.fixRequest} checkoutReturned={checkoutReturned} />
       )}
 
-      {(report.repairProposals || []).length > 0 && (
-        <RepairProposalPanel
-          initialProposals={report.repairProposals || []}
-          repairSprint={report.repairSprint || null}
-          reportId={report.id}
-        />
-      )}
-
-      <section className="metric-strip" aria-label="Audit summary">
-        <Metric
-          label="Pages"
-          value={`${formatCount(report.summary?.pagesScanned || 0)}/${formatCount(report.summary?.maxPages || DEFAULT_CRAWL_PAGES)}`}
-        />
+      <section className="app-stats report-stats" aria-label="Audit summary">
         <Metric label="Critical" value={report.summary?.critical || 0} />
         <Metric label="Warnings" value={report.summary?.warnings || 0} />
         <Metric label="Notices" value={report.summary?.notices || 0} />
-        <Metric label="Proof guards" value={report.summary?.guardedFalsePositives || 0} />
+        <Metric label="False alarms blocked" value={report.summary?.guardedFalsePositives || 0} />
       </section>
 
-      {competitorBenchmark?.status === "ready" && <CompetitorBenchmarkPanel benchmark={competitorBenchmark} />}
+      <ReportTabs tabs={tabs}>
+        {(active) => (
+          <>
+            <div className="report-tab-panel" hidden={active !== "problems"} {...tabPanelProps("problems")}>
+              <section className="app-card verdict-card" aria-labelledby="verdict-title">
+                <div className="app-card-head">
+                  <h2 id="verdict-title">{topThree.length ? "Fix these first" : "No problems found"}</h2>
+                </div>
+                {topThree.length ? (
+                  <ol className="verdict-list">
+                    {topThree.map((fix) => (
+                      <li key={`${fix.priority || "ok"}-${fix.title}`}>
+                        <strong>{fix.title}</strong>
+                        <span>{[fix.estimatedEffort, fix.workType].filter(Boolean).join(" · ")}</span>
+                      </li>
+                    ))}
+                  </ol>
+                ) : (
+                  <p className="app-card-text">Nothing urgent. Rerun after content or template changes.</p>
+                )}
+                <p className="app-footnote">
+                  Every problem here was checked in a real browser and comes with proof, so you only see issues that are
+                  actually there.
+                </p>
+              </section>
 
-      {["ready", "empty"].includes(crawlInventory?.status) && <CrawlInventoryPanel inventory={crawlInventory} />}
+              <section className="findings-section" aria-labelledby="findings-title">
+                <div className="section-heading">
+                  <h2 id="findings-title">{issues.length ? `All problems (${issues.length})` : "No problems found"}</h2>
+                </div>
+                <div className="finding-list">
+                  {issues.slice(0, 10).map((finding) => (
+                    <FindingItem
+                      key={finding.id}
+                      finding={finding}
+                      plan={topFixes.find((fix) => fix.title === finding.title)}
+                    />
+                  ))}
+                  {!issues.length && <p className="quiet-note">No critical or warning issues found in this crawl.</p>}
+                </div>
+              </section>
 
-      {renderedCrawlScale?.status === "ready" && <RenderedCrawlScalePanel plan={renderedCrawlScale} />}
+              <section className="fix-section" id="fix-pack" aria-label="Fix Pack">
+                <FixQuotePanel report={report} hasPriorityFixes={hasPriorityFixes} />
+              </section>
+            </div>
 
-      {crawlIntelligence?.status === "ready" && <CrawlIntelligencePanel audit={crawlIntelligence} />}
+            <div className="report-tab-panel" hidden={active !== "repair"} {...tabPanelProps("repair")}>
+              {(report.repairProposals || []).length > 0 && (
+                <RepairProposalPanel
+                  initialProposals={report.repairProposals || []}
+                  repairSprint={report.repairSprint || null}
+                  reportId={report.id}
+                />
+              )}
+              <TeamRepairBoard report={report} />
+              {remediationBrief && <RemediationBriefPanel brief={remediationBrief} reportId={report.id} />}
+              <section className="fix-section" aria-labelledby="fix-snippets-title">
+                <div className="section-heading report-section-head">
+                  <h2 id="fix-snippets-title">Fixes to copy</h2>
+                  {report.repairBrief && (
+                    <CopyButton
+                      className="app-button-secondary"
+                      label="Copy developer brief"
+                      value={report.repairBrief}
+                    />
+                  )}
+                </div>
+                <div className="fix-list">
+                  {topFixes.slice(0, 8).map((fix) => (
+                    <FixItem key={`${fix.priority}-${fix.title}`} fix={fix} />
+                  ))}
+                  {!topFixes.length && <p className="quiet-note">Nothing needs a repair snippet right now.</p>}
+                </div>
+              </section>
+            </div>
 
-      {["ready", "first_run"].includes(reportDelta?.status) && <ReportDeltaPanel delta={reportDelta} />}
+            <div className="report-tab-panel" hidden={active !== "pages"} {...tabPanelProps("pages")}>
+              <section className="page-table-section" aria-labelledby="pages-title">
+                <div className="section-heading">
+                  <h2 id="pages-title">Every page we checked</h2>
+                </div>
+                <PageSummaryTable pages={pageSummaries} />
+              </section>
+              {["ready", "empty"].includes(crawlInventory?.status) && (
+                <CrawlInventoryPanel inventory={crawlInventory} />
+              )}
+              {renderedCrawlScale?.status === "ready" && <RenderedCrawlScalePanel plan={renderedCrawlScale} />}
+              {crawlIntelligence?.status === "ready" && <CrawlIntelligencePanel audit={crawlIntelligence} />}
+              {report.performance && <PerformancePanel performance={report.performance} />}
+              {["ready", "empty"].includes(resourceWaterfall?.status) && (
+                <ResourceWaterfallPanel waterfall={resourceWaterfall} />
+              )}
+              <section className="guard-section" aria-labelledby="guards-title">
+                <div className="section-heading">
+                  <h2 id="guards-title">False alarms we blocked</h2>
+                  <p>Problems a basic crawler would report that turned out fine once the page fully loaded.</p>
+                </div>
+                {guarded.length ? (
+                  <div className="guard-list">
+                    {guarded.slice(0, 6).map((finding) => (
+                      <FindingItem key={finding.id} finding={finding} compact />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="quiet-note">None in this crawl.</p>
+                )}
+              </section>
+              {(report.pages || []).length > 0 && (
+                <section className="proof-grid" aria-label="Page proof">
+                  {(report.pages || []).map((page) => (
+                    <PageProof key={page.url} page={page} />
+                  ))}
+                </section>
+              )}
+            </div>
 
-      {remediationBrief && <RemediationBriefPanel brief={remediationBrief} reportId={report.id} />}
+            {insightPanels.length > 0 && (
+              <div className="report-tab-panel" hidden={active !== "insights"} {...tabPanelProps("insights")}>
+                {insightPanels}
+              </div>
+            )}
 
-      {backlinkAudit?.status === "ready" && <BacklinkAuditPanel audit={backlinkAudit} />}
-
-      {localSeoAudit?.status === "ready" && <LocalSeoAuditPanel audit={localSeoAudit} />}
-
-      {keywordRankAudit?.status === "ready" && <KeywordRankAuditPanel audit={keywordRankAudit} />}
-
-      {platformSeoAudit?.status === "ready" && <PlatformSeoAuditPanel audit={platformSeoAudit} />}
-
-      {aiAnswerReadiness?.status === "ready" && <AiAnswerReadinessPanel audit={aiAnswerReadiness} />}
-
-      {growthOpportunities?.status === "ready" && <GrowthOpportunitiesPanel growth={growthOpportunities} />}
-
-      {geoReadiness?.status === "ready" && <GeoReadinessPanel audit={geoReadiness} />}
-
-      {report.performance && <PerformancePanel performance={report.performance} />}
-
-      {["ready", "empty"].includes(resourceWaterfall?.status) && (
-        <ResourceWaterfallPanel waterfall={resourceWaterfall} />
-      )}
-
-      <section className="verdict-panel">
-        <div>
-          <p className="beta-eyebrow">Verified repair brief</p>
-          <h2>{topFixes.length ? "Fix the proven issues first." : "No priority repairs found."}</h2>
-          <p>
-            SEO Fix Kit compares raw HTML with the rendered page, then only queues fixes with visible proof. This is the
-            anti-noise layer: no duplicate H1s, no busywork, no static-crawler panic.
-          </p>
-        </div>
-        <ol>
-          {(topThree.length
-            ? topThree
-            : [{ title: "Keep monitoring", fix: "Re-run after content or template changes.", estimatedEffort: "5 min" }]
-          ).map((fix) => (
-            <li key={`${fix.priority || "ok"}-${fix.title}`}>
-              <strong>{fix.title}</strong>
-              <span>
-                {fix.estimatedEffort || "15-30 min"} · {fix.workType || "review"}
-              </span>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      <section className="report-actions">
-        <CopyButton label="Copy report URL" value={shareUrl} />
-        <CopyButton label="Copy developer brief" value={report.repairBrief || ""} />
-        {hasPriorityFixes && (
-          <a className="action-link paid-action" href="#fix-pack">
-            View Fix Pack checkout
-          </a>
+            <div className="report-tab-panel" hidden={active !== "share"} {...tabPanelProps("share")}>
+              <ClientReportPanel report={report} />
+            </div>
+          </>
         )}
-        <a
-          className="action-link"
-          href={`/api/reports/${report.id}/brief.md`}
-          onClick={(event) => {
-            event.preventDefault();
-            fetchBrief(report.id);
-          }}
-        >
-          Download brief
-        </a>
-        <a className="action-link" href={`/api/reports/${report.id}/client.pdf`}>
-          Download branded PDF
-        </a>
-      </section>
-
-      <ClientReportPanel report={report} />
-
-      <TeamRepairBoard report={report} />
-
-      <section className="guard-section">
-        <div className="section-heading">
-          <p className="beta-eyebrow">Proof guards</p>
-          <h2>False positives we refused to create</h2>
-        </div>
-        {guarded.length ? (
-          <div className="guard-list">
-            {guarded.slice(0, 6).map((finding) => (
-              <FindingItem key={finding.id} finding={finding} compact />
-            ))}
-          </div>
-        ) : (
-          <p className="quiet-note">No static-vs-rendered false positives were detected in this crawl.</p>
-        )}
-      </section>
-
-      <section className="page-table-section">
-        <div className="section-heading">
-          <p className="beta-eyebrow">Site-wide crawl</p>
-          <h2>Every page we checked</h2>
-        </div>
-        <PageSummaryTable pages={pageSummaries} />
-      </section>
-
-      <section className="findings-section">
-        <div className="section-heading">
-          <p className="beta-eyebrow">What is wrong</p>
-          <h2>{issues.length ? "Fix these first" : "No priority repairs found"}</h2>
-        </div>
-        <div className="finding-list">
-          {issues.slice(0, 10).map((finding) => (
-            <FindingItem
-              key={finding.id}
-              finding={finding}
-              plan={topFixes.find((fix) => fix.title === finding.title)}
-            />
-          ))}
-          {!issues.length && <p className="quiet-note">No critical or warning issues found in this crawl.</p>}
-        </div>
-      </section>
-
-      <section className="fix-section" id="fix-pack">
-        <div className="section-heading">
-          <p className="beta-eyebrow">Repair queue</p>
-          <h2>Copy the fix, ship it, rerun</h2>
-        </div>
-        <div className="fix-list">
-          {topFixes.slice(0, 8).map((fix) => (
-            <FixItem key={`${fix.priority}-${fix.title}`} fix={fix} />
-          ))}
-          {!topFixes.length && <p className="quiet-note">Nothing needs a repair snippet right now.</p>}
-        </div>
-        <FixQuotePanel report={report} hasPriorityFixes={hasPriorityFixes} />
-      </section>
-
-      <section className="proof-grid">
-        {(report.pages || []).map((page) => (
-          <PageProof key={page.url} page={page} />
-        ))}
-      </section>
+      </ReportTabs>
     </div>
+  );
+}
+
+function tabPanelProps(key) {
+  return { id: `report-panel-${key}`, role: "tabpanel", "aria-labelledby": `report-tab-${key}` };
+}
+
+// Tabs for the report sections. Every panel stays mounted (hidden when not
+// selected) so switching keeps scroll, filters, and drafts. The chosen tab is
+// kept in the address bar hash so a reload or shared link opens it again.
+function ReportTabs({ tabs, children }) {
+  const keys = tabs.map((tab) => tab.key);
+  const [active, setActive] = useState(() => {
+    const fromHash = window.location.hash.replace("#", "");
+    if (fromHash === "fix-pack") return "problems";
+    return keys.includes(fromHash) ? fromHash : keys[0];
+  });
+  const listRef = useRef(null);
+
+  function select(key, focus = false) {
+    setActive(key);
+    // Bypasses the router on purpose: a hash change through it would remount
+    // the signed-in app (see BetaRoute in App.jsx).
+    const { pathname, search } = window.location;
+    window.history.replaceState(window.history.state, "", `${pathname}${search}${key === keys[0] ? "" : `#${key}`}`);
+    if (focus) listRef.current?.querySelector(`#report-tab-${key}`)?.focus();
+  }
+
+  function onKeyDown(event) {
+    const index = keys.indexOf(active);
+    const next =
+      event.key === "ArrowRight"
+        ? keys[(index + 1) % keys.length]
+        : event.key === "ArrowLeft"
+          ? keys[(index - 1 + keys.length) % keys.length]
+          : event.key === "Home"
+            ? keys[0]
+            : event.key === "End"
+              ? keys[keys.length - 1]
+              : null;
+    if (!next) return;
+    event.preventDefault();
+    select(next, true);
+  }
+
+  return (
+    <>
+      <div className="report-tabs" role="tablist" aria-label="Report sections" ref={listRef}>
+        {tabs.map((tab) => (
+          <button
+            aria-controls={`report-panel-${tab.key}`}
+            aria-selected={active === tab.key}
+            id={`report-tab-${tab.key}`}
+            key={tab.key}
+            onClick={() => select(tab.key)}
+            onKeyDown={onKeyDown}
+            role="tab"
+            tabIndex={active === tab.key ? 0 : -1}
+            type="button"
+          >
+            {tab.label}
+            {Number.isFinite(tab.count) && tab.count > 0 && <span className="report-tab-count">{tab.count}</span>}
+          </button>
+        ))}
+      </div>
+      {children(active)}
+    </>
   );
 }

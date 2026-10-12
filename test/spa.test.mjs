@@ -451,7 +451,7 @@ test("a queued audit polls /api/audit/jobs/:id until completed before the privat
   await page.getByLabel("Page or site URL").fill(report.url);
   await page.getByRole("button", { name: "Run audit" }).click();
   await visible(page.getByText("Audit queued. Waiting for proof collection to start."));
-  await visible(page.getByRole("heading", { name: "example.com", level: 2 }));
+  await visible(page.getByRole("heading", { name: "example.com", level: 1 }));
   assert.equal(new URL(page.url()).pathname, `/beta/reports/${report.id}`, "address bar moves to the private report");
 
   const apiCalls = requests.map((request) => `${request.method} ${request.path}`);
@@ -520,7 +520,7 @@ test("the dashboard adds a weekly monitor for a verified host and pauses it", as
 test("a loaded report shows the remediation brief panel with a JSON download", async (t) => {
   const report = reportFixture();
   const { page } = await openApp(t, reportHandlers(report));
-  await page.goto(`${baseUrl}/beta/reports/${report.id}`);
+  await page.goto(`${baseUrl}/beta/reports/${report.id}#repair`);
 
   const panel = await visible(page.getByRole("region", { name: "Agent remediation brief" }));
   await visible(panel.getByRole("heading", { name: "Missing title on home" }));
@@ -528,11 +528,32 @@ test("a loaded report shows the remediation brief panel with a JSON download", a
   assert.equal(await download.getAttribute("href"), `/api/reports/${report.id}/remediation-brief.json`);
 });
 
+test("report tabs switch sections by click and arrow key and remember the tab in the address", async (t) => {
+  const report = reportFixture();
+  const { page } = await openApp(t, reportHandlers(report));
+  await page.goto(`${baseUrl}/beta/reports/${report.id}`);
+
+  const problems = page.getByRole("tab", { name: /Problems/ });
+  assert.equal(await (await visible(problems)).getAttribute("aria-selected"), "true", "Problems opens first");
+  await visible(page.getByRole("heading", { name: /All problems/ }));
+
+  await page.getByRole("tab", { name: /Pages/ }).click();
+  await visible(page.getByRole("heading", { name: "Every page we checked" }));
+  assert.equal(await page.getByRole("heading", { name: /All problems/ }).isVisible(), false);
+  assert.equal(new URL(page.url()).hash, "#pages");
+
+  await page.keyboard.press("ArrowRight");
+  const share = page.getByRole("tab", { name: "Share" });
+  await visible(page.getByRole("tabpanel", { name: "Share" }));
+  assert.equal(await share.getAttribute("aria-selected"), "true", "ArrowRight from Pages moves to Share");
+  assert.equal(new URL(page.url()).hash, "#share");
+});
+
 test("the repair board status filter shows only items in the chosen status", async (t) => {
   assert.match(LIVE_SECTION, /Report-level repair agent board with status filters/i);
   const report = reportFixture();
   const { page } = await openApp(t, reportHandlers(report));
-  await page.goto(`${baseUrl}/beta/reports/${report.id}`);
+  await page.goto(`${baseUrl}/beta/reports/${report.id}#repair`);
 
   const board = repairBoard(page);
   const filter = await visible(board.getByLabel("View"));
@@ -571,7 +592,7 @@ test("repair board drafts are saved for review and publish nothing", async (t) =
     ...reportHandlers(report),
     "POST /api/reports/:id/repair-actions": () => ({ ok: true, queue: repairQueueFixture(report) })
   });
-  await page.goto(`${baseUrl}/beta/reports/${report.id}`);
+  await page.goto(`${baseUrl}/beta/reports/${report.id}#repair`);
 
   const card = await visible(
     repairBoard(page)
@@ -596,7 +617,7 @@ test("a report whose repair queue has items with no agent action still renders",
   const report = reportFixture();
   const { page, pageErrors } = await openApp(t, reportHandlers(report));
   page.setDefaultTimeout(3_000);
-  await page.goto(`${baseUrl}/beta/reports/${report.id}`);
+  await page.goto(`${baseUrl}/beta/reports/${report.id}#repair`);
   await visible(repairBoard(page).getByText("Repair queue ready."));
   assert.deepEqual(pageErrors, []);
 });
