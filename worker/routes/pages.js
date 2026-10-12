@@ -3,11 +3,24 @@ import { DEMO_PROOF, DEMO_FIXTURE_PATH, demoProofSnippet } from "./demo-proof.js
 
 const FIX_PACK_PUBLIC_PRICE = "$99.00 one-time";
 
-// The SVG share image every worker-rendered public page ships as
-// og:image/twitter:image. Single source of truth: public/og-image.svg is the
-// 1200x630 file copied into the Worker's asset bundle, and pages.test.mjs
-// pins both the tag and the shipped file so shares never point at a dead URL.
-const SOCIAL_IMAGE_PATH = "/og-image.svg";
+// The PNG share image every worker-rendered public page ships as
+// og:image/twitter:image (social platforms ignore SVG share images). Single
+// source of truth: public/og-image.png is the 1200x630 render of
+// public/og-image.svg copied into the Worker's asset bundle, and
+// pages.test.mjs pins both the tag and the shipped file's PNG dimensions so
+// shares never point at a dead or wrongly sized URL.
+const SOCIAL_IMAGE_PATH = "/og-image.png";
+const SOCIAL_IMAGE_WIDTH = 1200;
+const SOCIAL_IMAGE_HEIGHT = 630;
+
+// Meta tags that describe the share image; reused by /check.
+function socialImageMeta() {
+  return `
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="${SOCIAL_IMAGE_WIDTH}" />
+    <meta property="og:image:height" content="${SOCIAL_IMAGE_HEIGHT}" />
+    <meta property="og:image:alt" content="SEO Fix Kit: SEO fixes with receipts. Audit it. Prove it. Fix it." />`;
+}
 
 function llmsText(origin) {
   return `# SEO Fix Kit
@@ -139,6 +152,34 @@ function ldBlock(value) {
   return `<script type="application/ld+json">${JSON.stringify(value).replace(/</g, "\\u003c")}</script>`;
 }
 
+// Favicon, touch icon, and the shared design tokens stylesheet
+// (public/tokens.css) for every worker-rendered public page. The stylesheet
+// is root-relative so it is served by the same host as the page (CSP
+// style-src 'self'); pages keep their own layout CSS inline after it.
+function publicAssetHead(origin) {
+  return `
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="${origin}/apple-touch-icon.png" sizes="180x180" />
+    <link rel="preload" href="/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="/tokens.css" />`;
+}
+
+// The one site header every worker-rendered public page uses (mirrored by
+// hand in public/404.html, which is a static asset). Styles live in
+// public/tokens.css under .site-header; the logo mark is /favicon.svg drawn
+// by .brand::before so the link text stays the plain product name.
+function siteHeader(origin) {
+  return `<header class="site-header">
+        <a class="brand" href="${origin}/">SEO Fix Kit</a>
+        <nav aria-label="Public pages">
+          <a href="${origin}/demo">Demo</a>
+          <a href="${origin}/methodology">Methodology</a>
+          <a href="${origin}/packages">Packages</a>
+        </nav>
+        <a class="btn btn-primary btn-sm header-cta" href="${origin}/check">Check a page</a>
+      </header>`;
+}
+
 function pageSocialHead({ origin, title, description, path = "/" }) {
   const url = `${origin}${path}`;
   const image = `${origin}${SOCIAL_IMAGE_PATH}`;
@@ -152,14 +193,13 @@ function pageSocialHead({ origin, title, description, path = "/" }) {
     publisher: { "@type": "Organization", name: "SEO Fix Kit", url: origin }
   }).replace(/</g, "\\u003c");
   return `
-    <link rel="canonical" href="${url}" />
-    <link rel="apple-touch-icon" href="${origin}/apple-touch-icon.svg" />
+    <link rel="canonical" href="${url}" />${publicAssetHead(origin)}
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="SEO Fix Kit" />
     <meta property="og:title" content="${escapeHtml(title)}" />
     <meta property="og:description" content="${escapeHtml(description)}" />
     <meta property="og:url" content="${url}" />
-    <meta property="og:image" content="${image}" />
+    <meta property="og:image" content="${image}" />${socialImageMeta()}
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${escapeHtml(title)}" />
     <meta name="twitter:description" content="${escapeHtml(description)}" />
@@ -177,34 +217,32 @@ function demoHtml(origin) {
     <meta name="description" content="A public sample showing how SEO Fix Kit refuses static crawler false positives and turns verified issues into repair briefs." />
 ${pageSocialHead({ origin, title: "Proof-Backed SEO Repair Demo - SEO Fix Kit", description: "A public sample showing how SEO Fix Kit refuses static crawler false positives and turns verified issues into repair briefs.", path: "/demo" })}
     <style>
-      :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #070908; color: #fbf8ef; }
       body { margin: 0; min-width: 0; }
-      main { margin: 0 auto; max-width: 980px; padding: 36px 22px 60px; min-width: 0; }
-      a { color: #98f0cc; font-weight: 780; text-decoration: none; }
-      header { align-items: center; display: flex; justify-content: space-between; margin-bottom: 54px; }
-      h1 { font-size: clamp(44px, 9vw, 104px); letter-spacing: 0; line-height: .9; margin: 0 0 18px; max-width: 780px; overflow-wrap: break-word; }
-      h2 { font-size: clamp(24px, 3vw, 34px); margin: 0; overflow-wrap: break-word; }
-      p, li { color: rgba(251,248,239,.75); font-size: 18px; line-height: 1.6; overflow-wrap: anywhere; word-break: break-word; }
-      .kicker { color: #98f0cc; font-size: 13px; font-weight: 880; letter-spacing: .08em; text-transform: uppercase; }
-      .grid { display: grid; gap: 14px; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 34px 0; }
-      .panel { background: rgba(251,248,239,.055); border: 1px solid rgba(251,248,239,.12); border-radius: 8px; padding: 20px; min-width: 0; }
-      .panel strong { color: #dcc062; display: block; font-size: 14px; margin-bottom: 10px; text-transform: uppercase; }
-      .proof { border-color: rgba(152,240,204,.28); }
-      .proof strong { color: #98f0cc; }
-      .cta { align-items: center; background: #98f0cc; border-radius: 8px; color: #06100c; display: inline-flex; font-weight: 880; min-height: 48px; padding: 0 18px; }
-      code { color: #fbf8ef; display: block; max-width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; }
-      .site-footer { display: flex; flex-wrap: wrap; gap: 12px 20px; margin-top: 30px; }
-      @media (max-width: 760px) { header { align-items: flex-start; gap: 18px; flex-direction: column; } .grid { grid-template-columns: 1fr; } }
+      main { margin: 0 auto; max-width: 980px; padding: 32px 22px 64px; min-width: 0; }
+      h1 { font-size: clamp(44px, 9vw, 96px); line-height: .95; margin: 0 0 20px; max-width: 780px; overflow-wrap: break-word; }
+      h2 { font-size: clamp(22px, 3vw, 28px); line-height: 1.2; margin: 0 0 12px; overflow-wrap: break-word; }
+      p, li { color: var(--ink-soft); font-size: 18px; line-height: 1.6; overflow-wrap: anywhere; word-break: break-word; }
+      section { margin: 0 0 32px; }
+      .grid { display: grid; gap: 16px; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 32px 0; }
+      .panel { display: grid; gap: 8px; min-width: 0; }
+      .panel p { margin: 0; }
+      .panel strong { color: var(--gold); display: block; font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+      .panel ul { margin: 0; padding-left: 20px; }
+      .panel li + li { margin-top: 12px; }
+      .proof { border-color: var(--line-accent); }
+      .proof strong { color: var(--accent); }
+      .panel li strong, .panel p strong { color: var(--ink); font-weight: 600; letter-spacing: 0; text-transform: none; font-size: inherit; display: inline; }
+      code { max-width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; }
+      .site-footer { border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 12px 20px; margin-top: 40px; padding-top: 24px; }
+      .site-footer a { font-size: 14px; font-weight: 500; }
+      @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } main { padding-top: 24px; } }
     </style>
   </head>
   <body>
     <main>
-      <header>
-        <a href="${origin}/">SEO Fix Kit</a>
-        <span class="kicker">Public sample</span>
-      </header>
+      ${siteHeader(origin)}
       <section>
-        <p class="kicker">Proof loop</p>
+        <p class="kicker">Public sample · Proof loop</p>
         <h1>Do not fix what is not broken.</h1>
         <p>Weak SEO scanners read the raw app shell and invent work. SEO Fix Kit compares raw HTML with the rendered page, shows the proof, and only creates a repair when the browser-visible page is actually wrong.</p>
       </section>
@@ -228,13 +266,13 @@ ${pageSocialHead({ origin, title: "Proof-Backed SEO Repair Demo - SEO Fix Kit", 
         <p><strong>Measured on the test page:</strong> ${DEMO_PROOF.measured.staticWordCount} visible words in the raw HTML response vs ${DEMO_PROOF.measured.renderedWordCount} words, one H1, and ${DEMO_PROOF.measured.renderedInternalLinkCount} internal links after browser render.</p>
         <p><strong>Guarded false positives:</strong></p>
         <ul>
-${DEMO_PROOF.guards.map((guard) => `          <li><strong>${escapeHtml(guard.title)}</strong>\n            <code>- Evidence: ${escapeHtml(guard.evidence)}
+${DEMO_PROOF.guards.map((guard) => `          <li><strong>${escapeHtml(guard.title)}</strong>\n            <code class="code-block">- Evidence: ${escapeHtml(guard.evidence)}
 - Why: ${escapeHtml(guard.why)}
 - Fix: ${escapeHtml(guard.fix)}</code></li>`).join("\n")}
         </ul>
         <p><strong>What the engine actually queues for the test page</strong> (severity · finding · suggested fix · exact snippet when the engine can generate one):</p>
         <ul>
-${DEMO_PROOF.repairPlan.map((item) => `          <li><strong>${escapeHtml(item.severity)}</strong> ${escapeHtml(item.title)} — ${escapeHtml(item.fix)}${item.snippet ? `\n            <code>${escapeHtml(demoProofSnippet(item.snippet, origin))}</code>` : ""}</li>`).join("\n")}
+${DEMO_PROOF.repairPlan.map((item) => `          <li><strong>${escapeHtml(item.severity)}</strong> ${escapeHtml(item.title)} — ${escapeHtml(item.fix)}${item.snippet ? `\n            <code class="code-block">${escapeHtml(demoProofSnippet(item.snippet, origin))}</code>` : ""}</li>`).join("\n")}
         </ul>
         <p>This excerpt was generated with engine v${escapeHtml(DEMO_PROOF.engineVersion)}. Performance/PageSpeed checks are not part of this public excerpt. The test page is intentionally a noindex fixture, and the report says so instead of hiding it. After a change ships, rerun the same page: each finding shows fixed, still-open, new, or regressed.</p>
       </section>
@@ -725,52 +763,48 @@ function publicProductPageHtml({ origin, path, title, description, eyebrow, head
 ${pageSocialHead({ origin, title: `${title} - SEO Fix Kit`, description, path })}
 ${extraLd.join("\n")}
     <style>
-      :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #070908; color: #fbf8ef; }
       * { box-sizing: border-box; }
       body { margin: 0; min-width: 0; }
-      main { margin: 0 auto; max-width: 1120px; padding: 36px 22px 68px; min-width: 0; }
-      a { color: #98f0cc; font-weight: 780; text-decoration: none; }
-      header { align-items: center; display: flex; justify-content: space-between; margin-bottom: 72px; }
-      nav { display: flex; flex-wrap: wrap; gap: 16px; justify-content: flex-end; }
-      h1 { font-size: clamp(46px, 8vw, 108px); letter-spacing: 0; line-height: .88; margin: 0; max-width: 820px; overflow-wrap: break-word; }
-      h2 { font-size: clamp(24px, 3vw, 34px); line-height: 1.08; margin: 0 0 14px; overflow-wrap: break-word; }
-      h3 { font-size: 17px; line-height: 1.4; margin: 0 0 8px; }
-      p, li { color: rgba(251,248,239,.76); font-size: 17px; line-height: 1.62; overflow-wrap: anywhere; }
+      main { margin: 0 auto; max-width: 1120px; padding: 32px 22px 72px; min-width: 0; }
+      h1 { font-size: clamp(44px, 7.5vw, 96px); line-height: .95; margin: 0; max-width: 860px; overflow-wrap: break-word; }
+      h2 { font-size: clamp(22px, 3vw, 28px); line-height: 1.2; margin: 0 0 16px; overflow-wrap: break-word; }
+      h3 { font-size: 18px; line-height: 1.4; margin: 0 0 8px; }
+      p, li { color: var(--ink-soft); font-size: 16px; line-height: 1.65; overflow-wrap: anywhere; }
+      p { margin: 0 0 16px; }
       ul { margin: 0; padding-left: 22px; }
-      .eyebrow { color: #98f0cc; font-size: 13px; font-weight: 880; letter-spacing: 0; margin: 0 0 18px; text-transform: uppercase; }
-      .lead { font-size: clamp(19px, 2.4vw, 25px); max-width: 760px; }
+      .eyebrow { margin: 0 0 16px; }
+      .lead { color: var(--ink-soft); font-size: clamp(18px, 2.2vw, 22px); line-height: 1.55; margin: 24px 0 0; max-width: 760px; }
       .hero { margin-bottom: 48px; }
-      .band { border-top: 1px solid rgba(251,248,239,.14); padding: 32px 0; }
-      .grid, .package-grid { display: grid; gap: 14px; }
+      .band { border-top: 1px solid var(--line); padding: 40px 0; }
+      .band > p:last-child { margin-bottom: 0; }
+      .grid, .package-grid { display: grid; gap: 16px; }
       .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .grid.two, .package-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .panel, .package-card { background: rgba(251,248,239,.055); border: 1px solid rgba(251,248,239,.12); border-radius: 8px; display: grid; gap: 10px; padding: 20px; min-width: 0; }
-      .panel.proof, .package-card.live { border-color: rgba(152,240,204,.28); }
-      .panel strong, .package-card span { color: #98f0cc; font-size: 12px; font-weight: 860; text-transform: uppercase; }
+      section.grid { margin: 0 0 40px; }
+      .panel, .package-card { align-content: start; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; display: grid; gap: 8px; padding: 20px; min-width: 0; }
+      .panel p, .package-card p { margin: 0; }
+      .package-card { gap: 12px; padding: 24px; }
+      .panel.proof, .package-card.live { border-color: var(--line-accent); }
+      .panel strong, .package-card span { color: var(--accent); font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
       .package-card h2 { margin: 0; }
-      .package-price { border-left: 3px solid #dcc062; color: #fbf8ef; margin: 2px 0; padding-left: 12px; }
-      .package-price strong { color: #dcc062; font-size: 22px; }
-      .package-card a { align-items: center; border: 1px solid rgba(152,240,204,.32); border-radius: 8px; display: inline-flex; justify-content: center; min-height: 44px; padding: 0 14px; width: fit-content; }
-      .check-list { display: grid; gap: 12px; list-style: none; padding-left: 0; }
-      .check-list li { background: rgba(7,13,10,.58); border: 1px solid rgba(251,248,239,.1); border-radius: 8px; padding: 14px 16px; min-width: 0; }
-      .faq-list { display: grid; gap: 14px; }
-      .faq-item { background: rgba(251,248,239,.055); border: 1px solid rgba(251,248,239,.12); border-radius: 8px; padding: 18px 20px; min-width: 0; }
-      .cta { align-items: center; background: #98f0cc; border-radius: 8px; color: #06100c; display: inline-flex; font-weight: 880; min-height: 48px; padding: 0 18px; }
-      .site-footer { align-items: center; border-top: 1px solid rgba(251,248,239,.14); display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; margin-top: 24px; padding-top: 26px; }
-      .site-footer a { font-size: 14px; font-weight: 760; }
-      @media (max-width: 760px) { header { align-items: flex-start; flex-direction: column; gap: 18px; margin-bottom: 44px; } nav { justify-content: flex-start; } .grid.three, .grid.two, .package-grid { grid-template-columns: 1fr; } main { padding-top: 26px; } .site-footer { justify-content: flex-start; } }
+      .package-price { border-left: 3px solid var(--gold); color: var(--ink); margin: 2px 0; padding-left: 12px; }
+      .package-price strong { color: var(--gold); font-size: 22px; font-weight: 700; }
+      .package-card a { align-items: center; border: 1px solid var(--line-accent); border-radius: 8px; display: inline-flex; font-size: 14px; justify-content: center; min-height: 40px; padding: 0 14px; width: fit-content; }
+      .package-card a:hover { background: rgba(152,240,204,.08); border-color: var(--accent); text-decoration: none; }
+      .check-list { display: grid; gap: 12px; list-style: none; margin: 0 0 16px; padding-left: 0; }
+      .check-list li { background: var(--surface-sunken); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; min-width: 0; }
+      .faq-list { display: grid; gap: 12px; }
+      .faq-item { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 20px; min-width: 0; }
+      .faq-item p { margin: 0; }
+      .site-footer { align-items: center; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 12px 20px; margin-top: 24px; padding-top: 24px; }
+      .site-footer span { color: var(--ink-muted); font-size: 14px; margin-right: auto; }
+      .site-footer a { font-size: 14px; font-weight: 500; }
+      @media (max-width: 760px) { .grid.three, .grid.two, .package-grid { grid-template-columns: 1fr; } main { padding-top: 24px; } .site-footer span { flex-basis: 100%; } }
     </style>
   </head>
   <body>
     <main>
-      <header>
-        <a href="${origin}/">SEO Fix Kit</a>
-        <nav aria-label="Public pages">
-          <a href="${origin}/demo">Demo</a>
-          <a href="${origin}/methodology">Methodology</a>
-          <a href="${origin}/packages">Packages</a>
-        </nav>
-      </header>
+      ${siteHeader(origin)}
       <section class="hero">
         <p class="eyebrow">${escapeHtml(eyebrow)}</p>
         <h1>${escapeHtml(heading)}</h1>
@@ -841,45 +875,39 @@ ${ldBlock({
     description: "Proof-backed SEO audits, repair queue, implementation packs, and fixed-rerun proof receipts; publishes no CMS changes and makes no ranking promise."
   })}
     <style>
-      :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #070908; color: #fbf8ef; }
       * { box-sizing: border-box; }
       body { margin: 0; min-width: 0; }
-      main { margin: 0 auto; max-width: 980px; padding: 36px 22px 60px; min-width: 0; }
-      a { color: #98f0cc; font-weight: 780; text-decoration: none; }
-      header { align-items: center; display: flex; justify-content: space-between; margin-bottom: 54px; }
-      h1 { font-size: clamp(40px, 7vw, 84px); letter-spacing: 0; line-height: .92; margin: 0 0 16px; max-width: 820px; overflow-wrap: break-word; }
-      h2 { font-size: clamp(24px, 3vw, 32px); margin: 0 0 10px; overflow-wrap: break-word; }
-      p, li { color: rgba(251,248,239,.76); font-size: 17px; line-height: 1.62; overflow-wrap: anywhere; word-break: break-word; }
+      main { margin: 0 auto; max-width: 980px; padding: 32px 22px 64px; min-width: 0; }
+      h1 { font-size: clamp(40px, 7vw, 84px); line-height: .95; margin: 0 0 20px; max-width: 820px; overflow-wrap: break-word; }
+      h2 { font-size: clamp(22px, 3vw, 28px); line-height: 1.2; margin: 0 0 12px; overflow-wrap: break-word; }
+      p, li { color: var(--ink-soft); font-size: 17px; line-height: 1.62; overflow-wrap: anywhere; word-break: break-word; }
       ul { padding-left: 22px; }
-      .kicker { color: #98f0cc; font-size: 13px; font-weight: 880; letter-spacing: .08em; text-transform: uppercase; }
-      .grid { display: grid; gap: 14px; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 28px 0; }
-      .panel { background: rgba(251,248,239,.055); border: 1px solid rgba(251,248,239,.12); border-radius: 8px; padding: 20px; min-width: 0; }
-      .panel strong { color: #dcc062; display: block; font-size: 14px; margin-bottom: 10px; text-transform: uppercase; }
-      .panel.score strong { font-size: 28px; color: #fbf8ef; }
-      .panel.before { border-color: rgba(220,192,98,.32); }
-      .panel.intermediate { border-color: rgba(251,248,239,.24); }
-      .panel.after { border-color: rgba(152,240,204,.32); }
-      .panel.after strong { color: #98f0cc; }
-      .receipt { background: rgba(7,13,10,.58); border: 1px solid rgba(152,240,204,.18); border-radius: 8px; padding: 18px 22px; margin: 20px 0; min-width: 0; }
-      .receipt h3 { color: #98f0cc; font-size: 14px; font-weight: 880; letter-spacing: .08em; margin: 0 0 10px; text-transform: uppercase; }
-      .receipt dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; }
-      .receipt dt { color: rgba(251,248,239,.6); font-weight: 700; }
+      section { margin: 0 0 32px; }
+      .grid { display: grid; gap: 16px; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 32px 0; }
+      .panel { display: grid; gap: 4px; min-width: 0; }
+      .panel p { margin: 0; }
+      .panel strong { color: var(--gold); display: block; font-size: 12px; font-weight: 600; letter-spacing: .08em; margin-bottom: 4px; text-transform: uppercase; }
+      .panel.score p strong { color: var(--ink); display: inline; font-size: 28px; font-weight: 700; letter-spacing: -0.01em; margin: 0; text-transform: none; }
+      .panel.before { border-color: var(--gold-line); }
+      .panel.intermediate { border-color: var(--line-strong); }
+      .panel.after { border-color: var(--line-accent); }
+      .panel.after > strong { color: var(--accent); }
+      .receipt { background: var(--surface-sunken); border: 1px solid var(--line-accent); border-radius: 8px; padding: 20px 22px; margin: 24px 0; min-width: 0; }
+      .receipt h3 { color: var(--accent); font-size: 12px; font-weight: 600; letter-spacing: .08em; margin: 0 0 12px; text-transform: uppercase; }
+      .receipt dl { display: grid; grid-template-columns: max-content 1fr; gap: 8px 16px; margin: 0; }
+      .receipt dt { color: var(--ink-muted); font-weight: 500; }
       .receipt dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
-      .cta { align-items: center; background: #98f0cc; border-radius: 8px; color: #06100c; display: inline-flex; font-weight: 880; min-height: 48px; padding: 0 18px; }
-      .boundary { background: rgba(220,192,98,.08); border: 1px solid rgba(220,192,98,.32); border-radius: 8px; padding: 16px 20px; margin: 26px 0; }
-      .site-footer { display: flex; flex-wrap: wrap; gap: 12px 20px; margin-top: 30px; }
-      .site-footer a { font-size: 14px; font-weight: 760; }
-      @media (max-width: 760px) { header { align-items: flex-start; gap: 18px; flex-direction: column; } .grid { grid-template-columns: 1fr; } .receipt dl { grid-template-columns: 1fr; gap: 2px 0; } }
+      .boundary { background: var(--gold-surface); border: 1px solid var(--gold-line); border-radius: 8px; padding: 20px 22px; margin: 24px 0; }
+      .site-footer { border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 12px 20px; margin-top: 40px; padding-top: 24px; }
+      .site-footer a { font-size: 14px; font-weight: 500; }
+      @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } .receipt dl { grid-template-columns: 1fr; gap: 2px 0; } .receipt dd { margin-bottom: 8px; } main { padding-top: 24px; } }
     </style>
   </head>
   <body>
     <main>
-      <header>
-        <a href="${origin}/">SEO Fix Kit</a>
-        <span class="kicker">Real before/after</span>
-      </header>
+      ${siteHeader(origin)}
       <section>
-        <p class="kicker">Repair proof receipt</p>
+        <p class="kicker">Real before/after · Repair proof receipt</p>
         <h1>One real repair, with the same measurement path before and after.</h1>
         <p>This page is a proof receipt for the first completed beta repair done with SEO Fix Kit: the founder-owned Tiny Studio portfolio site, audited with consent, repaired by the operator with the help of an SEO Fix Kit implementation pack, and rerun on the same host with the same measurement path. The receipt states the founder-owned scope, names the owner-approved change, links the same audit path before and after, and restates the no-ranking boundary.</p>
         <p><a class="cta" href="${origin}/proof.md">Get the markdown receipt</a></p>
@@ -1001,18 +1029,24 @@ function privacyHtml(origin) {
     <meta name="description" content="SEO Fix Kit privacy note for access requests, private beta audits, payments, and fulfillment." />
 ${pageSocialHead({ origin, title: "Privacy - SEO Fix Kit", description: "SEO Fix Kit privacy note for access requests, private beta audits, payments, and fulfillment.", path: "/privacy" })}
     <style>
-      :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #070908; color: #fbf8ef; }
       body { margin: 0; min-width: 0; }
-      main { margin: 0 auto; max-width: 760px; padding: 48px 22px; min-width: 0; }
-      a { color: #98f0cc; font-weight: 760; text-decoration: none; }
-      h1 { font-size: clamp(42px, 8vw, 76px); letter-spacing: 0; line-height: .92; margin: 0 0 24px; overflow-wrap: break-word; }
-      p, li { color: rgba(251,248,239,.76); font-size: 18px; line-height: 1.62; overflow-wrap: anywhere; }
+      .shell { margin: 0 auto; max-width: 1120px; padding: 32px 22px 0; min-width: 0; }
+      main { margin: 0 auto; max-width: 760px; padding: 16px 22px 72px; min-width: 0; }
+      h1 { font-size: clamp(40px, 7vw, 72px); line-height: .95; margin: 0 0 32px; overflow-wrap: break-word; }
+      h2 { font-size: clamp(20px, 3vw, 24px); line-height: 1.25; margin: 40px 0 12px; overflow-wrap: break-word; }
+      p, li { color: var(--ink-soft); font-size: 17px; line-height: 1.65; overflow-wrap: anywhere; }
       ul { padding-left: 22px; }
+      li + li { margin-top: 8px; }
+      .page-links { border-top: 1px solid var(--line); margin-top: 40px; padding-top: 24px; }
+      .page-links a { font-size: 15px; font-weight: 500; }
+      @media (max-width: 760px) { .shell { padding-top: 24px; } main { padding-top: 0; } }
     </style>
   </head>
   <body>
+    <div class="shell">
+      ${siteHeader(origin)}
+    </div>
     <main>
-      <a href="${origin}/">SEO Fix Kit</a>
       <h1>Privacy</h1>
       <p>SEO Fix Kit ("we") collects the information needed to run self-serve access, create proof-backed SEO reports, process paid Fix Pack checkout, and deliver repair updates. We are the data controller for this information; reach us at <a href="mailto:support@seofixkit.com">support@seofixkit.com</a>.</p>
       <ul>
@@ -1026,7 +1060,7 @@ ${pageSocialHead({ origin, title: "Privacy - SEO Fix Kit", description: "SEO Fix
         <li>Deletion and access: email <a href="mailto:support@seofixkit.com">support@seofixkit.com</a> (or reply to any email we send) to request a copy or deletion of your beta data. We honor verified requests within 30 days, except records we must keep for payment reconciliation or abuse prevention.</li>
       </ul>
       <p>Last updated: June 15, 2026.</p>
-      <p><a href="${origin}/terms">Terms</a> · <a href="${origin}/support">Support</a> · <a href="${origin}/methodology">Methodology</a> · <a href="${origin}/packages">Packages</a> · <a href="${origin}/check">Check one page now</a></p>
+      <p class="page-links"><a href="${origin}/terms">Terms</a> · <a href="${origin}/support">Support</a> · <a href="${origin}/methodology">Methodology</a> · <a href="${origin}/packages">Packages</a> · <a href="${origin}/check">Check one page now</a></p>
     </main>
   </body>
 </html>`;
@@ -1062,7 +1096,7 @@ function supportHtml(origin) {
       <h2>Ownership and deletion</h2>
       <p>SEO Fix Kit is for sites you own or are authorized to audit. We may pause audits, delete reports, or revoke access when ownership is unclear, the target appears abusive, or the crawl could overload a third-party site. To request deletion or a copy of beta data, email from the account address or reply to a SEO Fix Kit email thread so ownership can be verified.</p>
       <p>Last updated: June 19, 2026.</p>
-      <p><a href="${origin}/privacy">Privacy</a> · <a href="${origin}/terms">Terms</a> · <a href="${origin}/methodology">Methodology</a> · <a href="${origin}/packages">Packages</a> · <a href="${origin}/check">Check one page now</a></p>
+      <p class="page-links"><a href="${origin}/privacy">Privacy</a> · <a href="${origin}/terms">Terms</a> · <a href="${origin}/methodology">Methodology</a> · <a href="${origin}/packages">Packages</a> · <a href="${origin}/check">Check one page now</a></p>
     `
   });
 }
@@ -1113,7 +1147,7 @@ function termsHtml(origin) {
         <li>Questions about these terms or your account: <a href="mailto:support@seofixkit.com">support@seofixkit.com</a>.</li>
       </ul>
       <p>Last updated: June 12, 2026.</p>
-      <p><a href="${origin}/privacy">Privacy</a> · <a href="${origin}/support">Support</a> · <a href="${origin}/methodology">Methodology</a> · <a href="${origin}/packages">Packages</a> · <a href="${origin}/check">Check one page now</a></p>
+      <p class="page-links"><a href="${origin}/privacy">Privacy</a> · <a href="${origin}/support">Support</a> · <a href="${origin}/methodology">Methodology</a> · <a href="${origin}/packages">Packages</a> · <a href="${origin}/check">Check one page now</a></p>
     `
   });
 }
@@ -1128,19 +1162,24 @@ function policyPageHtml({ origin, title, description, body, path = "/" }) {
     <meta name="description" content="${escapeHtml(description)}" />
 ${pageSocialHead({ origin, title: `${title} - SEO Fix Kit`, description, path })}
     <style>
-      :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #070908; color: #fbf8ef; }
       body { margin: 0; min-width: 0; }
-      main { margin: 0 auto; max-width: 760px; padding: 48px 22px; min-width: 0; }
-      a { color: #98f0cc; font-weight: 760; text-decoration: none; }
-      h1 { font-size: clamp(42px, 8vw, 76px); letter-spacing: 0; line-height: .92; margin: 0 0 24px; overflow-wrap: break-word; }
-      h2 { font-size: clamp(22px, 3vw, 28px); margin: 32px 0 8px; overflow-wrap: break-word; }
-      p, li { color: rgba(251,248,239,.76); font-size: 18px; line-height: 1.62; overflow-wrap: anywhere; }
+      .shell { margin: 0 auto; max-width: 1120px; padding: 32px 22px 0; min-width: 0; }
+      main { margin: 0 auto; max-width: 760px; padding: 16px 22px 72px; min-width: 0; }
+      h1 { font-size: clamp(40px, 7vw, 72px); line-height: .95; margin: 0 0 32px; overflow-wrap: break-word; }
+      h2 { font-size: clamp(20px, 3vw, 24px); line-height: 1.25; margin: 40px 0 12px; overflow-wrap: break-word; }
+      p, li { color: var(--ink-soft); font-size: 17px; line-height: 1.65; overflow-wrap: anywhere; }
       ul { padding-left: 22px; }
+      li + li { margin-top: 8px; }
+      .page-links { border-top: 1px solid var(--line); margin-top: 40px; padding-top: 24px; }
+      .page-links a { font-size: 15px; font-weight: 500; }
+      @media (max-width: 760px) { .shell { padding-top: 24px; } main { padding-top: 0; } }
     </style>
   </head>
   <body>
+    <div class="shell">
+      ${siteHeader(origin)}
+    </div>
     <main>
-      <a href="${origin}/">SEO Fix Kit</a>
       <h1>${escapeHtml(title)}</h1>
       ${body}
     </main>
@@ -1149,7 +1188,9 @@ ${pageSocialHead({ origin, title: `${title} - SEO Fix Kit`, description, path })
 }
 
 export {
+  SOCIAL_IMAGE_HEIGHT,
   SOCIAL_IMAGE_PATH,
+  SOCIAL_IMAGE_WIDTH,
   aiAnswerReadinessHtml,
   demoHtml,
   homeMarkdown,
@@ -1160,7 +1201,10 @@ export {
   privacyHtml,
   proofCaseHtml,
   proofCaseMarkdown,
+  publicAssetHead,
   renderedVsStaticAuditHtml,
+  siteHeader,
+  socialImageMeta,
   smallBusinessSeoAuditHtml,
   supportHtml,
   termsHtml

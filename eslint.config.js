@@ -121,5 +121,23 @@ export default [
     // Re-apply the backlog downgrades after the plugin presets so a preset
     // cannot silently turn one back into an error.
     rules: backlogWarnings
+  },
+  {
+    // The backlog is cleared outside src/: keep it from regrowing there.
+    // src/ stays on the warning baseline above until its own backlog is fixed.
+    ignores: ["src/**"],
+    rules: {
+      "no-unused-vars": "error",
+      "no-useless-assignment": "error",
+      "preserve-caught-error": "error",
+      "no-useless-escape": "error",
+      "no-regex-spaces": "error"
+    }
+  },
+  {
+    // One remaining no-useless-assignment warning lives here; drop this
+    // carve-out once it is fixed.
+    files: ["shared/promise-audit.test.mjs"],
+    rules: { "no-useless-assignment": "warn" }
   }
 ];

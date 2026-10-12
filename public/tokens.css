@@ -1,0 +1,342 @@
+/*
+ * SEO Fix Kit shared design tokens for the worker-rendered public pages
+ * (worker/routes/pages.js, worker/routes/public-check.js) and public/404.html.
+ * Values mirror the React app palette in src/styles.css so both surfaces read
+ * as one product. Page-specific layout stays inline in each page; anything
+ * shared (colour, type, spacing, buttons, panels, fields, code) lives here.
+ */
+
+/* Inter variable (latin subset), self-hosted. SIL Open Font License 1.1 —
+   see /fonts/Inter-OFL-LICENSE.txt. Copied from @fontsource-variable/inter. */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("/fonts/inter-latin-wght-normal.woff2") format("woff2-variations"),
+    url("/fonts/inter-latin-wght-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F,
+    U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  color-scheme: dark;
+
+  /* Colour */
+  --bg: #070908;
+  --surface: rgba(251, 248, 239, 0.055);
+  --surface-sunken: rgba(7, 13, 10, 0.58);
+  --surface-field: #0c1210;
+  --line: rgba(251, 248, 239, 0.12);
+  --line-strong: rgba(251, 248, 239, 0.22);
+  --line-accent: rgba(152, 240, 204, 0.28);
+  --ink: #fbf8ef;
+  --ink-soft: rgba(251, 248, 239, 0.76);
+  --ink-muted: rgba(251, 248, 239, 0.6);
+  /* >= .56 alpha keeps placeholder text at WCAG AA on --bg / --surface-field. */
+  --ink-placeholder: rgba(251, 248, 239, 0.58);
+  --accent: #98f0cc;
+  --accent-hover: #b6f6dc;
+  --accent-ink: #06100c;
+  --accent-strong: #0f7a56;
+  --gold: #d6b15f;
+  --gold-line: rgba(214, 177, 95, 0.32);
+  --gold-surface: rgba(214, 177, 95, 0.08);
+  --error: #ffb4a9;
+  --error-line: rgba(255, 180, 169, 0.4);
+
+  /* Type */
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --text-12: 12px;
+  --text-14: 14px;
+  --text-16: 16px;
+  --text-18: 18px;
+  --text-22: 22px;
+  --text-28: 28px;
+  --text-40: 40px;
+  --text-display: clamp(40px, 7vw, 84px);
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* Spacing */
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-48: 48px;
+
+  --radius: 8px;
+
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-regular);
+  margin: 0;
+  min-width: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3 {
+  color: var(--ink);
+  font-weight: var(--weight-bold);
+  letter-spacing: -0.01em;
+}
+
+h1 {
+  letter-spacing: -0.025em;
+}
+
+a {
+  color: var(--accent);
+  font-weight: var(--weight-semibold);
+  text-decoration: none;
+  text-underline-offset: 3px;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::selection {
+  background: rgba(152, 240, 204, 0.3);
+  color: var(--ink);
+}
+
+/* Site header (siteHeader() in worker/routes/pages.js, mirrored in 404.html) */
+.site-header {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-12) var(--space-24);
+  justify-content: space-between;
+  margin: 0 0 var(--space-48);
+  min-width: 0;
+}
+
+.site-header .brand {
+  align-items: center;
+  color: var(--ink);
+  display: inline-flex;
+  font-size: var(--text-16);
+  font-weight: var(--weight-bold);
+  gap: 10px;
+  letter-spacing: -0.01em;
+}
+
+.site-header .brand:hover {
+  text-decoration: none;
+}
+
+.site-header .brand::before {
+  background: url("/favicon.svg") center / contain no-repeat;
+  content: "";
+  flex: none;
+  height: 24px;
+  width: 24px;
+}
+
+.site-header nav {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  margin-left: auto;
+  gap: var(--space-8) var(--space-24);
+  min-width: 0;
+}
+
+.site-header nav a {
+  color: var(--ink-soft);
+  font-size: var(--text-14);
+  font-weight: var(--weight-medium);
+}
+
+.site-header nav a:hover {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+/* Buttons. `.cta` is the historical class on page CTAs; it shares .btn-primary. */
+.btn,
+.cta {
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: inherit;
+  font-size: var(--text-16);
+  font-weight: var(--weight-semibold);
+  gap: var(--space-8);
+  justify-content: center;
+  line-height: 1.2;
+  min-height: 44px;
+  padding: 0 18px;
+  text-align: center;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.btn:hover,
+.cta:hover {
+  text-decoration: none;
+}
+
+.btn-primary,
+.cta {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.btn-primary:hover,
+.cta:hover {
+  background: var(--accent-hover);
+  color: var(--accent-ink);
+}
+
+.btn-secondary {
+  background: transparent;
+  border-color: var(--line-accent);
+  color: var(--accent);
+}
+
+.btn-secondary:hover {
+  background: rgba(152, 240, 204, 0.08);
+  border-color: var(--accent);
+}
+
+.btn-sm {
+  font-size: var(--text-14);
+  min-height: 36px;
+  padding: 0 14px;
+}
+
+/* Panels */
+.panel {
+  align-content: start;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  min-width: 0;
+  padding: 20px;
+}
+
+/* Eyebrow / kicker label */
+.eyebrow,
+.kicker {
+  color: var(--accent);
+  font-size: var(--text-12);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.08em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+/* Form fields */
+.field {
+  background: var(--surface-field);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: var(--text-16);
+  min-height: 48px;
+  min-width: 0;
+  padding: 0 14px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.field:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(152, 240, 204, 0.18);
+  outline: none;
+}
+
+.field::placeholder,
+input::placeholder,
+textarea::placeholder {
+  color: var(--ink-placeholder);
+  opacity: 1;
+}
+
+/* Code */
+code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+.code-block {
+  background: var(--surface-field);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--ink);
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  margin: var(--space-8) 0 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  padding: var(--space-12) var(--space-16);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+@media (max-width: 760px) {
+  .site-header {
+    margin-bottom: var(--space-32);
+  }
+}
+
+@media (max-width: 600px) {
+  .site-header {
+    gap: var(--space-16) var(--space-12);
+  }
+
+  .site-header .header-cta {
+    margin-left: auto;
+    order: 1;
+  }
+
+  .site-header nav {
+    border-top: 1px solid var(--line);
+    gap: var(--space-8) var(--space-24);
+    margin-left: 0;
+    order: 2;
+    padding-top: var(--space-12);
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}

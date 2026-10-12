@@ -11,7 +11,9 @@ import { DEMO_PROOF, DEMO_FIXTURE_PATH, demoProofSnippet } from "./demo-proof.js
 import { renderedFixture } from "./audits.js";
 import { checkHtml } from "./public-check.js";
 import {
+  SOCIAL_IMAGE_HEIGHT,
   SOCIAL_IMAGE_PATH,
+  SOCIAL_IMAGE_WIDTH,
   aiAnswerReadinessHtml,
   demoHtml,
   homeMarkdown,
@@ -29,13 +31,13 @@ import {
 
 const origin = "https://seofixkit.com";
 
-// Every worker-rendered public page must ship the SVG share image as
-// og:image/twitter:image (lane 1: "Every worker-rendered public page ships an
-// SVG as og:image/twitter:image"). The root page is the SPA app shell served
-// from index.html (not worker-rendered) and intentionally keeps its jpg
-// waitlist share image. The image URL is absolute and points at the shipped
-// public/og-image.svg asset, so a share of /demo, /packages, /check, or any
-// other public page never renders without a preview image.
+// Every worker-rendered public page must ship the PNG share image as
+// og:image/twitter:image (social platforms ignore SVG share images, so the
+// SVG source is rendered to public/og-image.png). The root page is the SPA
+// app shell served from index.html (not worker-rendered) and intentionally
+// keeps its jpg waitlist share image. The image URL is absolute and points
+// at the shipped public/og-image.png asset, so a share of /demo, /packages,
+// /check, or any other public page never renders without a preview image.
 const allWorkerRenderedPublicPages = [
   { name: "/demo", html: demoHtml(origin) },
   { name: "/check", html: checkHtml(origin) },
@@ -50,27 +52,52 @@ const allWorkerRenderedPublicPages = [
   { name: "/terms", html: termsHtml(origin) }
 ];
 
-test("every worker-rendered public page ships the SVG share image as og:image and twitter:image", () => {
+test("every worker-rendered public page ships the PNG share image as og:image and twitter:image", () => {
   const imageUrl = `${origin}${SOCIAL_IMAGE_PATH}`;
   for (const { name, html } of allWorkerRenderedPublicPages) {
     assert.match(
       html,
       new RegExp(`<meta property="og:image" content="${imageUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`),
-      `${name} must ship og:image pointing at the SVG share image`
+      `${name} must ship og:image pointing at the PNG share image`
     );
     assert.match(
       html,
       new RegExp(`<meta name="twitter:image" content="${imageUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`),
-      `${name} must ship twitter:image pointing at the SVG share image`
+      `${name} must ship twitter:image pointing at the PNG share image`
     );
-    assert.match(html, /<meta name="twitter:card" content="summary_large_image" \/>/, `${name} must keep the large-image card so the SVG renders`);
+    assert.match(html, /<meta name="twitter:card" content="summary_large_image" \/>/, `${name} must keep the large-image card so the share image renders`);
+    assert.match(html, new RegExp(`<meta property="og:image:width" content="${SOCIAL_IMAGE_WIDTH}" />`), `${name} must declare the share image width`);
+    assert.match(html, new RegExp(`<meta property="og:image:height" content="${SOCIAL_IMAGE_HEIGHT}" />`), `${name} must declare the share image height`);
+    assert.match(html, /<link rel="apple-touch-icon" href="https:\/\/seofixkit\.com\/apple-touch-icon\.png"/, `${name} must point apple-touch-icon at the PNG`);
+    assert.match(html, /<link rel="icon" href="\/favicon\.svg" type="image\/svg\+xml" \/>/, `${name} must ship the favicon`);
   }
 });
 
-test("the SVG share image exists and is a real 1200x630 SVG asset", () => {
-  const svg = readFileSync(new URL(`../../public${SOCIAL_IMAGE_PATH}`, import.meta.url), "utf8");
-  assert.match(svg, /^<svg /, "og-image.svg must be an SVG document");
-  assert.match(svg, /viewBox="0 0 1200 630"/, "og-image.svg must use the 1200x630 share-image viewBox");
+// Reads width/height from a PNG's IHDR chunk (bytes 16-23, big-endian).
+function pngDimensions(path) {
+  const bytes = readFileSync(path);
+  assert.deepEqual([...bytes.subarray(0, 8)], [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], `${path} must be a PNG file`);
+  assert.equal(bytes.subarray(12, 16).toString("ascii"), "IHDR", `${path} must start with an IHDR chunk`);
+  return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
+}
+
+test("the PNG share image and touch icon exist at their declared sizes", () => {
+  assert.equal(SOCIAL_IMAGE_PATH, "/og-image.png");
+  assert.equal(SOCIAL_IMAGE_WIDTH, 1200);
+  assert.equal(SOCIAL_IMAGE_HEIGHT, 630);
+  assert.deepEqual(
+    pngDimensions(new URL(`../../public${SOCIAL_IMAGE_PATH}`, import.meta.url)),
+    { width: SOCIAL_IMAGE_WIDTH, height: SOCIAL_IMAGE_HEIGHT },
+    "og-image.png must be a real 1200x630 PNG"
+  );
+  assert.deepEqual(
+    pngDimensions(new URL("../../public/apple-touch-icon.png", import.meta.url)),
+    { width: 180, height: 180 },
+    "apple-touch-icon.png must be a real 180x180 PNG"
+  );
+  // The SVG stays as the editable source the PNG is rendered from.
+  const svg = readFileSync(new URL("../../public/og-image.svg", import.meta.url), "utf8");
+  assert.match(svg, /viewBox="0 0 1200 630"/, "og-image.svg source must keep the 1200x630 viewBox");
 });
 const expectedSitemapUrls = ROOT_PUBLIC_PATHS.map((path) => `${origin}${path}`);
 
@@ -445,31 +472,45 @@ test("machine-readable public surfaces list proof pages and limits", () => {
 // current sitemap and IndexNow payload use, and the discipline test must
 // agree with the published artefact rather than redefine the convention.
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+// Shared renderer pieces every worker-rendered page pulls in: the share-image
+// constants/meta (pages.js top) and ldBlock/publicAssetHead/siteHeader/
+// pageSocialHead. A change there changes every page's HTML.
+const SHARED_PUBLIC_HEAD = [
+  { file: "worker/routes/pages.js", lineStart: 1, lineEnd: 24 },
+  { file: "worker/routes/pages.js", lineStart: 151, lineEnd: 208 }
+];
+const PRODUCT_PAGE_SHELL = { file: "worker/routes/pages.js", lineStart: 717, lineEnd: 829 };
+const POLICY_PAGE_SHELL = { file: "worker/routes/pages.js", lineStart: 1155, lineEnd: 1189 };
 const PUBLIC_PAGE_RENDERERS = {
   "/": [
-    { file: "src/App.jsx", lineStart: 35, lineEnd: 400 },
+    // The SPA landing page component and the logo it renders.
+    { file: "src/pages/LandingPage.jsx", lineStart: 1, lineEnd: 250 },
+    { file: "src/components/LogoMark.jsx", lineStart: 1, lineEnd: 20 },
     { file: "index.html", lineStart: 1, lineEnd: 100 }
   ],
-  "/demo": [{ file: "worker/routes/pages.js", lineStart: 156, lineEnd: 263 }],
-  "/check": [{ file: "worker/routes/public-check.js", lineStart: 296, lineEnd: 800 }],
-  "/methodology": [{ file: "worker/routes/pages.js", lineStart: 265, lineEnd: 375 }],
-  "/packages": [{ file: "worker/routes/pages.js", lineStart: 378, lineEnd: 472 }],
+  "/demo": [...SHARED_PUBLIC_HEAD, { file: "worker/routes/pages.js", lineStart: 210, lineEnd: 315 }],
+  "/check": [...SHARED_PUBLIC_HEAD, { file: "worker/routes/public-check.js", lineStart: 296, lineEnd: 566 }],
+  "/methodology": [...SHARED_PUBLIC_HEAD, { file: "worker/routes/pages.js", lineStart: 317, lineEnd: 415 }, PRODUCT_PAGE_SHELL],
+  "/packages": [...SHARED_PUBLIC_HEAD, { file: "worker/routes/pages.js", lineStart: 416, lineEnd: 512 }, PRODUCT_PAGE_SHELL],
   "/small-business-seo-audit": [
-    { file: "worker/routes/pages.js", lineStart: 475, lineEnd: 522 },
-    { file: "worker/routes/pages.js", lineStart: 679, lineEnd: 821 }
+    ...SHARED_PUBLIC_HEAD,
+    { file: "worker/routes/pages.js", lineStart: 513, lineEnd: 560 },
+    PRODUCT_PAGE_SHELL
   ],
   "/rendered-vs-static-seo-audit": [
-    { file: "worker/routes/pages.js", lineStart: 523, lineEnd: 586 },
-    { file: "worker/routes/pages.js", lineStart: 679, lineEnd: 821 }
+    ...SHARED_PUBLIC_HEAD,
+    { file: "worker/routes/pages.js", lineStart: 561, lineEnd: 624 },
+    PRODUCT_PAGE_SHELL
   ],
   "/ai-answer-readiness": [
-    { file: "worker/routes/pages.js", lineStart: 587, lineEnd: 678 },
-    { file: "worker/routes/pages.js", lineStart: 679, lineEnd: 821 }
+    ...SHARED_PUBLIC_HEAD,
+    { file: "worker/routes/pages.js", lineStart: 625, lineEnd: 716 },
+    PRODUCT_PAGE_SHELL
   ],
-  "/proof": [{ file: "worker/routes/pages.js", lineStart: 740, lineEnd: 866 }],
-  "/privacy": [{ file: "worker/routes/pages.js", lineStart: 912, lineEnd: 951 }],
-  "/support": [{ file: "worker/routes/pages.js", lineStart: 953, lineEnd: 986 }],
-  "/terms": [{ file: "worker/routes/pages.js", lineStart: 1070, lineEnd: 1120 }]
+  "/proof": [...SHARED_PUBLIC_HEAD, { file: "worker/routes/pages.js", lineStart: 830, lineEnd: 977 }],
+  "/privacy": [...SHARED_PUBLIC_HEAD, { file: "worker/routes/pages.js", lineStart: 1022, lineEnd: 1068 }],
+  "/support": [...SHARED_PUBLIC_HEAD, { file: "worker/routes/pages.js", lineStart: 1069, lineEnd: 1103 }, POLICY_PAGE_SHELL],
+  "/terms": [...SHARED_PUBLIC_HEAD, { file: "worker/routes/pages.js", lineStart: 1104, lineEnd: 1154 }, POLICY_PAGE_SHELL]
 };
 
 let lastGitLogOutput = "";

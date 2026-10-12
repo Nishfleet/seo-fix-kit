@@ -369,7 +369,7 @@ async function apiCreateAudit(request, env, ctx) {
   const access = await apiAccessStatus(request, env);
   if (!access.ok) return apiAccessResponse(access);
   const body = await request.json().catch(() => ({}));
-  let targetUrl = "";
+  let targetUrl;
   try {
     targetUrl = normalizeUrl(body.url || body.targetUrl || "");
   } catch {

@@ -1,4 +1,3 @@
-import { escapeHtml } from "../../shared/audit-engine.js";
 import { isEmailConfigured } from "../../shared/fulfillment.js";
 import {
   betaAccessResponse,
@@ -7,6 +6,7 @@ import {
   clearSessionCookie,
   createBetaSession
 } from "../lib/auth.js";
+import { emailButton } from "../../shared/email-layout.js";
 import { sendWorkerEmail } from "../lib/email.js";
 import { json, jsonNoStore } from "../lib/http.js";
 import {
@@ -298,13 +298,13 @@ async function verifyAccessLink(request, env) {
 function safeBetaReturnPath(value) {
   const path = String(value || "").trim();
   if (path.length > 200) return "/beta";
-  if (!/^\/beta(\/[A-Za-z0-9._\/-]*)?$/.test(path) || path.includes("..") || path.includes("//")) {
+  if (!/^\/beta(\/[A-Za-z0-9._/-]*)?$/.test(path) || path.includes("..") || path.includes("//")) {
     return "/beta";
   }
   return path;
 }
 
-async function sendAccessLinkEmail(env, { ownerEmail, accessUrl, expiresAt, tokenHash }) {
+async function sendAccessLinkEmail(env, { ownerEmail, accessUrl }) {
   const subject = "Your SEO Fix Kit access link";
   const expiresMinutes = Math.max(1, Math.round(ACCESS_LINK_TTL_SECONDS / 60));
   const text = [
@@ -316,10 +316,11 @@ async function sendAccessLinkEmail(env, { ownerEmail, accessUrl, expiresAt, toke
     "SEO Fix Kit audits produce proof-backed repair briefs. No ranking promises are made."
   ].join("\n");
   const html = [
-    "<p>Use this secure link to open SEO Fix Kit:</p>",
-    `<p><a href="${escapeHtml(accessUrl)}">Open SEO Fix Kit</a></p>`,
-    `<p>This link expires in ${expiresMinutes} minutes and can be used once. If it expires, just request a new one.</p>`,
-    "<p>SEO Fix Kit audits produce proof-backed repair briefs. No ranking promises are made.</p>"
+    '<p style="font-size:18px;font-weight:600;margin:0 0 8px">Your access link</p>',
+    '<p style="margin:0">Use this secure link to open SEO Fix Kit:</p>',
+    emailButton(accessUrl, "Open SEO Fix Kit"),
+    `<p style="margin:0 0 12px">This link expires in ${expiresMinutes} minutes and can be used once. If it expires, just request a new one.</p>`,
+    '<p style="color:#6b6f6c;font-size:13px;margin:0">SEO Fix Kit audits produce proof-backed repair briefs. No ranking promises are made.</p>'
   ].join("");
 
   return sendWorkerEmail(env, {
@@ -327,6 +328,7 @@ async function sendAccessLinkEmail(env, { ownerEmail, accessUrl, expiresAt, toke
     subject,
     text,
     html,
+    preheader: `Your one-time sign-in link expires in ${expiresMinutes} minutes.`,
     tag: "access-link"
   });
 }
@@ -781,7 +783,7 @@ async function inviteAccessStatus(request, env, ownerEmail, inviteCode, inviteCo
 // funnel. Rate-limited per network so it cannot be abused as a free
 // analytics sink. Always returns 204 so the SPA beacon never throws.
 async function recordAccessBeacon(request, env) {
-  let body = {};
+  let body;
   try {
     body = await request.json();
   } catch {

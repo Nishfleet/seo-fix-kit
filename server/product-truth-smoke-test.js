@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { offerCatalog, sellableOffers } from "../shared/offers.js";
 import { homeMarkdown, llmsText, supportHtml, termsHtml } from "../worker/routes/pages.js";
+import { readSpaSource } from "../scripts/spa-source.mjs";
 
 const origin = "https://seofixkit.com";
 const llms = llmsText(origin);
@@ -15,7 +16,7 @@ const repairSprintOffers = offerCatalog({
   monitoringCheckoutReady: true,
   repairSprintCheckoutReady: true
 });
-const app = readFileSync(new URL("../src/App.jsx", import.meta.url), "utf8");
+const app = readSpaSource();
 const index = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const schema = homepageSchema(index);
 const schemaTypes = schemaTypesFromGraph(schema);

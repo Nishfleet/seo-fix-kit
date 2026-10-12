@@ -153,7 +153,7 @@ async function readFounderPassword() {
 
   const passwordFilePath = process.env.SEOFIXKIT_FOUNDER_PASSWORD_FILE;
   if (passwordFilePath) {
-    let fromFile = "";
+    let fromFile;
     try {
       fromFile = (await readFile(passwordFilePath, "utf8")).trim();
     } catch {
@@ -820,7 +820,7 @@ async function fetchWithTimeout(url, options, timeoutMs, fetcher = fetch) {
     return await fetcher(url, { ...options, signal: controller.signal });
   } catch (error) {
     if (error?.name === "AbortError") {
-      throw new Error(`Request timed out after ${timeoutMs}ms.`);
+      throw new Error(`Request timed out after ${timeoutMs}ms.`, { cause: error });
     }
     throw error;
   } finally {

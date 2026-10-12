@@ -133,11 +133,6 @@ function adminRequest(path, env) {
 }
 
 function makeAdminEnv() {
-  const prepared = {
-    all: async () => ({ results: [] }),
-    first: async () => null,
-    run: async () => ({ meta: { changes: 1 } })
-  };
   return {
     ADMIN_EXPORT_TOKEN: "test-admin-token",
     WAITLIST_DB: {
@@ -149,7 +144,7 @@ function makeAdminEnv() {
           return { bind: () => ({ run: async () => ({ meta: { changes: 1 } }) }) };
         }
         return {
-          bind: (...args) => {
+          bind: () => {
             if (/GROUP BY step/i.test(sql)) {
               return {
                 all: async () => ({

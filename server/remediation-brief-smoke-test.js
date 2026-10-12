@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { buildRemediationBrief } from "../shared/remediation-brief.js";
+import { readSpaSource } from "../scripts/spa-source.mjs";
 
 const report = {
   id: "r_demo",
@@ -125,7 +126,7 @@ assert.match(routeSource, /report\.remediationBrief = buildRemediationBrief\(rep
 const workerSource = readFileSync(new URL("../worker/index.js", import.meta.url), "utf8");
 assert.match(workerSource, /api\/reports\/:id\/remediation-brief\.json/);
 
-const appSource = readFileSync(new URL("../src/App.jsx", import.meta.url), "utf8");
+const appSource = readSpaSource();
 assert.match(appSource, /RemediationBriefPanel/);
 assert.match(appSource, /Download remediation JSON/);
 
