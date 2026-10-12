@@ -825,7 +825,7 @@ function BetaApp() {
               </option>
             ))}
           </select>
-          <p className="field-note">Self-serve deep crawls currently run up to {SELF_SERVE_MAX_CRAWL_PAGES.toLocaleString()} pages.</p>
+          <p className="field-note">Self-serve deep crawls currently run up to {formatCount(SELF_SERVE_MAX_CRAWL_PAGES)} pages.</p>
           <label htmlFor="rendered-crawl-target">Rendered scale target</label>
           <select
             id="rendered-crawl-target"
@@ -835,7 +835,7 @@ function BetaApp() {
             <option value="0">No staged target</option>
             {RENDERED_CRAWL_TARGETS.slice(1).map((tier) => (
               <option key={tier.id} value={tier.pages}>
-                {tier.label} - {tier.pages.toLocaleString()} pages
+                {tier.label} - {formatCount(tier.pages)} pages
               </option>
             ))}
           </select>
@@ -2394,7 +2394,7 @@ function AiAnswerReadinessPanel({ audit }) {
           <small>{highestPriority.estimatedEffort || "30-90 min"} - {highestPriority.workType || "content"}</small>
           {highestPriority.trafficRanked ? (
             <small>
-              {Number(highestPriority.trafficClicks || 0).toLocaleString("en-US")} clicks / {Number(highestPriority.trafficImpressions || 0).toLocaleString("en-US")} impressions on affected pages
+              {formatCount(highestPriority.trafficClicks)} clicks / {formatCount(highestPriority.trafficImpressions)} impressions on affected pages
             </small>
           ) : null}
         </article>
@@ -4013,10 +4013,14 @@ function formatDate(value) {
   }).format(new Date(value));
 }
 
+// One locale for every count in the UI, so numbers read the same regardless
+// of the viewer's browser locale (matches the en-US copy elsewhere).
+const COUNT_FORMAT = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
+
 function formatCount(value) {
   const number = Number(value || 0);
   if (!Number.isFinite(number)) return "0";
-  return new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(number);
+  return COUNT_FORMAT.format(number);
 }
 
 function formatPercent(value) {
