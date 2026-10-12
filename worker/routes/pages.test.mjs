@@ -504,12 +504,19 @@ function latestCommitIsoIst(renderer) {
   // timestamp. Convert any non-IST offset to IST YYYY-MM-DDTHH:MM:SS so the
   // comparison can match the published lastmod convention (Z-suffixed IST).
   const firstLine = output.split("\n", 1)[0];
-  const match = firstLine.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})([+-]\d{2}:?\d{2})?$/);
+  return authorIsoToIst(firstLine);
+}
+
+function authorIsoToIst(firstLine) {
+  // GitHub-hosted runners often print %aI as Z-suffixed UTC; local git may
+  // print +00:00. Treat both as UTC and convert to the sitemap's IST convention.
+  const match = String(firstLine).match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(Z|[+-]\d{2}:?\d{2})?$/);
   if (!match) return "";
   const [, base, tz] = match;
   if (!tz || tz === "+05:30" || tz === "+0530") return base;
-  const ms = Date.parse(`${base}${tz}`);
-  const istMs = ms + (5.5 * 60 * 60 * 1000 - parseTimezoneOffsetMinutes(tz) * 60 * 1000);
+  const parsed = tz === "Z" ? Date.parse(`${base}Z`) : Date.parse(`${base}${tz}`);
+  const sourceOffsetMinutes = tz === "Z" ? 0 : parseTimezoneOffsetMinutes(tz);
+  const istMs = parsed + (5.5 * 60 * 60 * 1000 - sourceOffsetMinutes * 60 * 1000);
   return new Date(istMs).toISOString().slice(0, 19);
 }
 
@@ -519,6 +526,13 @@ function parseTimezoneOffsetMinutes(tz) {
   const [, sign, hh, mm] = m;
   return (sign === "-" ? -1 : 1) * (parseInt(hh, 10) * 60 + parseInt(mm, 10));
 }
+
+test("sitemap lastmod parser accepts Z-suffixed UTC author dates from CI git", () => {
+  assert.equal(authorIsoToIst("2026-10-12T04:30:43Z"), "2026-10-12T10:00:43");
+  assert.equal(authorIsoToIst("2026-10-12T04:30:43+00:00"), "2026-10-12T10:00:43");
+  assert.equal(authorIsoToIst("2026-10-12T12:00:00+05:30"), "2026-10-12T12:00:00");
+  assert.equal(authorIsoToIst(""), "");
+});
 
 test("sitemap lastmod stays truthful relative to the page renderer (freshness discipline)", () => {
   const failures = [];
