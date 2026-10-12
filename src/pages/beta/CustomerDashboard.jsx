@@ -50,7 +50,6 @@ export function CustomerDashboard({
   const schedules = accountData?.schedules || [];
   const monitoring = accountData?.monitoring || {};
   const verifiedSites = sites.filter((site) => site.status === "verified");
-  const pendingSites = sites.filter((site) => site.status !== "verified");
 
   return (
     <section className="account-dashboard" aria-label="Account overview">
