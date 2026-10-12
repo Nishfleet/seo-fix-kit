@@ -214,6 +214,32 @@ app.use("*", async (c, next) => {
   return next();
 });
 
+// A JSON body that does not parse is a client error. Handlers read bodies with
+// `request.json().catch(() => ({}))`, which would otherwise treat a malformed
+// payload as an empty one and answer with a misleading field-level error.
+// Empty bodies stay allowed; the Dodo webhook verifies its own raw body.
+const JSON_BODY_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+
+app.use("*", async (c, next) => {
+  const { pathname } = new URL(c.req.url);
+  if (
+    JSON_BODY_METHODS.has(c.req.method) &&
+    (pathname.startsWith("/api/") || pathname.startsWith("/v1/") || pathname.startsWith("/admin/")) &&
+    pathname !== "/api/webhooks/dodo" &&
+    (c.req.header("content-type") || "").toLowerCase().includes("application/json")
+  ) {
+    const text = await c.req.raw.clone().text();
+    if (text.trim()) {
+      try {
+        JSON.parse(text);
+      } catch {
+        return json({ error: "Request body is not valid JSON." }, 400);
+      }
+    }
+  }
+  return next();
+});
+
 // --- Health -----------------------------------------------------------------
 app.get("/api/health", (c) =>
   json({
