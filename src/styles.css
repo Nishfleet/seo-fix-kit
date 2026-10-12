@@ -3018,20 +3018,26 @@ a {
 }
 
 .code-block button {
-  background: rgba(251, 248, 239, 0.92);
-  border-radius: 6px;
-  color: #08110d;
+  background: var(--surface-strong);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  color: var(--ink);
   float: right;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
+  transition: background var(--duration-fast) var(--ease-out);
   margin: 10px;
   min-height: 30px;
   padding: 0 10px;
 }
 
+.code-block button:hover {
+  background: var(--surface-hover);
+}
+
 .code-block pre {
   color: rgba(251, 248, 239, 0.86);
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   line-height: 1.55;
   margin: 0;
@@ -3455,6 +3461,29 @@ a {
   color: var(--ink-muted);
 }
 
+.app-empty-state {
+  align-items: center;
+  background: var(--surface-sunken);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  display: flex;
+  gap: 14px;
+  padding: 14px 16px;
+}
+
+.app-empty-icon {
+  align-items: center;
+  background: var(--accent-surface);
+  border: 1px solid var(--line-accent);
+  border-radius: var(--radius-sm);
+  color: var(--accent);
+  display: inline-flex;
+  flex: none;
+  height: 34px;
+  justify-content: center;
+  width: 34px;
+}
+
 .app-footnote {
   border-top: 1px solid rgba(251, 248, 239, 0.08);
   color: var(--ink-muted);
@@ -3714,6 +3743,8 @@ a.app-table-row:hover {
 }
 
 .app-page .audit-row button {
+  border-radius: var(--radius);
+  font-weight: 600;
   background: linear-gradient(180deg, #b6f6dc, var(--accent));
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.45),

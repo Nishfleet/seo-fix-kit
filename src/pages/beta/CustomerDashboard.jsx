@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Link } from "react-router";
 import StatusMessage from "../../StatusMessage.jsx";
 import { PageHeader } from "../../components/AppShell.jsx";
-import { Badge, LoadError, SkeletonRows } from "../../components/AppStates.jsx";
+import { Badge, EmptyState, LoadError, SkeletonRows } from "../../components/AppStates.jsx";
 import { CodeBlock } from "../../components/CodeBlock.jsx";
 import { CopyButton } from "../../components/CopyButton.jsx";
 import { Metric } from "../../components/Metric.jsx";
@@ -163,7 +163,7 @@ function reportLabel(item) {
 
 function ReportRows({ reports }) {
   if (!reports.length) {
-    return <p className="app-empty">Your reports will show up here after your first audit.</p>;
+    return <EmptyState icon="file">Your reports will show up here after your first audit.</EmptyState>;
   }
   return (
     <div className="app-table" role="table" aria-label="Reports">
@@ -302,7 +302,9 @@ export function ReportsPage({ accountData, message, status, onRetry }) {
               ))}
             </div>
           ) : (
-            <p className="app-empty">No Fix Packs yet. You can start one from any report that finds real problems.</p>
+            <EmptyState icon="wrench">
+              No Fix Packs yet. You can start one from any report that finds real problems.
+            </EmptyState>
           )}
         </section>
       )}
@@ -470,7 +472,7 @@ export function SitesPage({
             })}
           </ul>
         ) : (
-          <p className="app-empty">No sites yet. Add your first one above.</p>
+          <EmptyState icon="browser">No sites yet. Add your first one above.</EmptyState>
         )}
         <p className="app-footnote">
           {monitoring.message || "Weekly monitoring is included free for verified sites during the beta."}
@@ -684,7 +686,7 @@ export function DeveloperApiPanel({
             ))}
           </div>
         ) : (
-          <p className="app-empty">No API keys yet.</p>
+          <EmptyState icon="lock">No API keys yet. Create one to start audits from your own tools.</EmptyState>
         )}
       </section>
 
@@ -745,7 +747,7 @@ export function DeveloperApiPanel({
             ))}
           </div>
         ) : (
-          <p className="app-empty">No endpoints yet.</p>
+          <EmptyState icon="plug">No endpoints yet. Add a URL above to get notified when audits finish.</EmptyState>
         )}
       </section>
 
