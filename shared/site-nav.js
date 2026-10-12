@@ -7,9 +7,9 @@ export const SITE_NAV = [
     id: "product",
     items: [
       { href: "/check", label: "Free page check", text: "Check one public page in a real browser. No account." },
-      { href: "/demo", label: "Sample report", text: "A real report, with the evidence behind every issue." },
-      { href: "/proof", label: "Customer proof", text: "85 to 100 across two fixes, with the reruns on record." },
-      { href: "/pricing#plans", label: "Fix Packs", text: "A repair pass and a proof rerun, only when it is needed." }
+      { href: "/demo", label: "Sample report", text: "Real engine output for a test page, with the evidence." },
+      { href: "/proof", label: "Case study", text: "Our founder’s site, from 85 to 100 in two fixes." },
+      { href: "/pricing#plans", label: "Fix Pack", text: "A $99 repair pass with a rerun that confirms it." }
     ]
   },
   {
@@ -19,14 +19,18 @@ export const SITE_NAV = [
       {
         href: "/small-business-seo-audit",
         label: "Small business sites",
-        text: "Find what stops customers finding you."
+        text: "A plain audit for sites without an SEO team."
       },
       {
         href: "/rendered-vs-static-seo-audit",
         label: "JavaScript sites",
-        text: "Catch problems that only show up once the page renders."
+        text: "Compare raw HTML with the rendered page."
       },
-      { href: "/ai-answer-readiness", label: "AI search readiness", text: "See what AI crawlers can actually read." }
+      {
+        href: "/ai-answer-readiness",
+        label: "AI search readiness",
+        text: "See what AI crawlers can read on your pages."
+      }
     ]
   },
   { href: "/methodology", label: "How it works" },
@@ -34,7 +38,7 @@ export const SITE_NAV = [
   { href: "/beta", label: "Sign in", kind: "sign-in" }
 ];
 
-export const SITE_TAGLINE = "Find the SEO problems that matter, prove them, and fix them.";
+export const SITE_TAGLINE = "The SEO audit that checks its own work.";
 
 export const SITE_FOOTER = [
   {
@@ -42,7 +46,7 @@ export const SITE_FOOTER = [
     links: [
       { href: "/check", label: "Free page check" },
       { href: "/demo", label: "Sample report" },
-      { href: "/proof", label: "Customer proof" },
+      { href: "/proof", label: "Case study" },
       { href: "/pricing", label: "Pricing" }
     ]
   },

@@ -12,80 +12,80 @@ const STEPS = [
   {
     icon: "search",
     title: "Find",
-    text: "We open your pages in a real browser, the way Google and your customers see them, and list what is actually broken."
+    text: "Each page loads in a real browser, the way Google renders it. Problems that disappear once JavaScript runs are dropped."
   },
   {
     icon: "wrench",
     title: "Fix",
-    text: "Each problem comes with the evidence, why it matters, and a ready-to-paste fix your developer can ship."
+    text: "Every problem lists the pages it affects, the evidence, and the code to paste. Send the list to your developer as is."
   },
   {
     icon: "receipt",
-    title: "Prove",
-    text: "After the fix goes live, rerun the audit. Every item is marked fixed, still open, or new, so you know it worked."
+    title: "Confirm",
+    text: "Ship the fixes, then rerun the audit. Each problem is marked fixed, still open or new."
   }
 ];
 
 const FEATURES = [
   {
     icon: "queue",
-    title: "A repair queue for your team",
-    text: "Assign fixes, add notes, approve changes, and track every item from open to proven fixed."
+    title: "Repair queue",
+    text: "Assign each fix, leave notes, approve changes, and track it until a rerun confirms it."
   },
   {
     icon: "pulse",
-    title: "Weekly monitoring",
-    text: "Verified sites get a weekly rerun, so you hear about a regression early."
+    title: "Weekly reruns",
+    text: "Verified sites are audited again every week, so a page that breaks shows up within days."
   },
   {
     icon: "sparkle",
-    title: "Ready for AI search",
-    text: "See whether ChatGPT-style crawlers, which skip JavaScript, can read your content and structure."
+    title: "AI search readiness",
+    text: "Most AI crawlers don’t run JavaScript. See whether your content and schema are in the HTML they read."
   },
   {
     icon: "plug",
     title: "API and webhooks",
-    text: "Start audits and pull results from your own tools, and get notified when an audit finishes."
+    text: "Start audits from your own tools, pull results as JSON, and get a webhook when an audit finishes."
   }
 ];
 
 const FAQ = [
   {
-    q: "What happens after I enter a URL?",
-    a: "Anyone can check one public page right now with no account. Sign up with your email to audit your whole site: verify you own it, then run audits of up to 1,000 pages, keep your reports, and work through the repair queue."
+    q: "Do I need an account?",
+    a: "Not to check one page. To audit a whole site, sign in with your email and verify you own the site. Then you can audit up to 1,000 pages at a time, keep every report, and use the repair queue."
   },
   {
-    q: "What does the paid Fix Pack include?",
-    a: "One repair pass on a saved report with real, proven problems, plus one rerun after the fixes ship to prove they worked. It costs $99 one-time. You only see the offer when a report has something worth fixing."
+    q: "What does the Fix Pack include?",
+    a: "One repair pass on a saved report, plus one rerun after your fixes ship to confirm them. It costs $99, once. You only see the offer when a report finds real problems."
   },
   {
-    q: "How is AI or GEO readiness handled?",
-    a: "We check what AI crawlers can read: whether your content is in the raw HTML, whether your schema and structure are clear, and whether you answer real questions. We do not track AI citations or sample AI answers."
+    q: "Do you check AI search?",
+    a: "We check what AI crawlers can read: whether your content is in the raw HTML, whether your schema and headings are clear, and whether your pages answer real questions. We don’t track AI citations or sample AI answers."
   },
   {
     q: "What doesn’t SEO Fix Kit do?",
-    a: "It does not auto-publish content or change your site for you, and it does not guarantee rankings, traffic, indexing, AI citations, or revenue. It proves what is broken and proves when it is fixed."
+    a: "It never changes your site or publishes content for you. It doesn’t guarantee rankings, traffic, indexing, AI citations or revenue. It shows what is broken and confirms when it is fixed."
   }
 ];
 
 const PLANS = [
-  { name: "Page check", price: "Free", text: "One public page, no account." },
+  { name: "Page check", price: "Free", text: "One public page. No account." },
   {
     name: "Site audit",
     price: "Free",
-    text: "Up to 1,000 pages, saved reports, and a repair queue. Free during the beta.",
+    text: "Up to 1,000 pages per audit, saved reports and a repair queue. Free during the beta.",
     featured: true
   },
   {
     name: "Fix Pack",
     price: "$99",
-    text: "One-time repair pass and a rerun that proves it, only when a report finds real fixes."
+    text: "One guided repair pass and a rerun that confirms it. Offered when a report finds real problems."
   }
 ];
 
 export function WaitlistPage() {
   useEffect(() => {
-    document.title = "SEO Fix Kit - SEO fixes you can prove";
+    document.title = "SEO Fix Kit - The SEO audit that checks its own work";
     // The public site is light (prerendered with data-theme="light"); the
     // signed-in app is dark.
     const root = document.documentElement;
@@ -107,9 +107,10 @@ export function WaitlistPage() {
           <div className="hero-copy">
             <ProofTicker />
             <h1 className="hero-title enter" id="page-title" style={{ "--enter-delay": "60ms" }}>
-              SEO fixes you can prove.{" "}
+              An SEO audit that checks its own work.{" "}
               <span className="hero-title-soft">
-                Find what is really broken, ship the fix, and rerun the check that shows it worked.
+                We load every page in a real browser, list only the problems that are actually there, and rerun after
+                you ship to mark each one fixed.
               </span>
             </h1>
             <div className="enter" style={{ "--enter-delay": "140ms" }}>
@@ -119,7 +120,7 @@ export function WaitlistPage() {
         </section>
 
         <section className="platforms" aria-label="Works with any public site">
-          <p>Works on any public site, whatever it is built on</p>
+          <p>Works on any public website</p>
           <div className="platforms-track">
             <ul>
               {PLATFORMS.map((name) => (
@@ -144,16 +145,16 @@ export function WaitlistPage() {
             <span>pages per audit</span>
           </div>
           <div>
-            <strong>Real browser</strong>
-            <span>rendering on every page</span>
+            <strong>Chromium</strong>
+            <span>renders every page</span>
           </div>
           <div>
             <strong>$0</strong>
-            <span>to find the problems</span>
+            <span>to audit during the beta</span>
           </div>
           <div>
-            <strong>Proof</strong>
-            <span>after every fix</span>
+            <strong>Rerun</strong>
+            <span>marks each problem fixed, open or new</span>
           </div>
         </section>
 
@@ -162,7 +163,7 @@ export function WaitlistPage() {
         <section className="landing-section" aria-labelledby="how-title">
           <header className="landing-section-head reveal">
             <p className="eyebrow">How it works</p>
-            <h2 id="how-title">From “something is wrong” to “proven fixed”.</h2>
+            <h2 id="how-title">Every audit ends with a rerun.</h2>
           </header>
           <ol className="landing-steps">
             {STEPS.map((step, index) => (
@@ -180,8 +181,8 @@ export function WaitlistPage() {
 
         <section className="landing-section" aria-labelledby="features-title">
           <header className="landing-section-head reveal">
-            <p className="eyebrow">Made for site owners and founders</p>
-            <h2 id="features-title">Built for fixing, not for another to-do list.</h2>
+            <p className="eyebrow">Features</p>
+            <h2 id="features-title">Each problem comes with what you need to fix it.</h2>
           </header>
           <div className="landing-bento">
             <article className="card landing-bento-wide reveal">
@@ -189,10 +190,10 @@ export function WaitlistPage() {
                 <span className="landing-feature-icon">
                   <Icon name="shieldCheck" />
                 </span>
-                <h3>No false alarms</h3>
+                <h3>False alarms filtered out</h3>
                 <p>
-                  Most scanners only read raw HTML and flag problems that are not there. We compare it with the real
-                  page and drop the noise.
+                  Scanners that only read raw HTML flag headings and text that JavaScript adds later. We check the
+                  rendered page too and drop those flags.
                 </p>
               </div>
               <FalseAlarmDiff />
@@ -202,10 +203,9 @@ export function WaitlistPage() {
                 <span className="landing-feature-icon">
                   <Icon name="code" />
                 </span>
-                <h3>Ready-to-paste fixes</h3>
+                <h3>Code you can paste</h3>
                 <p>
-                  Missing tags, schema, and social previews come with the exact snippet to add, built from your own
-                  page.
+                  Missing meta tags, schema and social previews come with the exact snippet, filled in from your page.
                 </p>
               </div>
               <pre className="landing-snippet" aria-label="Example fix" data-theme="dark">
@@ -233,14 +233,14 @@ export function WaitlistPage() {
 
         <section className="landing-proof reveal" aria-labelledby="proof-title">
           <div className="landing-proof-copy">
-            <p className="eyebrow">Real result</p>
-            <h2 id="proof-title">85 to 100, with a receipt.</h2>
+            <p className="eyebrow">Case study</p>
+            <h2 id="proof-title">85 to 100 in two fixes.</h2>
             <p>
-              Our founder’s own portfolio site went from 7 problems to none across two small changes. The same audit ran
-              before and after each one, so every step is on the record.
+              Our founder’s portfolio site had 7 problems. Two small changes fixed all of them, and the same audit ran
+              before and after each one.
             </p>
             <a className="link-arrow" href="/proof">
-              See the before and after <span className="arrow">→</span>
+              Read the case study <span className="arrow">→</span>
             </a>
           </div>
           <dl className="landing-proof-scores">
@@ -262,7 +262,7 @@ export function WaitlistPage() {
         <section className="landing-section" aria-labelledby="pricing-title">
           <header className="landing-section-head reveal">
             <p className="eyebrow">Pricing</p>
-            <h2 id="pricing-title">Free to find it. Pay only to fix it.</h2>
+            <h2 id="pricing-title">Audits are free. Fixes are $99, once.</h2>
           </header>
           <div className="landing-plans">
             {PLANS.map((plan) => (
@@ -281,7 +281,7 @@ export function WaitlistPage() {
         <section className="landing-section landing-faq-section" aria-labelledby="faq-title">
           <header className="landing-section-head reveal">
             <p className="eyebrow">Questions</p>
-            <h2 id="faq-title">Straight answers.</h2>
+            <h2 id="faq-title">Common questions</h2>
           </header>
           <div className="landing-faq reveal">
             {FAQ.map((item) => (
@@ -295,15 +295,15 @@ export function WaitlistPage() {
 
         <section className="landing-final hero-light reveal" aria-labelledby="final-title">
           <h2 className="ink-gradient" id="final-title">
-            Find out what is really wrong with your site.
+            See what’s wrong with your site.
           </h2>
-          <p>Start with one page for free. No account, no card.</p>
+          <p>Check one page free. No account, no card.</p>
           <div className="landing-final-actions">
             <a className="btn btn-primary btn-lg" href="/check">
-              Check a page free <span className="arrow">→</span>
+              Check a page <span className="arrow">→</span>
             </a>
             <a className="btn btn-secondary btn-lg" href="#get-started">
-              Create a free account
+              Create an account
             </a>
           </div>
         </section>
@@ -317,17 +317,17 @@ export function WaitlistPage() {
 const TOUR = [
   {
     key: "report",
-    label: "The report",
-    title: "Every problem, ranked, with the proof attached.",
-    text: "Fix-first order, severity, the evidence from the rendered page, and the exact snippet to paste.",
+    label: "Report",
+    title: "Every problem, ranked, with evidence.",
+    text: "Problems in fix-first order, with severity, evidence from the rendered page and the snippet to paste.",
     src: "/tour/report.webp",
     alt: "SEO Fix Kit report: a score, problem counts, and a fix-first list"
   },
   {
     key: "pages",
-    label: "Every page",
+    label: "Pages",
     title: "Each page, checked in a real browser.",
-    text: "Scores, headings, word counts, links and load times for every page the audit opened.",
+    text: "Score, headings, word count, links and load time for each page the audit opened.",
     src: "/tour/pages.webp",
     alt: "SEO Fix Kit pages table: a score and checks for each page of the site"
   }
@@ -342,8 +342,8 @@ function ProductTour() {
   return (
     <section className="landing-section tour" aria-labelledby="tour-title">
       <header className="landing-section-head reveal">
-        <p className="eyebrow">The product</p>
-        <h2 id="tour-title">This is what you get. Not a mockup.</h2>
+        <p className="eyebrow">Product</p>
+        <h2 id="tour-title">Screens from the real app.</h2>
       </header>
       <div className="tour-tabs" role="tablist" aria-label="Product screens">
         {TOUR.map((item) => (
@@ -404,11 +404,11 @@ function ProofTicker() {
 
   return (
     <a className="hero-ticker enter" href="/proof">
-      <span className="hero-ticker-label">Latest proof</span>
+      <span className="hero-ticker-label">Case study</span>
       <span className="hero-ticker-value">
         85 → <strong>{score}</strong>
       </span>
-      <span className="hero-ticker-note">7 problems fixed, rerun verified</span>
+      <span className="hero-ticker-note">7 problems fixed, confirmed by rerun</span>
       <span aria-hidden="true" className="arrow">
         →
       </span>
@@ -469,14 +469,14 @@ function AccessForm() {
     } catch (error) {
       setStatus("error");
       setAccessUrl("");
-      setMessage(error.message || "We couldn’t send the link. Please try again.");
+      setMessage(error.message || "We couldn’t send the link. Check the address and try again.");
     }
   }
 
   return (
     <form className="landing-form" id="get-started" onSubmit={requestAccess}>
       <label className="sr-only" htmlFor="email">
-        Work email
+        Email
       </label>
       <div className="landing-form-row">
         <input
@@ -490,7 +490,7 @@ function AccessForm() {
           value={email}
         />
         <button className="btn btn-primary" disabled={status === "submitting"} type="submit">
-          {status === "submitting" ? "Sending…" : "Get started free"}
+          {status === "submitting" ? "Sending…" : "Start free"}
         </button>
       </div>
       <label className="honeypot" htmlFor="company">
@@ -505,7 +505,7 @@ function AccessForm() {
         />
       </label>
       <p className={`form-message ${status}`} aria-live="polite">
-        {message || "We’ll email you a secure sign-in link. No password, no card."}
+        {message || "We’ll email you a sign-in link. No password, no card."}
         {accessUrl && (
           <>
             <br />
@@ -516,7 +516,7 @@ function AccessForm() {
         )}
       </p>
       <p className="landing-form-alt">
-        Just curious? <a href="/check">Check one page without an account →</a>
+        Or <a href="/check">check one page without an account →</a>
       </p>
     </form>
   );
@@ -547,7 +547,7 @@ const SHOT_ROWS = [
   {
     severity: "ok",
     label: "Filtered",
-    text: "“Missing H1” is a false alarm: it appears once the page loads",
+    text: "“Missing H1” filtered: the H1 renders after load",
     pages: "6 pages",
     status: "Ignored"
   }

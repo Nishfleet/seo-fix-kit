@@ -43,7 +43,7 @@ export function beforeAfterText(summary) {
   const afterFindings = Number(summary.afterFindings || 0);
   const scoreDelta = afterScore - beforeScore;
   const fixed = Math.max(0, beforeFindings - afterFindings);
-  return `Score ${beforeScore} to ${afterScore} (${scoreDelta >= 0 ? "+" : ""}${scoreDelta}); findings ${beforeFindings} to ${afterFindings} (${fixed} reduced).`;
+  return `Score ${beforeScore} to ${afterScore} (${scoreDelta >= 0 ? "+" : ""}${scoreDelta}). Problems ${beforeFindings} to ${afterFindings} (${fixed} fewer).`;
 }
 
 export function formatDate(value) {
@@ -100,7 +100,7 @@ export function safeHostnameLabel(value) {
   try {
     return new URL(value).hostname.replace(/^www\./, "");
   } catch {
-    return "saved audit";
+    return "saved report";
   }
 }
 
@@ -109,7 +109,7 @@ export function safeUrlLabel(value) {
     const url = new URL(value);
     return `${url.hostname}${url.pathname === "/" ? "" : url.pathname}`;
   } catch {
-    return "webhook";
+    return "page";
   }
 }
 

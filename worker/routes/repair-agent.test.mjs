@@ -318,7 +318,7 @@ test("repair action proof receipt names capture times and fails closed after the
   const markdown = await receiptResponse.text();
   assert.match(markdown, /Source captured:/);
   assert.match(markdown, /Rerun proof captured:/);
-  assert.match(markdown, /Rerun proof captured at .*If the site changed after that capture/);
+  assert.match(markdown, /Rerun captured at .*If the site has changed since/);
 
   const reopened = await saveRepairQueue(
     sessionRequest(`/api/reports/${reportId}/repair-queue`, {

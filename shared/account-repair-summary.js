@@ -91,8 +91,8 @@ function repairNextAction(item = {}) {
     return {
       rank: 0,
       nextActionId: "review-regressed-repair",
-      nextActionLabel: "Review regressed repair",
-      nextActionDetail: `${item.title || "A repair"} is open again after rerun proof.`
+      nextActionLabel: "Review reopened repair",
+      nextActionDetail: `${item.title || "A repair"} came back on the last rerun.`
     };
   }
   if (["still_open", "new"].includes(item.rerunStatus)) {
@@ -100,7 +100,7 @@ function repairNextAction(item = {}) {
       rank: 0,
       nextActionId: "review-rerun-repair",
       nextActionLabel: "Review rerun result",
-      nextActionDetail: `${item.title || "A repair"} still needs work after rerun proof.`
+      nextActionDetail: `${item.title || "A repair"} still shows on the last rerun.`
     };
   }
   if (item.latestAction?.approvalState === "drafted" || item.status === "drafted") {
@@ -108,15 +108,15 @@ function repairNextAction(item = {}) {
       rank: 1,
       nextActionId: "approve-drafted-repair",
       nextActionLabel: "Approve drafted repair",
-      nextActionDetail: `${item.title || "A repair"} has a draft ready for review.`
+      nextActionDetail: `${item.title || "A repair"} has a draft fix to review.`
     };
   }
   if (item.latestAction?.executionState === "applied" || item.status === "applied") {
     return {
       rank: 3,
       nextActionId: "rerun-applied-repair",
-      nextActionLabel: "Rerun proof",
-      nextActionDetail: `${item.title || "A repair"} was marked applied. Rerun proof to verify fixed status.`
+      nextActionLabel: "Rerun audit",
+      nextActionDetail: `${item.title || "A repair"} is marked applied. Rerun the audit to confirm it's fixed.`
     };
   }
   if (item.latestAction?.approvalState === "approved" || item.status === "approved") {
@@ -124,14 +124,14 @@ function repairNextAction(item = {}) {
       rank: 2,
       nextActionId: "apply-approved-repair",
       nextActionLabel: "Apply approved repair",
-      nextActionDetail: `${item.title || "A repair"} is approved. Apply it, then rerun proof.`
+      nextActionDetail: `${item.title || "A repair"} is approved. Make the change, then rerun the audit.`
     };
   }
   return {
     rank: item.status === "in_progress" ? 4 : 5,
     nextActionId: "start-proof-repair",
     nextActionLabel: "Start top repair",
-    nextActionDetail: `${item.title || "A repair"} is the next proof-backed issue to fix.`
+    nextActionDetail: `${item.title || "A repair"} is the next problem to fix.`
   };
 }
 
@@ -156,20 +156,22 @@ function monitorRegressionItem(report = {}, response = {}, monitoredReportIds = 
     issueId: "",
     title:
       issue.title ||
-      `${newIssues || criticalDelta || warningDelta} issue${newIssues === 1 ? "" : "s"} changed since the last run`,
+      `${newIssues || criticalDelta || warningDelta} problem${newIssues === 1 ? "" : "s"} new or worse since the last run`,
     severity,
     status: "regressed",
     actionMode: "self_serve",
     rerunStatus: "regressed",
     proof:
-      issue.evidence || delta.note || "Latest monitor run found worse issue evidence than the previous saved report.",
-    acceptance: issue.fix || "Open the latest report and review the new or worsened issue.",
+      issue.evidence ||
+      delta.note ||
+      "The latest scheduled rerun found problems that are new or worse than in the last report.",
+    acceptance: issue.fix || "Open the latest report and check the new or worse problem.",
     priority: 0,
     latestAction: null,
     rank: 0,
     nextActionId: "review-monitor-regression",
-    nextActionLabel: "Review monitor regression",
-    nextActionDetail: `${targetHost} has new or worsened proof since the previous run.`
+    nextActionLabel: "Review new problems",
+    nextActionDetail: `${targetHost} has new or worse problems since the last rerun.`
   };
 }
 

@@ -8,26 +8,29 @@ function buildRepairImplementationPack({ report = {}, item = {}, action = {} } =
   const queueItemId = text(action.queue_item_id || action.queueItemId || item.id, 160);
   const issueId = text(action.issue_id || action.issueId || item.issueId || item.issue_id, 160);
   if (!actionId || !reportId || !issueId) {
-    return packError("Implementation pack needs an existing repair action.", 400);
+    return packError("This repair action doesn't exist. Open the repair from your report and try again.", 400);
   }
 
   if (rawUnsupported(action.action_mode || action.actionMode) || rawUnsupported(item.actionMode || item.action_mode)) {
-    return packError("Unsupported repair actions do not have implementation packs yet.", 409);
+    return packError("Unsupported repair actions have no implementation pack. Handle this one by hand.", 409);
   }
 
   const approvalState = cleanApprovalState(action.approval_state || action.approvalState);
   if (approvalState === "drafted")
-    return packError("Approve the repair action before creating an implementation pack.", 409);
-  if (approvalState === "ignored") return packError("Ignored repair actions do not have implementation packs.", 409);
+    return packError("Approve the repair action first, then create the implementation pack.", 409);
+  if (approvalState === "ignored")
+    return packError("Ignored repair actions have no implementation pack. Reopen the action to create one.", 409);
 
   const itemStatus = text(item.status || item.queue_status, 80).toLowerCase();
-  if (itemStatus === "ignored") return packError("Ignored repair items do not have implementation packs.", 409);
+  if (itemStatus === "ignored")
+    return packError("Ignored repair items have no implementation pack. Reopen the item to create one.", 409);
 
   const actionMode = cleanActionMode(action.action_mode || action.actionMode || item.actionMode || item.action_mode);
   const actionType = cleanActionType(action.action_type || action.actionType);
   const executionState = cleanExecutionState(action.execution_state || action.executionState);
   const proposedChange = block(action.proposed_change || action.proposedChange, 7000);
-  if (!proposedChange) return packError("Implementation pack needs an approved proposed change.", 409);
+  if (!proposedChange)
+    return packError("This action has no approved change text. Draft and approve a change first.", 409);
 
   const title = text(item.title || action.issue_title || "Proof-backed repair", 220);
   const pageUrl = text(item.pageUrl || item.page_url || report.url, 600);
@@ -44,7 +47,7 @@ function buildRepairImplementationPack({ report = {}, item = {}, action = {} } =
   const markdown = [
     "# SEOFixKit Implementation Pack",
     "",
-    "This private pack turns one owner-approved repair action into execution instructions. It does not mean SEOFixKit published, merged, or applied the change.",
+    "Step-by-step instructions for one repair you approved. SEOFixKit has not published, merged or applied this change.",
     "",
     "## Repair Summary",
     "",
@@ -66,7 +69,7 @@ function buildRepairImplementationPack({ report = {}, item = {}, action = {} } =
     "",
     sourceProof
       ? fencedBlock(sourceProof, 3000)
-      : "The original report contains the proof for this repair. Reopen the private report before applying the change.",
+      : "The original report holds the evidence for this repair. Open it before making the change.",
     sourceFix ? ["", "## Original Fix Guidance", "", fencedBlock(sourceFix, 2500)].join("\n") : "",
     snippet ? ["", "## Source Snippet", "", fencedBlock(snippet, 5000)].join("\n") : "",
     "",
@@ -82,7 +85,7 @@ function buildRepairImplementationPack({ report = {}, item = {}, action = {} } =
     "",
     acceptance
       ? fencedBlock(acceptance, 2000)
-      : "Rerun the audit and confirm the original finding is gone or intentionally accepted with fresh proof.",
+      : "Rerun the audit. The original problem is gone, or you have marked it as accepted.",
     "",
     "## Rollback Note",
     "",
@@ -90,14 +93,14 @@ function buildRepairImplementationPack({ report = {}, item = {}, action = {} } =
     "",
     "## Rerun Proof",
     "",
-    "After the change is applied outside SEOFixKit, run a fresh audit for the same host and attach the rerun report to this repair action. Mark the action fixed only when the rerun proves the finding is gone.",
+    "Once the change is live, rerun the audit on the same site and attach the new report to this repair action. Mark it fixed only when the rerun shows the problem gone.",
     "",
     "## Boundaries",
     "",
-    "- This pack is private to the report owner or owner API token.",
+    "- Only the report owner, or their API token, can see this pack.",
     "- SEOFixKit did not publish to a CMS, open or merge a GitHub pull request, or call provider admin APIs for this pack.",
-    "- Rankings, traffic, indexing, AI citations, and revenue are not guaranteed.",
-    "- If the approved change no longer matches the current site, pause and draft a new repair action before applying anything."
+    "- No guarantee of rankings, traffic, indexing, AI citations or revenue.",
+    "- If the approved change no longer fits the current site, stop and draft a new repair action first."
   ]
     .filter((part) => part !== "")
     .join("\n");
@@ -139,37 +142,37 @@ function modeSteps(mode = "self_serve") {
     self_serve: [
       "1. Open the target page in your site editor, CMS, or codebase.",
       "2. Apply only the approved change above.",
-      "3. Save a local backup or note what changed before publishing.",
+      "3. Save a copy of the old version, or note what you changed, before publishing.",
       "4. Publish or deploy through your normal workflow.",
-      "5. Rerun SEOFixKit and attach the fresh report proof."
+      "5. Rerun the audit and attach the new report."
     ],
     teammate: [
       "1. Assign this pack to the teammate responsible for the page.",
       "2. Ask them to apply only the approved change above.",
       "3. Have them record what changed and where it shipped.",
-      "4. Rerun SEOFixKit after the teammate confirms the change is live.",
-      "5. Attach the rerun report before calling the repair fixed."
+      "4. Rerun the audit once the teammate confirms the change is live.",
+      "5. Attach the rerun report before marking the repair fixed."
     ],
     fix_pack: [
       "1. Use this pack as the Fix Pack fulfillment checklist.",
       "2. Confirm the repair still matches the paid report and approved action.",
       "3. Deliver the change note and delivery link to the customer.",
-      "4. Run the same-host rerun after the customer or operator applies the change.",
-      "5. Mark delivery complete only after the rerun proof is attached."
+      "4. Rerun the audit on the same site once the change is live.",
+      "5. Mark delivery complete only after the rerun report is attached."
     ],
     cms_draft: [
       "1. Create a draft edit in the CMS using the approved change above.",
       "2. Keep the CMS draft unpublished until the owner reviews it in the CMS.",
       "3. Record the CMS draft URL or internal reference outside public reports.",
       "4. Publish only after owner approval in the CMS workflow.",
-      "5. Rerun SEOFixKit and attach the fresh proof."
+      "5. Rerun the audit and attach the new report."
     ],
     github_pr: [
       "1. Create a branch in the customer's repository.",
       "2. Apply only the approved change above.",
       "3. Open a pull request with the source proof, acceptance check, and rollback note.",
       "4. Wait for normal code review and CI before merge.",
-      "5. Rerun SEOFixKit after deployment and attach the fresh proof."
+      "5. Rerun the audit after deploying and attach the new report."
     ]
   };
   return steps[mode] || steps.self_serve;
@@ -178,14 +181,14 @@ function modeSteps(mode = "self_serve") {
 function rollbackNote(mode = "self_serve") {
   const notes = {
     self_serve:
-      "Keep the previous page copy, metadata, or snippet so the site owner can restore it if the rerun regresses or the change is wrong.",
-    teammate: "Ask the teammate to document the previous value and restore path before changing the page.",
+      "Keep a copy of the old text, meta tags or snippet so you can put it back if the change is wrong or the rerun gets worse.",
+    teammate: "Ask the teammate to note the old value and how to restore it before changing the page.",
     fix_pack:
-      "Keep the delivery note, previous value, and customer-visible change summary so support can reverse or revise the repair if proof regresses.",
+      "Keep the delivery note, the old value and a summary of what changed, so support can undo or adjust the repair if the rerun gets worse.",
     cms_draft:
-      "Keep the CMS draft history or previous published value. If proof regresses, revert the draft or restore the previous published version.",
+      "Keep the CMS draft history or the old published version. If the rerun gets worse, revert the draft or restore the old version.",
     github_pr:
-      "Keep the pull request small. If proof regresses after merge, revert the PR or apply a follow-up PR that restores the previous behavior."
+      "Keep the pull request small. If the rerun gets worse after merge, revert the PR or open a follow-up that restores the old behavior."
   };
   return notes[mode] || notes.self_serve;
 }

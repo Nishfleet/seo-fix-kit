@@ -76,7 +76,11 @@ const REPORT_SHARE_PASSWORD_PBKDF2_ITERATIONS = 120_000;
 async function getReportBranding(request, env) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
-  if (!env.WAITLIST_DB) return json({ error: "Client report storage is not configured." }, 503);
+  if (!env.WAITLIST_DB)
+    return json(
+      { error: "Client report storage is not set up on this server. Email support@seofixkit.com for help." },
+      503
+    );
   return jsonNoStore({
     ok: true,
     branding: await reportBrandingForOwner(env, access.ownerEmail)
@@ -87,7 +91,11 @@ async function saveReportBranding(request, env) {
   const parsed = await parseJsonBody(request, ReportBrandingBody);
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
-  if (!env.WAITLIST_DB) return json({ error: "Client report storage is not configured." }, 503);
+  if (!env.WAITLIST_DB)
+    return json(
+      { error: "Client report storage is not set up on this server. Email support@seofixkit.com for help." },
+      503
+    );
   if (parsed.error) return jsonNoStore(parsed.error, 400);
 
   const current = await reportBrandingForOwner(env, access.ownerEmail);
@@ -125,7 +133,11 @@ async function saveReportBranding(request, env) {
 async function listReportShares(request, env) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
-  if (!env.WAITLIST_DB) return json({ error: "Client report storage is not configured." }, 503);
+  if (!env.WAITLIST_DB)
+    return json(
+      { error: "Client report storage is not set up on this server. Email support@seofixkit.com for help." },
+      503
+    );
   const url = new URL(request.url);
   const reportId = decodeURIComponent(url.pathname.slice("/api/reports/".length, -"/shares".length));
   const row = await ownerReportRow(env, reportId, access);
@@ -156,7 +168,11 @@ async function createReportShare(request, env) {
   const parsed = await parseJsonBody(request, ReportShareBody);
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
-  if (!env.WAITLIST_DB) return json({ error: "Client report storage is not configured." }, 503);
+  if (!env.WAITLIST_DB)
+    return json(
+      { error: "Client report storage is not set up on this server. Email support@seofixkit.com for help." },
+      503
+    );
   if (parsed.error) return jsonNoStore(parsed.error, 400);
   const body = parsed.data;
   const url = new URL(request.url);
@@ -239,7 +255,11 @@ async function createReportShare(request, env) {
 async function getPrivateReportPdf(request, env) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
-  if (!env.WAITLIST_DB) return json({ error: "Client report storage is not configured." }, 503);
+  if (!env.WAITLIST_DB)
+    return json(
+      { error: "Client report storage is not set up on this server. Email support@seofixkit.com for help." },
+      503
+    );
   const url = new URL(request.url);
   const reportId = reportIdFromSuffixPath(url.pathname, "/client.pdf");
   const row = await ownerReportRow(env, reportId, access);
@@ -262,10 +282,15 @@ async function getPrivateReportPdf(request, env) {
 async function revokeReportShare(request, env) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
-  if (!env.WAITLIST_DB) return json({ error: "Client report storage is not configured." }, 503);
+  if (!env.WAITLIST_DB)
+    return json(
+      { error: "Client report storage is not set up on this server. Email support@seofixkit.com for help." },
+      503
+    );
   const url = new URL(request.url);
   const id = decodeURIComponent(url.pathname.slice("/api/report-shares/".length));
-  if (!isSafeUuid(id)) return json({ error: "Client link not found." }, 404);
+  if (!isSafeUuid(id))
+    return json({ error: "That client link was not found. Refresh to see your current links." }, 404);
   const now = new Date().toISOString();
   const updated = await env.WAITLIST_DB.prepare(
     `UPDATE report_share_links
@@ -276,19 +301,23 @@ async function revokeReportShare(request, env) {
   )
     .bind(now, id, access.ownerEmail)
     .run();
-  if (Number(updated?.meta?.changes || 0) !== 1) return json({ error: "Client link not found." }, 404);
+  if (Number(updated?.meta?.changes || 0) !== 1)
+    return json({ error: "That client link was not found. Refresh to see your current links." }, 404);
   return jsonNoStore({ ok: true, id, status: "revoked" });
 }
 
 async function getClientReportPdf(request, env) {
-  if (!env.WAITLIST_DB) return json({ error: "Client reports are not configured." }, 503);
+  if (!env.WAITLIST_DB)
+    return json({ error: "Client reports are not set up on this server. Email support@seofixkit.com for help." }, 503);
   const url = new URL(request.url);
   const id = clientReportShareId(url.pathname, ".pdf");
-  if (!isSafeUuid(id)) return json({ error: "Report link not found or expired." }, 404);
+  if (!isSafeUuid(id))
+    return json({ error: "This report link was not found or has expired. Ask the sender for a new link." }, 404);
   const share = await activeReportShare(env, id);
   const domainCheck = await clientReportHostAccess(env, request, share);
   if (!domainCheck.ok) return json({ error: domainCheck.error }, 404);
-  if (!share) return json({ error: "Report link not found or expired." }, 404);
+  if (!share)
+    return json({ error: "This report link was not found or has expired. Ask the sender for a new link." }, 404);
   const branding = await reportBrandingForOwner(env, share.owner_email);
   const reportRow = await env.WAITLIST_DB.prepare(
     `SELECT report_json, expires_at
@@ -300,7 +329,7 @@ async function getClientReportPdf(request, env) {
     .bind(share.report_id, share.owner_email)
     .first();
   if (!reportRow?.report_json || (reportRow.expires_at && reportRow.expires_at <= new Date().toISOString())) {
-    return json({ error: "Report no longer exists." }, 404);
+    return json({ error: "This report no longer exists. Ask the sender for a new link." }, 404);
   }
   if (share.password_hash && !(await clientReportUnlocked(request, env, share))) {
     return clientReportLockedResponse(request, branding, shareToCamel(share), 401);
@@ -321,18 +350,30 @@ async function getClientReport(request, env) {
       defaultBranding(),
       { id: "" },
       503,
-      "Client reports are not configured."
+      "Client reports are not set up on this server. Email support@seofixkit.com for help."
     );
   const url = new URL(request.url);
   const id = clientReportShareId(url.pathname);
   if (!isSafeUuid(id))
-    return clientReportLockedResponse(request, defaultBranding(), { id }, 404, "Report link not found or expired.");
+    return clientReportLockedResponse(
+      request,
+      defaultBranding(),
+      { id },
+      404,
+      "This report link was not found or has expired. Ask the sender for a new link."
+    );
 
   const share = await activeReportShare(env, id);
   const domainCheck = await clientReportHostAccess(env, request, share);
   if (!domainCheck.ok) return clientReportLockedResponse(request, defaultBranding(), { id }, 404, domainCheck.error);
   if (!share)
-    return clientReportLockedResponse(request, defaultBranding(), { id }, 404, "Report link not found or expired.");
+    return clientReportLockedResponse(
+      request,
+      defaultBranding(),
+      { id },
+      404,
+      "This report link was not found or has expired. Ask the sender for a new link."
+    );
   const branding = await reportBrandingForOwner(env, share.owner_email);
   const reportRow = await env.WAITLIST_DB.prepare(
     `SELECT report_json, expires_at
@@ -344,7 +385,13 @@ async function getClientReport(request, env) {
     .bind(share.report_id, share.owner_email)
     .first();
   if (!reportRow?.report_json || (reportRow.expires_at && reportRow.expires_at <= new Date().toISOString())) {
-    return clientReportLockedResponse(request, branding, shareToCamel(share), 404, "Report no longer exists.");
+    return clientReportLockedResponse(
+      request,
+      branding,
+      shareToCamel(share),
+      404,
+      "This report no longer exists. Ask the sender for a new link."
+    );
   }
   const report = parseJson(await reportJsonForRow(env, reportRow), {});
 
@@ -384,17 +431,29 @@ async function unlockClientReport(request, env) {
       defaultBranding(),
       { id: "" },
       503,
-      "Client reports are not configured."
+      "Client reports are not set up on this server. Email support@seofixkit.com for help."
     );
   const url = new URL(request.url);
   const id = clientReportShareId(url.pathname, "/unlock");
   if (!isSafeUuid(id))
-    return clientReportLockedResponse(request, defaultBranding(), { id }, 404, "Report link not found or expired.");
+    return clientReportLockedResponse(
+      request,
+      defaultBranding(),
+      { id },
+      404,
+      "This report link was not found or has expired. Ask the sender for a new link."
+    );
   const share = await activeReportShare(env, id);
   const domainCheck = await clientReportHostAccess(env, request, share);
   if (!domainCheck.ok) return clientReportLockedResponse(request, defaultBranding(), { id }, 404, domainCheck.error);
   if (!share)
-    return clientReportLockedResponse(request, defaultBranding(), { id }, 404, "Report link not found or expired.");
+    return clientReportLockedResponse(
+      request,
+      defaultBranding(),
+      { id },
+      404,
+      "This report link was not found or has expired. Ask the sender for a new link."
+    );
   const branding = await reportBrandingForOwner(env, share.owner_email);
   const parsed = await passwordFromRequest(request);
   if (parsed.error) return clientReportLockedResponse(request, branding, shareToCamel(share), 400, parsed.error.error);
@@ -439,7 +498,11 @@ async function reportBrandingForOwner(env, ownerEmail) {
 async function listReportDomains(request, env) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
-  if (!env.WAITLIST_DB) return json({ error: "Report domain storage is not configured." }, 503);
+  if (!env.WAITLIST_DB)
+    return json(
+      { error: "Report domain storage is not set up on this server. Email support@seofixkit.com for help." },
+      503
+    );
   const rows = await env.WAITLIST_DB.prepare(
     `SELECT *
      FROM report_domains
@@ -459,14 +522,22 @@ async function listReportDomains(request, env) {
 async function createReportDomain(request, env) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
-  if (!env.WAITLIST_DB) return json({ error: "Report domain storage is not configured." }, 503);
-  if (!reportDomainsEnabled(env)) return jsonNoStore({ error: "Report custom domains are not configured yet." }, 503);
+  if (!env.WAITLIST_DB)
+    return json(
+      { error: "Report domain storage is not set up on this server. Email support@seofixkit.com for help." },
+      503
+    );
+  if (!reportDomainsEnabled(env))
+    return jsonNoStore({ error: "Custom report domains are not set up on this server yet." }, 503);
   const parsed = await parseJsonBody(request, ReportDomainBody);
   if (parsed.error) return jsonNoStore(parsed.error, 400);
   const domainName = cleanReportDomain(parsed.data.domain);
   if (!domainName) return jsonNoStore({ error: "Enter a valid report subdomain, like reports.example.com." }, 400);
   if (workerAppHost(domainName, env)) {
-    return jsonNoStore({ error: "Use a customer-controlled report subdomain, not an app-owned hostname." }, 400);
+    return jsonNoStore(
+      { error: "Use a subdomain on a domain you own, like reports.example.com. SEO Fix Kit hostnames cannot be used." },
+      400
+    );
   }
 
   const existing = await env.WAITLIST_DB.prepare(
@@ -479,7 +550,13 @@ async function createReportDomain(request, env) {
     .bind(domainName)
     .first();
   if (existing?.id && existing.owner_email !== access.ownerEmail) {
-    return jsonNoStore({ error: "That report domain is already connected to another workspace." }, 409);
+    return jsonNoStore(
+      {
+        error:
+          "That domain is already connected to another workspace. Remove it there first, or use a different subdomain."
+      },
+      409
+    );
   }
   if (existing?.id) return jsonNoStore({ ok: true, domain: reportDomainResponse(existing, env) });
 
@@ -543,8 +620,13 @@ async function createReportDomain(request, env) {
 async function verifyReportDomain(request, env) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
-  if (!env.WAITLIST_DB) return json({ error: "Report domain storage is not configured." }, 503);
-  if (!reportDomainsEnabled(env)) return jsonNoStore({ error: "Report custom domains are not configured yet." }, 503);
+  if (!env.WAITLIST_DB)
+    return json(
+      { error: "Report domain storage is not set up on this server. Email support@seofixkit.com for help." },
+      503
+    );
+  if (!reportDomainsEnabled(env))
+    return jsonNoStore({ error: "Custom report domains are not set up on this server yet." }, 503);
   const url = new URL(request.url);
   const id = decodeURIComponent(url.pathname.slice("/api/report-domains/".length, -"/verify".length));
   if (!isSafeUuid(id)) return json({ error: "Report domain not found." }, 404);
@@ -560,7 +642,10 @@ async function verifyReportDomain(request, env) {
     .first();
   if (!row?.id) return json({ error: "Report domain not found." }, 404);
   if (workerAppHost(row.domain, env)) {
-    return jsonNoStore({ error: "Use a customer-controlled report subdomain, not an app-owned hostname." }, 400);
+    return jsonNoStore(
+      { error: "Use a subdomain on a domain you own, like reports.example.com. SEO Fix Kit hostnames cannot be used." },
+      400
+    );
   }
 
   const result = await verifyReportDomainChallenge(row, env);
@@ -610,7 +695,11 @@ async function verifyReportDomain(request, env) {
 async function revokeReportDomain(request, env) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
-  if (!env.WAITLIST_DB) return json({ error: "Report domain storage is not configured." }, 503);
+  if (!env.WAITLIST_DB)
+    return json(
+      { error: "Report domain storage is not set up on this server. Email support@seofixkit.com for help." },
+      503
+    );
   const id = decodeURIComponent(new URL(request.url).pathname.slice("/api/report-domains/".length));
   if (!isSafeUuid(id)) return json({ error: "Report domain not found." }, 404);
   const now = new Date().toISOString();
@@ -628,7 +717,10 @@ async function revokeReportDomain(request, env) {
 }
 
 async function getReportDomainChallenge(request, env) {
-  if (!env.WAITLIST_DB) return new Response("Report domain storage is not configured.", { status: 503 });
+  if (!env.WAITLIST_DB)
+    return new Response("Report domain storage is not set up on this server. Email support@seofixkit.com for help.", {
+      status: 503
+    });
   const domain = await reportDomainForHost(env, new URL(request.url).host);
   if (!domain?.id) {
     return new Response("Report domain challenge not found.", {
@@ -678,37 +770,50 @@ async function verifyReportDomainChallenge(row = {}, env = {}) {
 async function verifyReportDomainTxt(domain = "", token = "") {
   const expected = token || "";
   const dnsName = reportDomainDnsName(domain);
-  if (!expected || !dnsName) return { ok: false, error: "Report domain verification is not configured." };
+  if (!expected || !dnsName)
+    return { ok: false, error: "Custom domain verification is not set up on this server yet." };
   try {
     const response = await fetch(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(dnsName)}&type=TXT`, {
       headers: { accept: "application/dns-json" }
     });
-    if (!response.ok) return { ok: false, error: "DNS verification lookup failed." };
+    if (!response.ok) return { ok: false, error: "The DNS lookup failed. Wait a minute and check again." };
     const payload = await response.json().catch(() => ({}));
     const answers = Array.isArray(payload.Answer) ? payload.Answer : [];
     const matched = answers.some((answer) => normalizeDnsTxt(answer.data).includes(expected));
-    return matched ? { ok: true } : { ok: false, error: "DNS TXT record was not found yet." };
+    return matched
+      ? { ok: true }
+      : {
+          ok: false,
+          error:
+            "The DNS TXT record is not visible yet. DNS changes can take a while to spread, so check again in a few minutes."
+        };
   } catch {
-    return { ok: false, error: "DNS verification lookup failed." };
+    return { ok: false, error: "The DNS lookup failed. Wait a minute and check again." };
   }
 }
 
 async function verifyReportDomainCname(domain = "", cnameTarget = "") {
   const domainName = cleanReportDomain(domain);
   const expected = cleanReportDomain(cnameTarget);
-  if (!domainName || !expected) return { ok: false, error: "Report domain routing is not configured." };
+  if (!domainName || !expected) return { ok: false, error: "Custom domain routing is not set up on this server yet." };
   try {
     const response = await fetch(
       `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(domainName)}&type=CNAME`,
       { headers: { accept: "application/dns-json" } }
     );
-    if (!response.ok) return { ok: false, error: "CNAME verification lookup failed." };
+    if (!response.ok) return { ok: false, error: "The CNAME lookup failed. Wait a minute and check again." };
     const payload = await response.json().catch(() => ({}));
     const answers = Array.isArray(payload.Answer) ? payload.Answer : [];
     const matched = answers.some((answer) => normalizeDnsHost(answer.data) === expected);
-    return matched ? { ok: true } : { ok: false, error: "CNAME target was not found yet." };
+    return matched
+      ? { ok: true }
+      : {
+          ok: false,
+          error:
+            "The CNAME record is not visible yet. DNS changes can take a while to spread, so check again in a few minutes."
+        };
   } catch {
-    return { ok: false, error: "CNAME verification lookup failed." };
+    return { ok: false, error: "The CNAME lookup failed. Wait a minute and check again." };
   }
 }
 
@@ -753,9 +858,9 @@ async function clientReportHostAccess(env, request, share) {
   const host = cleanReportDomain(new URL(request.url).host);
   if (!host || workerAppHost(host, env)) return { ok: true };
   const domain = await reportDomainForHost(env, host, { verifiedOnly: true });
-  if (!domain) return { ok: false, error: "Report domain not verified." };
+  if (!domain) return { ok: false, error: "This report domain is not verified yet." };
   if (share && domain.owner_email !== share.owner_email)
-    return { ok: false, error: "Report link not found on this domain." };
+    return { ok: false, error: "This report link was not found on this domain. Ask the sender for a new link." };
   return { ok: true, domain };
 }
 
@@ -855,7 +960,10 @@ function clientReportLockedResponse(request, branding, share, status = 401, erro
 
 async function renderWorkerWhiteLabelPdf(env, { report, branding, share, origin, includeDraftBriefs = false }) {
   if (!env.BROWSER) {
-    return jsonNoStore({ error: "PDF export requires the Browser Run binding." }, 503);
+    return jsonNoStore(
+      { error: "PDF export is not set up on this server yet. Email support@seofixkit.com for a PDF copy." },
+      503
+    );
   }
   const html = buildWhiteLabelReportHtml({ report, branding, share, origin, includeDraftBriefs });
   let browser = null;
@@ -951,14 +1059,14 @@ async function clientReportUnlockQuotaStatus(request, env, share = {}) {
       limit: 10,
       windowStart: hour.key,
       resetAt: hour.resetAt,
-      error: "Too many password attempts for this report link. Try again later."
+      error: "Too many wrong password attempts for this report link. Try again in an hour."
     },
     {
       bucket: `client-report-unlock:share:${hour.key}:${shareKey}`,
       limit: 50,
       windowStart: hour.key,
       resetAt: hour.resetAt,
-      error: "Too many password attempts for this report link. Try again later."
+      error: "Too many wrong password attempts for this report link. Try again in an hour."
     }
   ]);
 }

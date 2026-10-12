@@ -131,11 +131,12 @@ test("public proof pages expose methodology and pricing without overclaims", () 
   const packages = pricingHtml(origin);
   const combined = `${methodology}\n${packages}`;
 
-  assert.match(methodology, /Proof first\. Repairs second\. Claims last\./);
-  assert.match(methodology, /proof-derived AI Answer Readiness/);
+  assert.match(methodology, /<h1>How SEO Fix Kit works<\/h1>/);
+  assert.match(methodology, /AI Answer Readiness/);
   assert.match(methodology, /No AI visibility tracking/);
   assert.match(methodology, /draft-only growth briefs/);
   assert.match(methodology, /No hidden site writes/);
+  assert.match(methodology, /Rankings, traffic, indexing, citations and revenue are never guaranteed/);
   assert.match(
     methodology,
     new RegExp(`<a href="${origin}/check">${origin}/check</a>`),
@@ -143,7 +144,7 @@ test("public proof pages expose methodology and pricing without overclaims", () 
   );
   assert.match(
     methodology,
-    new RegExp(`<a class="cta" href="${origin}/check">Check one page now</a>`),
+    new RegExp(`<a class="cta" href="${origin}/check">Check a page</a>`),
     "methodology must carry a clickable CTA into the anonymous one-page check"
   );
   // Scout regression guard: every mention of the anonymous check URL on the
@@ -161,31 +162,37 @@ test("public proof pages expose methodology and pricing without overclaims", () 
       `every /check mention on the methodology page must be a clickable link (${totalMentions} mentions, ${hrefMentions} link hrefs, ${linkTextMentions} link texts)`
     );
   }
-  assert.match(methodology, /Why not just use a free AI SEO agent skill\?/);
-  assert.match(
-    methodology,
-    /Open-source SEO tooling is good at that/,
-    "the free-skill answer must not disparage open source"
+  // The comparisons share one stated boundary, and none of them may drift
+  // into an AI-visibility or ranking overclaim.
+  const section = (heading) => (methodology.match(new RegExp(`<h2>${heading}</h2>[\\s\\S]*?</section>`)) || [])[0];
+  const intro = section("Compared with other tools");
+  assert.ok(intro, "methodology must introduce the competitor comparisons");
+  assert.match(intro, /no live AI-engine sampling, no AI citation monitoring, and no ranking guarantees/);
+  const order = [
+    "Compared with SEOmator",
+    "Compared with Volume Nine's GEO Grader",
+    "Compared with Juma.ai's GEO Audit",
+    "Compared with AEO Engine",
+    "Compared with Otterly.ai and Peec.ai",
+    "Compared with agents that file GitHub issues",
+    "Compared with free AI SEO agent skills"
+  ];
+  const positions = order.map((heading) => methodology.indexOf(`<h2>${heading}</h2>`));
+  assert.ok(
+    positions.every((position, index) => position > -1 && (index === 0 || position > positions[index - 1])),
+    "every competitor comparison must be present, in order"
   );
-  assert.match(methodology, /no live AI-engine sampling, no AI citation monitoring, and no ranking guarantees/i);
-  assert.match(
-    methodology,
-    new RegExp(`<a href="${origin}/pricing">pricing</a>`),
-    "the free-skill answer must link pricing"
-  );
-  assert.match(
-    methodology,
-    new RegExp(`<a href="${origin}/check">${origin}/check</a>`),
-    "the free-skill answer must keep a working link into the anonymous check"
-  );
-  // SEOmator is named as a competitor on its own terms (39 free tools,
-  // 251-check JS-rendering audit, dedicated GEO audit) and the answer must
-  // stay inside the page's no-overclaim boundary: repair queue + rerun proof
-  // is the wedge, never an AI-visibility parity claim.
+  for (const heading of order) {
+    const body = section(heading);
+    assert.doesNotMatch(body, /AI visibility score tracking|AI citation monitoring (is|are) live/i, heading);
+    assert.doesNotMatch(body, /guaranteed rankings|guarantees rankings|guarantees citations/i, heading);
+    assert.match(body, /repair queue|repair-queue/, `${heading} must name the repair queue as the difference`);
+    assert.match(body, /rerun|proof receipt/, `${heading} must name rerun proof as the difference`);
+  }
+  // SEOmator is named on its own terms (39 free tools, 251-check
+  // JS-rendering audit, dedicated GEO audit).
   {
-    const seomator = (methodology.match(/<h2>Why not just use SEOmator's free audits\?<\/h2>[\s\S]*?<\/section>/) ||
-      [])[0];
-    assert.ok(seomator, "methodology must carry a dedicated SEOmator competitor answer");
+    const seomator = section("Compared with SEOmator");
     assert.match(seomator, /39 free SEO tools/);
     assert.match(seomator, /251-check rule engine/);
     assert.match(seomator, /renders JavaScript/);
@@ -194,28 +201,11 @@ test("public proof pages expose methodology and pricing without overclaims", () 
     assert.match(seomator, /<a href="https:\/\/seomator\.com\/free-tools"/);
     assert.match(seomator, /<a href="https:\/\/seomator\.com\/free-seo-audit-tool"/);
     assert.match(seomator, /<a href="https:\/\/seomator\.com\/geo-audit-tool"/);
-    assert.match(seomator, /repair queue plus rerun proof/);
-    assert.match(seomator, /No live AI-engine sampling, no AI citation monitoring, and no ranking guarantees/);
-    assert.doesNotMatch(seomator, /AI visibility score tracking|AI citation monitoring (is|are) live/i);
   }
-  // Volume Nine GEO Grader regression guard: named on its own terms (agency
-  // tool, six categories, 60+ signals, robots.txt AI-crawler access check,
-  // free, launched January 2026 per its own quick facts), placed between the
-  // SEOmator and agentic answers, with the repair queue + rerun proof wedge
-  // and the standing no-overclaim boundary.
+  // Volume Nine GEO Grader: agency tool, six categories, 60+ signals,
+  // robots.txt AI-crawler access check, free, launched January 2026.
   {
-    const volnine = (methodology.match(/<h2>Why not just use Volume Nine's GEO Grader\?<\/h2>[\s\S]*?<\/section>/) ||
-      [])[0];
-    const seomatorH2 = methodology.indexOf("<h2>Why not just use SEOmator's free audits?</h2>");
-    const volnineH2 = methodology.indexOf("<h2>Why not just use Volume Nine's GEO Grader?</h2>");
-    const agenticH2 = methodology.indexOf(
-      "<h2>Why not just use an agentic SEO auditor that files its own GitHub issues?</h2>"
-    );
-    assert.ok(volnine, "methodology must carry a dedicated Volume Nine GEO Grader competitor answer");
-    assert.ok(
-      seomatorH2 > -1 && seomatorH2 < volnineH2 && volnineH2 < agenticH2,
-      "Volume Nine section must sit between the SEOmator and agentic sections"
-    );
+    const volnine = section("Compared with Volume Nine's GEO Grader");
     assert.match(volnine, /Denver-based digital marketing agency/);
     assert.match(volnine, /launched in January 2026/);
     assert.match(volnine, /totally free/);
@@ -232,30 +222,11 @@ test("public proof pages expose methodology and pricing without overclaims", () 
     );
     assert.match(volnine, /<a href="https:\/\/geo\.v9digital\.com\/grader\/" rel="nofollow noopener" target="_blank">/);
     assert.match(volnine, /emails a detailed report with actionable to-dos/);
-    assert.match(volnine, /repair queue plus rerun proof/);
-    assert.match(volnine, /No live AI-engine sampling, no AI citation monitoring, and no ranking guarantees/);
-    assert.doesNotMatch(volnine, /AI visibility score tracking|AI citation monitoring (is|are) live/i);
-    assert.doesNotMatch(volnine, /guaranteed rankings|guarantees rankings|guarantees citations/i);
   }
-  // Juma.ai GEO Audit regression guard: named on its own terms (free, no signup,
-  // published open methodology of ten weighted dimensions, impact × effort matrix,
-  // MCP run_geo_audit tool), placed between the Volume Nine and agentic
-  // answers, with the repair queue + rerun proof wedge and the standing no-overclaim
-  // boundary.
+  // Juma.ai GEO Audit: free, no signup, open methodology of ten weighted
+  // dimensions, impact × effort matrix, MCP run_geo_audit tool.
   {
-    const juma = (methodology.match(/<h2>Why not just use Juma\.ai's free GEO Audit\?<\/h2>[\s\S]*?<\/section>/) ||
-      [])[0];
-    const seomatorH2 = methodology.indexOf("<h2>Why not just use SEOmator's free audits?</h2>");
-    const volnineH2 = methodology.indexOf("<h2>Why not just use Volume Nine's GEO Grader?</h2>");
-    const jumaH2 = methodology.indexOf("<h2>Why not just use Juma.ai's free GEO Audit?</h2>");
-    const agenticH2 = methodology.indexOf(
-      "<h2>Why not just use an agentic SEO auditor that files its own GitHub issues?</h2>"
-    );
-    assert.ok(juma, "methodology must carry a dedicated Juma.ai GEO Audit competitor answer");
-    assert.ok(
-      seomatorH2 < volnineH2 && volnineH2 < jumaH2 && jumaH2 < agenticH2,
-      "Juma section must sit between the Volume Nine and agentic sections"
-    );
+    const juma = section("Compared with Juma\\.ai's GEO Audit");
     assert.match(juma, /no signup/);
     assert.match(juma, /ten weighted dimensions/);
     assert.match(juma, /impact × effort matrix/);
@@ -265,21 +236,11 @@ test("public proof pages expose methodology and pricing without overclaims", () 
     assert.match(juma, /<a href="https:\/\/geo\.juma\.ai\/methodology" rel="nofollow noopener" target="_blank">/);
     assert.match(juma, /<a href="https:\/\/juma\.ai\/mcp" rel="nofollow noopener" target="_blank">/);
     assert.match(juma, /rather than sampling ChatGPT, Claude, Gemini, or Perplexity live/);
-    assert.match(juma, /repair queue plus rerun proof/);
-    assert.match(juma, /No live AI-engine sampling, no AI citation monitoring, and no ranking guarantees/);
-    assert.doesNotMatch(juma, /AI visibility score tracking|AI citation monitoring (is|are) live/i);
-    assert.doesNotMatch(juma, /guaranteed rankings|guarantees rankings|guarantees citations/i);
   }
-  // AEO Engine GEO Audit regression guard
+  // AEO Engine: free GEO audit plus a shipped-fix service; we stay
+  // approval-first and never write to the site.
   {
-    const aeo = (methodology.match(/<h2>Why not just use AEO Engine's free GEO audit\?<\/h2>[\s\S]*?<\/section>/) ||
-      [])[0];
-    const jumaH2 = methodology.indexOf("<h2>Why not just use Juma.ai's free GEO Audit?</h2>");
-    const aeoH2 = methodology.indexOf("<h2>Why not just use AEO Engine's free GEO audit?</h2>");
-    const trackerH2 = methodology.indexOf("<h2>Why not just use a tracker like Otterly.ai or Peec.ai?</h2>");
-    assert.ok(aeo, "methodology must carry a dedicated AEO Engine competitor answer");
-    assert.ok(jumaH2 < aeoH2 && aeoH2 < trackerH2, "AEO Engine section must sit between the Juma and tracker sections");
-    assert.match(aeo, /AEO Engine/);
+    const aeo = section("Compared with AEO Engine");
     assert.match(aeo, /free GEO audit/i);
     assert.match(aeo, /crawlability, schema, content structure, entity clarity, and citation readiness/);
     assert.match(aeo, /ChatGPT, Perplexity, Gemini, Claude, and Google AI Overviews/);
@@ -292,29 +253,14 @@ test("public proof pages expose methodology and pricing without overclaims", () 
       aeo,
       /<a href="https:\/\/aeoengine\.ai\/embed\/geo-audit\?utm_source=embed&utm_medium=widget&utm_campaign=aeo_tools"/
     );
-    assert.match(aeo, /repair queue plus rerun proof/);
     assert.match(aeo, /approval-first/);
     assert.match(aeo, /publish CMS changes, open pull requests, merge code, or call provider admin APIs/);
-    assert.match(aeo, /No live AI-engine sampling, no AI citation monitoring, and no ranking guarantees/);
-    assert.doesNotMatch(aeo, /AI visibility score tracking|AI citation monitoring (is|are) live/i);
-    assert.doesNotMatch(aeo, /guaranteed rankings|guarantees rankings|guarantees citations/i);
     assert.doesNotMatch(aeo, /autonomous.*CMS|autonomous.*repo|autonomously/i);
   }
-  // Funded AI-visibility tracker (Otterly.ai + Peec.ai) regression guard
+  // Funded AI-visibility trackers (Otterly.ai + Peec.ai), quoted from their
+  // own pages.
   {
-    const tracker = (methodology.match(
-      /<h2>Why not just use a tracker like Otterly\.ai or Peec\.ai\?<\/h2>[\s\S]*?<\/section>/
-    ) || [])[0];
-    const jumaH2 = methodology.indexOf("<h2>Why not just use Juma.ai's free GEO Audit?</h2>");
-    const trackerH2 = methodology.indexOf("<h2>Why not just use a tracker like Otterly.ai or Peec.ai?</h2>");
-    const agenticH2 = methodology.indexOf(
-      "<h2>Why not just use an agentic SEO auditor that files its own GitHub issues?</h2>"
-    );
-    assert.ok(tracker, "methodology must carry a dedicated funded-tracker competitor answer");
-    assert.ok(
-      jumaH2 < trackerH2 && trackerH2 < agenticH2,
-      "tracker section must sit between the Juma and agentic sections"
-    );
+    const tracker = section("Compared with Otterly\\.ai and Peec\\.ai");
     assert.match(tracker, /Otterly\.ai/);
     assert.match(tracker, /Peec AI/);
     assert.match(tracker, /Peec\.ai/);
@@ -331,10 +277,6 @@ test("public proof pages expose methodology and pricing without overclaims", () 
     assert.match(tracker, /\$21M Series A/);
     assert.match(tracker, /Singular/);
     assert.match(tracker, /total funding to \$29M/);
-    assert.match(tracker, /repair queue plus rerun proof/);
-    assert.match(tracker, /No live AI-engine sampling, no AI citation monitoring, and no ranking guarantees/);
-    assert.doesNotMatch(tracker, /AI visibility score tracking|AI citation monitoring (is|are) live/i);
-    assert.doesNotMatch(tracker, /guaranteed rankings|guarantees rankings|guarantees citations/i);
     assert.match(tracker, /<a href="https:\/\/otterly\.ai" rel="nofollow noopener" target="_blank">/);
     assert.match(tracker, /<a href="https:\/\/otterly\.ai\/pricing" rel="nofollow noopener" target="_blank">/);
     assert.match(tracker, /<a href="https:\/\/peec\.ai" rel="nofollow noopener" target="_blank">/);
@@ -344,25 +286,39 @@ test("public proof pages expose methodology and pricing without overclaims", () 
       /<a href="https:\/\/peec\.ai\/blog\/we-raised-21m-series-a-to-help-brands-win-in-ai-search" rel="nofollow noopener" target="_blank">/
     );
   }
-  // Agentic SEO auditor (SEO Automation Club) regression guard
+  // Agentic SEO auditor that files GitHub issues (SEO Automation Club).
   {
-    const agentic = (methodology.match(
-      /<h2>Why not just use an agentic SEO auditor that files its own GitHub issues\?<\/h2>[\s\S]*?<\/section>/
-    ) || [])[0];
-    assert.ok(agentic, "methodology must carry a dedicated agentic SEO auditor competitor answer");
+    const agentic = section("Compared with agents that file GitHub issues");
     assert.match(agentic, /SEO Automation Club/);
     assert.match(agentic, /seoautomationclub\.com\/agentic-seo-autonomous-technical-audit-claude-code-github-issues/);
     assert.match(agentic, /scheduled|twice a week|cadence/);
     assert.match(agentic, /diff|previous run|baseline/);
     assert.match(agentic, /GitHub issues/);
-    assert.match(agentic, /approval/);
+    assert.match(agentic, /approv/);
     assert.match(agentic, /proof receipt/);
-    assert.match(agentic, /rerun|re-measure/);
-    assert.match(agentic, /No live AI-engine sampling, no AI citation monitoring, and no ranking guarantees/);
     assert.match(agentic, /issue-filing|edit.*code|AST/i, "must distinguish issue-filers from code-editing agents");
     assert.doesNotMatch(
       agentic,
       /73 issues|41 closed|6 days|guaranteed rankings|live AI-engine sampling is live|we apply your fixes/i
+    );
+  }
+  // Free AI SEO agent skills: fair to open source, links pricing and the check.
+  {
+    const skills = section("Compared with free AI SEO agent skills");
+    assert.match(
+      skills,
+      /Open-source SEO tooling is good at that/,
+      "the free-skill answer must not disparage open source"
+    );
+    assert.match(
+      skills,
+      new RegExp(`<a href="${origin}/pricing">pricing</a>`),
+      "the free-skill answer must link pricing"
+    );
+    assert.match(
+      skills,
+      new RegExp(`<a href="${origin}/check">${origin}/check</a>`),
+      "the free-skill answer must keep a working link into the anonymous check"
     );
   }
   assert.match(packages, /Fix Pack/);
@@ -374,6 +330,8 @@ test("public proof pages expose methodology and pricing without overclaims", () 
   assert.match(packages, /Coming soon[\s\S]*?Proof Monitoring/);
   assert.match(packages, /a paid plan is not on sale yet/);
   assert.doesNotMatch(packages, /\$49-\$99\/mo/);
+  // No popularity claim without usage data to back it.
+  assert.doesNotMatch(packages, /Most popular/);
   // Every plan card leads somewhere: no dead-end tiles.
   for (const plan of ["Page check", "Site audit", "Fix Pack"]) {
     const card = (packages.match(
@@ -391,9 +349,7 @@ test("public proof pages expose methodology and pricing without overclaims", () 
   // Promise-audit 2026-08-15: the demo and packages pages must not drift back
   // into overclaiming. The engine only emits an exact snippet when it can
   // generate one (demo-proof.js repairPlan entries carry empty snippets), so
-  // "each with an exact snippet" would overclaim; and Proof Monitoring stays
-  // visible in private billing as a config-gated offer, only its checkout is
-  // gated, so "only appears when configured" would overclaim.
+  // "each with an exact snippet" would overclaim.
   assert.doesNotMatch(
     demoHtml(origin),
     /each with an exact snippet/,
@@ -410,7 +366,7 @@ test("pricing page answers the GEO Auditor agent-fix trade-off without overclaim
   const packages = pricingHtml(origin);
   // The competitor and its price/delivery mode are named plainly (verified on
   // geoauditor.app, 2026-08-21): $29 one-time report, Agent Fix Mode.
-  assert.match(packages, /GEO Auditor applies agent fixes at \$29/);
+  assert.match(packages, /GEO Auditor’s \$29 Agent Fix Mode/);
   assert.match(packages, /Agent Fix Mode/);
   // The answer carries the load-bearing halves: real-browser evidence,
   // per-fix approval, rerun proof; and it stays fair to the competitor.
@@ -649,14 +605,11 @@ test("public demo and support pages carry enough buyer-facing detail", () => {
 
   assert.ok(visibleWordCount(demo) >= 250, "demo page should not look thin to rendered audits");
   assert.ok(visibleWordCount(support) >= 250, "support page should not look thin to rendered audits");
-  assert.match(demo, /What this sample proves/);
+  assert.match(demo, /What this sample shows/);
   assert.match(demo, /What this sample does not claim/);
   assert.match(demo, new RegExp(`Anonymous one-page checks are live at ${origin}/check`));
-  assert.match(demo, /Check one page now/);
-  assert.match(
-    demo,
-    /Neither the sample nor the one-page check promises rankings, traffic, indexing, revenue, AI citations/i
-  );
+  assert.match(demo, /Check a page/);
+  assert.match(demo, /Neither the sample nor the check promises rankings, traffic, indexing, revenue, AI citations/i);
   assert.doesNotMatch(
     demo,
     /not a public anonymous audit/i,
@@ -667,10 +620,7 @@ test("public demo and support pages carry enough buyer-facing detail", () => {
     support,
     /do not send secrets, private keys, passwords, payment card numbers, or production credentials/i
   );
-  assert.match(
-    support,
-    /We do not log into private CMS accounts, publish changes, merge code, or call provider admin APIs/i
-  );
+  assert.match(support, /We do not log in to your CMS, publish changes, merge code, or call provider admin APIs/i);
   assert.match(support, /Ownership and deletion/);
   assert.match(support, /sites you own or are authorized to audit/i);
 });
@@ -679,7 +629,7 @@ test("public one-page check page is a truthful, searchable entry path", () => {
   const check = checkHtml(origin);
 
   assert.ok(visibleWordCount(check) >= 250, "check page should not look thin to rendered audits");
-  assert.match(check, /Check One Page for SEO Proof/);
+  assert.match(check, /Free SEO Page Check/);
   assert.match(check, new RegExp(`rel="canonical" href="${origin}/check"`));
   assert.match(check, /id="check-form"/);
   assert.match(check, /Check this page/);
@@ -687,7 +637,7 @@ test("public one-page check page is a truthful, searchable entry path", () => {
   assert.match(check, /What the browser sees/);
   assert.match(check, /False alarms ruled out/);
   assert.match(check, /Real problems only/);
-  assert.match(check, /Your whole site, next/);
+  assert.match(check, /Audit your whole site/);
   assert.match(check, /does not guarantee rankings, traffic, indexing, revenue, AI citations/i);
   assert.match(check, /Create a free account/);
   assert.match(check, /Rate-limited per network and per site/i);
@@ -763,8 +713,8 @@ test("demo brief is verbatim real engine output for the public test page", async
     }
 
     const demo = demoHtml(origin);
-    assert.match(demo, /Real engine output for the public test page/);
-    assert.match(demo, /verbatim output from the SEO Fix Kit audit engine/i);
+    assert.match(demo, /Engine output for our test page/);
+    assert.match(demo, /unedited output from the SEO Fix Kit audit engine/i);
     assert.match(demo, new RegExp(`${origin}${DEMO_FIXTURE_PATH}`));
     for (const guard of DEMO_PROOF.guards) {
       const renderedEvidence = escapeHtml(guard.evidence).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -772,7 +722,7 @@ test("demo brief is verbatim real engine output for the public test page", async
     }
     assert.doesNotMatch(demo, /Sample developer brief/, "the demo must not show the hand-written brief anymore");
     assert.doesNotMatch(demo, /Rendered H1 is visible in the final DOM/, "the fabricated H1 evidence must be gone");
-    assert.match(demo, /Check one page now/, "the demo must keep the low-friction entry into the live anonymous check");
+    assert.match(demo, /Check a page/, "the demo must keep the low-friction entry into the live anonymous check");
   } finally {
     server.close();
   }
@@ -986,10 +936,10 @@ test("real before/after proof receipt pins the same measurement path before and 
   const html = proofCaseHtml(origin);
   const markdown = proofCaseMarkdown(origin);
 
-  assert.match(html, /One real repair, with the same measurement path before and after\./);
-  assert.match(html, /Score <strong>85<\/strong>\/100 &middot; 7 findings/);
-  assert.match(html, /Score <strong>99<\/strong>\/100 &middot; 2 findings/);
-  assert.match(html, /Score <strong>100<\/strong>\/100 &middot; 0 findings/);
+  assert.match(html, /<h1>85 to 100 in two fixes\.<\/h1>/);
+  assert.match(html, /Score <strong>85<\/strong>\/100 &middot; 7 problems/);
+  assert.match(html, /Score <strong>99<\/strong>\/100 &middot; 2 problems/);
+  assert.match(html, /Score <strong>100<\/strong>\/100 &middot; 0 problems/);
   assert.match(html, /tinystudio-in-96b716c9-22f3-4ffb-bb92-b912a421a44b/);
   assert.match(html, /tinystudio-in-75ffee26-02ae-41d3-b2ef-5beb40722e50/);
   assert.match(html, /tinystudio-in-0a45637f-1354-4d26-ace3-d3b594162961/);
@@ -1006,9 +956,9 @@ test("real before/after proof receipt pins the same measurement path before and 
   assert.match(html, /"@type"\s*:\s*"SoftwareApplication"/, "the receipt must carry truthful machine-readable proof");
   assert.doesNotMatch(html, /min-width:\s*320px/, "the receipt must not ship the 320px floor");
 
-  assert.match(markdown, /^# SEO Fix Kit .* Repair proof receipt/m);
-  assert.match(markdown, /85\/100 with 7 findings/);
-  assert.match(markdown, /100\/100 with 0 findings/);
+  assert.match(markdown, /^# SEO Fix Kit case study: 85 to 100 in two fixes/m);
+  assert.match(markdown, /85\/100 with 7 problems/);
+  assert.match(markdown, /100\/100 with 0 problems/);
   assert.match(markdown, /github\.com\/nish3451\/tinystudio-in\/pull\/4/);
   assert.match(markdown, /github\.com\/nish3451\/tinystudio-in\/pull\/5/);
   assert.match(markdown, /No ranking, traffic, indexing, citation, or revenue promise is made/);

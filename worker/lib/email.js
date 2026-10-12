@@ -41,7 +41,7 @@ function emailSender(env) {
 
 const SUPPORT_EMAIL = "support@seofixkit.com";
 
-const EMAIL_FOOTER_TEXT = `\n\n--\nSEO Fix Kit · https://seofixkit.com\nQuestions or issues? Email ${SUPPORT_EMAIL}.`;
+const EMAIL_FOOTER_TEXT = `\n\n--\nSEO Fix Kit · https://seofixkit.com\nFor help, email ${SUPPORT_EMAIL}.`;
 
 function shouldSkipOwnedInternalEmail(env, { to, tag }) {
   const from = emailSender(env);

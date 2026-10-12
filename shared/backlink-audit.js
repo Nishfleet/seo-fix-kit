@@ -42,10 +42,13 @@ export function parseBacklinkRows(input = {}, targetUrl = "", options = {}) {
       row.targetUrl || row.target_url || row.target || row.linkTarget || row.link_target || targetUrl
     );
     if (!linkTarget) {
-      return { ok: false, error: "Each backlink row needs a valid target URL or audit target URL." };
+      return {
+        ok: false,
+        error: "A backlink row has no valid target URL. Add the page on your site that the link points to."
+      };
     }
     if (!options.allowPrivate && (isPrivateHost(sourceUrl) || isPrivateHost(linkTarget))) {
-      return { ok: false, error: "Backlink source and target URLs must be public URLs." };
+      return { ok: false, error: "Backlink URLs must be public. Remove private or local URLs and try again." };
     }
     const key = `${sourceUrl}|${linkTarget}`;
     if (seen.has(key)) continue;
@@ -110,7 +113,7 @@ export async function buildBacklinkAudit(report = {}, input = [], options = {}) 
   return {
     status: "ready",
     source: "self-serve-import",
-    note: "Backlink audit uses supplied backlink rows and live source-page proof. It is not a proprietary backlink index.",
+    note: "The backlink audit checks the backlinks you import by loading each linking page. It is not a proprietary backlink index.",
     summary,
     rows,
     anchorRisks,
@@ -141,7 +144,7 @@ export function backlinkAuditBriefLines(audit = {}) {
     }
     lines.push("");
   } else {
-    lines.push("No backlink repair actions were created from the imported rows.", "");
+    lines.push("No problems found in the imported backlinks.", "");
   }
 
   return lines;
@@ -304,7 +307,7 @@ async function targetStatusFor(targetUrl, context) {
   const known = context.targetPageMap.get(normalized);
   if (known) return known;
   if (safeHost(targetUrl) !== context.targetHost) {
-    return { ok: true, status: 0, evidence: "Target is outside the audited host; status was not checked." };
+    return { ok: true, status: 0, evidence: "Target is on another site, so it was not checked." };
   }
   try {
     let method = "HEAD";
@@ -432,8 +435,8 @@ function backlinkRepairOpportunities(rows = [], anchorRisks = []) {
       severity: lost.length >= 3 ? "warning" : "notice",
       title: "Lost backlinks need reclaim review",
       proof: `${lost.length} imported backlink${lost.length === 1 ? "" : "s"} no longer linked to the target page. Example: ${lost[0].sourceUrl}`,
-      fix: "Review whether the source page changed, the target URL moved, or outreach is needed. Restore missing target pages or ask the referring site to update the link.",
-      acceptance: "Rerun the backlink audit and confirm the source pages link to the intended target URL again.",
+      fix: "Check whether the linking page changed or your page moved. Bring back missing pages, or ask the other site to update the link.",
+      acceptance: "Rerun the audit. The linking pages point to the right URL again.",
       estimatedEffort: "30-90 min",
       workType: "outreach"
     });
@@ -445,8 +448,8 @@ function backlinkRepairOpportunities(rows = [], anchorRisks = []) {
       severity: "critical",
       title: "Backlinks point at broken target URLs",
       proof: `${brokenTargets.length} backlink target${brokenTargets.length === 1 ? "" : "s"} failed status checks. Example: ${brokenTargets[0].targetEvidence}`,
-      fix: "Restore the target page, add a 301 redirect to the closest relevant page, or update campaign links to the live canonical URL.",
-      acceptance: "Backlink target URLs return 2xx or intentional 3xx responses on rerun.",
+      fix: "Bring the page back, 301-redirect it to the closest live page, or point your own campaign links at the live canonical URL.",
+      acceptance: "On rerun, each target URL loads or redirects on purpose.",
       estimatedEffort: "15-45 min",
       workType: "technical"
     });
@@ -458,9 +461,8 @@ function backlinkRepairOpportunities(rows = [], anchorRisks = []) {
       severity: "warning",
       title: "Toxic backlink risk needs review",
       proof: `${risky.length} source URL${risky.length === 1 ? "" : "s"} matched risky source patterns. Example: ${risky[0].sourceUrl} (${risky[0].riskySignals.join(", ")})`,
-      fix: "Review these links in Google Search Console or another backlink source. Remove manipulative links where possible and consider disavow only for clear spam at scale.",
-      acceptance:
-        "Risky imported backlinks are marked reviewed, removed, or added to a documented disavow candidate list.",
+      fix: "Look at these links in Google Search Console or your backlink tool. Get spammy links removed where you can. Use disavow only for clear, large-scale spam.",
+      acceptance: "Each risky backlink is marked reviewed, removed, or listed as a disavow candidate.",
       estimatedEffort: "45-120 min",
       workType: "review"
     });
@@ -471,8 +473,8 @@ function backlinkRepairOpportunities(rows = [], anchorRisks = []) {
       severity: "notice",
       title: `Anchor text over-optimization risk: "${risk.anchor}"`,
       proof: `"${risk.anchor}" appears in ${Math.round(risk.share * 100)}% of imported anchor text (${risk.count} links).`,
-      fix: "Diversify future link outreach toward branded, URL, and natural anchors. Do not create more exact-match paid or reciprocal anchors.",
-      acceptance: "Future imported backlink rows show a healthier mix of brand, URL, topical, and natural anchors.",
+      fix: "In future outreach, ask for links that use your brand name, your URL or natural wording. Don't add more paid or swapped links with exact-match anchor text.",
+      acceptance: "New backlink imports show more brand, URL and natural link text.",
       estimatedEffort: "30-90 min",
       workType: "content"
     });

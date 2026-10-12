@@ -64,7 +64,7 @@ test("external fix pack customer emails do not carry the internal inbox marker",
 
   await sendWorkerEmail(env, {
     to: "customer@example.com",
-    subject: "SEO Fix Pack payment confirmed for example.com",
+    subject: "Payment received: Fix Pack for example.com",
     text: "Payment confirmed.",
     html: "<p>Payment confirmed.</p>",
     tag: "fix-pack-payment"

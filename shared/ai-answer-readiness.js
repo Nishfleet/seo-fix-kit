@@ -27,7 +27,7 @@ export function buildAiAnswerReadiness(report = {}, options = {}) {
     return {
       status: "skipped",
       source: "ai-answer-readiness-proof",
-      note: "AI Answer Readiness needs rendered page proof. It does not sample AI engines or monitor citations.",
+      note: "AI Answer Readiness needs at least one loaded page to check. It does not sample AI engines or monitor citations.",
       summary: { pagesChecked: 0, repairOpportunityCount: 0 },
       checks: {},
       findings: [],
@@ -57,7 +57,7 @@ export function buildAiAnswerReadiness(report = {}, options = {}) {
   return {
     status: "ready",
     source: "ai-answer-readiness-proof",
-    note: "AI Answer Readiness is derived from rendered page, sitemap, schema, canonical, link, and optional llms.txt proof. It does not sample AI engines, monitor citations, or claim AI visibility.",
+    note: "AI Answer Readiness checks your pages' text, schema, canonical tags, internal links, sitemap and optional llms.txt. It does not sample AI engines or monitor citations, and it does not measure AI visibility.",
     summary,
     checks,
     findings,
@@ -71,15 +71,15 @@ export function aiAnswerReadinessBriefLines(audit = {}) {
   const lines = [
     "## AI Answer Readiness",
     "",
-    "This section uses site proof only. It does not sample answer engines or monitor AI citations.",
+    "This section checks your own pages only. It does not sample answer engines or monitor AI citations.",
     `Readiness score: ${summary.readinessScore ?? 0}/100`,
     `Pages checked: ${summary.pagesChecked || 0}`,
     `Pages with helpful schema: ${summary.pagesWithHelpfulSchema || 0}`,
     `Pages with question-led structure: ${summary.pagesWithQuestionStructure || 0}`,
     `Optional llms.txt: ${summary.llmsTxtStatus || "unknown"}`,
     summary.trafficRanked
-      ? `Prioritization: imported Search Console traffic (${summary.trafficRowsUsed || 0} rows). Faults with more clicks and impressions on the affected pages come first.`
-      : "Prioritization: proof order. Import Search Console rows to rank faults by the traffic behind them.",
+      ? `Order: by imported Search Console traffic (${summary.trafficRowsUsed || 0} rows). Problems on pages with more clicks and impressions come first.`
+      : "Order: as found. Import Search Console data to put problems on your busiest pages first.",
     ""
   ];
 
@@ -93,7 +93,7 @@ export function aiAnswerReadinessBriefLines(audit = {}) {
     }
     lines.push("");
   } else {
-    lines.push("No AI Answer Readiness repair actions were created from this proof pass.", "");
+    lines.push("No AI Answer Readiness problems found in this audit.", "");
   }
 
   return lines;
@@ -104,12 +104,12 @@ export function aiAnswerReadinessSummaryCopy(audit = {}) {
   const summary = audit.summary || {};
   const repairCount = summary.repairOpportunityCount || audit.repairOpportunities?.length || 0;
   const trafficNote = summary.trafficRanked
-    ? " Faults are ranked by imported Search Console clicks and impressions on the affected pages."
-    : " Faults stay in proof order until Search Console rows are imported.";
+    ? " Problems are ordered by the Search Console clicks and impressions you imported."
+    : " Import Search Console data to order problems by traffic.";
   if (!repairCount) {
-    return `The rendered pages show enough extractable content, canonical clarity, helpful structure, and optional discovery context for this proof pass. This is not an AI visibility score.${trafficNote}`;
+    return `Your pages have enough readable text, clear canonical URLs and useful structure. This is not an AI visibility score.${trafficNote}`;
   }
-  return `${repairCount} proof-derived readiness ${repairCount === 1 ? "repair" : "repairs"} found across ${summary.pagesChecked || 0} rendered ${summary.pagesChecked === 1 ? "page" : "pages"}. This is not live answer-engine sampling or citation monitoring.${trafficNote}`;
+  return `${repairCount} readiness ${repairCount === 1 ? "problem" : "problems"} found across ${summary.pagesChecked || 0} ${summary.pagesChecked === 1 ? "page" : "pages"}. This checks your pages, not AI answers. It is not live answer-engine sampling or citation monitoring.${trafficNote}`;
 }
 
 function pageEvidenceRows(pages = []) {
@@ -270,10 +270,9 @@ function aiReadinessRepairOpportunities(checks = {}, trafficIndex = emptyTraffic
       pageUrl: lead.url,
       pageLabel: lead.label,
       proof: `${pages.length} rendered ${pages.length === 1 ? "page has" : "pages have"} fewer than 250 words, led by ${lead.label} with ${lead.wordCount} words.`,
-      why: "Answer systems and search crawlers need visible, page-specific text they can parse, summarize, and cite. This is a readiness heuristic, not a ranking rule.",
-      fix: "Add visible page-specific explanation, proof, examples, FAQs, comparisons, and next steps before relying on structured data or metadata alone.",
-      acceptance:
-        "Rerun the audit and confirm the page has at least 250 rendered words with visible, page-specific detail.",
+      why: "AI tools and search engines can only quote what the page says. Pages this short give them little to work with. This is a rule of thumb, not a ranking rule.",
+      fix: "Add visible text that explains what the page offers, who it's for, answers to common questions (FAQs) and what to do next. Structured data and meta tags can't replace it.",
+      acceptance: "Rerun the audit. The page shows at least 250 rendered words about its own topic.",
       estimatedEffort: "45-120 min"
     });
   }
@@ -286,11 +285,11 @@ function aiReadinessRepairOpportunities(checks = {}, trafficIndex = emptyTraffic
       title: "AI Answer Readiness: helpful structured data was not proven",
       affectedPages: pages,
       proof:
-        "No rendered page exposed FAQPage, Article, Product, Service, Organization, LocalBusiness, SoftwareApplication, HowTo, or BreadcrumbList schema.",
-      why: "Truthful schema can clarify page entities, relationships, products, services, and FAQs for search features and machine readers.",
-      fix: "Add JSON-LD that matches visible content. Start with Organization/Service for service pages, Product for product pages, FAQPage for visible FAQs, and BreadcrumbList for hierarchical pages.",
+        "No checked page has FAQPage, Article, Product, Service, Organization, LocalBusiness, SoftwareApplication, HowTo or BreadcrumbList schema.",
+      why: "Schema tells search engines and AI tools in plain data what the page is: a business, a product, a service or a FAQ.",
+      fix: "Add JSON-LD that matches what the page shows. Use Organization or Service on service pages, Product on product pages, FAQPage where a FAQ is visible, and BreadcrumbList on nested pages.",
       acceptance:
-        "Rerun the audit and confirm rendered JSON-LD includes helpful schema types that match visible page content.",
+        "Rerun the audit. The page's JSON-LD includes one of the listed types and matches what the page shows.",
       workType: "code"
     });
   }
@@ -315,10 +314,9 @@ function aiReadinessRepairOpportunities(checks = {}, trafficIndex = emptyTraffic
       ]
         .filter(Boolean)
         .join(" "),
-      why: "Canonical URLs and internal links help crawlers and answer systems identify the preferred source page and related context.",
-      fix: "Add one canonical URL per indexable page and link important related pages with normal rendered anchor tags.",
-      acceptance:
-        "Rerun the audit and confirm every indexable readiness page has one rendered canonical URL and at least one rendered internal link.",
+      why: "Canonical tags and internal links tell search engines and AI tools which URL is the real page and what else on your site relates to it.",
+      fix: "Give each page you want in search one canonical tag, and link to related pages with normal <a href> links.",
+      acceptance: "Rerun the audit. Every indexable page has one canonical tag and at least one internal link.",
       workType: "technical"
     });
   }
@@ -330,11 +328,11 @@ function aiReadinessRepairOpportunities(checks = {}, trafficIndex = emptyTraffic
       title: "AI Answer Readiness: question-led sections are missing",
       affectedPages: checks.answerStructure.missingPages || [],
       proof:
-        "The rendered crawl did not prove FAQ, HowTo, question-style headings, or enough section structure to expose direct answers.",
-      why: "Question-led headings and clearly sectioned answers make it easier for users, search snippets, and machine readers to extract specific answers.",
-      fix: "Add visible sections that answer common buyer questions, objections, pricing/fit questions, and use-case questions. Add FAQ schema only after the FAQ is visible.",
+        "No checked page has a FAQ, how-to steps, question headings or enough sections to pull a direct answer from.",
+      why: "A heading that asks the question, followed by a short answer, is easy for visitors, search snippets and AI tools to quote.",
+      fix: "Add sections that answer what buyers ask: price, fit, how it works, common doubts. Add FAQ schema only once the FAQ is on the page.",
       acceptance:
-        "Rerun the audit and confirm the rendered page includes visible question-led headings, FAQ/HowTo structure, or enough section headings to expose direct answers.",
+        "Rerun the audit. The page has question headings, a FAQ or how-to steps, or enough section headings to answer questions directly.",
       estimatedEffort: "30-90 min"
     });
   }
@@ -346,10 +344,10 @@ function aiReadinessRepairOpportunities(checks = {}, trafficIndex = emptyTraffic
       title: "AI Answer Readiness: optional llms.txt is not reachable",
       affectedPages: [],
       proof: `GET /llms.txt returned ${checks.discoveryFiles.llmsTxt.status || checks.discoveryFiles.llmsTxt.error || "no usable text"}. This is advisory only; it is not a ranking, visibility, or citation failure.`,
-      why: "An llms.txt file can give AI agents a concise public map of useful product pages and boundaries, but it is optional and not proof of AI visibility.",
-      fix: "Publish a concise /llms.txt that links to current public docs, product pages, support, pricing/package pages, and explicit product limits.",
+      why: "llms.txt is an optional file that points AI tools to your key pages. It is not required and does not make AI tools mention you.",
+      fix: "If you want one, publish a short /llms.txt that links to your main product, pricing, support and docs pages and says what you don't offer.",
       acceptance:
-        "GET /llms.txt returns 200 with concise public product context, and public copy still avoids AI visibility or citation guarantees.",
+        "GET /llms.txt returns 200 with a short summary of your public pages. Your copy still makes no promise of AI visibility or citations.",
       estimatedEffort: "15-30 min",
       workType: "content"
     });
@@ -364,7 +362,7 @@ function repairToFinding(item = {}, index = 0) {
     type: "ai-answer-readiness",
     severity: item.severity || "notice",
     title: item.title || "AI Answer Readiness repair",
-    why: item.why || "This is a proof-derived readiness issue, not live answer-engine monitoring.",
+    why: item.why || "Found by checking your pages. This is not live answer-engine monitoring.",
     evidence: item.proof || "",
     fix: item.fix || "",
     acceptance: item.acceptance || "",

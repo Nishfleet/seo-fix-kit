@@ -22,7 +22,7 @@ function buildRepairProofReceipt({ report = {}, item = {}, action = {}, rerunRep
   const queueItemId = text(action.queue_item_id || action.queueItemId || item.id, 160);
   const issueId = text(action.issue_id || action.issueId || item.issueId || item.issue_id, 160);
   if (!actionId || !reportId || !issueId) {
-    return receiptError("Proof receipt needs an existing repair action.", 400);
+    return receiptError("This repair action doesn't exist. Open the repair from your report and try again.", 400);
   }
 
   const approvalState = cleanApprovalState(action.approval_state || action.approvalState);
@@ -37,13 +37,16 @@ function buildRepairProofReceipt({ report = {}, item = {}, action = {}, rerunRep
 
   const rerunState = cleanRerunState(action.rerun_state || action.rerunState);
   if (rerunState !== "fixed") {
-    return receiptError("Proof receipts are only available after rerun proof marks the repair fixed.", 409);
+    return receiptError(
+      "A receipt is only available once a rerun shows this repair as fixed. Rerun the audit first.",
+      409
+    );
   }
 
   const itemRerunState = cleanRerunState(item.rerunStatus || item.rerun_status);
   if (itemRerunState !== "fixed") {
     return receiptError(
-      "The repair was reopened after rerun proof; re-run the same-host proof before creating a proof receipt.",
+      "A rerun reopened this repair. Fix it, rerun the audit on the same site, then create the receipt.",
       409
     );
   }
@@ -54,7 +57,7 @@ function buildRepairProofReceipt({ report = {}, item = {}, action = {}, rerunRep
   }
 
   if (!validRerunProofReport(rerunReport)) {
-    return receiptError("Rerun proof report is missing or invalid.", 409);
+    return receiptError("The rerun report is missing or invalid. Run the audit again and attach the new report.", 409);
   }
 
   const resolvedRerunReportId = text(rerunReport.id || rerunReport.reportId || rerunReport.report_id, 160);
@@ -65,16 +68,16 @@ function buildRepairProofReceipt({ report = {}, item = {}, action = {}, rerunRep
   const sourceHost = comparableReportHost(report);
   const proofHost = comparableReportHost(rerunReport);
   if (!sourceHost || !proofHost || sourceHost !== proofHost) {
-    return receiptError("Rerun proof report must cover the same host.", 409);
+    return receiptError("The rerun report is for a different site. Rerun the audit on the same host.", 409);
   }
 
   const freshAfterMs = rerunProofFreshAfterMs(action, report);
   const rerunTimestampMs = reportTimestampMs(rerunReport);
   if (!rerunTimestampMs) {
-    return receiptError("Rerun proof report must include a capture timestamp.", 409);
+    return receiptError("The rerun report has no capture time. Run the audit again to get one.", 409);
   }
   if (freshAfterMs > 0 && rerunTimestampMs <= freshAfterMs) {
-    return receiptError("Rerun proof report must be newer than the applied repair.", 409);
+    return receiptError("The rerun report is older than the repair. Rerun the audit after applying the fix.", 409);
   }
 
   const proofIssue = repairProofIssueForAction(report, action);
@@ -83,7 +86,10 @@ function buildRepairProofReceipt({ report = {}, item = {}, action = {}, rerunRep
     !rerunReportProvesIssue(rerunReport, proofIssue, "fixed") &&
     !rerunReportProvesIssue(rerunReport, queueIssue, "fixed")
   ) {
-    return receiptError("Rerun proof report does not prove this repair fixed.", 409);
+    return receiptError(
+      "The rerun report does not prove this repair fixed. The problem may still be on the page.",
+      409
+    );
   }
 
   const actionMode = cleanActionMode(action.action_mode || action.actionMode || item.actionMode || item.action_mode);
@@ -110,7 +116,7 @@ function buildRepairProofReceipt({ report = {}, item = {}, action = {}, rerunRep
   const markdown = [
     "# SEOFixKit Repair Proof Receipt",
     "",
-    "This private receipt connects one owner-approved repair action to the same-host rerun proof that marked it fixed. It does not mean SEOFixKit published, merged, indexed, ranked, or guaranteed the change.",
+    "This private receipt links one repair you approved to the same-host rerun proof that showed it fixed. SEOFixKit did not publish or merge the change, and makes no promise about indexing or rankings.",
     "",
     "## Repair Summary",
     "",
@@ -134,19 +140,15 @@ function buildRepairProofReceipt({ report = {}, item = {}, action = {}, rerunRep
     "",
     "## Before Proof",
     "",
-    sourceProof
-      ? fencedBlock(sourceProof, 3000)
-      : "The original private report contains the source proof for this repair.",
+    sourceProof ? fencedBlock(sourceProof, 3000) : "The original report holds the evidence for this repair.",
     "",
     "## Approved Change",
     "",
-    proposedChange ? fencedBlock(proposedChange, 7000) : "The approved repair action did not include a text change.",
+    proposedChange ? fencedBlock(proposedChange, 7000) : "The approved repair had no text change attached.",
     "",
     "## Acceptance Check",
     "",
-    acceptance
-      ? fencedBlock(acceptance, 2000)
-      : "The rerun had to show that the original finding was gone for the same host and issue.",
+    acceptance ? fencedBlock(acceptance, 2000) : "The rerun had to show the original problem gone on the same site.",
     "",
     "## Rerun Proof",
     "",
@@ -154,22 +156,22 @@ function buildRepairProofReceipt({ report = {}, item = {}, action = {}, rerunRep
     rerunReportUrl ? bullet("Rerun report URL", rerunReportUrl) : "",
     rerunCapturedAt ? bullet("Rerun proof captured", rerunCapturedAt) : "",
     bullet("Rerun host", proofHost),
-    bullet("Proof result", "The rerun report passed SEOFixKit's fixed-issue proof rules for this repair action."),
+    bullet("Proof result", "The rerun shows this problem fixed."),
     "",
     "## Observed Outcome",
     "",
-    "These numbers are what the source report and the rerun report recorded for the same host. They do not attribute every change to this repair action.",
+    "These numbers come from the first report and the rerun on the same site. Other changes may have moved them too, so they do not attribute every change to this repair action.",
     "",
     ...observedOutcomeLines(report, rerunReport),
     "",
     "## Boundaries",
     "",
-    "- This receipt is private to the report owner or owner API token.",
+    "- Only the report owner, or their API token, can see this receipt.",
     "- SEOFixKit did not publish to a CMS, open or merge a GitHub pull request, or call provider admin APIs for this receipt.",
-    "- Rankings, traffic, indexing, AI citations, and revenue are not guaranteed.",
+    "- No guarantee of rankings, traffic, indexing, AI citations or revenue.",
     rerunCapturedAt
-      ? `- Rerun proof captured at ${rerunCapturedAt}. If the site changed after that capture, rerun the audit before using this receipt as current proof.`
-      : "- If the site changes again, rerun the audit before using this receipt as current proof."
+      ? `- Rerun captured at ${rerunCapturedAt}. If the site has changed since, rerun the audit before relying on this receipt.`
+      : "- If the site changes again, rerun the audit before relying on this receipt."
   ]
     .filter((part) => part !== "")
     .join("\n");

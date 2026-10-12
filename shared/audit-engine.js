@@ -1289,7 +1289,7 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "guard",
         severity: "good",
         title: `False positive guarded on ${label}: ${title}`,
-        why: "Static HTML missed data that exists in the rendered page.",
+        why: "The raw HTML lacks this, but the page has it once the browser runs its JavaScript. Nothing to fix.",
         evidence,
         fix,
         source: source || DOCS.javascript
@@ -1308,9 +1308,9 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "issue",
         severity: "critical",
         title: `Broken internal links on ${label}`,
-        why: "Broken internal links waste crawl paths and send users to dead pages.",
+        why: "Visitors who click these links land on an error page, and search engines hit a dead end.",
         evidence: formatResourceEvidence(brokenInternalLinks),
-        fix: "Update each internal link to a live replacement URL, restore the missing page, or remove the link if it no longer has a valid destination.",
+        fix: "Point each link at a page that loads, bring the missing page back, or delete the link.",
         source: DOCS.linkBestPractices
       });
     }
@@ -1320,9 +1320,9 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "issue",
         severity: "warning",
         title: `Broken external links on ${label}`,
-        why: "Broken outbound references weaken the page experience and can make supporting proof look stale.",
+        why: "Links to other sites that error out make the page look neglected.",
         evidence: formatResourceEvidence(brokenExternalLinks),
-        fix: "Replace broken references with live authoritative sources or remove the outbound links.",
+        fix: "Swap each broken link for a working source, or remove it.",
         source: DOCS.linkBestPractices,
         confidence: "needs-review"
       });
@@ -1333,9 +1333,9 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "issue",
         severity: "notice",
         title: `Redirecting internal links on ${label}`,
-        why: "Internal links should usually point directly to the final canonical URL instead of spending crawl budget on redirects.",
+        why: "Each of these links goes through a redirect before reaching the page. Linking to the final canonical URL saves a hop for visitors and crawlers.",
         evidence: formatResourceEvidence(redirectedInternalLinks),
-        fix: "Update internal links so they point directly to the final destination URL."
+        fix: "Change each link to the URL it ends up at."
       });
     }
 
@@ -1344,9 +1344,9 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "issue",
         severity: "warning",
         title: `Broken images on ${label}`,
-        why: "Broken images hurt page quality, social previews, and image-search context.",
+        why: "Visitors see an empty box, and the image can't show up in image search or share previews.",
         evidence: formatResourceEvidence(brokenImages),
-        fix: "Replace the missing image URLs, restore the assets, or remove image tags that no longer have valid files."
+        fix: "Upload the missing files again, point the tags at images that exist, or remove the tags."
       });
     }
 
@@ -1355,9 +1355,9 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "issue",
         severity: "notice",
         title: `Large image files on ${label}`,
-        why: "Large images can slow down the page and make Core Web Vitals harder to pass.",
+        why: "Big image files make the page load slower, most of all on phones.",
         evidence: formatResourceEvidence(oversizedImages),
-        fix: "Compress these images, serve next-gen formats, and resize them to the rendered display dimensions.",
+        fix: "Resize each image to the size it shows on screen, compress it, and save it as WebP or AVIF.",
         source: DOCS.coreWebVitals,
         confidence: "needs-review"
       });
@@ -1368,9 +1368,9 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "issue",
         severity: "warning",
         title: `Non-HTTPS resources on ${label}`,
-        why: "HTTP resources on an HTTPS page can create mixed-content warnings and weaken user trust.",
+        why: "Browsers block or warn about http:// files on an https:// page, so parts of the page may break.",
         evidence: `${nonHttpsResources.length} rendered resources use http://, including ${formatResourceUrl(nonHttpsResources[0].href || nonHttpsResources[0].src)}.`,
-        fix: "Serve every link, script, image, and canonical asset over HTTPS."
+        fix: "Change every http:// link, script, image and canonical URL on the page to https://."
       });
     }
 
@@ -1379,9 +1379,9 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "issue",
         severity: "notice",
         title: `URL redirects before rendering on ${label}`,
-        why: "Redirects are normal, but audit evidence should show the final URL search engines and users reach.",
+        why: "This URL redirects. That is fine, but your links, canonical and sitemap should use the final URL.",
         evidence: `Requested ${page.url}; final URL ${rendered.finalUrl || page.finalUrl}.`,
-        fix: "Make sure canonicals, internal links, and sitemaps point at the final preferred URL.",
+        fix: "Use the final URL in the canonical tag, internal links and sitemap.",
         confidence: "needs-review"
       });
     }
@@ -1391,9 +1391,9 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "issue",
         severity: "warning",
         title: `Long redirect chain before rendering on ${label}`,
-        why: "Long redirect chains slow crawlers and users before the page can even render.",
+        why: "Each extra redirect adds a round trip before the page starts loading.",
         evidence: formatRedirectChain(page.redirectChain),
-        fix: "Collapse the chain so the requested URL redirects once to the final canonical URL."
+        fix: "Make the first URL redirect straight to the final canonical URL in one step."
       });
     }
 
@@ -1407,9 +1407,9 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "issue",
         severity: "warning",
         title: `Slow rendered load on ${label}`,
-        why: "Slow rendering is a page-experience risk and can make Core Web Vitals harder to pass.",
+        why: "Visitors wait longer before they can use the page, and some leave.",
         evidence: `Rendered audit reached network idle in ${rendered.loadDurationMs}ms.`,
-        fix: "Reduce render-blocking scripts, compress heavy assets, defer non-critical JavaScript, and rerun with field Core Web Vitals data.",
+        fix: "Defer render-blocking scripts the first view doesn't need, compress large files, then rerun the audit to compare load time.",
         source: DOCS.coreWebVitals,
         confidence: "needs-review"
       });
@@ -1420,9 +1420,9 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "issue",
         severity: "notice",
         title: `Large HTML response on ${label}`,
-        why: "Large HTML responses slow the first crawl and usually point to unnecessary inline payload.",
+        why: "A heavy HTML file takes longer to download and usually carries data the page doesn't need inline.",
         evidence: `Initial HTML response was about ${formatBytes(page.transferSize)}.`,
-        fix: "Move large inline data out of the HTML, trim unused markup, and compress server responses.",
+        fix: "Move large inline data and scripts into separate files, remove unused markup, and turn on gzip or Brotli compression.",
         source: DOCS.coreWebVitals,
         confidence: "needs-review"
       });
@@ -1433,9 +1433,9 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "guard",
         severity: "good",
         title: `False positive guarded on ${label}: H1 exists after render`,
-        why: "A static-only crawler would report a missing H1, but the rendered page contains one.",
+        why: "The H1 is added by JavaScript. Tools that only read raw HTML would call it missing. The page is fine.",
         evidence: `Rendered H1: "${rendered.h1s[0]}"`,
-        fix: "Do not add another H1 just to satisfy a static crawler.",
+        fix: "No change needed. Don't add a second H1.",
         source: DOCS.javascript
       });
     }
@@ -1445,9 +1445,9 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "guard",
         severity: "good",
         title: `False positive guarded on ${label}: internal links exist after render`,
-        why: "Static HTML did not expose links, but the browser-rendered DOM did.",
+        why: "The links are added by JavaScript. Raw HTML has none, but the loaded page does.",
         evidence: `${rendered.internalLinks.length} rendered internal links found.`,
-        fix: "Keep the rendered links crawlable as real anchor tags.",
+        fix: "No change needed. Keep them as normal <a href> links.",
         source: DOCS.javascript
       });
     }
@@ -1457,9 +1457,9 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "guard",
         severity: "good",
         title: `False positive guarded on ${label}: rendered content is not thin`,
-        why: "The static HTML looks thin, but users and modern crawlers see substantial rendered content.",
+        why: "Raw HTML has little text, but the loaded page has plenty.",
         evidence: `${rendered.wordCount} rendered words found.`,
-        fix: "No thin-content fix is needed for this page based on rendered text.",
+        fix: "No change needed.",
         source: DOCS.javascript
       });
     }
@@ -1468,7 +1468,7 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
       addRenderedGuard({
         title: "title exists after render",
         evidence: `Rendered title: "${rendered.title}"`,
-        fix: "Do not add a duplicate title just to satisfy a static crawler.",
+        fix: "No change needed. Don't add a second title.",
         source: DOCS.title
       });
     }
@@ -1477,7 +1477,7 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
       addRenderedGuard({
         title: "meta description exists after render",
         evidence: `Rendered description: "${rendered.description}"`,
-        fix: "Keep the rendered meta description aligned with visible page content."
+        fix: "No change needed. Keep the description matching what the page says."
       });
     }
 
@@ -1485,7 +1485,7 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
       addRenderedGuard({
         title: "canonical exists after render",
         evidence: `Rendered canonical: ${rendered.canonical}`,
-        fix: "Do not add a second canonical; keep one preferred URL."
+        fix: "No change needed. Don't add a second canonical tag."
       });
     }
 
@@ -1493,7 +1493,7 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
       addRenderedGuard({
         title: "viewport exists after render",
         evidence: `Rendered viewport: "${rendered.viewport}"`,
-        fix: "Do not add a duplicate viewport tag."
+        fix: "No change needed. Don't add a second viewport tag."
       });
     }
 
@@ -1505,7 +1505,7 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
       addRenderedGuard({
         title: "social images exist after render",
         evidence: `Rendered og:image: ${rendered.openGraph.image}; twitter:image: ${rendered.twitter.image}`,
-        fix: "Do not create duplicate social tags; keep the rendered tags stable."
+        fix: "No change needed. Don't add a second set of social tags."
       });
     }
 
@@ -1513,7 +1513,7 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
       addRenderedGuard({
         title: "structured data exists after render",
         evidence: `Rendered schema types: ${rendered.schemaTypes.join(", ")}`,
-        fix: "Do not add duplicate JSON-LD; validate the rendered schema instead.",
+        fix: "No change needed. Don't add a second copy of the schema.",
         source: DOCS.structuredData
       });
     }
@@ -1523,9 +1523,9 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "issue",
         severity: "warning",
         title: `Structured data JSON is invalid on ${label}`,
-        why: "Invalid JSON-LD can stop rich-result eligibility and creates false confidence if the audit only checks presence.",
+        why: "Search engines skip schema they can't parse, so this markup does nothing right now.",
         evidence: rendered.schemaErrors.slice(0, 3).join(" "),
-        fix: "Fix the JSON-LD syntax and include @context and @type values that match visible page content.",
+        fix: "Fix the JSON syntax error, and make sure each block has @context and an @type that matches what the page shows.",
         source: DOCS.structuredData
       });
     }
@@ -1559,9 +1559,9 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "issue",
         severity: "warning",
         title: `Canonical URL is not reachable on ${label}`,
-        why: "Canonical tags should point to a live preferred URL that search engines can fetch.",
+        why: "The canonical tag points at a URL that doesn't load, so search engines can't follow it.",
         evidence: formatResourceEvidence([page.canonicalCheck]),
-        fix: "Update the canonical href to a live indexable URL, or restore the canonical destination.",
+        fix: "Change the canonical href to the live URL of this page, or bring the target page back.",
         source: DOCS.javascript
       });
     } else if (rendered.canonical && page.canonicalCheck?.redirected && !canonicalProbeFailedTransiently) {
@@ -1569,9 +1569,9 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "issue",
         severity: "notice",
         title: `Canonical URL redirects on ${label}`,
-        why: "Canonical tags should point directly to the final preferred URL.",
+        why: "The canonical tag points at a URL that redirects. It should name the final URL.",
         evidence: formatResourceEvidence([page.canonicalCheck]),
-        fix: "Change the canonical href to the final destination URL."
+        fix: "Change the canonical href to the URL the redirect ends at."
       });
     }
 
@@ -1584,9 +1584,9 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "issue",
         severity: "notice",
         title: `Canonical and og:url disagree on ${label}`,
-        why: "Search and social tags should agree on the preferred URL for this page.",
+        why: "The canonical tag and og:url name different URLs for the same page.",
         evidence: `Canonical: ${rendered.canonical}; og:url: ${rendered.openGraph.url}.`,
-        fix: "Set og:url to the same final preferred URL used by rel=canonical.",
+        fix: "Set og:url to the same URL as the canonical tag.",
         confidence: "needs-review"
       });
     }
@@ -1596,9 +1596,9 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "issue",
         severity: "critical",
         title: `Canonical conflicts with noindex on ${label}`,
-        why: "A page should not ask search engines to consolidate signals through a canonical while also telling them not to index it.",
+        why: "The page points search engines to a preferred URL and also tells them not to index it. Those two tags contradict each other.",
         evidence: `Canonical: ${rendered.canonical}; robots meta: "${rendered.robots}".`,
-        fix: "If the page should rank, remove noindex. If it should not rank, remove misleading canonical consolidation."
+        fix: "If the page should be in search, remove noindex. If it shouldn't, remove the canonical tag."
       });
     }
 
@@ -1607,9 +1607,9 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "issue",
         severity: "critical",
         title: `Missing or weak title on ${label}`,
-        why: "A clear title helps searchers identify the page.",
+        why: "The title is the clickable headline in search results and the text on the browser tab.",
         evidence: rendered.title ? `Current title: "${rendered.title}"` : "No title found.",
-        fix: "Add a unique, descriptive title for this page.",
+        fix: "Write a title that names what this page offers, used on no other page.",
         source: DOCS.title,
         snippet: `<title>${escapeHtml(suggestTitle(page.url, rendered))}</title>`
       });
@@ -1618,9 +1618,9 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "issue",
         severity: "warning",
         title: `Long title on ${label}`,
-        why: "Long titles are often rewritten or truncated in search results.",
+        why: "Search results cut off long titles, so the end of this one won't show.",
         evidence: `${rendered.title.length} characters: "${rendered.title}"`,
-        fix: "Shorten the title and put the main page promise first.",
+        fix: "Cut the title to about 60 characters and put the main topic first.",
         source: DOCS.title,
         snippet: `<title>${escapeHtml(trimSentence(rendered.title, 58))}</title>`
       });
@@ -1631,9 +1631,9 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "issue",
         severity: "critical",
         title: `Missing meta description on ${label}`,
-        why: "A useful description can influence the snippet shown in search.",
+        why: "Search engines often use the meta description as the text under your link in results.",
         evidence: "No meta description found in the rendered page.",
-        fix: "Add a concise page-specific meta description.",
+        fix: "Add a meta description of 1 to 2 sentences that says what this page offers.",
         source: DOCS.snippets,
         snippet: `<meta name="description" content="${escapeHtml(suggestDescription(rendered))}" />`
       });
@@ -1642,9 +1642,9 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "issue",
         severity: "warning",
         title: `Meta description needs tightening on ${label}`,
-        why: "Google may rewrite snippets, but a clear page-specific description gives it better source material.",
+        why: "Search engines may rewrite your description, but they start from yours when it's clear.",
         evidence: `${rendered.description.length} characters: "${rendered.description}"`,
-        fix: "Rewrite it as one clear value proposition.",
+        fix: "Rewrite it in 1 to 2 sentences that say what the page offers and who it's for.",
         source: DOCS.snippets,
         snippet: `<meta name="description" content="${escapeHtml(suggestDescription(rendered))}" />`
       });
@@ -1655,9 +1655,9 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "issue",
         severity: "critical",
         title: `Missing H1 on ${label}`,
-        why: "The H1 should state the main topic visible on the page.",
+        why: "The H1 is the main heading. It tells visitors and search engines what the page is about.",
         evidence: "No rendered H1 found.",
-        fix: "Add one visible H1 that matches the page purpose.",
+        fix: "Add one H1 at the top of the page that names its topic.",
         source: DOCS.javascript,
         snippet: `<h1>${escapeHtml(suggestTitle(page.url, rendered))}</h1>`
       });
@@ -1666,9 +1666,9 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "issue",
         severity: "warning",
         title: `Multiple H1s on ${label}`,
-        why: "Multiple H1s can make the page hierarchy less clear.",
+        why: "More than one H1 makes it less clear which heading is the page's main topic.",
         evidence: `${rendered.h1s.length} rendered H1s: ${rendered.h1s.join(" | ")}`,
-        fix: "Keep one primary H1 and move secondary headings to H2."
+        fix: "Keep one H1 and change the other headings to H2."
       });
     }
 
@@ -1678,9 +1678,9 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "issue",
         severity: "warning",
         title: `Heading hierarchy needs cleanup on ${label}`,
-        why: "Headings should describe the page outline in order so users, assistive tech, and crawlers can understand the structure.",
+        why: "Headings skip levels or start below H1, so screen readers and search engines get a muddled outline of the page.",
         evidence: hierarchyIssue,
-        fix: "Use one H1, then move section headings through H2 and H3 without skipping levels.",
+        fix: "Use one H1, then H2 for sections and H3 inside them. Don't skip a level.",
         confidence: "needs-review"
       });
     }
@@ -1690,9 +1690,9 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "issue",
         severity: "warning",
         title: `Thin rendered content on ${label}`,
-        why: "This is a heuristic, not a ranking rule. Thin pages often fail to answer the query well.",
+        why: "The page has very little text. That is a rule of thumb, not a ranking rule, but short pages often don't answer what the searcher wanted.",
         evidence: `${rendered.wordCount} rendered words found.`,
-        fix: "Add useful page-specific detail, proof, examples, and next steps.",
+        fix: "Add the details a buyer needs: what it is, who it's for, price or process, and what to do next.",
         confidence: "needs-review"
       });
     }
@@ -1702,9 +1702,9 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "issue",
         severity: "critical",
         title: `No rendered internal links on ${label}`,
-        why: "Internal links help crawlers discover and understand related pages.",
+        why: "Search engines find your other pages by following links. This page links to none.",
         evidence: "No internal anchor links found in the rendered DOM.",
-        fix: "Add links to important related pages using normal anchor tags.",
+        fix: "Add normal <a href> links to your main related pages.",
         source: DOCS.javascript
       });
     }
@@ -1714,9 +1714,9 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "issue",
         severity: "warning",
         title: `Missing canonical URL on ${label}`,
-        why: "Canonical tags help clarify the preferred URL for similar pages.",
+        why: "A canonical tag tells search engines which URL to show when the same page is reachable at more than one address.",
         evidence: "No rendered rel=canonical tag found.",
-        fix: "Add a canonical tag that points to the preferred URL.",
+        fix: "Add a canonical tag with this page's preferred URL.",
         source: DOCS.javascript,
         snippet: `<link rel="canonical" href="${page.url}" />`
       });
@@ -1727,9 +1727,9 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "issue",
         severity: "warning",
         title: `Viewport meta tag missing on ${label}`,
-        why: "Mobile pages need a viewport tag so layouts render at the intended width.",
+        why: "Without a viewport tag, mobile phones show the page zoomed out at desktop width.",
         evidence: "No rendered viewport meta tag found.",
-        fix: "Add a responsive viewport meta tag.",
+        fix: "Add a viewport meta tag set to width=device-width, initial-scale=1 in the head.",
         snippet: '<meta name="viewport" content="width=device-width, initial-scale=1" />'
       });
     }
@@ -1739,7 +1739,7 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "issue",
         severity: "notice",
         title: `HTML language missing on ${label}`,
-        why: "The lang attribute helps browsers, translation tools, and assistive tech understand the page language.",
+        why: "The lang attribute tells browsers, screen readers and translation tools what language the page is in.",
         evidence: "No lang attribute found on the rendered html element.",
         fix: 'Add a truthful language code such as <html lang="en">.',
         snippet: '<html lang="en">'
@@ -1751,9 +1751,9 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "issue",
         severity: "notice",
         title: `Character encoding missing on ${label}`,
-        why: "A charset declaration prevents text rendering surprises.",
+        why: "Without a charset, some browsers show accented letters and symbols as garbled text.",
         evidence: "No rendered charset could be confirmed.",
-        fix: "Declare UTF-8 in the document head.",
+        fix: "Declare UTF-8 as the first tag in the head.",
         snippet: '<meta charset="utf-8" />'
       });
     }
@@ -1763,7 +1763,7 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "issue",
         severity: "notice",
         title: `HTML doctype missing on ${label}`,
-        why: "A doctype keeps browsers out of quirks mode.",
+        why: "Without a doctype, browsers fall back to an old layout mode and the page can display differently.",
         evidence: "No HTML doctype was found before rendering.",
         fix: "Start the document with <!doctype html>.",
         snippet: "<!doctype html>"
@@ -1775,9 +1775,9 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "issue",
         severity: "critical",
         title: `Noindex found on ${label}`,
-        why: "A noindex directive tells search engines not to index the page.",
+        why: "This tag tells search engines to keep the page out of results.",
         evidence: `Robots meta: "${rendered.robots}"`,
-        fix: "Remove noindex if this page should appear in search."
+        fix: "If this page should show up in search, remove the noindex tag or header."
       });
     }
 
@@ -1786,11 +1786,11 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "issue",
         severity: "warning",
         title: `Social share image incomplete on ${label}`,
-        why: "This affects how the page looks when shared. It is not a direct ranking claim.",
+        why: "Links to this page shared on social apps or in chats show no image. This doesn't affect rankings.",
         evidence: `og:image: ${rendered.openGraph.image || "missing"}; twitter:image: ${
           rendered.twitter.image || "missing"
         }`,
-        fix: "Add 1200x630 Open Graph and Twitter images.",
+        fix: "Add og:image and twitter:image tags pointing at a 1200x630 image.",
         snippet: buildSocialSnippet(page.url, rendered, declaredImages)
       });
     } else {
@@ -1812,9 +1812,9 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
           type: "issue",
           severity: "warning",
           title: `Social share image is not loadable on ${label}`,
-          why: "A social image tag that points at a file which does not load as an image leaves the share preview broken. It is not a direct ranking claim.",
+          why: "The share image tag points at a file that doesn't load as an image, so share previews show no picture. This doesn't affect rankings.",
           evidence: reasons,
-          fix: "Replace each social image URL with a live 1200x630 image file, or remove the broken tag.",
+          fix: "Point each share image tag at a 1200x630 image that loads, or remove the tag.",
           snippet: buildSocialSnippet(page.url, rendered, declaredImages),
           confidence: "needs-review"
         });
@@ -1833,9 +1833,9 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "issue",
         severity: "notice",
         title: `Apple touch icon missing on ${label}`,
-        why: "This improves mobile saved-page presentation. It is not a ranking claim.",
+        why: "When someone saves the page to a mobile home screen, it shows a blank tile. This doesn't affect rankings.",
         evidence: "No apple-touch-icon link found.",
-        fix: "Add an Apple touch icon.",
+        fix: 'Add a 180x180 PNG icon and link it with <link rel="apple-touch-icon">.',
         snippet: buildAppleTouchIconSnippet(page.url, declaredImages)
       });
     } else if (declaredAppleIcon && !declaredAppleIcon.ok) {
@@ -1848,9 +1848,9 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "issue",
         severity: "notice",
         title: `Apple touch icon is not loadable on ${label}`,
-        why: "An apple-touch-icon tag pointing at a file that does not load as an image leaves the same blank saved-page tile as no icon. It is not a ranking claim.",
+        why: "The icon tag points at a file that doesn't load as an image, so the home-screen tile is blank. This doesn't affect rankings.",
         evidence: `apple-touch-icon (${declaredAppleIcon.url}): ${reason}`,
-        fix: "Point the apple-touch-icon link at a live square PNG, or remove the broken tag.",
+        fix: "Point the apple-touch-icon link at a square PNG that loads, or remove the tag.",
         snippet: buildAppleTouchIconSnippet(page.url, declaredImages),
         confidence: "needs-review"
       });
@@ -1861,9 +1861,9 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "issue",
         severity: "warning",
         title: `Images missing alt attributes on ${label}`,
-        why: "Informative images need alt text for accessibility and image search context.",
+        why: "Screen readers read alt text aloud, and search engines use it to understand the image.",
         evidence: `${rendered.imagesMissingAlt.length}/${rendered.images.length} images have no alt attribute. Intentionally empty alt="" images are treated as decorative, not scored.`,
-        fix: 'Add useful alt text to informative images. Leave decorative images as alt="" intentionally.',
+        fix: 'Describe each meaningful image in a few words. Give purely decorative images alt="".',
         confidence: "needs-review"
       });
     }
@@ -1873,9 +1873,9 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "enhancement",
         severity: "notice",
         title: `Structured data opportunity on ${label}`,
-        why: "Structured data can make content eligible for richer search features when guidelines are met.",
+        why: "Schema markup can make the page eligible for extra details in search results, such as ratings or prices.",
         evidence: "No JSON-LD structured data found.",
-        fix: "Add truthful schema that matches visible content.",
+        fix: "Add JSON-LD schema that describes only what the page shows.",
         source: DOCS.structuredData,
         snippet: buildSchemaSnippet(page.url, rendered)
       });
@@ -1886,9 +1886,9 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "issue",
         severity: "warning",
         title: `Page is not served over HTTPS on ${label}`,
-        why: "HTTPS is table-stakes for user trust and browser security signals.",
+        why: 'Browsers mark http:// pages as "Not secure", which puts visitors off.',
         evidence: `Final rendered URL uses ${finalUrlObject.protocol}//.`,
-        fix: "Enable HTTPS, redirect HTTP to HTTPS, and update canonical and sitemap URLs to HTTPS."
+        fix: "Turn on HTTPS, redirect every http:// URL to https://, and use https:// in the canonical tag and sitemap."
       });
     }
 
@@ -1907,9 +1907,9 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         type: "issue",
         severity: "notice",
         title: `HSTS security header missing on ${label}`,
-        why: "Strict-Transport-Security helps browsers keep repeat visits on HTTPS.",
+        why: "This header tells browsers to always use HTTPS for your site, even if someone types http://.",
         evidence: "The initial HTML response did not include a strict-transport-security header.",
-        fix: "Add a Strict-Transport-Security header after confirming HTTPS works across the full host.",
+        fix: "First confirm every page on the domain works over HTTPS. Then add a Strict-Transport-Security header.",
         confidence: "needs-review"
       });
     }
@@ -1921,9 +1921,9 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
       type: "issue",
       severity: "warning",
       title: "Robots.txt not found",
-      why: "Robots.txt gives crawlers explicit discovery guidance.",
+      why: "Search engines check /robots.txt first to see what they may crawl and where your sitemap is.",
       evidence: `GET /robots.txt returned ${robots.status || "no response"}.`,
-      fix: "Add a robots.txt file that references your sitemap.",
+      fix: "Add a robots.txt file at the site root with a Sitemap: line.",
       snippet: "User-agent: *\nAllow: /\n\nSitemap: /sitemap.xml"
     });
   }
@@ -1933,9 +1933,9 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
       type: "issue",
       severity: "warning",
       title: "Sitemap not found",
-      why: "A sitemap helps crawlers discover important URLs.",
+      why: "A sitemap lists the pages you want search engines to find.",
       evidence: `GET /sitemap.xml returned ${sitemap.status || "no response"}.`,
-      fix: "Publish a sitemap and reference it from robots.txt."
+      fix: "Publish /sitemap.xml listing your public pages, and add its URL to robots.txt."
     });
   }
 
@@ -2121,43 +2121,43 @@ function severityRank(severity) {
 function acceptanceCheck(finding) {
   const title = finding.title.toLowerCase();
   if (title.includes("title")) {
-    return "The rendered page has a unique, descriptive title that is not obviously truncated.";
+    return "The page has its own title that names its topic and isn't cut off in search results.";
   }
   if (title.includes("description")) {
-    return "The rendered page has one useful meta description, roughly 70-165 characters.";
+    return "The page has one meta description of about 70 to 165 characters.";
   }
   if (title.includes("h1")) {
-    return "The rendered page has one visible H1 that matches the main page purpose.";
+    return "The page shows one H1 that names its main topic.";
   }
   if (title.includes("internal links")) {
-    return "The rendered DOM exposes normal internal anchor links to important pages.";
+    return "The loaded page has normal <a href> links to your important pages.";
   }
   if (title.includes("broken") && title.includes("link")) {
-    return "Every link in the finding returns a live 2xx/3xx response or has been removed intentionally.";
+    return "Every link listed here now loads, or you removed it on purpose.";
   }
   if (title.includes("broken") && title.includes("image")) {
-    return "Every image in the finding loads successfully or has been removed intentionally.";
+    return "Every image listed here now loads, or you removed it on purpose.";
   }
   if (title.includes("redirecting internal")) {
-    return "Internal links point directly to their final canonical destination.";
+    return "Internal links go straight to the final URL with no redirect.";
   }
   if (title.includes("canonical conflicts")) {
-    return "The page either removes noindex because it should rank, or removes misleading canonical consolidation because it should stay out of search.";
+    return "The page has either noindex or a canonical tag pointing elsewhere, not both.";
   }
   if (title.includes("noindex")) {
-    return "The rendered robots meta does not include noindex for pages that should rank.";
+    return "Pages you want in search have no noindex tag or header.";
   }
   if (title.includes("canonical")) {
-    return "The rendered head includes one rel=canonical pointing to the preferred URL.";
+    return "The page has one canonical tag with its preferred URL.";
   }
   if (title.includes("hreflang")) {
-    return "Hreflang tags are unique, valid, self-referencing where relevant, and point at live localized URLs.";
+    return "Each hreflang code appears once, is valid, includes this page, and points at a page that loads.";
   }
   if (title.includes("json")) {
-    return "JSON-LD parses cleanly and includes @context plus @type values matching visible content.";
+    return "The JSON-LD parses without errors and has @context and an @type that matches the page.";
   }
   if (title.includes("https") || title.includes("hsts") || title.includes("security")) {
-    return "The page loads over HTTPS and sends the expected security headers without mixed-content resources.";
+    return "The page loads over HTTPS, sends the security headers, and loads no http:// files.";
   }
   if (
     title.includes("pagespeed") ||
@@ -2165,45 +2165,45 @@ function acceptanceCheck(finding) {
     title.includes("total blocking time") ||
     title.includes("layout shift")
   ) {
-    return "A rerun shows PageSpeed lab metrics back in the acceptable range and the repair evidence no longer appears.";
+    return "A rerun shows the PageSpeed numbers in the passing range and this problem gone.";
   }
   if (title.includes("slow") || title.includes("large image") || title.includes("large html")) {
-    return "A rerun shows smaller transfer weight or faster rendered load, then field Core Web Vitals can be checked.";
+    return "A rerun shows a smaller download or faster load. Then check real-user Core Web Vitals in Search Console.";
   }
   if (title.includes("social share")) {
-    return "The rendered head includes og:image and twitter:image using a 1200x630 image.";
+    return "The page has og:image and twitter:image tags pointing at a 1200x630 image.";
   }
   if (title.includes("apple touch")) {
-    return "The rendered head links an Apple touch icon.";
+    return "The page links an Apple touch icon that loads.";
   }
   if (title.includes("alt")) {
-    return "Informative images have useful alt text, while decorative images are intentionally empty.";
+    return 'Meaningful images have alt text. Decorative images have alt="".';
   }
   if (title.includes("structured data")) {
-    return "JSON-LD validates and matches content that is visible on the page.";
+    return "The JSON-LD is valid and describes only what the page shows.";
   }
   if (title.includes("viewport")) {
-    return "The rendered head includes a mobile-friendly viewport meta tag.";
+    return "The page has a viewport meta tag with width=device-width.";
   }
   if (title.includes("language")) {
-    return "The rendered html element has the correct lang attribute.";
+    return "The <html> tag has the right lang attribute.";
   }
   if (title.includes("encoding")) {
-    return "The rendered document declares UTF-8 character encoding.";
+    return 'The page declares UTF-8 with <meta charset="utf-8">.';
   }
   if (title.includes("doctype")) {
-    return "The HTML document starts in standards mode with <!doctype html>.";
+    return "The HTML starts with <!doctype html>.";
   }
   if (title.includes("redirect")) {
-    return "Canonicals, sitemap URLs, and internal links point at the final preferred URL.";
+    return "The canonical tag, sitemap and internal links all use the final URL.";
   }
   if (title.includes("robots.txt")) {
-    return "GET /robots.txt returns 200 and references the sitemap.";
+    return "/robots.txt loads and includes a Sitemap: line.";
   }
   if (title.includes("sitemap")) {
-    return "GET /sitemap.xml returns 200 and lists indexable canonical URLs.";
+    return "/sitemap.xml loads and lists the pages you want in search.";
   }
-  return "Re-run the audit and confirm this finding is gone or marked needs-review with evidence.";
+  return "Rerun the audit. This problem is gone, or marked needs review with the reason shown.";
 }
 
 function dedupeFix(fix, index, fixes) {
@@ -2426,9 +2426,9 @@ function addPerformanceFindings(add, performance = {}, label) {
       type: "performance",
       severity: performance.performanceScore < PERFORMANCE_LIMITS.poorScore ? "critical" : "warning",
       title: `Low mobile PageSpeed performance on ${label}`,
-      why: "Page speed affects user experience and is part of the page-experience signal set.",
+      why: "Slow pages lose visitors, and Google uses page experience as one ranking signal.",
       evidence: `Mobile PageSpeed performance score is ${performance.performanceScore}/100 (${performance.category || "unknown"}).`,
-      fix: "Prioritize the PageSpeed opportunities in this report, then rerun until the mobile performance score is at least 75.",
+      fix: "Work through the PageSpeed items in this report, then rerun until the mobile score is 75 or higher.",
       source: DOCS.coreWebVitals,
       confidence: "needs-review"
     });
@@ -2440,9 +2440,9 @@ function addPerformanceFindings(add, performance = {}, label) {
       type: "performance",
       severity: lcp.value > PERFORMANCE_LIMITS.lcpPoorMs ? "critical" : "warning",
       title: `Slow Largest Contentful Paint on ${label}`,
-      why: "LCP measures when the main content becomes visible. Slow LCP usually means users wait too long for the page's main value.",
+      why: "LCP is when the biggest thing on screen, usually the hero image or headline, finishes loading. Here it takes too long.",
       evidence: `PageSpeed lab LCP is ${lcp.display || `${Math.round(lcp.value)}ms`}.`,
-      fix: "Optimize the LCP element, reduce render-blocking work, preload the hero asset, and compress or resize above-the-fold media.",
+      fix: "Compress and resize the hero image, preload it, and defer scripts and styles the first view doesn't need.",
       source: DOCS.coreWebVitals,
       confidence: "needs-review"
     });
@@ -2454,9 +2454,9 @@ function addPerformanceFindings(add, performance = {}, label) {
       type: "performance",
       severity: tbt.value > PERFORMANCE_LIMITS.tbtPoorMs ? "critical" : "warning",
       title: `High Total Blocking Time on ${label}`,
-      why: "High blocking time means JavaScript is keeping the page from responding quickly.",
+      why: "JavaScript keeps the page busy, so taps and clicks respond late.",
       evidence: `PageSpeed lab TBT is ${tbt.display || `${Math.round(tbt.value)}ms`}.`,
-      fix: "Remove unused JavaScript, split bundles, defer non-critical scripts, and reduce third-party script work.",
+      fix: "Remove scripts you don't use, defer the rest, and cut third-party widgets you can live without.",
       source: DOCS.coreWebVitals,
       confidence: "needs-review"
     });
@@ -2468,9 +2468,9 @@ function addPerformanceFindings(add, performance = {}, label) {
       type: "performance",
       severity: cls.value > PERFORMANCE_LIMITS.clsPoor ? "critical" : "warning",
       title: `Layout shift risk on ${label}`,
-      why: "Unexpected layout shift makes pages feel unstable and can hurt Core Web Vitals.",
+      why: "Content jumps around while the page loads, so visitors tap the wrong thing.",
       evidence: `PageSpeed lab CLS is ${cls.display || cls.value.toFixed(2)}.`,
-      fix: "Reserve dimensions for images, ads, embeds, and late-loading UI so content does not jump after render.",
+      fix: "Set width and height on images, ads and embeds so the space is held before they load.",
       source: DOCS.coreWebVitals,
       confidence: "needs-review"
     });
@@ -2481,7 +2481,7 @@ function addPerformanceFindings(add, performance = {}, label) {
       type: "performance",
       severity: opportunity.savingsMs > 1000 || opportunity.savingsBytes > 250_000 ? "warning" : "notice",
       title: `${opportunity.title} on ${label}`,
-      why: "PageSpeed flagged this as a concrete performance repair opportunity.",
+      why: "Google PageSpeed measured this as slowing the page down.",
       evidence: performanceOpportunityEvidence(opportunity),
       fix: performanceOpportunityFix(opportunity),
       source: DOCS.coreWebVitals,
@@ -2502,19 +2502,18 @@ function performanceOpportunityEvidence(opportunity) {
 function performanceOpportunityFix(opportunity) {
   const id = opportunity.id || "";
   if (id.includes("render-blocking"))
-    return "Inline critical CSS, defer non-critical CSS/JS, and remove blocking assets from the initial render path.";
+    return "Inline the CSS the first view needs, and defer other CSS and JavaScript so they don't block the page from showing.";
   if (id.includes("unused-javascript"))
-    return "Delete unused scripts, split the bundle by route, and defer code that is not needed for the first view.";
-  if (id.includes("unused-css")) return "Remove unused CSS rules and ship only the styles needed for this route.";
+    return "Delete scripts you don't use, split the bundle by page, and defer code the first view doesn't need.";
+  if (id.includes("unused-css")) return "Remove unused CSS and load only the styles this page needs.";
   if (id.includes("image") || id.includes("offscreen"))
-    return "Compress images, serve WebP/AVIF where safe, lazy-load below-the-fold images, and size assets to their rendered dimensions.";
+    return "Resize images to their on-screen size, compress them, use WebP or AVIF, and lazy-load images below the fold.";
   if (id.includes("total-byte-weight"))
-    return "Reduce total transfer weight by compressing assets, pruning unused code, and removing heavy third-party payloads.";
-  if (id.includes("server-response"))
-    return "Improve server response time with caching, faster backend work, or edge delivery.";
+    return "Compress files, remove unused code, and drop heavy third-party scripts to cut the page's total download size.";
+  if (id.includes("server-response")) return "Speed up the server's first response with page caching or a CDN.";
   if (id.includes("largest-contentful-paint"))
-    return "Optimize the LCP element directly: preload it, compress it, and avoid hiding it behind client-side rendering.";
-  return "Review the PageSpeed opportunity and apply the smallest code or content change that removes the measured bottleneck.";
+    return "Preload and compress the largest element on screen, and make sure it is in the HTML rather than added later by JavaScript.";
+  return "Read the PageSpeed detail for this item and make the smallest change that removes the slowdown.";
 }
 
 function scoreCategory(score) {
@@ -2578,18 +2577,18 @@ function validateHreflang(hreflangs = [], pageUrl = "") {
       issues.push({
         severity: "warning",
         title: "Invalid hreflang code",
-        why: "Invalid hreflang values can prevent Google from understanding localized page alternates.",
+        why: "Google ignores hreflang tags with invalid codes, so it may show the wrong language version.",
         evidence: `Invalid hreflang value "${tag.hreflang || "missing"}" points to ${tag.href || "missing href"}.`,
-        fix: "Use valid BCP 47 language or language-region codes, or x-default for the fallback URL."
+        fix: 'Use codes like "en" or "en-gb", or "x-default" for the fallback page.'
       });
     }
     if (seen.has(code)) {
       issues.push({
         severity: "warning",
         title: "Duplicate hreflang tag",
-        why: "Duplicate hreflang codes create conflicting alternate-page signals.",
+        why: "The same language code points at two URLs, so search engines can't tell which one to show.",
         evidence: `${code} appears more than once: ${seen.get(code)} and ${tag.href || "missing href"}.`,
-        fix: "Keep one hreflang entry per language or language-region code."
+        fix: "Keep one hreflang tag per language code and remove the duplicate."
       });
     }
     seen.set(code, tag.href || "");
@@ -2601,9 +2600,9 @@ function validateHreflang(hreflangs = [], pageUrl = "") {
     issues.push({
       severity: "notice",
       title: "Hreflang is missing a self-reference",
-      why: "Each localized page should usually include itself in its hreflang cluster.",
+      why: "Each language version should list itself in its own hreflang tags. This one doesn't.",
       evidence: `No hreflang href matches the current page ${pageUrl}.`,
-      fix: "Add a hreflang entry for the current page alongside the alternate language URLs.",
+      fix: "Add a hreflang tag for this page next to the tags for its alternate language versions.",
       confidence: "needs-review"
     });
   }
@@ -2612,9 +2611,9 @@ function validateHreflang(hreflangs = [], pageUrl = "") {
     issues.push({
       severity: "notice",
       title: "Hreflang cluster has no x-default",
-      why: "An x-default URL gives Google a fallback page when no language or region fits.",
+      why: "x-default tells Google which page to show visitors whose language you don't cover.",
       evidence: `${hreflangs.length} hreflang tags were found, but none use x-default.`,
-      fix: "Add an x-default hreflang entry when there is a neutral fallback URL.",
+      fix: 'If you have a general fallback page, add an hreflang="x-default" tag pointing at it.',
       confidence: "needs-review"
     });
   }
@@ -3205,18 +3204,18 @@ export const ROOT_PUBLIC_PATHS = [
 // worker/routes/pages.test.mjs refuses a stale lastmod so the update
 // cannot silently ship.
 export const ROOT_PUBLIC_LASTMODS = {
-  "/": "2026-10-12T17:35:12Z",
-  "/demo": "2026-10-12T17:35:11Z",
-  "/check": "2026-10-12T17:35:11Z",
-  "/methodology": "2026-10-12T17:35:10Z",
-  "/pricing": "2026-10-12T17:35:09Z",
-  "/small-business-seo-audit": "2026-10-12T17:35:11Z",
-  "/rendered-vs-static-seo-audit": "2026-10-12T17:35:11Z",
-  "/ai-answer-readiness": "2026-10-12T17:35:10Z",
-  "/privacy": "2026-10-12T17:35:09Z",
-  "/proof": "2026-10-12T17:35:11Z",
-  "/support": "2026-10-12T17:35:09Z",
-  "/terms": "2026-10-12T17:35:09Z"
+  "/": "2026-10-12T17:35:13Z",
+  "/demo": "2026-10-12T17:35:12Z",
+  "/check": "2026-10-12T17:35:12Z",
+  "/methodology": "2026-10-12T17:35:11Z",
+  "/pricing": "2026-10-12T17:35:10Z",
+  "/small-business-seo-audit": "2026-10-12T17:35:12Z",
+  "/rendered-vs-static-seo-audit": "2026-10-12T17:35:12Z",
+  "/ai-answer-readiness": "2026-10-12T17:35:11Z",
+  "/privacy": "2026-10-12T17:35:10Z",
+  "/proof": "2026-10-12T17:35:12Z",
+  "/support": "2026-10-12T17:35:10Z",
+  "/terms": "2026-10-12T17:35:10Z"
 };
 
 export function rootSitemap(origin) {

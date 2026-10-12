@@ -16,7 +16,8 @@ import { repairAccountSummaryFromItems } from "../../shared/account-repair-summa
 async function getAccountSummary(request, env) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
-  if (!env.WAITLIST_DB) return json({ error: "Account storage is not configured." }, 503);
+  if (!env.WAITLIST_DB)
+    return json({ error: "Account storage is not set up on this server. Email support@seofixkit.com for help." }, 503);
 
   const [reports, fixRequests, auditJobs, siteClaims, auditSchedules] = await Promise.all([
     env.WAITLIST_DB.prepare(
@@ -223,7 +224,7 @@ function accountNextActions(reports, requests, sites = [], jobs = [], repairAgen
       {
         id: "audit-running",
         label: "Audit running",
-        detail: "The report will appear as soon as rendering and proof collection finish."
+        detail: "Your report shows up here when every page has loaded and been checked."
       }
     ];
   }
@@ -233,7 +234,7 @@ function accountNextActions(reports, requests, sites = [], jobs = [], repairAgen
         {
           id: "verify-site",
           label: "Verify your site",
-          detail: "Add a DNS TXT record or HTTPS file before self-serve audits run."
+          detail: "Add a DNS TXT record or upload a file to your site. Then you can run full audits."
         }
       ];
     }
@@ -241,7 +242,7 @@ function accountNextActions(reports, requests, sites = [], jobs = [], repairAgen
       {
         id: "run-audit",
         label: "Run your first audit",
-        detail: "Start with your homepage or highest-value product page."
+        detail: "Start with your homepage or the page that earns you the most."
       }
     ];
   }
@@ -251,7 +252,7 @@ function accountNextActions(reports, requests, sites = [], jobs = [], repairAgen
       {
         id: "repair-queue-unavailable",
         label: "Repair queue unavailable",
-        detail: "Repair actions are temporarily unavailable while repair storage is being updated."
+        detail: "The repair queue is being updated. Try again in a few minutes."
       }
     ];
   }
@@ -270,7 +271,7 @@ function accountNextActions(reports, requests, sites = [], jobs = [], repairAgen
       {
         id: "verify-site",
         label: "Verify your site",
-        detail: "Add a DNS TXT record or HTTPS file before self-serve audits run."
+        detail: "Add a DNS TXT record or upload a file to your site. Then you can run full audits."
       }
     ];
   }
@@ -278,8 +279,8 @@ function accountNextActions(reports, requests, sites = [], jobs = [], repairAgen
     return [
       {
         id: "review-fixes",
-        label: "Review proven fixes",
-        detail: "Open a report and start a Fix Pack only when the findings are real."
+        label: "Review your report",
+        detail: "Open a report and check the problems. Buy a Fix Pack only if you want help fixing them."
       }
     ];
   }
@@ -287,16 +288,16 @@ function accountNextActions(reports, requests, sites = [], jobs = [], repairAgen
     return [
       {
         id: "watch-delivery",
-        label: "Watch delivery status",
-        detail: "Your billing page shows due dates, notes, delivery links, and rerun proof."
+        label: "Track your Fix Pack",
+        detail: "Your billing page shows the due date, notes, delivery link, and rerun results."
       }
     ];
   }
   return [
     {
       id: "rerun-later",
-      label: "Keep the report handy",
-      detail: "Rerun after meaningful content, template, or metadata changes."
+      label: "Rerun after changes",
+      detail: "Rerun the audit after you change content, templates, or page titles and descriptions."
     }
   ];
 }
@@ -359,7 +360,8 @@ function reportListItem(row) {
 async function listReports(request, env) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
-  if (!env.WAITLIST_DB) return json({ error: "Account storage is not configured." }, 503);
+  if (!env.WAITLIST_DB)
+    return json({ error: "Account storage is not set up on this server. Email support@seofixkit.com for help." }, 503);
 
   const cursor = new URL(request.url).searchParams.get("cursor") || "";
   const [cursorCreatedAt, cursorId] = cursor.split("|");

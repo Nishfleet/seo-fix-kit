@@ -90,7 +90,7 @@ export function SiteHeader() {
           </nav>
           <div className="site-header-actions">
             <a className="btn btn-primary btn-sm header-cta" href="/check">
-              Check a page free
+              Check a page
             </a>
             <button
               aria-controls="site-nav"

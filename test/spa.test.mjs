@@ -259,12 +259,12 @@ function dashboardHandlers() {
 }
 
 function repairBoard(page) {
-  return page.getByRole("heading", { name: /safe action drafts/i }).locator("xpath=ancestor::section[1]");
+  return page.getByRole("heading", { name: /Assign, draft and track each fix/i }).locator("xpath=ancestor::section[1]");
 }
 
 async function signIn(page) {
   await page.goto(`${baseUrl}/beta`);
-  await page.getByRole("button", { name: "Have an invite code?" }).click();
+  await page.getByRole("button", { name: "Use an invite code" }).click();
   await page.getByLabel("Email").fill(OWNER);
   await page.getByLabel("Invite code").fill("beta-invite");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
@@ -290,21 +290,21 @@ test("homepage renders the React app with the email access form beside a primary
 
   // The served index.html has an empty #root; this heading only exists once
   // the client bundle has mounted the app into it.
-  await visible(page.getByRole("heading", { level: 1, name: "SEO fixes you can prove." }));
+  await visible(page.getByRole("heading", { level: 1, name: "An SEO audit that checks its own work." }));
   assert.ok(await page.locator("#root").getByRole("heading", { level: 1 }).count(), "app renders into #root");
 
-  const emailInput = await visible(page.getByLabel("Work email"));
-  const cta = await visible(page.getByRole("banner").getByRole("link", { name: "Check a page free" }));
+  const emailInput = await visible(page.getByLabel("Email"));
+  const cta = await visible(page.getByRole("banner").getByRole("link", { name: "Check a page" }));
   assert.equal(await cta.getAttribute("href"), "/check", "primary header CTA goes to the anonymous check");
 
   // Beside: the email form carries its own link to the anonymous check.
   const form = page.locator("form").filter({ has: emailInput });
-  const formCta = form.getByRole("link", { name: /Check one page without an account/ });
+  const formCta = form.getByRole("link", { name: /check one page without an account/ });
   assert.equal(await formCta.count(), 1, "the anonymous check link sits beside the form");
   assert.equal(await formCta.getAttribute("href"), "/check");
 
   await emailInput.fill("founder@example.com");
-  await page.getByRole("button", { name: "Get started free" }).click();
+  await page.getByRole("button", { name: "Start free" }).click();
   await visible(page.getByText("Check your email for a secure access link."));
   const sent = requests.find((request) => request.path === "/api/access/request");
   assert.equal(sent.method, "POST");
@@ -317,9 +317,9 @@ test("homepage FAQ shows the buyer questions, the anonymous /check path, and no-
 
   const faq = page.locator("details").filter({ has: page.locator("summary") });
   for (const question of [
-    "What happens after I enter a URL?",
-    "What does the paid Fix Pack include?",
-    "How is AI or GEO readiness handled?",
+    "Do I need an account?",
+    "What does the Fix Pack include?",
+    "Do you check AI search?",
     "What doesn’t SEO Fix Kit do?"
   ]) {
     const summary = await visible(page.locator("summary", { hasText: question }));
@@ -327,16 +327,14 @@ test("homepage FAQ shows the buyer questions, the anonymous /check path, and no-
   }
   assert.equal(await faq.count(), 4, "the FAQ lists the four buyer questions");
 
-  await visible(
-    page.locator("details p").filter({ hasText: "Anyone can check one public page right now with no account" })
-  );
+  await visible(page.locator("details p").filter({ hasText: "Not to check one page." }));
 
   const limits = page
     .locator("details")
     .filter({ has: page.locator("summary", { hasText: "What doesn’t SEO Fix Kit do?" }) });
   const answer = (await limits.innerText()).replace(/\s+/g, " ");
-  assert.match(answer, /does not auto-publish content/);
-  assert.match(answer, /guarantee rankings, traffic, indexing, AI citations, or revenue/);
+  assert.match(answer, /never changes your site or publishes content/);
+  assert.match(answer, /guarantee rankings, traffic, indexing, AI citations or revenue/);
 });
 
 // --- Beta workspace ---------------------------------------------------------
@@ -450,7 +448,7 @@ test("a queued audit polls /api/audit/jobs/:id until completed before the privat
 
   await page.getByLabel("Page or site URL").fill(report.url);
   await page.getByRole("button", { name: "Run audit" }).click();
-  await visible(page.getByText("Audit queued. Waiting for proof collection to start."));
+  await visible(page.getByText("Audit queued. Waiting to start…"));
   await visible(page.getByRole("heading", { name: "example.com", level: 1 }));
   assert.equal(new URL(page.url()).pathname, `/beta/reports/${report.id}`, "address bar moves to the private report");
 
@@ -498,21 +496,21 @@ test("the dashboard adds a weekly monitor for a verified host and pauses it", as
   await signIn(page);
   await page.getByRole("navigation", { name: "App" }).getByRole("link", { name: "Sites", exact: true }).click();
 
-  await (await visible(page.getByRole("button", { name: "Monitor weekly" }))).click();
+  await (await visible(page.getByRole("button", { name: "Turn on weekly checks" }))).click();
   await visible(page.getByText("example.com will be checked weekly."));
   const add = requests.find((request) => request.method === "POST" && request.path === "/api/audit/schedules");
   assert.equal(add.body.url, "https://example.com/", "monitor targets the verified host");
   assert.equal(add.body.intervalDays, 7, "monitor is weekly");
 
   const [schedule] = schedules;
-  await (await visible(page.getByRole("button", { name: "Pause monitoring" }))).click();
-  await visible(page.getByText("Monitor paused."));
+  await (await visible(page.getByRole("button", { name: "Pause weekly checks" }))).click();
+  await visible(page.getByText("Weekly checks paused."));
   await until(
     () =>
       requests.some((request) => request.method === "DELETE" && request.path === `/api/audit/schedules/${schedule.id}`),
     "pausing sends DELETE for that monitor"
   );
-  await visible(page.getByRole("button", { name: "Monitor weekly" }));
+  await visible(page.getByRole("button", { name: "Turn on weekly checks" }));
 });
 
 // --- Saved report -----------------------------------------------------------
@@ -522,9 +520,9 @@ test("a loaded report shows the remediation brief panel with a JSON download", a
   const { page } = await openApp(t, reportHandlers(report));
   await page.goto(`${baseUrl}/beta/reports/${report.id}#repair`);
 
-  const panel = await visible(page.getByRole("region", { name: "Agent remediation brief" }));
+  const panel = await visible(page.getByRole("region", { name: "Repair brief" }));
   await visible(panel.getByRole("heading", { name: "Missing title on home" }));
-  const download = await visible(panel.getByRole("link", { name: "Download remediation JSON" }));
+  const download = await visible(panel.getByRole("link", { name: "Download brief (JSON)" }));
   assert.equal(await download.getAttribute("href"), `/api/reports/${report.id}/remediation-brief.json`);
 });
 
@@ -577,7 +575,7 @@ test("the repair board status filter shows only items in the chosen status", asy
   await filter.selectOption({ label: "Drafted" });
   await shows(["Images missing alt text"], "Drafted shows only drafted items");
   await filter.selectOption({ label: "Regressed" });
-  await visible(board.getByText("No repair items match this filter."));
+  await visible(board.getByText("No fixes with this status."));
   await filter.selectOption({ label: "All" });
   await shows(
     ["Images missing alt text", "Missing meta description", "Missing title on home", "Thin content on home"],
@@ -599,11 +597,11 @@ test("repair board drafts are saved for review and publish nothing", async (t) =
       .locator("article")
       .filter({ has: page.getByRole("heading", { name: "Missing title on home" }) })
   );
-  await visible(card.getByText("Drafts are saved for review and do not publish anything."));
+  await visible(card.getByText("Drafts are saved for review. Nothing changes on your site."));
 
   const before = requests.length;
-  await card.getByRole("button", { name: "Draft action" }).click();
-  await visible(page.getByText("Agent action drafted for review."));
+  await card.getByRole("button", { name: "Draft change" }).click();
+  await visible(page.getByText("Draft saved for review."));
   const writes = requests.slice(before).filter((request) => request.method !== "GET");
   assert.deepEqual(
     writes.map((request) => `${request.method} ${request.path}`),

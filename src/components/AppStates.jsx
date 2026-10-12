@@ -17,7 +17,7 @@ export function SkeletonRows({ rows = 3, label = "Loading" }) {
 export function LoadError({ message, onRetry }) {
   return (
     <div className="app-load-error" role="alert">
-      <p>{message || "Something went wrong while loading this page."}</p>
+      <p>{message || "This didn’t load. Check your connection and try again."}</p>
       {onRetry && (
         <button className="app-button-secondary" onClick={onRetry} type="button">
           Try again

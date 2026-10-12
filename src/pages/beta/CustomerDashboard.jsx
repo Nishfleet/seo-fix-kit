@@ -36,30 +36,30 @@ export function Overview({ accountData, auditPanel, message, status, onRetry }) 
     {
       done: verifiedCount > 0,
       title: "Add and verify your site",
-      detail: "Prove you own it with a DNS record or a small file. Until then you can check your homepage.",
+      detail: "Add a DNS record or a small file to show you own it. Until then you can audit your homepage.",
       to: "/beta/sites",
       cta: "Add site"
     },
     {
       done: reports.length > 0,
       title: "Run your first audit",
-      detail: "Start with your homepage, pricing page, or best-selling product page.",
+      detail: "Start with your homepage, pricing page or best-selling product page.",
       to: "#new-audit",
-      cta: "Start audit"
+      cta: "Run audit"
     },
     {
       done: Number(metrics.repairItems || 0) > 0,
       title: "Review your fixes",
-      detail: "Open a report to see each proven problem with its evidence and fix.",
+      detail: "Open a report to see each problem, its evidence and the fix.",
       to: reports[0]?.reportPath || "/beta/reports",
       cta: "Open report"
     },
     {
       done: monitorCount > 0,
-      title: "Turn on weekly monitoring",
-      detail: "We rerun the audit every week and flag anything that breaks again.",
+      title: "Turn on weekly checks",
+      detail: "We rerun the audit every week and show what’s fixed, still open or new.",
       to: "/beta/sites",
-      cta: "Set up"
+      cta: "Turn on"
     }
   ];
   const doneCount = steps.filter((step) => step.done).length;
@@ -68,17 +68,17 @@ export function Overview({ accountData, auditPanel, message, status, onRetry }) 
 
   return (
     <div className="app-page">
-      <PageHeader title="Overview" description="Find what is broken on your site, fix it, and prove it worked." />
+      <PageHeader title="Overview" description="Run an audit, fix what it finds, then rerun to confirm." />
       {!loaded && status === "loading" && (
-        <section className="app-card" aria-label="Loading your workspace">
-          <SkeletonRows rows={4} label="Loading your workspace" />
+        <section className="app-card" aria-label="Loading your dashboard">
+          <SkeletonRows rows={4} label="Loading your dashboard" />
         </section>
       )}
       {status === "error" && <LoadError message={message} onRetry={onRetry} />}
       {loaded && doneCount < steps.length && (
         <section className="app-card onboarding" aria-labelledby="onboarding-title">
           <div className="app-card-head">
-            <h2 id="onboarding-title">Get set up</h2>
+            <h2 id="onboarding-title">Set up your account</h2>
             <span className="app-progress-label">
               {doneCount} of {steps.length} done
             </span>
@@ -130,7 +130,7 @@ export function Overview({ accountData, auditPanel, message, status, onRetry }) 
             <Metric label="Open fixes" value={metrics.openRepairs || repairCounts.active || 0} />
             <Metric label="Verified sites" value={verifiedCount} />
             <Metric
-              label="Weekly monitors"
+              label="Weekly checks"
               value={`${monitorCount}/${metrics.monitorLimit || accountData?.monitoring?.limit || 5}`}
             />
           </section>
@@ -163,7 +163,7 @@ function reportLabel(item) {
 
 function ReportRows({ reports }) {
   if (!reports.length) {
-    return <EmptyState icon="file">Your reports will show up here after your first audit.</EmptyState>;
+    return <EmptyState icon="file">No reports yet. Run your first audit to see problems here.</EmptyState>;
   }
   return (
     <div className="app-table" role="table" aria-label="Reports">
@@ -258,7 +258,7 @@ export function ReportsPage({ accountData, message, status, onRetry }) {
           </div>
           {reportsFailed && (
             <LoadError
-              message="We couldn’t load your full report list, so only your newest reports are shown."
+              message="The full list didn’t load, so only your newest reports are showing."
               onRetry={() => reportPages.refetch()}
             />
           )}
@@ -310,7 +310,7 @@ export function ReportsPage({ accountData, message, status, onRetry }) {
             </div>
           ) : (
             <EmptyState icon="wrench">
-              No Fix Packs yet. You can start one from any report that finds real problems.
+              No Fix Packs yet. You can buy one from the Problems tab of any report.
             </EmptyState>
           )}
         </section>
@@ -346,7 +346,7 @@ export function SitesPage({
     <div className="app-page">
       <PageHeader
         title="Sites & monitoring"
-        description="Verify the sites you own to unlock full audits and weekly monitoring."
+        description="Verify a site you own to audit all its pages and turn on weekly checks."
       />
       {status === "error" && <LoadError message={message} onRetry={onRetry} />}
       <section className="app-card" aria-labelledby="add-site-title">
@@ -354,7 +354,7 @@ export function SitesPage({
           <h2 id="add-site-title">Add a site</h2>
         </div>
         <p className="app-card-text">
-          Enter your domain and we’ll give you a DNS record or a small file to prove you own it.
+          Enter your domain. We’ll give you a DNS record or a small file that shows you own it.
           {isFounder ? " Founder accounts can audit any site without verifying." : ""}
         </p>
         <form className="site-claim-form" onSubmit={onSiteClaim}>
@@ -384,14 +384,14 @@ export function SitesPage({
           <h2 id="your-sites-title">Your sites</h2>
           {loaded && (
             <span className="app-progress-label">
-              {schedules.length} of {monitoring.limit || 5} weekly monitors used
+              {schedules.length} of {monitoring.limit || 5} weekly checks used
             </span>
           )}
         </div>
         <StatusMessage tone={scheduleStatus}>{scheduleMessage}</StatusMessage>
         {!loaded ? (
           status === "error" ? (
-            <p className="app-empty">Your sites will show here once your workspace loads.</p>
+            <p className="app-empty">Your sites will show here once this page loads.</p>
           ) : (
             <SkeletonRows rows={2} label="Loading your sites" />
           )
@@ -413,8 +413,8 @@ export function SitesPage({
                       {verified
                         ? monitor
                           ? `Checked ${monitor.cadenceLabel?.toLowerCase() || "weekly"}. ${auditScheduleDetail(monitor)}`
-                          : "Weekly monitoring is off."
-                        : "Add one of these to your site, then select Verify. DNS changes can take a few minutes to show up."}
+                          : "Weekly checks are off."
+                        : "Add one of these to your site, then click Verify. DNS changes can take a few minutes to show up."}
                     </p>
                   </div>
                   <div className="site-row-actions">
@@ -432,7 +432,7 @@ export function SitesPage({
                             onClick={() => onScheduleDelete(monitor.id)}
                             type="button"
                           >
-                            Pause monitoring
+                            Pause weekly checks
                           </button>
                         </>
                       ) : (
@@ -442,7 +442,7 @@ export function SitesPage({
                           onClick={() => onScheduleCreate(`https://${site.host}/`)}
                           type="button"
                         >
-                          Monitor weekly
+                          Turn on weekly checks
                         </button>
                       )
                     ) : (
@@ -482,7 +482,7 @@ export function SitesPage({
           <EmptyState icon="browser">No sites yet. Add your first one above.</EmptyState>
         )}
         <p className="app-footnote">
-          {monitoring.message || "Weekly monitoring is included free for verified sites during the beta."}
+          {monitoring.message || "Weekly checks are free for verified sites during the beta."}
         </p>
       </section>
     </div>
@@ -507,21 +507,21 @@ function VerificationRecord({ title, fields }) {
 export function RepairAgentFeed({ items = [], nextAction = null, reports = [] }) {
   const hasReports = reports.length > 0;
   return (
-    <section className="repair-agent-panel" aria-label="Repair agent feed">
+    <section className="repair-agent-panel" aria-label="Fixes to work on">
       <div className="repair-agent-heading">
         <div>
           <h2>{items.length ? "Fixes to work on" : "No fixes waiting"}</h2>
           <p>
             {items.length
-              ? "The most important open fixes across your reports."
+              ? "The highest-priority open fixes across your reports."
               : hasReports
-                ? "Open a report with proven problems to start working through them."
+                ? "Open a report to start working through its problems."
                 : "Run your first audit to see what needs fixing."}
           </p>
         </div>
         {nextAction?.href && items.length > 0 && (
           <a className="app-card-link" href={nextAction.href}>
-            Open
+            Open report
           </a>
         )}
       </div>
@@ -548,7 +548,9 @@ export function RepairAgentFeed({ items = [], nextAction = null, reports = [] })
           <div className="repair-agent-empty">
             <strong>{hasReports ? "Nothing to fix right now." : "No reports yet."}</strong>
             <span>
-              {hasReports ? "New problems from your next audit will show up here." : "Run an audit to get started."}
+              {hasReports
+                ? "New problems from your next audit will show up here."
+                : "Run an audit to see problems here."}
             </span>
           </div>
         )}
@@ -638,7 +640,7 @@ export function DeveloperApiPanel({
         <div className="app-card-head">
           <div>
             <h2 id="api-keys-title">API keys</h2>
-            <p className="app-card-subtle">Use a key to start audits and read results from your own tools.</p>
+            <p className="app-card-subtle">Run audits and read results from your own code.</p>
           </div>
           <div className="app-card-actions">
             {!loading && (
@@ -684,7 +686,7 @@ export function DeveloperApiPanel({
                 </span>
                 <span role="cell" className="app-table-action">
                   <ConfirmButton
-                    confirmLabel="Yes, revoke"
+                    confirmLabel="Revoke key"
                     disabled={busy}
                     label="Revoke"
                     onConfirm={() => onApiTokenRevoke(token.id)}
@@ -694,7 +696,7 @@ export function DeveloperApiPanel({
             ))}
           </div>
         ) : (
-          <EmptyState icon="lock">No API keys yet. Create one to start audits from your own tools.</EmptyState>
+          <EmptyState icon="lock">No API keys yet. Create one to run audits from your own code.</EmptyState>
         )}
       </section>
 
@@ -703,7 +705,7 @@ export function DeveloperApiPanel({
           <div>
             <h2 id="webhooks-title">Webhooks</h2>
             <p className="app-card-subtle">
-              We send a signed POST request to your URL when an audit finishes or fails.
+              We send a signed POST request to your URL when an audit finishes or fails, and when a fix changes status.
             </p>
           </div>
         </div>
@@ -728,7 +730,7 @@ export function DeveloperApiPanel({
           </div>
         </form>
         {webhookSecret && (
-          <SecretBox title="Signing secret. Copy it now; you won’t be able to see it again." value={webhookSecret} />
+          <SecretBox title="Signing secret. Copy it now. You won’t be able to see it again." value={webhookSecret} />
         )}
         {loading ? (
           <SkeletonRows rows={1} label="Loading webhooks" />
@@ -745,7 +747,7 @@ export function DeveloperApiPanel({
                 </span>
                 <span role="cell" className="app-table-action">
                   <ConfirmButton
-                    confirmLabel="Yes, remove"
+                    confirmLabel="Remove endpoint"
                     disabled={busy}
                     label="Remove"
                     onConfirm={() => onWebhookRevoke(webhook.id)}
@@ -755,7 +757,9 @@ export function DeveloperApiPanel({
             ))}
           </div>
         ) : (
-          <EmptyState icon="plug">No endpoints yet. Add a URL above to get notified when audits finish.</EmptyState>
+          <EmptyState icon="plug">
+            No endpoints yet. Add a URL above to get a request when an audit finishes.
+          </EmptyState>
         )}
       </section>
 
@@ -764,13 +768,13 @@ export function DeveloperApiPanel({
           <h2 id="quick-start-title">Quick start</h2>
         </div>
         <p className="app-card-text">
-          Start an audit with your API key. The response includes an audit ID to check on.
+          Run an audit with your API key. The response includes an audit ID you can check for status.
         </p>
         <CodeBlock code={quickStart} />
         <ul className="api-endpoints" aria-label="Main endpoints">
           <li>
             <code>POST /v1/audits</code>
-            <span>Start an audit</span>
+            <span>Run an audit</span>
           </li>
           <li>
             <code>GET /v1/audits/{"{audit_id}"}</code>
@@ -778,7 +782,7 @@ export function DeveloperApiPanel({
           </li>
           <li>
             <code>GET /v1/audits/{"{audit_id}"}/issues</code>
-            <span>List proven problems</span>
+            <span>List the problems found</span>
           </li>
           <li>
             <code>GET /v1/projects</code>

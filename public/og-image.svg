@@ -45,13 +45,14 @@
   </g>
 
   <!-- Headline -->
-  <text font-family="Inter, Arial, sans-serif" font-size="68" font-weight="650" letter-spacing="-2.8" fill="url(#headline)">
-    <tspan x="72" y="236">SEO fixes</tspan>
-    <tspan x="72" y="312">you can prove.</tspan>
+  <text font-family="Inter, Arial, sans-serif" font-size="60" font-weight="650" letter-spacing="-2.4" fill="url(#headline)">
+    <tspan x="72" y="200">An SEO audit</tspan>
+    <tspan x="72" y="268">that checks</tspan>
+    <tspan x="72" y="336">its own work.</tspan>
   </text>
   <text font-family="Inter, Arial, sans-serif" font-size="23" fill="#fbf8ef" fill-opacity="0.66">
-    <tspan x="72" y="378">Real-browser audits, false alarms</tspan>
-    <tspan x="72" y="410">filtered, fixes ready to paste.</tspan>
+    <tspan x="72" y="392">Every page in a real browser.</tspan>
+    <tspan x="72" y="424">Real problems only, each with a fix.</tspan>
   </text>
   <g transform="translate(72 470)" font-family="ui-monospace, Menlo, monospace" font-size="15" letter-spacing="1.2">
     <rect width="194" height="40" rx="20" fill="#98f0cc" fill-opacity="0.08" stroke="#98f0cc" stroke-opacity="0.3"/>

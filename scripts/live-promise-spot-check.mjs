@@ -128,8 +128,8 @@ export function publicPageSpotChecks(baseUrl) {
       isPage: true,
       acceptStatuses: [200],
       expectations: [
-        { reason: "proof-loop headline", match: "Fix only what is actually broken." },
-        { reason: "static-vs-rendered proof panels", match: "Rendered proof" },
+        { reason: "proof-loop headline", match: "See which warnings a real browser rules out." },
+        { reason: "static-vs-rendered proof panels", match: "Real browser" },
         { reason: "no-overclaim section", match: "What this sample does not claim" },
         {
           reason: "snippet qualifier stays engine-capable",
@@ -147,7 +147,7 @@ export function publicPageSpotChecks(baseUrl) {
       isPage: true,
       acceptStatuses: [200],
       expectations: [
-        { reason: "one-page check headline", match: "Check One Page for SEO Proof" },
+        { reason: "one-page check headline", match: "Free SEO Page Check" },
         { reason: "URL check form", match: 'id="check-form"' },
         { reason: "no-account proof promise", match: "No account, no email, no stored report" },
         { reason: "no-storage disclosure", match: "short-lived anonymous rate-limit counters" },
@@ -162,11 +162,11 @@ export function publicPageSpotChecks(baseUrl) {
       isPage: true,
       acceptStatuses: [200],
       expectations: [
-        { reason: "claims-last headline", match: "Proof first. Repairs second. Claims last." },
-        { reason: "limits section", match: "Limits we state up front" },
+        { reason: "claims-last headline", match: "How SEO Fix Kit works" },
+        { reason: "limits section", match: "What it does not do" },
         { reason: "AI visibility tracking is not live", match: "No AI visibility tracking" },
         { reason: "no hidden site writes", match: "No hidden site writes" },
-        { reason: "50K crawl staged, not complete", match: "No fake scale claim" },
+        { reason: "50K crawl staged, not complete", match: "Large crawls are early access" },
         { reason: "clickable CTA into the anonymous check", match: `href="${baseUrl}/check"` },
         { reason: "link to terms", match: `href="${baseUrl}/terms"` },
         { reason: "link to privacy", match: `href="${baseUrl}/privacy"` }
@@ -178,7 +178,7 @@ export function publicPageSpotChecks(baseUrl) {
       isPage: true,
       acceptStatuses: [200],
       expectations: [
-        { reason: "pricing headline", match: "Free to find it. Pay only to fix it." },
+        { reason: "pricing headline", match: "Audits are free. Fixes are $99, once." },
         { reason: "fix pack offer", match: "Fix Pack" },
         { reason: "public fix pack price", match: "$99.00 one-time" },
         {
@@ -198,7 +198,7 @@ export function publicPageSpotChecks(baseUrl) {
       isPage: true,
       acceptStatuses: [200],
       expectations: [
-        { reason: "proof-not-homework headline", match: "An SEO audit that shows proof, not homework." },
+        { reason: "proof-not-homework headline", match: "An SEO audit that shows its evidence." },
         { reason: "free one-page check entry", match: "Free one-page check" },
         { reason: "no-overclaim section", match: "What this page does not claim" },
         { reason: "clickable CTA into the anonymous check", match: `href="${baseUrl}/check"` },
@@ -215,17 +215,17 @@ export function publicPageSpotChecks(baseUrl) {
       expectations: [
         {
           reason: "static-vs-rendered headline",
-          match: "Static scanners invent work. AI crawlers miss content. Rendered proof handles both."
+          match: "See your page the way a crawler sees it."
         },
-        { reason: "static scanner vs rendered proof panels", match: "Rendered proof" },
-        { reason: "AI crawler visibility framing", match: "The same diff is your AI crawler visibility check" },
+        { reason: "static scanner vs rendered proof panels", match: "Real browser" },
+        { reason: "AI crawler visibility framing", match: "The same comparison shows what AI crawlers can read" },
         {
           reason: "names the JavaScript-blind AI crawlers",
-          match: "GPTBot (OpenAI), ClaudeBot (Anthropic), PerplexityBot, and CCBot"
+          match: "GPTBot from OpenAI, ClaudeBot from Anthropic, PerplexityBot and CCBot"
         },
         {
           reason: "cites the SEJ-confirmed no-JavaScript behavior",
-          match: "fetch raw HTML and do not execute JavaScript"
+          match: "fetch raw HTML and do not run JavaScript"
         },
         { reason: "names free static-vs-rendered checkers", match: "Compared with free static-vs-rendered checkers" },
         { reason: "names LLM Pulse GEO Crawlability Checker", match: "LLM Pulse GEO Crawlability Checker" },
@@ -247,7 +247,7 @@ export function publicPageSpotChecks(baseUrl) {
       isPage: true,
       acceptStatuses: [200],
       expectations: [
-        { reason: "site-proof headline", match: "A site-proof AI readiness check, not a citation tracker." },
+        { reason: "site-proof headline", match: "Check whether AI engines can use your pages." },
         { reason: "no live answer-engine sampling", match: "No live answer-engine sampling" },
         { reason: "no AI citation monitoring", match: "No AI citation monitoring" },
         { reason: "llms.txt stays optional", match: "llms.txt stays optional" },
@@ -288,7 +288,7 @@ export function publicPageSpotChecks(baseUrl) {
       expectations: [
         {
           reason: "real before/after headline",
-          match: "One real repair, with the same measurement path before and after."
+          match: "85 to 100 in two fixes."
         },
         { reason: "before score 85", match: "Score <strong>85</strong>/100" },
         { reason: "intermediate score 99", match: "Score <strong>99</strong>/100" },
@@ -318,7 +318,7 @@ export function publicPageSpotChecks(baseUrl) {
       acceptStatuses: [200],
       contentType: "text/markdown",
       expectations: [
-        { reason: "markdown receipt headline", match: "SEO Fix Kit — Repair proof receipt" },
+        { reason: "markdown receipt headline", match: "SEO Fix Kit case study: 85 to 100 in two fixes" },
         { reason: "before score 85", match: "85/100" },
         { reason: "after score 100", match: "100/100" },
         { reason: "owner-approved PR #4 referenced", match: "github.com/nish3451/tinystudio-in/pull/4" },
@@ -338,11 +338,11 @@ export function publicPageSpotChecks(baseUrl) {
         { reason: "no-ranking promise", match: "No ranking, traffic, or revenue promise is made." },
         {
           reason: "one repair pass plus rerun",
-          match: "one proof-backed repair pass for one report plus one rerun after fixes"
+          match: "one repair pass on one report, plus one rerun after the fixes ship"
         },
         {
           reason: "refund guard when the queue cannot start",
-          match: "If payment succeeds but the repair queue cannot start, you are entitled to a full refund"
+          match: "If payment succeeds but the repair pass can’t start, you get a full refund"
         },
         { reason: "link to privacy", match: `href="${baseUrl}/privacy"` },
         { reason: "link to the anonymous check", match: `href="${baseUrl}/check"` }

@@ -10,19 +10,19 @@ export const RENDERED_CRAWL_TARGETS = [
     id: "standard",
     label: "Standard rendered proof",
     pages: SELF_SERVE_MAX_CRAWL_PAGES,
-    description: "Render the selected crawl depth in one queued proof run."
+    description: "Loads the pages you selected in one audit run."
   },
   {
     id: "public-scale",
     label: "50K staged crawl plan",
     pages: CRAWLRAVEN_PUBLIC_CRAWL_PAGES,
-    description: "Plan CrawlRaven public-scale rendered batches without claiming they ran yet."
+    description: "Plans up to 50,000 pages as batches. Nothing beyond this audit has run yet."
   },
   {
     id: "enterprise-scale",
     label: "100K staged crawl plan",
     pages: CRAWLRAVEN_ENTERPRISE_CRAWL_PAGES,
-    description: "Plan enterprise rendered batches for very large verified sites."
+    description: "Plans up to 100,000 pages as batches for very large verified sites."
   }
 ];
 
@@ -40,7 +40,7 @@ export function renderedCrawlTargetSummary(value) {
     id: pages ? "custom-scale" : "none",
     label: pages ? `${pages.toLocaleString("en-US")} staged pages` : "No staged target",
     pages,
-    description: pages ? "Custom staged rendered crawl target." : "Only the selected crawl depth will render."
+    description: pages ? "Custom batch plan size." : "Only the pages you selected will load."
   };
   return {
     pages,
@@ -97,7 +97,7 @@ export function buildRenderedCrawlScalePlan(report = {}, inventory = {}, options
   return {
     status: "ready",
     source: "rendered-crawl-scale-plan",
-    note: "This is a staged rendered-crawl plan. It does not claim the 50K or 100K rendered crawl has completed until every batch has proof.",
+    note: "This is a plan for a large crawl in batches. The 50K or 100K crawl is not complete until every batch has run and has results.",
     summary: {
       renderedPages,
       selectedMaxPages,
@@ -152,8 +152,8 @@ export function renderedCrawlScaleSummaryCopy(plan = {}) {
   if (plan.status !== "ready") return "";
   const summary = plan.summary || {};
   return [
-    `This report rendered ${summary.renderedPages || 0} pages and prepared a staged plan for ${formatCount(summary.plannedUrlCount || summary.requestedTargetPages || 0)} URLs.`,
-    `At ${formatCount(summary.batchSize || RENDERED_CRAWL_BATCH_PAGES)} pages per rendered batch, that is ${formatCount(summary.plannedBatches || 0)} batches before a 50K/100K claim can be made.`
+    `This audit loaded ${summary.renderedPages || 0} pages and planned batches for ${formatCount(summary.plannedUrlCount || summary.requestedTargetPages || 0)} URLs.`,
+    `At ${formatCount(summary.batchSize || RENDERED_CRAWL_BATCH_PAGES)} pages per batch, that is ${formatCount(summary.plannedBatches || 0)} batches to run before the full crawl is done.`
   ].join(" ");
 }
 
@@ -197,7 +197,7 @@ function scaleRepairOpportunities({
       confidence: "needs-review",
       estimatedEffort: item.estimatedEffort || "30-90 min",
       workType: item.workType || "technical",
-      acceptance: item.acceptance || "Run staged rendered batches and verify each batch stores page-level proof.",
+      acceptance: item.acceptance || "Run the planned batches and check each one saved results for every page.",
       source: "rendered-crawl-scale-plan",
       ...item
     });
@@ -208,9 +208,8 @@ function scaleRepairOpportunities({
       severity: "warning",
       title: "Requested crawl scale needs staged rendered batches",
       proof: `This run rendered ${renderedPages} pages from a selected limit of ${selectedMaxPages}, while the staged target is ${requestedTarget} pages.`,
-      fix: "Process the crawl target as resumable rendered batches, then merge batch reports only after every batch has page-level proof.",
-      acceptance:
-        "Every planned batch has a completed proof record before the product claims public-scale rendered coverage."
+      fix: "Run the crawl in batches that can resume, and merge the batch reports only once every batch has results for each page.",
+      acceptance: "Every planned batch has finished with results before you report the full crawl as done."
     });
   }
 
@@ -218,17 +217,17 @@ function scaleRepairOpportunities({
     addRepair({
       severity: "warning",
       title: "Large rendered crawl needs complete sitemap inventory",
-      proof: "No sitemap inventory URLs were available to seed staged rendered batches.",
-      fix: "Publish a complete sitemap index and reference it from robots.txt before running a large rendered crawl.",
-      acceptance: "The sitemap inventory discovers the URLs needed for the staged crawl target."
+      proof: "The sitemap had no URLs to build batches from.",
+      fix: "Publish a complete sitemap index and add it to robots.txt before running a large crawl.",
+      acceptance: "The sitemap lists enough URLs for the planned crawl."
     });
   } else if (inventoryUrls < requestedTarget) {
     addRepair({
       severity: "notice",
       title: "Sitemap inventory is smaller than the rendered crawl target",
       proof: `The staged target is ${requestedTarget} pages, but sitemap inventory found ${inventoryUrls} URLs.`,
-      fix: "Confirm the sitemap index includes all canonical URLs, or lower the rendered target to match the verified inventory.",
-      acceptance: "Sitemap inventory count matches the intended rendered crawl target."
+      fix: "Check the sitemap lists every canonical URL, or lower the crawl target to match it.",
+      acceptance: "The sitemap URL count matches the crawl target."
     });
   }
 
@@ -236,9 +235,9 @@ function scaleRepairOpportunities({
     addRepair({
       severity: "notice",
       title: "Inventory was truncated before large-crawl planning finished",
-      proof: "The sitemap inventory hit its configured cap before discovery completed.",
-      fix: "Increase inventory limits or split sitemap indexes so the large rendered crawl can be planned from complete inputs.",
-      acceptance: "Inventory discovery completes without truncation before staged rendering starts."
+      proof: "Sitemap reading stopped at its URL limit before it finished.",
+      fix: "Raise the sitemap limit or split the sitemap index so the whole site can be planned.",
+      acceptance: "The sitemap is read in full before batches start."
     });
   }
 
@@ -247,8 +246,8 @@ function scaleRepairOpportunities({
       severity: "notice",
       title: "Track large-crawl progress by batch",
       proof: `${plannedUrlCount} planned URLs require ${plannedBatches} rendered batches at ${RENDERED_CRAWL_BATCH_PAGES} pages per batch.`,
-      fix: "Expose batch status, failed URLs, retry counts, and merged repair deltas before calling the large crawl complete.",
-      acceptance: "The report shows completed, failed, retried, and pending rendered batches separately."
+      fix: "Show each batch's status, failed URLs, retries and merged changes before calling the crawl complete.",
+      acceptance: "The report lists finished, failed, retried and pending batches separately."
     });
   }
 

@@ -80,9 +80,9 @@ export function buildWhiteLabelReportHtml({
         <main class="shell locked-shell">
           ${brandHeader(cleanBrand)}
           <section class="cover locked-cover">
-            <p class="eyebrow">Protected client report</p>
+            <p class="eyebrow">Password-protected report</p>
             <h1>${escapeHtml(clientName || "This report")} is password protected.</h1>
-            <p>Enter the report password to view the audit, proof, and repair plan.</p>
+            <p>Enter the password to see the audit results and fix list.</p>
             <form class="password-form" action="/r/${escapeHtml(encodeURIComponent(shareId))}/unlock" method="post">
               <label for="report-password">Password</label>
               <div>
@@ -128,7 +128,7 @@ export function buildWhiteLabelReportHtml({
             <p class="eyebrow">Client SEO audit report</p>
             <h1>${escapeHtml(host || report.url || "Website audit")}</h1>
             ${clientName ? `<p class="client-line">Prepared for ${escapeHtml(clientName)}</p>` : ""}
-            <p>This report prioritizes verified SEO issues with proof, plain-English fixes, and acceptance checks for rerun review.</p>
+            <p>Each problem below comes with what we found on the page, how to fix it, and how to confirm the fix on the next audit.</p>
           </div>
           <aside class="score-card">
             <span>SEO score</span>
@@ -142,13 +142,13 @@ export function buildWhiteLabelReportHtml({
           ${metric("Critical", criticalCount)}
           ${metric("Warnings", warningCount)}
           ${metric("Notices", noticeCount)}
-          ${metric("Proof guards", Number(report.summary?.guardedFalsePositives || 0))}
+          ${metric("False alarms filtered", Number(report.summary?.guardedFalsePositives || 0))}
         </section>
 
         <section class="section">
           <div class="section-title">
             <p class="eyebrow">Executive summary</p>
-            <h2>${topFindings.length ? "Priority repairs found" : "No priority repairs found"}</h2>
+            <h2>${topFindings.length ? "Problems to fix" : "No priority problems found"}</h2>
           </div>
           <p>${escapeHtml(summaryCopy({ report, findings, pagesScanned }))}</p>
           <div class="actions print-hidden">
@@ -189,21 +189,21 @@ export function buildWhiteLabelReportHtml({
             <p class="eyebrow">Action plan</p>
             <h2>Fix these in order</h2>
           </div>
-          ${repairPlan.length ? `<ol class="repair-list">${repairPlan.map(repairItem).join("")}</ol>` : `<p class="muted">No repair queue is needed from this scan.</p>`}
+          ${repairPlan.length ? `<ol class="repair-list">${repairPlan.map(repairItem).join("")}</ol>` : `<p class="muted">Nothing to fix from this audit.</p>`}
         </section>
 
         <section class="section page-break">
           <div class="section-title">
             <p class="eyebrow">Technical findings</p>
-            <h2>Evidence and acceptance checks</h2>
+            <h2>What we found and how to confirm each fix</h2>
           </div>
-          ${topFindings.length ? `<div class="finding-list">${topFindings.map(findingItem).join("")}</div>` : `<p class="muted">No critical or warning findings were found.</p>`}
+          ${topFindings.length ? `<div class="finding-list">${topFindings.map(findingItem).join("")}</div>` : `<p class="muted">No critical problems or warnings found.</p>`}
         </section>
 
         <section class="section">
           <div class="section-title">
-            <p class="eyebrow">Pages reviewed</p>
-            <h2>Crawl coverage</h2>
+            <p class="eyebrow">Coverage</p>
+            <h2>Pages checked</h2>
           </div>
           ${pagesTable(report.pages || [])}
         </section>
@@ -466,9 +466,9 @@ function summaryCopy({ report, findings, pagesScanned }) {
   const critical = Number(report.summary?.critical || 0);
   const warnings = Number(report.summary?.warnings || 0);
   if (!findings.length) {
-    return `The audit reviewed ${pagesScanned || 1} page${pagesScanned === 1 ? "" : "s"} and did not find priority technical SEO repairs. Keep monitoring after major content, template, or platform changes.`;
+    return `The audit reviewed ${pagesScanned || 1} page${pagesScanned === 1 ? "" : "s"} and found no priority technical SEO problems. Run it again after big changes to content, templates or platform.`;
   }
-  return `The audit reviewed ${pagesScanned || 1} page${pagesScanned === 1 ? "" : "s"} and found ${critical} critical issue${critical === 1 ? "" : "s"} plus ${warnings} warning${warnings === 1 ? "" : "s"}. The action plan below is ordered by expected SEO impact and repair effort.`;
+  return `The audit reviewed ${pagesScanned || 1} page${pagesScanned === 1 ? "" : "s"} and found ${critical} critical issue${critical === 1 ? "" : "s"} plus ${warnings} warning${warnings === 1 ? "" : "s"}. The fix list below puts the biggest problems first.`;
 }
 
 function crawlInventorySection(inventory = {}) {
@@ -479,17 +479,17 @@ function crawlInventorySection(inventory = {}) {
     <section class="section">
       <div class="section-title">
         <p class="eyebrow">Crawl inventory</p>
-        <h2>${summary.urlsDiscovered ? `${escapeHtml(String(summary.urlsDiscovered))} sitemap URLs discovered` : "No sitemap inventory URLs discovered"}</h2>
+        <h2>${summary.urlsDiscovered ? `${escapeHtml(String(summary.urlsDiscovered))} sitemap URLs discovered` : "No URLs found in the sitemap"}</h2>
       </div>
-      <p>Sitemap inventory proof up to CrawlRaven public scale. Rendered repairs still use the selected crawl depth.</p>
+      <p>URLs listed in the sitemap, compared with the pages this audit loaded. Fixes cover only the pages loaded.</p>
       <div class="meta-grid">
         ${metric("Inventory URLs", summary.urlsDiscovered || 0)}
-        ${metric("Rendered proof", `${summary.renderedPagesCovered || 0}/${summary.renderedPagesScanned || 0}`)}
+        ${metric("Pages loaded", `${summary.renderedPagesCovered || 0}/${summary.renderedPagesScanned || 0}`)}
         ${metric("Coverage", `${summary.coveragePercent || 0}%`)}
         ${metric("Sitemaps", summary.sitemapsFetched || 0)}
         ${metric("Inventory cap", summary.inventoryLimit || 50000)}
       </div>
-      ${sampleUrls.length ? `<ul class="url-list">${sampleUrls.map((item) => `<li>${escapeHtml(item.url || "")}</li>`).join("")}</ul>` : `<p class="muted">Add sitemap URLs so the inventory layer can compare discovered URLs against rendered proof coverage.</p>`}
+      ${sampleUrls.length ? `<ul class="url-list">${sampleUrls.map((item) => `<li>${escapeHtml(item.url || "")}</li>`).join("")}</ul>` : `<p class="muted">Add a sitemap to compare its URLs with the pages this audit loaded.</p>`}
     </section>
   `;
 }
@@ -511,7 +511,7 @@ function renderedCrawlScaleSection(plan = {}) {
         <div><strong>${escapeHtml(String(summary.inventoryUrlsAvailable || 0))}</strong><span>Inventory</span></div>
         <div><strong>${escapeHtml(String(summary.renderedCoveragePercent || 0))}%</strong><span>Coverage</span></div>
       </div>
-      ${repairs.length ? `<ol class="repair-list">${repairs.map(renderedCrawlScaleRepairItem).join("")}</ol>` : `<p class="muted">No rendered scale readiness actions were created.</p>`}
+      ${repairs.length ? `<ol class="repair-list">${repairs.map(renderedCrawlScaleRepairItem).join("")}</ol>` : `<p class="muted">No large-crawl actions needed.</p>`}
     </section>
   `;
 }
@@ -520,8 +520,8 @@ function renderedCrawlScaleRepairItem(item) {
   return `
     <li>
       <strong>${escapeHtml(item.title || "Rendered crawl scale action")}</strong>
-      <p>${escapeHtml(item.proof || item.fix || "Review staged crawl readiness and rerun after completing batches.")}</p>
-      <small>${escapeHtml(item.acceptance || "Every staged batch has page-level proof before scale claims are made.")}</small>
+      <p>${escapeHtml(item.proof || item.fix || "Finish the queued batches, then rerun.")}</p>
+      <small>${escapeHtml(item.acceptance || "Every batch has results for each page before you report the full crawl as done.")}</small>
     </li>
   `;
 }
@@ -534,7 +534,7 @@ function crawlIntelligenceSection(audit = {}) {
     <section class="section">
       <div class="section-title">
         <p class="eyebrow">Crawl intelligence</p>
-        <h2>${summary.repairOpportunityCount ? `${escapeHtml(String(summary.repairOpportunityCount))} crawl repair ${summary.repairOpportunityCount === 1 ? "action" : "actions"} found` : "Rendered crawl graph passed"}</h2>
+        <h2>${summary.repairOpportunityCount ? `${escapeHtml(String(summary.repairOpportunityCount))} crawl repair ${summary.repairOpportunityCount === 1 ? "action" : "actions"} found` : "No link structure problems found"}</h2>
       </div>
       <p>${escapeHtml(crawlIntelligenceSummaryCopy(audit))}</p>
       <div class="meta-grid">
@@ -544,7 +544,7 @@ function crawlIntelligenceSection(audit = {}) {
         ${metric("Duplicate pairs", summary.duplicateContentPairs || 0)}
         ${metric("Cannibalization", summary.cannibalizationGroups || 0)}
       </div>
-      ${repairs.length ? `<ol class="repair-list">${repairs.map(crawlIntelligenceRepairItem).join("")}</ol>` : `<p class="muted">No crawl-intelligence repair actions were created from this rendered crawl.</p>`}
+      ${repairs.length ? `<ol class="repair-list">${repairs.map(crawlIntelligenceRepairItem).join("")}</ol>` : `<p class="muted">No link structure problems found on the pages checked.</p>`}
     </section>
   `;
 }
@@ -554,7 +554,7 @@ function crawlIntelligenceRepairItem(item) {
     <li>
       <strong>${escapeHtml(item.title || "Crawl repair")}</strong>
       <span>${escapeHtml(item.estimatedEffort || "30-90 min")} | ${escapeHtml(item.workType || "technical")}</span>
-      <p>${escapeHtml(item.proof || item.fix || "Review this crawl proof and rerun after fixing.")}</p>
+      <p>${escapeHtml(item.proof || item.fix || "Fix this, then rerun the audit.")}</p>
     </li>
   `;
 }
@@ -567,9 +567,9 @@ function reportDeltaSection(delta = {}) {
       <section class="section">
         <div class="section-title">
           <p class="eyebrow">Audit history</p>
-          <h2>First saved audit for this host</h2>
+          <h2>First audit saved for this site</h2>
         </div>
-        <p>Future reruns will show fixed, new, and still-open issues here.</p>
+        <p>Rerun the audit to see what got fixed, what's still open and what's new.</p>
       </section>
     `;
   }
@@ -579,9 +579,9 @@ function reportDeltaSection(delta = {}) {
     <section class="section">
       <div class="section-title">
         <p class="eyebrow">Audit history</p>
-        <h2>${summary.scoreDelta > 0 ? `Score improved by ${escapeHtml(String(summary.scoreDelta))} points` : summary.scoreDelta < 0 ? `Score dropped by ${escapeHtml(String(Math.abs(summary.scoreDelta)))} points` : "Score held steady since the last audit"}</h2>
+        <h2>${summary.scoreDelta > 0 ? `Score improved by ${escapeHtml(String(summary.scoreDelta))} points` : summary.scoreDelta < 0 ? `Score dropped by ${escapeHtml(String(Math.abs(summary.scoreDelta)))} points` : "Score unchanged since the last audit"}</h2>
       </div>
-      <p>Compared with the previous saved audit for this owner and host.</p>
+      <p>Compared with the last saved audit of this site.</p>
       <div class="meta-grid">
         ${metric("Score change", signed(summary.scoreDelta || 0))}
         ${metric("Issue change", signed(summary.issuesDelta || 0))}
@@ -601,7 +601,7 @@ function performanceSection(performance) {
     <section class="section">
       <div class="section-title">
         <p class="eyebrow">Performance</p>
-        <h2>${performance.status === "success" ? "Core Web Vitals proof" : "Rendered load proof"}</h2>
+        <h2>${performance.status === "success" ? "Core Web Vitals" : "Page load"}</h2>
       </div>
       <div class="meta-grid">
         ${metric("Mobile score", performance.performanceScore ? `${performance.performanceScore}/100` : "Local")}
@@ -622,7 +622,7 @@ function resourceWaterfallSection(waterfall = {}) {
     <section class="section">
       <div class="section-title">
         <p class="eyebrow">Resource waterfall</p>
-        <h2>${waterfall.status === "ready" ? "Browser-loaded resource proof" : "Waterfall unavailable for this page"}</h2>
+        <h2>${waterfall.status === "ready" ? "Files the page loads" : "No file timing for this page"}</h2>
       </div>
       <p>${escapeHtml(resourceWaterfallSummaryCopy(waterfall))}</p>
       ${
@@ -635,7 +635,7 @@ function resourceWaterfallSection(waterfall = {}) {
           ${metric("Images", formatWaterfallBytes(summary.imageBytes || 0))}
           ${metric("Blocking", summary.renderBlockingCandidates || 0)}
         </div>
-        ${repairs.length ? `<ol class="repair-list">${repairs.map(waterfallRepairItem).join("")}</ol>` : `<p class="muted">No priority resource repair actions were created from this waterfall.</p>`}
+        ${repairs.length ? `<ol class="repair-list">${repairs.map(waterfallRepairItem).join("")}</ol>` : `<p class="muted">No slow or heavy files to fix.</p>`}
       `
           : ""
       }
@@ -648,7 +648,7 @@ function waterfallRepairItem(item) {
     <li>
       <strong>${escapeHtml(item.title || "Resource repair")}</strong>
       <span>${escapeHtml(item.estimatedEffort || "30-90 min")} | ${escapeHtml(item.workType || "performance")}</span>
-      <p>${escapeHtml(item.proof || item.fix || "Review this resource timing proof and rerun after fixing.")}</p>
+      <p>${escapeHtml(item.proof || item.fix || "Fix this file, then rerun the audit.")}</p>
     </li>
   `;
 }
@@ -661,7 +661,7 @@ function competitorBenchmarkSection(benchmark = {}) {
     <section class="section">
       <div class="section-title">
         <p class="eyebrow">Competitor benchmark</p>
-        <h2>${summary.scoreGapToBest > 0 ? `${escapeHtml(summary.bestCompetitorHost)} is ${escapeHtml(String(summary.scoreGapToBest))} points ahead` : "Target matches the strongest competitor snapshot"}</h2>
+        <h2>${summary.scoreGapToBest > 0 ? `${escapeHtml(summary.bestCompetitorHost)} is ${escapeHtml(String(summary.scoreGapToBest))} points ahead` : "Your score matches or beats every competitor checked"}</h2>
       </div>
       <p>${escapeHtml(competitorBenchmarkSummaryCopy(benchmark))}</p>
       <div class="meta-grid">
@@ -671,8 +671,8 @@ function competitorBenchmarkSection(benchmark = {}) {
         ${metric("Avg rival", summary.competitorAverageScore || 0)}
         ${metric("Gap repairs", repairs.length)}
       </div>
-      ${repairs.length ? `<ol class="repair-list benchmark-list">${repairs.map(benchmarkRepairItem).join("")}</ol>` : `<p class="muted">No competitor-backed repair gaps were found.</p>`}
-      <p class="muted">This is a public homepage proof snapshot, not backlink, keyword-volume, traffic, or rank-tracking data.</p>
+      ${repairs.length ? `<ol class="repair-list benchmark-list">${repairs.map(benchmarkRepairItem).join("")}</ol>` : `<p class="muted">No gaps found against the competitors checked.</p>`}
+      <p class="muted">Based on each competitor's public homepage only. Not backlink, keyword volume, traffic or rank data.</p>
     </section>
   `;
 }
@@ -682,7 +682,7 @@ function benchmarkRepairItem(item) {
     <li>
       <strong>${escapeHtml(item.title || "Competitor gap")}</strong>
       <span>${escapeHtml(item.estimatedEffort || "15-30 min")} | ${escapeHtml(item.workType || "review")}</span>
-      <p>${escapeHtml(item.proof || item.fix || "Review this competitor-backed gap and rerun after fixing.")}</p>
+      <p>${escapeHtml(item.proof || item.fix || "Close this gap, then rerun the audit.")}</p>
     </li>
   `;
 }
@@ -695,9 +695,9 @@ function backlinkAuditSection(audit = {}) {
     <section class="section">
       <div class="section-title">
         <p class="eyebrow">Backlink audit</p>
-        <h2>${summary.repairOpportunityCount ? `${escapeHtml(String(summary.repairOpportunityCount))} link repair ${summary.repairOpportunityCount === 1 ? "action" : "actions"} found` : "Imported backlink rows passed this proof check"}</h2>
+        <h2>${summary.repairOpportunityCount ? `${escapeHtml(String(summary.repairOpportunityCount))} link repair ${summary.repairOpportunityCount === 1 ? "action" : "actions"} found` : "No problems in your imported backlinks"}</h2>
       </div>
-      <p>Self-serve backlink import with live source-page proof. This is not a backlink database.</p>
+      <p>Checks the backlinks you imported by loading each linking page. This is not a backlink database.</p>
       <div class="meta-grid">
         ${metric("Imported", summary.imported || audit.rows.length)}
         ${metric("Live", summary.live || 0)}
@@ -705,7 +705,7 @@ function backlinkAuditSection(audit = {}) {
         ${metric("Risky", summary.toxicRisk || 0)}
         ${metric("Broken", summary.brokenTargets || 0)}
       </div>
-      ${repairs.length ? `<ol class="repair-list">${repairs.map(backlinkRepairItem).join("")}</ol>` : `<p class="muted">No backlink repair actions were created from the imported rows.</p>`}
+      ${repairs.length ? `<ol class="repair-list">${repairs.map(backlinkRepairItem).join("")}</ol>` : `<p class="muted">No problems found in the imported backlinks.</p>`}
     </section>
   `;
 }
@@ -715,7 +715,7 @@ function backlinkRepairItem(item) {
     <li>
       <strong>${escapeHtml(item.title || "Backlink repair")}</strong>
       <span>${escapeHtml(item.estimatedEffort || "30-90 min")} | ${escapeHtml(item.workType || "review")}</span>
-      <p>${escapeHtml(item.proof || item.fix || "Review this backlink row and rerun after fixing.")}</p>
+      <p>${escapeHtml(item.proof || item.fix || "Fix this link, then rerun the audit.")}</p>
     </li>
   `;
 }
@@ -728,9 +728,9 @@ function localSeoAuditSection(audit = {}) {
     <section class="section">
       <div class="section-title">
         <p class="eyebrow">Local SEO audit</p>
-        <h2>${summary.repairOpportunityCount ? `${escapeHtml(String(summary.repairOpportunityCount))} local repair ${summary.repairOpportunityCount === 1 ? "action" : "actions"} found` : "Local SEO proof passed for supplied inputs"}</h2>
+        <h2>${summary.repairOpportunityCount ? `${escapeHtml(String(summary.repairOpportunityCount))} local repair ${summary.repairOpportunityCount === 1 ? "action" : "actions"} found` : "No local SEO problems found"}</h2>
       </div>
-      <p>Self-serve NAP, citation, schema, profile-link, and local keyword checks.</p>
+      <p>Checks your business name, address and phone, listings, schema, profile links and local keywords.</p>
       <div class="meta-grid">
         ${metric("NAP found", `${summary.napFieldsFoundOnSite || 0}/${summary.napFieldsSupplied || 0}`)}
         ${metric("Schema", summary.localSchemaFound ? "Yes" : "No")}
@@ -738,7 +738,7 @@ function localSeoAuditSection(audit = {}) {
         ${metric("Citations", `${summary.citationRowsPassed || 0}/${summary.citationRowsChecked || 0}`)}
         ${metric("Keywords", `${summary.localKeywordsCovered || 0}/${summary.localKeywordsChecked || 0}`)}
       </div>
-      ${repairs.length ? `<ol class="repair-list">${repairs.map(localSeoRepairItem).join("")}</ol>` : `<p class="muted">No local SEO repair actions were created from the supplied inputs.</p>`}
+      ${repairs.length ? `<ol class="repair-list">${repairs.map(localSeoRepairItem).join("")}</ol>` : `<p class="muted">No local SEO problems found in the details you entered.</p>`}
     </section>
   `;
 }
@@ -751,7 +751,7 @@ function keywordRankAuditSection(audit = {}) {
     <section class="section">
       <div class="section-title">
         <p class="eyebrow">Keyword audit</p>
-        <h2>${summary.repairOpportunityCount ? `${escapeHtml(String(summary.repairOpportunityCount))} keyword repair ${summary.repairOpportunityCount === 1 ? "action" : "actions"} found` : "Imported keyword rows passed this proof check"}</h2>
+        <h2>${summary.repairOpportunityCount ? `${escapeHtml(String(summary.repairOpportunityCount))} keyword repair ${summary.repairOpportunityCount === 1 ? "action" : "actions"} found` : "No problems in your imported keywords"}</h2>
       </div>
       <p>${escapeHtml(keywordRankAuditSummaryCopy(audit))}</p>
       <div class="mini-grid">
@@ -760,7 +760,7 @@ function keywordRankAuditSection(audit = {}) {
         <div><strong>${escapeHtml(String(summary.pageTwoOpportunities || 0))}</strong><span>Page-two</span></div>
         <div><strong>${escapeHtml(String(summary.lowCtrOpportunities || 0))}</strong><span>Low CTR</span></div>
       </div>
-      ${repairs.length ? `<ol class="repair-list">${repairs.map(keywordRankRepairItem).join("")}</ol>` : `<p class="muted">No keyword repair actions were created from the imported rows.</p>`}
+      ${repairs.length ? `<ol class="repair-list">${repairs.map(keywordRankRepairItem).join("")}</ol>` : `<p class="muted">No problems found in the imported keywords.</p>`}
     </section>
   `;
 }
@@ -769,8 +769,8 @@ function keywordRankRepairItem(item) {
   return `
     <li>
       <strong>${escapeHtml(item.title || "Keyword repair")}</strong>
-      <p>${escapeHtml(item.proof || item.fix || "Review this keyword row and rerun with fresh ranking proof.")}</p>
-      <small>${escapeHtml(item.acceptance || "Fresh keyword rows show the issue improved.")}</small>
+      <p>${escapeHtml(item.proof || item.fix || "Fix this page, then import fresh Search Console data and rerun.")}</p>
+      <small>${escapeHtml(item.acceptance || "Fresh Search Console data shows the problem improved.")}</small>
     </li>
   `;
 }
@@ -783,7 +783,7 @@ function platformSeoAuditSection(audit = {}) {
     <section class="section">
       <div class="section-title">
         <p class="eyebrow">Platform SEO audit</p>
-        <h2>${summary.repairOpportunityCount ? `${escapeHtml(String(summary.repairOpportunityCount))} platform repair ${summary.repairOpportunityCount === 1 ? "action" : "actions"} found` : "Platform-specific proof passed"}</h2>
+        <h2>${summary.repairOpportunityCount ? `${escapeHtml(String(summary.repairOpportunityCount))} platform repair ${summary.repairOpportunityCount === 1 ? "action" : "actions"} found` : "No platform-specific problems found"}</h2>
       </div>
       <p>${escapeHtml(platformSeoSummaryCopy(audit))}</p>
       <div class="meta-grid">
@@ -793,7 +793,7 @@ function platformSeoAuditSection(audit = {}) {
         ${metric("Faceted links", summary.facetedLinks || 0)}
         ${metric("WP plugins", summary.wordpressPlugins || 0)}
       </div>
-      ${repairs.length ? `<ol class="repair-list">${repairs.map(platformSeoRepairItem).join("")}</ol>` : `<p class="muted">No platform-specific repair actions were created from this rendered proof.</p>`}
+      ${repairs.length ? `<ol class="repair-list">${repairs.map(platformSeoRepairItem).join("")}</ol>` : `<p class="muted">No platform-specific problems found.</p>`}
     </section>
   `;
 }
@@ -803,7 +803,7 @@ function platformSeoRepairItem(item) {
     <li>
       <strong>${escapeHtml(item.title || "Platform SEO repair")}</strong>
       <span>${escapeHtml(item.estimatedEffort || "30-90 min")} | ${escapeHtml(item.workType || "technical")}</span>
-      <p>${escapeHtml(item.proof || item.fix || "Review this platform proof and rerun after fixing.")}</p>
+      <p>${escapeHtml(item.proof || item.fix || "Fix this, then rerun the audit.")}</p>
     </li>
   `;
 }
@@ -816,7 +816,7 @@ function aiAnswerReadinessSection(audit = {}) {
     <section class="section">
       <div class="section-title">
         <p class="eyebrow">AI Answer Readiness</p>
-        <h2>${summary.repairOpportunityCount ? `${escapeHtml(String(summary.repairOpportunityCount))} readiness ${summary.repairOpportunityCount === 1 ? "repair" : "repairs"} found` : "Readiness proof passed"}</h2>
+        <h2>${summary.repairOpportunityCount ? `${escapeHtml(String(summary.repairOpportunityCount))} readiness ${summary.repairOpportunityCount === 1 ? "repair" : "repairs"} found` : "No readiness problems found"}</h2>
       </div>
       <p>${escapeHtml(aiAnswerReadinessSummaryCopy(audit))}</p>
       <div class="meta-grid">
@@ -825,10 +825,10 @@ function aiAnswerReadinessSection(audit = {}) {
         ${metric("Schema pages", summary.pagesWithHelpfulSchema || 0)}
         ${metric("Question structure", summary.pagesWithQuestionStructure || 0)}
         ${metric("llms.txt", summary.llmsTxtStatus === "reachable" ? "Yes" : "No")}
-        ${metric("Prioritization", summary.trafficRanked ? "Imported traffic" : "Proof order")}
+        ${metric("Order", summary.trafficRanked ? "By traffic" : "As found")}
       </div>
-      ${repairs.length ? `<ol class="repair-list">${repairs.map(aiAnswerReadinessRepairItem).join("")}</ol>` : `<p class="muted">No AI Answer Readiness repair actions were created from this proof pass.</p>`}
-      <p class="muted">This section uses site proof only. It does not sample answer engines or monitor AI citations.</p>
+      ${repairs.length ? `<ol class="repair-list">${repairs.map(aiAnswerReadinessRepairItem).join("")}</ol>` : `<p class="muted">No AI Answer Readiness problems found.</p>`}
+      <p class="muted">This section checks your own pages only. It does not sample answer engines or monitor AI citations.</p>
     </section>
   `;
 }
@@ -838,7 +838,7 @@ function aiAnswerReadinessRepairItem(item) {
     <li>
       <strong>${escapeHtml(item.title || "AI Answer Readiness repair")}</strong>
       <span>${escapeHtml(item.estimatedEffort || "30-90 min")} | ${escapeHtml(item.workType || "content")}</span>
-      <p>${escapeHtml(item.proof || item.fix || "Review this readiness proof and rerun after fixing.")}</p>
+      <p>${escapeHtml(item.proof || item.fix || "Fix this, then rerun the audit.")}</p>
     </li>
   `;
 }
@@ -862,7 +862,7 @@ function growthOpportunitiesSection(growth = {}) {
         ${metric("Mode", "Draft")}
       </div>
       <ol class="repair-list">${opportunities.map(growthOpportunityItem).join("")}</ol>
-      <p class="muted">These are reviewed content briefs only. They do not publish content, open pull requests, or guarantee rankings, traffic, citations, or revenue.</p>
+      <p class="muted">These are content briefs for you to review. They do not publish content or open pull requests, and they do not guarantee rankings, traffic, citations or revenue.</p>
     </section>
   `;
 }
@@ -872,8 +872,8 @@ function growthOpportunityItem(item) {
     <li>
       <strong>${escapeHtml(item.title || "Growth brief")}</strong>
       <span>${escapeHtml(item.estimatedEffort || "30-90 min")} | ${escapeHtml(item.type || "draft")}</span>
-      <p>${escapeHtml(item.proof || "Verified source proof is attached to this brief.")}</p>
-      <p>${escapeHtml(item.draftBrief?.summary || item.suggestedAction || "Draft a reviewed content brief from this proof.")}</p>
+      <p>${escapeHtml(item.proof || "The data behind this brief is attached.")}</p>
+      <p>${escapeHtml(item.draftBrief?.summary || item.suggestedAction || "Write a content brief from this data and review it before publishing.")}</p>
     </li>
   `;
 }
@@ -883,7 +883,7 @@ function localSeoRepairItem(item) {
     <li>
       <strong>${escapeHtml(item.title || "Local SEO repair")}</strong>
       <span>${escapeHtml(item.estimatedEffort || "30-90 min")} | ${escapeHtml(item.workType || "review")}</span>
-      <p>${escapeHtml(item.proof || item.fix || "Review this local SEO proof and rerun after fixing.")}</p>
+      <p>${escapeHtml(item.proof || item.fix || "Fix this, then rerun the audit.")}</p>
     </li>
   `;
 }
@@ -893,7 +893,7 @@ function repairItem(fix) {
     <li>
       <strong>${escapeHtml(fix.title || "Repair")}</strong>
       <span>${escapeHtml(fix.estimatedEffort || "15-30 min")} | ${escapeHtml(fix.workType || "review")}</span>
-      <p>${escapeHtml(fix.fix || fix.detail || "Review the finding proof and make the smallest template or content change that resolves it.")}</p>
+      <p>${escapeHtml(fix.fix || fix.detail || "Make the smallest template or content change that fixes this.")}</p>
     </li>
   `;
 }
@@ -909,7 +909,7 @@ function findingItem(finding) {
       <span class="finding-meta">${escapeHtml(page)}</span>
       ${proof ? `<p><strong>Proof</strong>${escapeHtml(proof)}</p>` : ""}
       ${finding.fix ? `<p><strong>Fix</strong>${escapeHtml(finding.fix)}</p>` : ""}
-      ${acceptanceCheck ? `<p><strong>Acceptance check</strong>${escapeHtml(acceptanceCheck)}</p>` : ""}
+      ${acceptanceCheck ? `<p><strong>How to confirm</strong>${escapeHtml(acceptanceCheck)}</p>` : ""}
     </article>
   `;
 }
@@ -917,23 +917,21 @@ function findingItem(finding) {
 function defaultFindingAcceptanceCheck(finding = {}) {
   const title = String(finding.title || "").toLowerCase();
   if (title.includes("title"))
-    return "The rendered page has a unique, descriptive title that is not obviously truncated.";
-  if (title.includes("description"))
-    return "The rendered page has one useful meta description, roughly 70-165 characters.";
-  if (title.includes("h1")) return "The rendered page has one visible H1 that matches the main page purpose.";
-  if (title.includes("internal links"))
-    return "The rendered DOM exposes normal internal anchor links to important pages.";
+    return "The page has its own title that names its topic and isn't cut off in search results.";
+  if (title.includes("description")) return "The page has one meta description of about 70 to 165 characters.";
+  if (title.includes("h1")) return "The page shows one H1 that names its main topic.";
+  if (title.includes("internal links")) return "The loaded page has normal <a href> links to your important pages.";
   if (title.includes("broken") && title.includes("link"))
-    return "Every link in the finding returns a live 2xx/3xx response or has been removed intentionally.";
-  if (title.includes("canonical")) return "The rendered head includes one rel=canonical pointing to the preferred URL.";
-  if (title.includes("sitemap")) return "The sitemap and rendered crawl proof no longer show this issue after rerun.";
+    return "Every link listed here now loads, or you removed it on purpose.";
+  if (title.includes("canonical")) return "The page has one canonical tag with its preferred URL.";
+  if (title.includes("sitemap")) return "/sitemap.xml loads and lists the pages you want in search.";
   if (title.includes("robots") || title.includes("noindex"))
-    return "Rendered robots directives match the page's intended indexability.";
-  return "Rerun the audit and confirm this finding no longer appears.";
+    return "The robots tag lets search engines index the pages you want in search, and only those.";
+  return "Rerun the audit. This problem no longer appears.";
 }
 
 function pagesTable(pages) {
-  if (!pages.length) return `<p class="muted">The report did not include page-level crawl rows.</p>`;
+  if (!pages.length) return `<p class="muted">This report has no per-page results.</p>`;
   return `
     <table>
       <thead>

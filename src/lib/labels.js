@@ -13,11 +13,11 @@ export function growthTypeLabel(type = "") {
 
 export function geoCheckLabel(key) {
   const labels = {
-    crawlableContent: "Crawlable content",
-    entityClarity: "Entity clarity",
-    answerReadySections: "Answer-ready sections",
+    crawlableContent: "250+ words of text",
+    entityClarity: "Title, description and H1",
+    answerReadySections: "Question-style headings",
     usefulSchema: "Useful schema",
-    internalContext: "Internal context"
+    internalContext: "Internal links"
   };
   return labels[key] || key;
 }
@@ -57,13 +57,13 @@ export function repairExecutionLabel(state) {
 
 export function repairActionModeLabel(mode) {
   const labels = {
-    self_serve: "Self serve",
+    self_serve: "Do it yourself",
     teammate: "Teammate",
     fix_pack: "Fix Pack",
     cms_draft: "CMS draft",
-    github_pr: "Future PR"
+    github_pr: "GitHub PR (planned)"
   };
-  return labels[mode] || "Self serve";
+  return labels[mode] || "Do it yourself";
 }
 
 export function proposalStatusLabel(status = "") {
@@ -79,15 +79,14 @@ export function proposalStatusLabel(status = "") {
 }
 
 export function checkoutMessage(status, checkoutReturned) {
-  if (status === "paid") return "Payment is confirmed. Your repair pass is queued.";
+  if (status === "paid") return "Payment confirmed. Your repair pass is in the queue.";
   if (status === "in_progress") return "The repair pass is in progress. Delivery notes will appear here.";
-  if (status === "delivered") return "Delivery is ready. Use the delivery and rerun links below.";
-  if (status === "payment_failed") return "Payment did not complete. You can reopen checkout from this report.";
+  if (status === "delivered") return "Your repair pass is done. Open the delivery and rerun links below.";
+  if (status === "payment_failed") return "Payment didn’t go through. You can open checkout again from this report.";
   if (status === "refunded") return "This Fix Pack was refunded.";
-  if (status === "disputed") return "This payment needs manual support review.";
-  if (checkoutReturned)
-    return "Checkout returned. Payment confirmation can take a moment after Dodo finishes processing.";
-  return "Checkout has been opened for this report.";
+  if (status === "disputed") return "This payment is disputed and under review by support.";
+  if (checkoutReturned) return "Back from checkout. Payment confirmation from Dodo Payments can take a minute.";
+  return "Checkout is open for this report.";
 }
 
 export function statusLabel(status) {
@@ -114,12 +113,12 @@ export function auditJobDetail(job = {}) {
     return `Report saved${job.completedAt ? ` ${formatDate(job.completedAt)}` : ""}.`;
   }
   if (job.status === "failed") {
-    return job.error || "Audit failed. Try another URL.";
+    return job.error || "The audit didn’t finish. Check the URL and run it again.";
   }
   if (job.status === "running") {
-    return "Rendering the site and collecting proof.";
+    return "Loading pages in a browser…";
   }
-  return "Waiting for proof collection to start.";
+  return "Waiting to start…";
 }
 
 export function auditScheduleDetail(schedule = {}) {

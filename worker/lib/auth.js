@@ -16,7 +16,11 @@ const BETA_SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
 const ADMIN_SESSION_TTL_SECONDS = 60 * 60 * 2;
 
 async function createAdminSession(request, env) {
-  if (!env.WAITLIST_DB) return jsonNoStore({ error: "Admin storage is not configured." }, 503);
+  if (!env.WAITLIST_DB)
+    return jsonNoStore(
+      { error: "Admin storage is not set up on this server. Email support@seofixkit.com for help." },
+      503
+    );
   const parsed = await parseJsonBody(request, AdminSessionBody);
   if (parsed.error) return jsonNoStore(parsed.error, 400);
   const expected = String(env.ADMIN_EXPORT_TOKEN || "");
@@ -95,7 +99,7 @@ async function auditAuthorizationStatus(env, access, targetUrl, options = {}) {
     ok: false,
     status: 403,
     code: "SITE_VERIFICATION_REQUIRED",
-    error: `Verify ${host} before running a self-serve audit. A homepage-only Lite check (1 page) runs without verification.`,
+    error: `Verify ${host} to run a full audit. Until then, you can run a homepage-only Lite check (1 page) without verification.`,
     site: siteClaimInstructions({ host, verification_token: "" })
   };
 }
@@ -115,7 +119,7 @@ async function betaAccessStatus(request, env) {
     return {
       ok: false,
       status: 503,
-      error: "Private beta sessions are not configured."
+      error: "Sign-in is not set up on this server yet. Email support@seofixkit.com for access."
     };
   }
 
@@ -124,7 +128,7 @@ async function betaAccessStatus(request, env) {
     return {
       ok: false,
       status: 401,
-      error: "Private beta session required."
+      error: "Sign in to continue. This browser has no active session."
     };
   }
 
@@ -143,7 +147,7 @@ async function betaAccessStatus(request, env) {
     return {
       ok: false,
       status: 401,
-      error: "Private beta session expired."
+      error: "Your session expired. Sign in again to continue."
     };
   }
 
@@ -171,11 +175,16 @@ function betaAccessResponse(access) {
 
 async function apiAccessStatus(request, env) {
   if (!env.WAITLIST_DB) {
-    return { ok: false, status: 503, error: "Developer API storage is not configured." };
+    return {
+      ok: false,
+      status: 503,
+      error: "Developer API storage is not set up on this server. Email support@seofixkit.com for help."
+    };
   }
   const auth = request.headers.get("authorization") || "";
   const bearer = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : "";
-  if (!bearer) return { ok: false, status: 401, error: "API key required." };
+  if (!bearer)
+    return { ok: false, status: 401, error: "API key required. Send it as Authorization: Bearer YOUR_API_KEY." };
   const tokenHash = await sha256Hex(bearer);
   const now = new Date().toISOString();
   const row = await env.WAITLIST_DB.prepare(
@@ -188,7 +197,12 @@ async function apiAccessStatus(request, env) {
   )
     .bind(tokenHash)
     .first();
-  if (!row?.id) return { ok: false, status: 401, error: "API key is invalid or revoked." };
+  if (!row?.id)
+    return {
+      ok: false,
+      status: 401,
+      error: "API key is invalid or revoked. Create a new key in your SEO Fix Kit account."
+    };
   await env.WAITLIST_DB.prepare(
     `UPDATE api_tokens
      SET last_used_at = ?, updated_at = ?
@@ -206,7 +220,10 @@ async function apiAccessStatus(request, env) {
 }
 
 function apiAccessResponse(access) {
-  return jsonNoStore({ error: access.error || "API key required." }, access.status || 401);
+  return jsonNoStore(
+    { error: access.error || "API key required. Send it as Authorization: Bearer YOUR_API_KEY." },
+    access.status || 401
+  );
 }
 
 async function adminFailureQuotaStatus(request, env) {
@@ -218,7 +235,7 @@ async function adminFailureQuotaStatus(request, env) {
       limit: 20,
       windowStart: hour.key,
       resetAt: hour.resetAt,
-      error: "Too many admin attempts from this network. Try again later."
+      error: "Too many admin sign-in attempts from this network. Try again in an hour."
     }
   ]);
 }

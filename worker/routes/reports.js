@@ -32,7 +32,7 @@ const CollaborationItemBody = body({
 
 const CollaborationBody = body({
   items: z
-    .array(CollaborationItemBody, { error: "Send collaboration items as a list." })
+    .array(CollaborationItemBody, { error: "Send collaboration items as a JSON array." })
     .nullish()
     .transform((items) => items || [])
 });
@@ -48,7 +48,11 @@ const REPAIR_PROPOSAL_ACTIVE_FIX_REQUEST_STATUSES = new Set(["paid", "in_progres
 async function getTeamMembers(request, env) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
-  if (!env.WAITLIST_DB) return json({ error: "Team collaboration storage is not configured." }, 503);
+  if (!env.WAITLIST_DB)
+    return json(
+      { error: "Team collaboration storage is not set up on this server. Email support@seofixkit.com for help." },
+      503
+    );
   return jsonNoStore({
     ok: true,
     members: await teamMembersForOwner(env, access.ownerEmail)
@@ -58,13 +62,18 @@ async function getTeamMembers(request, env) {
 async function createTeamMember(request, env) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
-  if (!env.WAITLIST_DB) return json({ error: "Team collaboration storage is not configured." }, 503);
+  if (!env.WAITLIST_DB)
+    return json(
+      { error: "Team collaboration storage is not set up on this server. Email support@seofixkit.com for help." },
+      503
+    );
   const parsed = await parseJsonBody(request, TeamMemberBody);
   if (parsed.error) return jsonNoStore(parsed.error, 400);
   const body = parsed.data;
   const memberEmail = normalizeEmail(body.email || body.memberEmail);
   if (!memberEmail) return jsonNoStore({ error: "Enter a valid teammate email." }, 400);
-  if (memberEmail === access.ownerEmail) return jsonNoStore({ error: "You are already the workspace owner." }, 400);
+  if (memberEmail === access.ownerEmail)
+    return jsonNoStore({ error: "That is your own email. You already own this workspace." }, 400);
 
   const existing = await env.WAITLIST_DB.prepare(
     `SELECT *
@@ -135,7 +144,11 @@ async function createTeamMember(request, env) {
 async function revokeTeamMember(request, env) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
-  if (!env.WAITLIST_DB) return json({ error: "Team collaboration storage is not configured." }, 503);
+  if (!env.WAITLIST_DB)
+    return json(
+      { error: "Team collaboration storage is not set up on this server. Email support@seofixkit.com for help." },
+      503
+    );
   const url = new URL(request.url);
   const id = decodeURIComponent(url.pathname.slice("/api/team/members/".length));
   if (!isSafeUuid(id)) return json({ error: "Teammate not found." }, 404);
@@ -156,7 +169,11 @@ async function revokeTeamMember(request, env) {
 async function getReportCollaboration(request, env) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
-  if (!env.WAITLIST_DB) return json({ error: "Team collaboration storage is not configured." }, 503);
+  if (!env.WAITLIST_DB)
+    return json(
+      { error: "Team collaboration storage is not set up on this server. Email support@seofixkit.com for help." },
+      503
+    );
   const url = new URL(request.url);
   const reportId = reportIdFromSuffixPath(url.pathname, "/collaboration");
   const row = await ownerReportRow(env, reportId, access);
@@ -168,7 +185,11 @@ async function getReportCollaboration(request, env) {
 async function saveReportCollaboration(request, env) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
-  if (!env.WAITLIST_DB) return json({ error: "Team collaboration storage is not configured." }, 503);
+  if (!env.WAITLIST_DB)
+    return json(
+      { error: "Team collaboration storage is not set up on this server. Email support@seofixkit.com for help." },
+      503
+    );
   const parsed = await parseJsonBody(request, CollaborationBody);
   if (parsed.error) return jsonNoStore(parsed.error, 400);
   const body = parsed.data;
@@ -185,7 +206,11 @@ async function saveReportCollaboration(request, env) {
 async function updateRepairProposalApproval(request, env) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
-  if (!env.WAITLIST_DB) return json({ error: "Repair proposal storage is not configured." }, 503);
+  if (!env.WAITLIST_DB)
+    return json(
+      { error: "Repair proposal storage is not set up on this server. Email support@seofixkit.com for help." },
+      503
+    );
 
   const url = new URL(request.url);
   const match = url.pathname.match(/^\/api\/reports\/([^/]+)\/repair-proposals\/([^/]+)$/);
@@ -215,10 +240,10 @@ async function updateRepairProposalApproval(request, env) {
     return jsonNoStore({ error: "Choose approve or dismiss." }, 400);
   }
   if ((existing.delivery_status || "draft") !== "draft") {
-    return jsonNoStore({ error: "Repair approval cannot be changed after delivery starts." }, 409);
+    return jsonNoStore({ error: "Delivery has started, so this approval can no longer change." }, 409);
   }
   if (action === "approve" && existing.execution_mode === "unsupported") {
-    return jsonNoStore({ error: "This repair item is not executable yet and cannot be approved for delivery." }, 400);
+    return jsonNoStore({ error: "This repair is not ready to apply yet, so it cannot be approved." }, 400);
   }
   const now = new Date().toISOString();
   const ownerNote = body.ownerNote || body.owner_note;
@@ -259,7 +284,7 @@ async function updateRepairProposalApproval(request, env) {
     .run();
   if (Number(updateResult?.meta?.changes || 0) !== 1) {
     return jsonNoStore(
-      { error: "Repair approval can only be changed before delivery starts or while the paid request is active." },
+      { error: "You can change approvals before delivery starts or while the paid Fix Pack is open." },
       409
     );
   }
@@ -380,7 +405,7 @@ function issueCollaborationResponse(finding = {}, row = {}) {
 }
 
 async function saveIssueCollaborations(env, access, reportId, report, items = []) {
-  if (!Array.isArray(items)) return { ok: false, error: "Send collaboration items as a list." };
+  if (!Array.isArray(items)) return { ok: false, error: "Send collaboration items as a JSON array." };
   const issues = reportIssuesForCollaboration(report);
   const issueIds = new Set(issues.map((issue) => issue.id));
   const members = await teamMembersForOwner(env, access.ownerEmail);
@@ -389,10 +414,11 @@ async function saveIssueCollaborations(env, access, reportId, report, items = []
 
   for (const item of items.slice(0, 50)) {
     const issueId = cleanText(item?.issueId || item?.issue_id || "", 160);
-    if (!issueIds.has(issueId)) return { ok: false, error: "Issue no longer exists in this report." };
+    if (!issueIds.has(issueId))
+      return { ok: false, error: "That problem is no longer in this report. Refresh the report." };
     const assigneeEmail = normalizeEmail(item?.assigneeEmail || item?.assignee_email || "");
     if (assigneeEmail && !assignees.has(assigneeEmail)) {
-      return { ok: false, error: "Assign the issue to an active teammate." };
+      return { ok: false, error: "Pick an active teammate to assign this problem to." };
     }
     const existing = await env.WAITLIST_DB.prepare(
       `SELECT id, created_at
@@ -469,7 +495,7 @@ async function getSavedReport(request, env) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
   if (!env.WAITLIST_DB) {
-    return json({ error: "Report storage is not configured." }, 503);
+    return json({ error: "Report storage is not set up on this server. Email support@seofixkit.com for help." }, 503);
   }
 
   const url = new URL(request.url);
@@ -498,7 +524,7 @@ async function getSavedReport(request, env) {
     if (deleted.protectedIds.includes(id)) {
       row.expires_at = null;
     } else {
-      return json({ error: "Report expired." }, 404);
+      return json({ error: "This report expired. Run a new audit to get a fresh report." }, 404);
     }
   }
   if (row.owner_email && row.owner_email !== access.ownerEmail) {

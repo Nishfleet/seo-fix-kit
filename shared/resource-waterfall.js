@@ -22,8 +22,8 @@ export function buildResourceWaterfall(page = {}) {
       source: "browser-resource-timing",
       reason:
         rendered.source === "static-fallback"
-          ? "Rendered browser timing was unavailable for this page."
-          : "The browser did not expose resource timing rows for this page.",
+          ? "No browser timing data for this page."
+          : "The browser returned no file timing data for this page.",
       summary: emptySummary(),
       navigation,
       resources: [],
@@ -82,9 +82,9 @@ export function resourceWaterfallFindings(waterfall = {}, pageLabel = "home", so
     add({
       severity: "warning",
       title: `Render-blocking resources on ${pageLabel}`,
-      why: "Early scripts and stylesheets can delay the first useful render and make Core Web Vitals harder to pass.",
+      why: "Scripts and stylesheets loaded at the top hold back the page until they finish, which can hurt Core Web Vitals.",
       evidence: formatResourceList(waterfall.renderBlockingCandidates, "duration"),
-      fix: "Inline only critical CSS, defer non-critical JavaScript, and load secondary styles after the page can render."
+      fix: "Inline the CSS the first view needs, defer other JavaScript, and load the remaining styles after the page shows."
     });
   }
 
@@ -92,9 +92,9 @@ export function resourceWaterfallFindings(waterfall = {}, pageLabel = "home", so
     add({
       severity: "warning",
       title: `Heavy JavaScript payload on ${pageLabel}`,
-      why: "Large JavaScript bundles increase download, parse, and execution cost before users can interact.",
+      why: "Large JavaScript files take longer to download and run, so the page responds late to taps and clicks.",
       evidence: `Browser resource timing observed ${formatWaterfallBytes(summary.scriptBytes)} of JavaScript across ${summary.scriptRequests} request${summary.scriptRequests === 1 ? "" : "s"}.`,
-      fix: "Split critical and non-critical bundles, remove unused packages, and defer scripts that are not needed for the first view."
+      fix: "Split out the code the first view needs, remove packages you don't use, and defer the rest."
     });
   }
 
@@ -102,9 +102,9 @@ export function resourceWaterfallFindings(waterfall = {}, pageLabel = "home", so
     add({
       severity: "notice",
       title: `Heavy image payload on ${pageLabel}`,
-      why: "Large image transfers are common Largest Contentful Paint and mobile bandwidth risks.",
+      why: "Heavy images are a common cause of slow Largest Contentful Paint and eat mobile data.",
       evidence: `Browser resource timing observed ${formatWaterfallBytes(summary.imageBytes)} of image payload.`,
-      fix: "Compress large images, serve responsive sizes, and use modern formats for the first viewport."
+      fix: "Compress large images, serve smaller sizes to phones, and use WebP or AVIF for images at the top of the page."
     });
   }
 
@@ -112,9 +112,9 @@ export function resourceWaterfallFindings(waterfall = {}, pageLabel = "home", so
     add({
       severity: "notice",
       title: `Slow resource requests on ${pageLabel}`,
-      why: "Slow individual resources can hold the page open even when the HTML response is fast.",
+      why: "One slow file can hold the page up even when the HTML itself loads fast.",
       evidence: formatResourceList(waterfall.slowResources, "duration"),
-      fix: "Preload the critical resource if it is needed early, move non-critical requests later, or replace slow third-party assets."
+      fix: "Preload the file if the page needs it early, load it later if it doesn't, or replace a slow third-party file."
     });
   }
 
@@ -122,9 +122,9 @@ export function resourceWaterfallFindings(waterfall = {}, pageLabel = "home", so
     add({
       severity: "notice",
       title: `Large total page payload on ${pageLabel}`,
-      why: "Large total transfer size slows repeat crawls and mobile users.",
+      why: "A heavy page is slow for mobile visitors and for search engine crawlers.",
       evidence: `Browser resource timing observed ${formatWaterfallBytes(summary.totalTransferBytes)} across ${summary.totalRequests} requests.`,
-      fix: "Set a page-weight budget, remove unused assets, compress text resources, and lazy-load below-the-fold media."
+      fix: "Remove files you don't use, compress HTML, CSS and JavaScript, and lazy-load pictures and video below the fold."
     });
   }
 
@@ -132,9 +132,9 @@ export function resourceWaterfallFindings(waterfall = {}, pageLabel = "home", so
     add({
       severity: "notice",
       title: `Many third-party resources on ${pageLabel}`,
-      why: "Third-party scripts and pixels can add latency outside the site's direct control.",
+      why: "Each third-party script or tracking pixel adds load time you don't control.",
       evidence: `${summary.thirdPartyRequests} third-party requests were observed, led by ${formatThirdPartyHosts(waterfall.thirdPartyHosts)}.`,
-      fix: "Remove unused tags, consolidate vendors, and delay non-essential third-party scripts until after the main content loads."
+      fix: "Remove tags you no longer use, cut duplicate vendors, and load the rest after the main content."
     });
   }
 
@@ -148,7 +148,7 @@ export function resourceWaterfallBriefLines(waterfall = {}) {
       "## Resource waterfall proof snapshot",
       "",
       `- Source: ${waterfall.source || "browser-resource-timing"}`,
-      `- Note: ${waterfall.reason || "No browser resource timing rows were available."}`,
+      `- Note: ${waterfall.reason || "No file timing data was available."}`,
       ""
     ];
   }
@@ -185,7 +185,7 @@ export function resourceWaterfallBriefLines(waterfall = {}) {
 
 export function resourceWaterfallSummaryCopy(waterfall = {}) {
   if (waterfall.status !== "ready") {
-    return waterfall.reason || "Browser resource timing rows were not available for this page.";
+    return waterfall.reason || "No file timing data for this page.";
   }
   const summary = waterfall.summary || {};
   return `${summary.totalRequests} browser-loaded resources were captured with ${formatWaterfallBytes(summary.totalTransferBytes)} observed transfer, including ${summary.renderBlockingCandidates} render-blocking candidate${summary.renderBlockingCandidates === 1 ? "" : "s"} and ${summary.slowRequests} slow request${summary.slowRequests === 1 ? "" : "s"}.`;

@@ -13,10 +13,10 @@ export function CompetitorBenchmarkPanel({ benchmark }) {
         <p className="beta-eyebrow">Competitor benchmark</p>
         <h2>
           {summary.scoreGapToBest > 0
-            ? `${summary.bestCompetitorHost} is ${summary.scoreGapToBest} points ahead.`
-            : "You match or beat the strongest competitor snapshot."}
+            ? `${summary.bestCompetitorHost} scores ${summary.scoreGapToBest} points higher`
+            : "You match or beat every competitor checked"}
         </h2>
-        <p>Homepage proof snapshot. This is not backlink, keyword-volume, or rank-tracking data.</p>
+        <p>Compares homepages, checked once. This is not backlink, search volume or rank-tracking data.</p>
       </div>
 
       <div className="benchmark-metrics" aria-label="Competitor benchmark summary">
@@ -25,9 +25,9 @@ export function CompetitorBenchmarkPanel({ benchmark }) {
           value={`${summary.targetRank || 1}/${summary.totalSitesRanked || competitors.length + 1}`}
         />
         <Metric label="Your score" value={target.score || 0} />
-        <Metric label="Best rival" value={summary.bestCompetitorScore || 0} />
-        <Metric label="Avg rival" value={summary.competitorAverageScore || 0} />
-        <Metric label="Gap repairs" value={repairs.length} />
+        <Metric label="Best competitor" value={summary.bestCompetitorScore || 0} />
+        <Metric label="Competitor average" value={summary.competitorAverageScore || 0} />
+        <Metric label="Gaps to fix" value={repairs.length} />
       </div>
 
       <div className="benchmark-grid">
@@ -46,7 +46,7 @@ export function CompetitorBenchmarkPanel({ benchmark }) {
               <small>
                 {site.strengths?.length
                   ? `Avoids: ${site.strengths.slice(0, 3).join(", ")}`
-                  : `${site.issueCount || 0} issues in snapshot`}
+                  : `${site.issueCount || 0} problems found`}
               </small>
             </div>
             <b>{site.score || 0}/100</b>
@@ -61,11 +61,11 @@ export function CompetitorBenchmarkPanel({ benchmark }) {
             <strong>{repair.title}</strong>
             <p>{repair.proof}</p>
             <small>
-              {repair.estimatedEffort || "15-30 min"} - {repair.workType || "review"}
+              {repair.estimatedEffort || "15-30 min"} · {repair.workType || "review"}
             </small>
           </article>
         ))}
-        {!repairs.length && <p className="quiet-note">No competitor-backed repair gaps were found in this snapshot.</p>}
+        {!repairs.length && <p className="quiet-note">No gaps found against these competitors.</p>}
       </div>
     </section>
   );
@@ -80,15 +80,14 @@ export function BacklinkAuditPanel({ audit }) {
   return (
     <section className="backlink-audit-panel">
       <div className="section-heading">
-        <p className="beta-eyebrow">Backlink audit</p>
+        <p className="beta-eyebrow">Backlinks you imported</p>
         <h2>
           {summary.repairOpportunityCount
-            ? `${summary.repairOpportunityCount} link repair ${summary.repairOpportunityCount === 1 ? "action" : "actions"} found.`
-            : "Imported backlinks are clean in this proof pass."}
+            ? `${summary.repairOpportunityCount} backlink ${summary.repairOpportunityCount === 1 ? "problem" : "problems"} to fix`
+            : "No problems with your imported backlinks"}
         </h2>
         <p>
-          Self-serve backlink import with live source-page proof and link-edge history. This is not proprietary backlink
-          discovery.
+          We load each linking page you imported and check the link is still there. We don’t find new backlinks for you.
         </p>
       </div>
 
@@ -106,7 +105,7 @@ export function BacklinkAuditPanel({ audit }) {
           <strong>{highestPriority.title}</strong>
           <p>{highestPriority.proof}</p>
           <small>
-            {highestPriority.estimatedEffort || "30-90 min"} - {highestPriority.workType || "review"}
+            {highestPriority.estimatedEffort || "30-90 min"} · {highestPriority.workType || "review"}
           </small>
         </article>
       )}
@@ -120,7 +119,7 @@ export function BacklinkAuditPanel({ audit }) {
             <div>
               <span>{row.live ? "Live" : "Lost"}</span>
               <strong>{safeHostnameLabel(row.sourceUrl)}</strong>
-              <small>{row.discoveredAnchorText || row.anchorText || "No anchor text captured"}</small>
+              <small>{row.discoveredAnchorText || row.anchorText || "No anchor text"}</small>
             </div>
             <p>{row.proof}</p>
           </article>
@@ -140,20 +139,23 @@ export function LocalSeoAuditPanel({ audit }) {
   return (
     <section className="local-seo-panel">
       <div className="section-heading">
-        <p className="beta-eyebrow">Local SEO audit</p>
+        <p className="beta-eyebrow">Local SEO</p>
         <h2>
           {summary.repairOpportunityCount
-            ? `${summary.repairOpportunityCount} local repair ${summary.repairOpportunityCount === 1 ? "action" : "actions"} found.`
-            : "Local SEO proof passed for the supplied inputs."}
+            ? `${summary.repairOpportunityCount} local SEO ${summary.repairOpportunityCount === 1 ? "problem" : "problems"} to fix`
+            : "Local SEO checks passed for the details you entered"}
         </h2>
-        <p>Self-serve NAP, citation, schema, profile-link, and local keyword checks.</p>
+        <p>
+          Checks your business name, address and phone (NAP) on your site and listings, plus local schema, your Google
+          Business Profile link and local keywords.
+        </p>
       </div>
 
       <div className="local-seo-metrics" aria-label="Local SEO audit summary">
         <Metric label="NAP found" value={`${summary.napFieldsFoundOnSite || 0}/${summary.napFieldsSupplied || 0}`} />
-        <Metric label="Schema" value={summary.localSchemaFound ? "Yes" : "No"} />
-        <Metric label="GBP link" value={summary.googleBusinessProfileLinked ? "Yes" : "No"} />
-        <Metric label="Citations" value={`${summary.citationRowsPassed || 0}/${summary.citationRowsChecked || 0}`} />
+        <Metric label="Local schema" value={summary.localSchemaFound ? "Yes" : "No"} />
+        <Metric label="Google profile link" value={summary.googleBusinessProfileLinked ? "Yes" : "No"} />
+        <Metric label="Listings" value={`${summary.citationRowsPassed || 0}/${summary.citationRowsChecked || 0}`} />
         <Metric label="Keywords" value={`${summary.localKeywordsCovered || 0}/${summary.localKeywordsChecked || 0}`} />
       </div>
 
@@ -163,7 +165,7 @@ export function LocalSeoAuditPanel({ audit }) {
           <strong>{highestPriority.title}</strong>
           <p>{highestPriority.proof}</p>
           <small>
-            {highestPriority.estimatedEffort || "30-90 min"} - {highestPriority.workType || "review"}
+            {highestPriority.estimatedEffort || "30-90 min"} · {highestPriority.workType || "review"}
           </small>
         </article>
       )}
@@ -174,7 +176,9 @@ export function LocalSeoAuditPanel({ audit }) {
             <div>
               <span>{row.ok ? "Consistent" : "Mismatch"}</span>
               <strong>{safeHostnameLabel(row.sourceUrl)}</strong>
-              <small>{row.mismatches?.length ? `Missing ${row.mismatches.join(", ")}` : "NAP matched"}</small>
+              <small>
+                {row.mismatches?.length ? `Missing ${row.mismatches.join(", ")}` : "Name, address and phone match"}
+              </small>
             </div>
             <p>{row.proof}</p>
           </article>
@@ -185,14 +189,10 @@ export function LocalSeoAuditPanel({ audit }) {
               <span>{item.found ? "Covered" : "Missing"}</span>
               <strong>{item.keyword}</strong>
               <small>
-                {item.pages?.length ? item.pages.map((page) => page.label).join(", ") : "No rendered page match"}
+                {item.pages?.length ? item.pages.map((page) => page.label).join(", ") : "Not on any page checked"}
               </small>
             </div>
-            <p>
-              {item.found
-                ? "Keyword appears naturally in rendered page content."
-                : "Keyword was not found in the rendered pages crawled."}
-            </p>
+            <p>{item.found ? "Found in the page text." : "Not found on the pages checked."}</p>
           </article>
         ))}
       </div>
@@ -209,15 +209,15 @@ export function KeywordRankAuditPanel({ audit }) {
   return (
     <section className="keyword-rank-panel">
       <div className="section-heading">
-        <p className="beta-eyebrow">Keyword audit</p>
+        <p className="beta-eyebrow">Keywords you imported</p>
         <h2>
           {summary.repairOpportunityCount
-            ? `${summary.repairOpportunityCount} keyword repair ${summary.repairOpportunityCount === 1 ? "action" : "actions"} found.`
-            : "Imported keyword rows are clean in this proof pass."}
+            ? `${summary.repairOpportunityCount} keyword ${summary.repairOpportunityCount === 1 ? "problem" : "problems"} to fix`
+            : "No problems with your imported keywords"}
         </h2>
         <p>
-          Self-serve Search Console or rank-tracker import with rendered landing-page proof and trend history. This is
-          not live volume or continuous rank tracking.
+          Uses the Search Console or rank-tracker rows you pasted, checked against each landing page. This is not live
+          search volume or ongoing rank tracking.
         </p>
       </div>
 
@@ -227,7 +227,7 @@ export function KeywordRankAuditPanel({ audit }) {
         <Metric label="Clicks" value={formatCount(summary.totalClicks || 0)} />
         <Metric label="Impressions" value={formatCount(summary.totalImpressions || 0)} />
         <Metric label="CTR" value={formatPercent(summary.averageCtr || 0)} />
-        <Metric label="Avg pos" value={formatPosition(summary.averagePosition || 0)} />
+        <Metric label="Avg position" value={formatPosition(summary.averagePosition || 0)} />
       </div>
 
       {highestPriority && (
@@ -236,7 +236,7 @@ export function KeywordRankAuditPanel({ audit }) {
           <strong>{highestPriority.title}</strong>
           <p>{highestPriority.proof}</p>
           <small>
-            {highestPriority.estimatedEffort || "30-90 min"} - {highestPriority.workType || "content"}
+            {highestPriority.estimatedEffort || "30-90 min"} · {highestPriority.workType || "content"}
           </small>
         </article>
       )}
@@ -245,19 +245,19 @@ export function KeywordRankAuditPanel({ audit }) {
         {(checks.lowCtrRows || []).slice(0, 3).map((row) => (
           <KeywordRankRow
             key={`ctr-${row.id}`}
-            label="Low CTR"
+            label="Low click rate"
             title={row.query}
-            detail={`${row.pageLabel} - ${formatPercent(row.ctr)} CTR at position ${formatPosition(row.position)}`}
+            detail={`${row.pageLabel} · ${formatPercent(row.ctr)} click rate at position ${formatPosition(row.position)}`}
             proof={`${formatCount(row.impressions)} impressions and ${formatCount(row.clicks)} clicks.`}
           />
         ))}
         {(checks.pageTwoRows || []).slice(0, 3).map((row) => (
           <KeywordRankRow
             key={`page-two-${row.id}`}
-            label="Page two"
+            label="Page 2"
             title={row.query}
-            detail={`${row.pageLabel} - position ${formatPosition(row.position)}`}
-            proof={`${formatCount(row.impressions)} impressions from a query close to traffic.`}
+            detail={`${row.pageLabel} · position ${formatPosition(row.position)}`}
+            proof={`${formatCount(row.impressions)} impressions on a query just off page 1.`}
           />
         ))}
         {(checks.decliningRows || []).slice(0, 3).map((row) => (
@@ -281,19 +281,19 @@ export function KeywordRankAuditPanel({ audit }) {
         {(checks.landingMismatchRows || []).slice(0, 3).map((row) => (
           <KeywordRankRow
             key={`mismatch-${row.id}`}
-            label="Intent mismatch"
+            label="Page doesn’t match query"
             title={row.query}
             detail={row.pageLabel}
-            proof="Rendered title, H1, and description do not clearly cover the imported query."
+            proof="The page title, H1 and description don’t clearly cover this query."
           />
         ))}
         {(checks.missingLandingPageRows || []).slice(0, 3).map((row) => (
           <KeywordRankRow
             key={`missing-${row.id}`}
-            label="Not crawled"
+            label="Page not checked"
             title={row.query}
             detail={row.pageLabel}
-            proof="Imported landing page was not present in the rendered crawl proof."
+            proof="This landing page wasn’t one of the pages this audit checked."
           />
         ))}
       </div>
@@ -324,21 +324,18 @@ export function PlatformSeoAuditPanel({ audit }) {
   return (
     <section className="platform-seo-panel">
       <div className="section-heading">
-        <p className="beta-eyebrow">Platform SEO audit</p>
-        <h2>{platformNames} proof with platform-specific repairs.</h2>
-        <p>
-          Rendered WordPress and ecommerce checks for product schema, faceted links, archives, and plugin resource
-          impact.
-        </p>
+        <p className="beta-eyebrow">Platform checks</p>
+        <h2>{platformNames} checks</h2>
+        <p>WordPress and online store checks: product schema, filter links, archive pages and plugin load.</p>
       </div>
 
       <div className="platform-seo-metrics" aria-label="Platform SEO audit summary">
         <Metric label="Platforms" value={summary.detectedPlatforms || 0} />
-        <Metric label="Products" value={summary.productLikePages || 0} />
+        <Metric label="Product pages" value={summary.productLikePages || 0} />
         <Metric label="Product schema" value={`${summary.productSchemaCoveragePercent || 0}%`} />
-        <Metric label="Faceted links" value={summary.facetedLinks || 0} />
-        <Metric label="WP plugins" value={summary.wordpressPlugins || 0} />
-        <Metric label="Repairs" value={summary.repairOpportunityCount || repairs.length} />
+        <Metric label="Filter links" value={summary.facetedLinks || 0} />
+        <Metric label="WordPress plugins" value={summary.wordpressPlugins || 0} />
+        <Metric label="Fixes" value={summary.repairOpportunityCount || repairs.length} />
       </div>
 
       {highestPriority && (
@@ -347,7 +344,7 @@ export function PlatformSeoAuditPanel({ audit }) {
           <strong>{highestPriority.title}</strong>
           <p>{highestPriority.proof}</p>
           <small>
-            {highestPriority.estimatedEffort || "30-90 min"} - {highestPriority.workType || "technical"}
+            {highestPriority.estimatedEffort || "30-90 min"} · {highestPriority.workType || "technical"}
           </small>
         </article>
       )}
@@ -360,7 +357,7 @@ export function PlatformSeoAuditPanel({ audit }) {
               <strong>{platform.name}</strong>
               <small>{platform.confidence || "medium"} confidence</small>
             </div>
-            <p>{platform.signals?.[0] || "Rendered platform signal detected."}</p>
+            <p>{platform.signals?.[0] || "Detected on the loaded page."}</p>
           </article>
         ))}
         {(checks.productSchema?.missingPages || []).slice(0, 3).map((page) => (
@@ -368,17 +365,17 @@ export function PlatformSeoAuditPanel({ audit }) {
             <div>
               <span>Product schema</span>
               <strong>{page.label || page.url}</strong>
-              <small>{page.wordCount || 0} rendered words</small>
+              <small>{page.wordCount || 0} words</small>
             </div>
-            <p>Product-like page lacks rendered Product schema.</p>
+            <p>Looks like a product page but has no Product schema.</p>
           </article>
         ))}
         {(checks.facetedNavigation?.links || []).slice(0, 3).map((link) => (
           <article className="platform-seo-row is-lost" key={`facet-${link.href}`}>
             <div>
-              <span>Faceted URL</span>
+              <span>Filter URL</span>
               <strong>{link.pageLabel || "page"}</strong>
-              <small>{link.text || "Rendered link"}</small>
+              <small>{link.text || "Link"}</small>
             </div>
             <p>{link.href}</p>
           </article>
@@ -386,7 +383,7 @@ export function PlatformSeoAuditPanel({ audit }) {
         {(checks.wordpressArchives?.links || []).slice(0, 3).map((link) => (
           <article className="platform-seo-row is-lost" key={`archive-${link.href}`}>
             <div>
-              <span>WP archive</span>
+              <span>WordPress archive</span>
               <strong>{link.pageLabel || "page"}</strong>
               <small>{link.text || "Archive link"}</small>
             </div>

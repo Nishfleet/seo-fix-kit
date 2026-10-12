@@ -385,7 +385,7 @@ test("a non-Lite audit of an unverified host is refused with verification instru
     assert.equal(response.status, 403, url);
     const body = await response.json();
     assert.equal(body.code, "SITE_VERIFICATION_REQUIRED");
-    assert.match(body.error, /Verify .+ before running a self-serve audit/);
+    assert.match(body.error, /Verify .+ to run a full audit/);
     assert.equal(body.site.filePath, "/.well-known/seofixkit.txt");
   }
 
@@ -514,7 +514,7 @@ test("an expired report is gone: 404 for the owner and its rows and blob are del
 
   const response = await call(world, `/api/reports/${id}`, { session });
   assert.equal(response.status, 404);
-  assert.equal((await response.json()).error, "Report expired.");
+  assert.equal((await response.json()).error, "This report expired. Run a new audit to get a fresh report.");
   assert.equal(world.db.rows("SELECT id FROM audit_reports WHERE id = ?", id).length, 0);
   assert.equal(world.db.rows("SELECT id FROM audit_jobs WHERE report_id = ?", id).length, 0);
   assert.equal(world.reports.objects.has(`reports/${id}.json`), false);
@@ -678,7 +678,7 @@ test("requests without a valid, active API key are rejected", async () => {
       body: method === "POST" ? { url: "https://shop.example.com/" } : undefined
     });
     assert.equal(missing.status, 401, `${method} ${path} without key`);
-    assert.equal((await missing.json()).error, "API key required.");
+    assert.equal((await missing.json()).error, "API key required. Send it as Authorization: Bearer YOUR_API_KEY.");
 
     const wrong = await call(world, path, { method, bearer: `${created.tokenSecret}x` });
     assert.equal(wrong.status, 401, `${method} ${path} with wrong key`);
@@ -702,7 +702,10 @@ test("requests without a valid, active API key are rejected", async () => {
     body: { url: "https://shop.example.com/" }
   });
   assert.equal(afterRevoke.status, 401);
-  assert.equal((await afterRevoke.json()).error, "API key is invalid or revoked.");
+  assert.equal(
+    (await afterRevoke.json()).error,
+    "API key is invalid or revoked. Create a new key in your SEO Fix Kit account."
+  );
   assert.equal(world.db.rows("SELECT id FROM audit_jobs").length, 0);
   assert.equal(world.queue.messages.length, 0);
 

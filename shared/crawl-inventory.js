@@ -105,7 +105,7 @@ export async function buildCrawlInventory(startUrl = "", options = {}) {
   return {
     status: urls.length ? "ready" : "empty",
     source: "robots-and-sitemaps",
-    note: "Crawl inventory discovers sitemap URLs at CrawlRaven public scale. Rendered repair proof is collected separately on the selected crawl depth.",
+    note: "Lists up to 50,000 URLs from your sitemaps. Only the pages loaded in this audit are checked for problems.",
     summary,
     seeds,
     sitemaps,

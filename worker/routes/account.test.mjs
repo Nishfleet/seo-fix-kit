@@ -210,7 +210,7 @@ test("account summary points applied repairs toward rerun proof", async () => {
   assert.equal(body.metrics.approvedActions, 0);
   assert.equal(body.repairAgent.counts.approvedActions, 0);
   assert.equal(body.nextActions[0].id, "rerun-applied-repair");
-  assert.match(body.nextActions[0].detail, /rerun proof/i);
+  assert.match(body.nextActions[0].detail, /Rerun the audit to confirm/i);
 });
 
 test("account summary does not count regressed rerun proof as applied awaiting rerun", async () => {

@@ -86,7 +86,9 @@ const FixRequestAdminBody = body(
 
 async function exportLeadsCsv(request, env) {
   if (!env.WAITLIST_DB) {
-    return new Response("Waitlist storage is not configured.", { status: 503 });
+    return new Response("Waitlist storage is not set up on this server. Email support@seofixkit.com for help.", {
+      status: 503
+    });
   }
 
   const admin = await adminAccessStatus(request, env, "export-leads");
@@ -152,7 +154,11 @@ async function exportLeadsCsv(request, env) {
 async function createAdminBetaSession(request, env) {
   const admin = await adminAccessStatus(request, env, "create-beta-proof-session");
   if (!admin.ok) return adminDeniedJson(admin);
-  if (!env.WAITLIST_DB) return jsonNoStore({ error: "Private beta sessions are not configured." }, 503);
+  if (!env.WAITLIST_DB)
+    return jsonNoStore(
+      { error: "Sign-in is not set up on this server yet. Email support@seofixkit.com for access." },
+      503
+    );
 
   const parsed = await parseJsonBody(request, AdminBetaSessionBody);
   if (parsed.error) return jsonNoStore(parsed.error, 400);
@@ -179,7 +185,8 @@ async function createAdminBetaSession(request, env) {
 async function getAdminSummary(request, env) {
   const admin = await adminAccessStatus(request, env, "view-summary");
   if (!admin.ok) return adminDeniedJson(admin);
-  if (!env.WAITLIST_DB) return json({ error: "Admin storage is not configured." }, 503);
+  if (!env.WAITLIST_DB)
+    return json({ error: "Admin storage is not set up on this server. Email support@seofixkit.com for help." }, 503);
   await logAdminAction(request, env, "view-summary", true, admin.actorEmail);
 
   const includeTest = new URL(request.url).searchParams.get("includeTest") === "1";
@@ -349,7 +356,11 @@ async function getAdminSummary(request, env) {
 async function getFunnelSummary(request, env) {
   const admin = await adminAccessStatus(request, env, "view-summary");
   if (!admin.ok) return adminDeniedJson(admin);
-  if (!env.WAITLIST_DB) return jsonNoStore({ error: "Funnel storage is not configured." }, 503);
+  if (!env.WAITLIST_DB)
+    return jsonNoStore(
+      { error: "Funnel storage is not set up on this server. Email support@seofixkit.com for help." },
+      503
+    );
   await logAdminAction(request, env, "view-funnel", true, admin.actorEmail);
 
   const url = new URL(request.url);
@@ -369,7 +380,8 @@ async function getFunnelSummary(request, env) {
 async function createInvite(request, env) {
   const admin = await adminAccessStatus(request, env, "create-invite");
   if (!admin.ok) return adminDeniedJson(admin);
-  if (!env.WAITLIST_DB) return json({ error: "Invite storage is not configured." }, 503);
+  if (!env.WAITLIST_DB)
+    return json({ error: "Invite storage is not set up on this server. Email support@seofixkit.com for help." }, 503);
 
   const parsed = await parseJsonBody(request, InviteBody);
   if (parsed.error) return json(parsed.error, 400);
@@ -414,7 +426,11 @@ async function createInvite(request, env) {
 async function updateFixRequestAdmin(request, env) {
   const admin = await adminAccessStatus(request, env, "update-fix-request");
   if (!admin.ok) return adminDeniedJson(admin);
-  if (!env.WAITLIST_DB) return json({ error: "Fix request storage is not configured." }, 503);
+  if (!env.WAITLIST_DB)
+    return json(
+      { error: "Fix request storage is not set up on this server. Email support@seofixkit.com for help." },
+      503
+    );
 
   const id = decodeURIComponent(new URL(request.url).pathname.slice("/admin/fix-requests/".length));
   if (!isSafeUuid(id)) return jsonNoStore({ error: "Fix request not found." }, 404);

@@ -68,7 +68,11 @@ export function parseLocalSeoInput(input = {}, targetUrl, options = {}) {
     !options.allowPrivate &&
     isPrivateHost(normalized.googleBusinessProfileUrl)
   ) {
-    return { ok: false, error: "Google Business Profile URL must be public." };
+    return {
+      ok: false,
+      error:
+        "The Google Business Profile URL must be a public link. Copy the share link from Google Maps and try again."
+    };
   }
 
   const citationSource = merged.citations ?? merged.citationCsv ?? "";
@@ -81,7 +85,7 @@ export function parseLocalSeoInput(input = {}, targetUrl, options = {}) {
     );
     if (!sourceUrl) continue;
     if (!options.allowPrivate && isPrivateHost(sourceUrl)) {
-      return { ok: false, error: "Citation URLs must be public URLs." };
+      return { ok: false, error: "Listing URLs must be public. Remove private or local URLs and try again." };
     }
     if (seen.has(sourceUrl)) continue;
     seen.add(sourceUrl);
@@ -175,7 +179,7 @@ export async function buildLocalSeoAudit(report = {}, input = {}, options = {}) 
   return {
     status: "ready",
     source: "self-serve-local-input",
-    note: "Local SEO audit uses supplied business details, supplied citation URLs, and rendered site proof. It does not scrape private Google Business Profile data.",
+    note: "The local SEO audit checks the business details and listing URLs you enter against your pages. It does not scrape private Google Business Profile data.",
     input: {
       businessName: localInput.businessName,
       phone: localInput.phone,
@@ -217,7 +221,7 @@ export function localSeoAuditBriefLines(audit = {}) {
     }
     lines.push("");
   } else {
-    lines.push("No local SEO repair actions were created from the supplied inputs.", "");
+    lines.push("No local SEO problems found in the details you entered.", "");
   }
 
   return lines;
@@ -365,9 +369,8 @@ function localSeoRepairOpportunities({ localInput, siteChecks, citationRows, key
       severity: "warning",
       title: "Local SEO NAP is missing from audited pages",
       proof: `Supplied ${missingNap.join(", ")} was not found in the rendered pages crawled.`,
-      fix: "Add the business name, phone, and address to the visible contact/footer/location content where it matches the real business.",
-      acceptance:
-        "Rerun the local SEO audit and confirm each supplied NAP field is found on at least one rendered page.",
+      fix: "Show your business name, phone and address on the contact page or in the footer, exactly as they are.",
+      acceptance: "Rerun the audit. Your name, address and phone each appear on at least one page.",
       estimatedEffort: "30-90 min",
       workType: "content"
     });
@@ -380,9 +383,9 @@ function localSeoRepairOpportunities({ localInput, siteChecks, citationRows, key
       title: "LocalBusiness schema is missing",
       proof: siteChecks.schema.types.length
         ? `Rendered schema types found: ${siteChecks.schema.types.join(", ")}. No LocalBusiness schema type was found.`
-        : "No rendered LocalBusiness schema type was found.",
-      fix: "Add truthful LocalBusiness JSON-LD that matches the visible NAP, area served, URL, and sameAs profiles.",
-      acceptance: "Rendered JSON-LD includes a LocalBusiness-compatible @type and still matches visible page content.",
+        : "No LocalBusiness schema found on the pages checked.",
+      fix: "Add LocalBusiness JSON-LD with the same name, address, phone, area served, URL and profile links (sameAs) shown on the page.",
+      acceptance: "The JSON-LD uses LocalBusiness or a subtype and matches what the page shows.",
       estimatedEffort: "30-90 min",
       workType: "technical"
     });
@@ -393,8 +396,8 @@ function localSeoRepairOpportunities({ localInput, siteChecks, citationRows, key
       severity: "notice",
       title: "Google Business Profile is not linked from the site",
       proof: googleBusinessProfile.proof,
-      fix: "Add the Google Business Profile or Maps link to the contact, location, or footer area where customers expect local proof.",
-      acceptance: "A rendered page links to the supplied Google Business Profile URL.",
+      fix: "Link to your Google Business Profile or Maps listing from the contact page or footer.",
+      acceptance: "A page on your site links to your Google Business Profile.",
       estimatedEffort: "15-30 min",
       workType: "content"
     });
@@ -406,8 +409,8 @@ function localSeoRepairOpportunities({ localInput, siteChecks, citationRows, key
       severity: "warning",
       title: "Local citation URLs could not be verified",
       proof: `${unreachable.length} citation URL${unreachable.length === 1 ? "" : "s"} failed live fetch. Example: ${unreachable[0].proof}`,
-      fix: "Replace dead citation URLs, restore the listing, or remove stale citations from the tracking list.",
-      acceptance: "Each supplied citation URL returns a live page on rerun.",
+      fix: "Fix or replace each dead listing, or remove it from your list.",
+      acceptance: "Each listing URL loads on rerun.",
       estimatedEffort: "30-90 min",
       workType: "review"
     });
@@ -419,8 +422,8 @@ function localSeoRepairOpportunities({ localInput, siteChecks, citationRows, key
       severity: "warning",
       title: "Local citations have NAP mismatches",
       proof: `${mismatched.length} citation URL${mismatched.length === 1 ? "" : "s"} missed supplied NAP fields. Example: ${mismatched[0].sourceUrl} missing ${mismatched[0].mismatches.join(", ")}.`,
-      fix: "Update directory listings so the business name, phone, and address match the supplied canonical NAP.",
-      acceptance: "Rerun the local SEO audit and confirm citation rows include the expected NAP fields.",
+      fix: "Update each directory listing so the name, phone and address match the ones you entered exactly.",
+      acceptance: "Rerun the audit. Each listing shows your name, address and phone.",
       estimatedEffort: "45-120 min",
       workType: "review"
     });
@@ -432,9 +435,8 @@ function localSeoRepairOpportunities({ localInput, siteChecks, citationRows, key
       severity: "notice",
       title: "Local keyword coverage is thin",
       proof: `${missingKeywords.length} supplied local keyword${missingKeywords.length === 1 ? "" : "s"} were not found in rendered page copy. Example: ${missingKeywords[0].keyword}`,
-      fix: "Add natural local service/location language to the relevant page. Do not stuff exact-match terms where they do not help customers.",
-      acceptance:
-        "Rerun the audit and confirm important local service/location phrases appear naturally in rendered content.",
+      fix: "Mention the services and places you cover in plain sentences on the right page. Don't repeat exact phrases just for search.",
+      acceptance: "Rerun the audit. Your main services and locations appear in the page text.",
       estimatedEffort: "30-90 min",
       workType: "content"
     });

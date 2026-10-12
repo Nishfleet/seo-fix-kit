@@ -48,12 +48,12 @@ export function buildRemediationBrief(report = {}) {
     support: {
       fixPackEligible: priorityQueue.length > 0,
       safeHandoff:
-        "Share the report URL, issue title, proof, requested fix, and acceptance checks. Do not claim rankings, traffic, or revenue outcomes.",
+        "When you hand this off, include the report link, the problem, what we found, the fix and how to confirm it. Do not claim rankings, traffic or revenue results.",
       handoffRules: [
-        "Use rendered proof and stored findings only.",
-        "Every repair needs a human-approved change and a rerun acceptance check.",
-        "Do not auto-publish site changes or edit customer production systems from this brief.",
-        "Escalate billing, access, legal, or customer-data questions instead of guessing."
+        "Work only from what the audit found on the loaded pages.",
+        "Every repair needs a person to approve the change and a rerun to confirm it.",
+        "Don't publish changes or edit the live site automatically from this brief.",
+        "Pass billing, access, legal or customer-data questions to a person. Don't guess."
       ]
     }
   };
@@ -112,18 +112,18 @@ function clean(value = "") {
 
 function acceptanceChecksFor(issue = {}, plan = {}, report = {}) {
   const checks = [
-    "Rerun the saved audit and confirm this issue is fixed, downgraded, or intentionally marked as not applicable.",
-    "Keep the proof source attached to the issue before closing the repair."
+    "Rerun the saved audit and check this problem is fixed, less severe, or marked as not applicable.",
+    "Keep the evidence attached to the problem until you close the repair."
   ];
-  if (issue.pageUrl) checks.unshift(`Open ${issue.pageUrl} and verify the rendered page reflects the fix.`);
+  if (issue.pageUrl) checks.unshift(`Open ${issue.pageUrl} and check the fix shows on the live page.`);
   if (/schema|structured data/i.test(issue.title || plan.title || "")) {
-    checks.push("Validate structured data output after the change.");
+    checks.push("Run the page's schema through a validator after the change.");
   }
   if (/title|description|h1|canonical|robots/i.test(issue.title || plan.title || "")) {
-    checks.push("Inspect rendered HTML/head output, not only the CMS field.");
+    checks.push("Check the page's actual HTML head, not just the CMS field.");
   }
   if (report.reportDelta?.status === "ready") {
-    checks.push("Compare against the previous report delta so fixed issues do not reappear.");
+    checks.push("Compare with the previous report so fixed problems don't come back.");
   }
   return [...new Set(checks)].slice(0, 5);
 }
@@ -131,16 +131,17 @@ function acceptanceChecksFor(issue = {}, plan = {}, report = {}) {
 function nextActions(priorityQueue = [], delta = {}) {
   if (!priorityQueue.length) {
     return [
-      "Schedule the next monitor or rerun after meaningful site changes.",
-      "Keep proof guards visible so future static-crawler false positives do not become busywork."
+      "Rerun the audit, or turn on weekly monitoring, after big site changes.",
+      "Keep the filtered false alarms on record so nobody fixes them later by mistake."
     ];
   }
   const actions = [
-    "Assign the first repair to an owner.",
-    "Apply the fix in a staging or controlled production path.",
-    "Rerun the report and compare the acceptance checks before closing."
+    "Assign the first repair to someone.",
+    "Make the fix on a staging site first, or with a careful live change.",
+    "Rerun the audit and check each fix before closing it."
   ];
-  if (delta.status === "ready") actions.push("Review fixed, new, and persistent issues before starting more work.");
+  if (delta.status === "ready")
+    actions.push("Review what got fixed, what's new and what's still open before starting more work.");
   return actions;
 }
 

@@ -20,7 +20,7 @@ function socialImageMeta() {
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="${SOCIAL_IMAGE_WIDTH}" />
     <meta property="og:image:height" content="${SOCIAL_IMAGE_HEIGHT}" />
-    <meta property="og:image:alt" content="SEO Fix Kit: SEO fixes with receipts. Audit it. Prove it. Fix it." />`;
+    <meta property="og:image:alt" content="SEO Fix Kit: the SEO audit that checks its own work" />`;
 }
 
 function llmsText(origin) {
@@ -205,7 +205,7 @@ function siteHeader(origin, currentPath = "") {
           ${links}
         </nav>
         <div class="site-header-actions">
-          <a class="btn btn-primary btn-sm header-cta" href="${origin}/check">Check a page free</a>
+          <a class="btn btn-primary btn-sm header-cta" href="${origin}/check">Check a page</a>
           <button class="site-menu-button" type="button" aria-controls="site-nav" aria-expanded="false" data-site-menu>
             Menu
             <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2.5 5h11M2.5 11h11" /></svg>
@@ -268,9 +268,9 @@ function demoHtml(origin) {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Proof-Backed SEO Repair Demo - SEO Fix Kit</title>
-    <meta name="description" content="A public sample showing how SEO Fix Kit refuses static crawler false positives and turns verified issues into repair briefs." />
-${pageSocialHead({ origin, title: "Proof-Backed SEO Repair Demo - SEO Fix Kit", description: "A public sample showing how SEO Fix Kit refuses static crawler false positives and turns verified issues into repair briefs.", path: "/demo" })}
+    <title>Sample Report - SEO Fix Kit</title>
+    <meta name="description" content="Real SEO Fix Kit output for a test page: the warnings a real browser ruled out, and the problems that made the repair queue with fixes." />
+${pageSocialHead({ origin, title: "Sample Report - SEO Fix Kit", description: "Real SEO Fix Kit output for a test page: the warnings a real browser ruled out, and the problems that made the repair queue with fixes.", path: "/demo" })}
     <style>
       body { margin: 0; min-width: 0; }
       main { margin: 0 auto; max-width: 1120px; padding: clamp(40px, 6vw, 72px) 22px 64px; min-width: 0; }
@@ -297,28 +297,28 @@ ${pageSocialHead({ origin, title: "Proof-Backed SEO Repair Demo - SEO Fix Kit", 
     ${siteHeader(origin)}
     <main class="hero-light" id="main">
       <section class="enter">
-        <p class="kicker">Sample report · Real output</p>
-        <h1>Fix only what is actually broken.</h1>
-        <p>Basic SEO scanners read a page’s raw code and flag problems that aren’t there. SEO Fix Kit loads the page in a real browser, shows the evidence, and only suggests a fix when something is actually wrong.</p>
+        <p class="kicker">Sample report</p>
+        <h1>See which warnings a real browser rules out.</h1>
+        <p>Basic SEO scanners read only a page’s raw code, so they flag headings and text that JavaScript adds later. SEO Fix Kit loads the page in a real browser, shows the evidence, and suggests a fix only when something is actually wrong.</p>
       </section>
       <section class="grid" aria-label="Sample audit outcome">
         <article class="panel">
           <strong>Static scanner</strong>
-          <p>The raw HTML response holds ${DEMO_PROOF.measured.staticWordCount} visible words and no heading or link a user can follow. A static-only scan reads that as a thin, broken page.</p>
+          <p>The raw HTML has ${DEMO_PROOF.measured.staticWordCount} visible words and no heading or link. A scanner that reads only raw HTML calls this a thin, broken page.</p>
         </article>
         <article class="panel proof">
-          <strong>Rendered proof</strong>
-          <p>The browser render shows one real H1, three internal links, and ${DEMO_PROOF.measured.renderedWordCount} words of content. The thin page exists only in the raw response.</p>
+          <strong>Real browser</strong>
+          <p>After rendering, the page has one H1, three internal links and ${DEMO_PROOF.measured.renderedWordCount} words. The thin page exists only in the raw HTML.</p>
         </article>
         <article class="panel">
-          <strong>Repair brief</strong>
-          <p>No thin-content fix is queued: the browser evidence rules that warning out. Issues that are real still surface — noindex, a canonical conflict, a missing share image, missing schema — with a suggested fix and an exact snippet when the engine can generate one.</p>
+          <strong>Repair queue</strong>
+          <p>No thin-content fix is queued, because the browser evidence rules it out. Real problems still show up (noindex, a canonical conflict, a missing share image, missing schema) with a suggested fix and an exact snippet when the engine can generate one.</p>
         </article>
       </section>
       <section class="panel proof">
-        <h2>Real engine output for the public test page</h2>
-        <p>The proof below is verbatim output from the SEO Fix Kit audit engine run against SEO Fix Kit's own <a href="${origin}${DEMO_FIXTURE_PATH}">public test page</a> — the same engine, the same page, and the same proof fields used for private reports. Every finding below is engine-generated, not hand-written demo copy.</p>
-        <p><strong>Measured on the test page:</strong> ${DEMO_PROOF.measured.staticWordCount} visible words in the raw HTML response vs ${DEMO_PROOF.measured.renderedWordCount} words, one H1, and ${DEMO_PROOF.measured.renderedInternalLinkCount} internal links after browser render.</p>
+        <h2>Engine output for our test page</h2>
+        <p>Everything below is unedited output from the SEO Fix Kit audit engine, run against our own <a href="${origin}${DEMO_FIXTURE_PATH}">public test page</a>. It uses the same engine and the same fields as private reports. None of it is written by hand.</p>
+        <p><strong>Measured on the test page:</strong> ${DEMO_PROOF.measured.staticWordCount} visible words in the raw HTML, against ${DEMO_PROOF.measured.renderedWordCount} words, one H1 and ${DEMO_PROOF.measured.renderedInternalLinkCount} internal links after rendering.</p>
         <p><strong>False alarms ruled out:</strong></p>
         <ul>
 ${DEMO_PROOF.guards
@@ -331,37 +331,37 @@ ${DEMO_PROOF.guards
   )
   .join("\n")}
         </ul>
-        <p><strong>What the engine actually queues for the test page</strong> (severity · finding · suggested fix · exact snippet when the engine can generate one):</p>
+        <p><strong>What the engine queues for the test page</strong> (severity, problem, suggested fix, and a snippet when the engine can generate one):</p>
         <ul>
-${DEMO_PROOF.repairPlan.map((item) => `          <li><strong>${escapeHtml(item.severity)}</strong> ${escapeHtml(item.title)} — ${escapeHtml(item.fix)}${item.snippet ? `\n            <code class="code-block">${escapeHtml(demoProofSnippet(item.snippet, origin))}</code>` : ""}</li>`).join("\n")}
+${DEMO_PROOF.repairPlan.map((item) => `          <li><strong>${escapeHtml(item.severity)}</strong> ${escapeHtml(item.title)}: ${escapeHtml(item.fix)}${item.snippet ? `\n            <code class="code-block">${escapeHtml(demoProofSnippet(item.snippet, origin))}</code>` : ""}</li>`).join("\n")}
         </ul>
-        <p>This excerpt was generated with engine v${escapeHtml(DEMO_PROOF.engineVersion)}. Performance/PageSpeed checks are not part of this public excerpt. The test page is intentionally a noindex fixture, and the report says so instead of hiding it. After a change ships, rerun the same page: each finding shows fixed, still-open, new, or regressed.</p>
+        <p>Generated with engine v${escapeHtml(DEMO_PROOF.engineVersion)}. Page speed checks are not part of this excerpt. The test page is set to noindex on purpose, and the report says so. After a change ships, rerun the same page: each problem shows as fixed, still open, new or regressed.</p>
       </section>
       <section>
-        <h2>What this sample proves</h2>
-        <p>A useful SEO repair report has to separate a crawler limitation from a real customer problem. The sample shows that SEO Fix Kit does not stop at the first HTML response. It opens the page in a browser, reads the rendered title, description, headings, internal links, schema, social tags, images, and body copy, then records which static warnings should be guarded as false positives.</p>
-        <p>On this test page the static-looking warnings were a missing H1, missing internal links, and thin content: ${DEMO_PROOF.measured.staticWordCount} visible words in the raw response vs ${DEMO_PROOF.measured.renderedWordCount} rendered words. The same raw-vs-rendered comparison guards missing-H1 and missing-link warnings on sites that paint content with JavaScript.</p>
-        <p>That distinction matters for agentic repair work. If a scanner says "add an H1" when the rendered page already has one, an agent could make the site worse by adding duplicate headings. SEO Fix Kit keeps that item out of the repair queue, explains why it was rejected, and points the user toward a rerun instead of fake busywork.</p>
+        <h2>What this sample shows</h2>
+        <p>A useful report has to tell a crawler limitation apart from a real problem. SEO Fix Kit does not stop at the first HTML response. It opens the page in a browser, reads the rendered title, description, headings, internal links, schema, social tags, images and body text, and records which raw-HTML warnings are false alarms.</p>
+        <p>On this test page, the raw HTML suggested a missing H1, missing internal links and thin content: ${DEMO_PROOF.measured.staticWordCount} visible words in the raw HTML against ${DEMO_PROOF.measured.renderedWordCount} rendered words. The same comparison filters missing-H1 and missing-link warnings on any site that builds its content with JavaScript.</p>
+        <p>This matters when an AI agent does the fixing. If a scanner says “add an H1” when the page already has one, the agent adds a duplicate heading and makes the page worse. SEO Fix Kit keeps that item out of the repair queue and says why.</p>
       </section>
       <section class="grid" aria-label="What a paid Fix Pack uses from the sample">
         <article class="panel proof">
-          <strong>Buyer proof</strong>
-          <p>The report shows the observed page URL, rendered facts, issue evidence, and whether the finding is actionable or guarded — exactly the fields shown in the real engine output above.</p>
+          <strong>Evidence</strong>
+          <p>Each problem shows the page URL, the rendered facts, the evidence, and whether it is a real problem or a filtered false alarm. These are the same fields as the engine output above.</p>
         </article>
         <article class="panel proof">
           <strong>Repair scope</strong>
-          <p>Only proven issues become queue items. Each item has severity, a suggested fix, an exact snippet when the engine can generate one, and an acceptance check.</p>
+          <p>Only confirmed problems enter the queue. Each has a severity, a suggested fix, a snippet when the engine can generate one, and a check you can rerun.</p>
         </article>
         <article class="panel proof">
-          <strong>Rerun standard</strong>
-          <p>After a change ships, the same audit path checks whether the issue is fixed, still open, new, or regressed.</p>
+          <strong>Rerun</strong>
+          <p>After a change ships, the same audit checks whether each problem is fixed, still open, new or regressed.</p>
         </article>
       </section>
       <section>
         <h2>What this sample does not claim</h2>
-        <p>This page is a sample, not an audit of your site. The proof excerpt above is the engine's real output for the test page, not a preview of your site's results. Anonymous one-page checks are live at ${origin}/check: paste a public URL and get real-browser evidence, the false alarms it rules out, and real problems with fixes — with no account, no email, and no stored report. Full reports still run inside the private beta after secure email access and, for deeper crawls, site verification. Neither the sample nor the one-page check promises rankings, traffic, indexing, revenue, AI citations, or live answer-engine visibility. The product standard is the same everywhere: prove the issue, avoid false positives, ask for approval, then rerun the same measurement after the fix.</p>
+        <p>This is a sample, not an audit of your site. The output above is for our test page only. Anonymous one-page checks are live at ${origin}/check: paste a public URL to see the rendered evidence, the false alarms ruled out, and real problems with fixes. No account, no email, nothing stored. Full site audits need an email sign-in, and deeper crawls need site verification. Neither the sample nor the check promises rankings, traffic, indexing, revenue, AI citations or visibility in AI answers.</p>
       </section>
-      <p><a class="cta" href="${origin}/check">Check one page now</a></p>
+      <p><a class="cta" href="${origin}/check">Check a page</a></p>
     </main>
     ${siteFooter(origin)}
   </body>
@@ -369,100 +369,92 @@ ${DEMO_PROOF.repairPlan.map((item) => `          <li><strong>${escapeHtml(item.s
 }
 
 function methodologyHtml(origin) {
+  const ext = (href, text) => `<a href="${href}" rel="nofollow noopener" target="_blank">${text}</a>`;
   return publicProductPageHtml({
     origin,
     path: "/methodology",
-    title: "Methodology",
+    title: "How SEO Fix Kit works",
     description:
-      "How SEO Fix Kit turns rendered proof into a self-serve repair queue, what it can verify today, and what it does not claim.",
-    eyebrow: "Methodology and limits",
-    heading: "Proof first. Repairs second. Claims last.",
-    lead: "SEO Fix Kit starts with what a browser, sitemap, supplied data, and rerun can prove. The repair agent is a queue and approval system, not an autopilot that edits your site behind your back.",
+      "How SEO Fix Kit audits a site: real-browser rendering, a repair queue of confirmed problems, and reruns that mark each one fixed. Plus what it does not do.",
+    eyebrow: "How it works",
+    heading: "How SEO Fix Kit works",
+    lead: "Every audit loads your pages in a real browser, keeps only the problems it has evidence for, and runs the same checks again after you ship a fix. It never edits your site.",
     body: `
       <section class="band">
-        <h2>The proof loop</h2>
+        <h2>The audit loop</h2>
         <div class="grid three">
-          <article class="panel proof"><strong>1. Render</strong><p>We compare raw HTML with the browser-rendered page, then keep false positives out when the final DOM already has the expected content.</p></article>
-          <article class="panel proof"><strong>2. Queue</strong><p>Only proven findings become repair queue items with severity, source proof, suggested action, and an acceptance check.</p></article>
-          <article class="panel proof"><strong>3. Re-measure</strong><p>Reruns and weekly monitors are the authority for fixed, still-open, new, or regressed status.</p></article>
+          <article class="panel proof"><strong>1. Render</strong><p>We fetch the raw HTML and load the page in Chromium. If the rendered page already has what the raw HTML seems to be missing, the warning is dropped.</p></article>
+          <article class="panel proof"><strong>2. Queue</strong><p>Each confirmed problem goes into the repair queue with its severity, the evidence, a suggested fix and a check you can rerun.</p></article>
+          <article class="panel proof"><strong>3. Rerun</strong><p>Reruns and weekly monitoring set the status of every item: fixed, still open, new or regressed.</p></article>
         </div>
       </section>
       <section class="band">
-        <h2>What is live today</h2>
+        <h2>What it checks today</h2>
         <ul class="check-list">
-          <li>Anonymous one-page checks at <a href="${origin}/check">${origin}/check</a>: paste a public URL and get real-browser evidence, the false alarms it rules out, and real problems with fixes, with no account and no stored report.</li>
-          <li>Private self-serve audits for authorized sites, with 1-page Lite checks and verified-host crawl depths up to 1,000 pages.</li>
-          <li>Rendered page proof, sitemap inventory up to 50,000 discovered URLs, crawl intelligence, resource waterfall proof, platform SEO checks, proof-derived AI Answer Readiness, draft-only growth briefs, competitor homepage benchmarks, and supplied backlink/local/keyword imports.</li>
-          <li>Private report repair queues with proof, status, safe drafts, approval state, owner-approved implementation packs, proof receipts after fixed reruns, teammate assignment, account-level next actions, and one Fix Pack checkout path when real fixes exist.</li>
-          <li>Developer API and webhook surfaces for owner-scoped audit workflows, including safe repair queue status, separate implementation-pack and proof-receipt endpoints, and repair-action lifecycle events.</li>
+          <li>One-page checks at <a href="${origin}/check">${origin}/check</a>, with no account and nothing stored. You get the rendered evidence, the false alarms that were ruled out, and the real problems with fixes.</li>
+          <li>Site audits of up to 1,000 pages for sites you have verified. Before verification, you can run a one-page audit.</li>
+          <li>Rendered page checks, a sitemap inventory of up to 50,000 URLs, internal links and duplicate content, page load waterfalls, WordPress and online store checks, AI Answer Readiness, draft-only growth briefs, competitor homepage comparisons, and imports of your backlink, local and keyword data.</li>
+          <li>A repair queue on every report: evidence, status, draft actions, approvals, implementation notes for your developer, confirmation after each rerun, and teammate assignment. Reports with real problems offer the Fix Pack.</li>
+          <li>A developer API and webhooks for audits, reports and the repair queue.</li>
         </ul>
-        <p><a class="cta" href="${origin}/check">Check one page now</a></p>
+        <p><a class="cta" href="${origin}/check">Check a page</a></p>
       </section>
       <section class="band">
-        <h2>Limits we state up front</h2>
+        <h2>What it does not do</h2>
         <div class="grid two">
-          <article class="panel"><strong>No fake scale claim</strong><p>Large 50,000-page rendered crawls are early-access staged jobs. We do not call them complete until every batch has page-level proof and merge readiness is clear.</p></article>
-          <article class="panel"><strong>No AI visibility tracking</strong><p>AI Answer Readiness is proof-derived from rendered pages, schema, canonicals, links, sitemap context, and optional llms.txt. Live answer-engine sampling, AI citation monitoring, and AI visibility score tracking are not live.</p></article>
-          <article class="panel"><strong>No backlink database claim</strong><p>Backlink proof starts with supplied/imported rows and link-edge history. SEO Fix Kit does not replace Ahrefs, Semrush, or proprietary backlink discovery.</p></article>
-          <article class="panel"><strong>No hidden site writes</strong><p>Agent actions, implementation packs, proof receipts, and growth briefs are records, handoffs, proof artifacts, and reviewable drafts. The browser does not call CMS admin APIs, publish pages, merge code, or use private provider credentials.</p></article>
+          <article class="panel"><strong>No AI visibility tracking</strong><p>AI Answer Readiness is worked out from your rendered pages, schema, canonicals, links, sitemap and optional llms.txt. We do not sample AI engines, monitor AI citations or track a visibility score.</p></article>
+          <article class="panel"><strong>No hidden site writes</strong><p>Draft actions, implementation notes and growth briefs are documents for you to review. We do not log in to your CMS, publish pages, merge code or use your provider credentials.</p></article>
+          <article class="panel"><strong>No backlink database</strong><p>Backlink checks use the rows you import. SEO Fix Kit does not replace Ahrefs, Semrush or other backlink databases.</p></article>
+          <article class="panel"><strong>Large crawls are early access</strong><p>50,000-page rendered crawls run in stages over days or weeks. We do not call one complete until every batch has page-level evidence.</p></article>
         </div>
       </section>
       <section class="band">
-        <h2>Acceptance standard</h2>
-        <p>A repair is treated as proof-backed only when the report names the issue, shows source evidence, gives a concrete fix, and includes an acceptance check that can be rerun. Rankings, traffic, indexing, citations, and revenue are never guaranteed.</p>
+        <h2>When a fix counts as done</h2>
+        <p>A problem is closed only when the report names it, shows the evidence, gives a concrete fix, and a rerun passes the same check. Rankings, traffic, indexing, citations and revenue are never guaranteed.</p>
       </section>
       <section class="band">
-        <h2>Why the repair queue exists</h2>
-        <p>The most consistent complaint about SEO audit tools in 2026 is not that audits miss issues. It is that audits find too many issues, prioritize none of them, and nobody owns the backlog after delivery. An eighty-page PDF where every line item is marked high priority is functionally the same as no audit at all.</p>
-        <div class="grid three">
-          <article class="panel"><strong>The complaint</strong><p>Audits end at the recommendation. The fixes never ship. Nobody owns the backlog after delivery, and every finding is marked high priority so none of them are.</p></article>
-          <article class="panel proof"><strong>The repair queue</strong><p>Every proven finding becomes a queue item with severity, source proof, a suggested action, approval state, and an acceptance check. The queue persists across saved reports — the backlog does not reset every time you scan.</p></article>
-          <article class="panel proof"><strong>The proof receipt</strong><p>After a fix ships, a rerun issues a receipt that says fixed, still-open, new, or regressed. Owner-approved implementation packs turn approved actions into private handoff documents with source proof.</p></article>
-        </div>
-        <p>The audit layer is commoditized — free tools now render pages and compare static HTML with the rendered DOM. What no free tool has is a persistent repair queue with approval state, proof receipts after fixed reruns, and hosted crawl scope at site scale. That is the part that turns a list of findings into a closed loop, and it is why the repair queue is the hero of this product, not a footnote.</p>
+        <h2>Why there is a repair queue</h2>
+        <p>Most SEO audits end at a long list. Every item is marked high priority, nobody owns it after delivery, and the fixes never ship. Free tools now render pages and compare raw HTML with the rendered page too, so finding problems is no longer the hard part.</p>
+        <p>The repair queue keeps each confirmed problem, who owns it, whether it is approved, and whether a rerun confirmed the fix. It carries over from one report to the next, so the list does not reset every time you scan.</p>
       </section>
       <section class="band">
-        <h2>Why not just use SEOmator's free audits?</h2>
-        <p>SEOmator is the broadest free-tool competitor this page will name, and it earns the mention: its directory lists <a href="https://seomator.com/free-tools" rel="nofollow noopener" target="_blank">39 free SEO tools</a> with no signup, including a <a href="https://seomator.com/free-seo-audit-tool" rel="nofollow noopener" target="_blank">free SEO audit</a> that runs a 251-check rule engine across 16 categories and renders JavaScript, plus a dedicated <a href="https://seomator.com/geo-audit-tool" rel="nofollow noopener" target="_blank">free GEO audit</a> that crawls up to 50 pages, checks access for 14 AI-specific crawlers including GPTBot, ClaudeBot, and PerplexityBot, and scores citability, E-E-A-T, and schema gaps. There is also an npm CLI (<code>@seomator/seo-audit</code>). If what you need today is a broad free audit, that suite is a fair choice.</p>
-        <p>The difference starts where the report ends. An audit — free or paid — hands you findings; SEO Fix Kit turns each proven finding into a persistent repair-queue item with severity, source proof, a suggested action, approval state, and an acceptance check, then re-measures after your fix ships so the queue says fixed, still-open, new, or regressed. For sites that need fixes rather than another findings list, that repair queue plus rerun proof is the product.</p>
-        <p>Honest differences in the other direction: SEOmator's audit states a fixed check count where the anonymous one-page check here proves rendered-vs-static false-positive guarding per page, and its GEO audit reads AI-crawler access from robots.txt while AI Answer Readiness here is proof-derived from rendered pages without claiming live engine visibility. No live AI-engine sampling, no AI citation monitoring, and no ranking guarantees — the limits above apply to every comparison on this page.</p>
+        <h2>Compared with other tools</h2>
+        <p>The tools below are good at what they do. Each summary uses the tool's own published claims. Our limits apply to every comparison: no live AI-engine sampling, no AI citation monitoring, and no ranking guarantees.</p>
       </section>
       <section class="band">
-        <h2>Why not just use Volume Nine's GEO Grader?</h2>
-        <p>Volume Nine, a Denver-based digital marketing agency, publishes the <a href="https://www.v9digital.com/geo-grader/" rel="nofollow noopener" target="_blank">free GEO Grader</a>, an AI SEO audit whose quick facts list it as launched in January 2026 and totally free, with the grader itself running at <a href="https://geo.v9digital.com/grader/" rel="nofollow noopener" target="_blank">geo.v9digital.com</a>. It scores a site against 60+ signals across six categories — discoverability, structured data, AI readiness, performance, reputation and trust, and LLM-ready content — including a crawler-access check that reads robots.txt rules to verify whether AI and search crawlers are explicitly allowed in, and it samples models like ChatGPT, Claude, Gemini, Perplexity, and Grok live during a run. For a fast external read on how AI-ready a site looks, that is a fair choice.</p>
-        <p>The difference starts where the score ends. The GEO Grader emails a detailed report with actionable to-dos; SEO Fix Kit turns each proven finding into a persistent repair-queue item with severity, source proof, a suggested action, approval state, and an acceptance check, then re-measures after your fix ships so the queue says fixed, still-open, new, or regressed. For sites that need fixes rather than another findings list, that repair queue plus rerun proof is the product.</p>
-        <p>Honest differences in the other direction: the GEO Grader samples AI models live during a run, while AI Answer Readiness here is proof-derived from rendered pages without claiming live engine visibility, and Volume Nine's own FAQ notes scores can vary between runs because live conditions change. No live AI-engine sampling, no AI citation monitoring, and no ranking guarantees — the limits above apply to every comparison on this page.</p>
+        <h2>Compared with SEOmator</h2>
+        <p>SEOmator lists ${ext("https://seomator.com/free-tools", "39 free SEO tools")} with no signup. Its ${ext("https://seomator.com/free-seo-audit-tool", "free SEO audit")} runs a 251-check rule engine across 16 categories and renders JavaScript. Its ${ext("https://seomator.com/geo-audit-tool", "free GEO audit")} crawls up to 50 pages and checks access for 14 AI-specific crawlers including GPTBot, ClaudeBot, and PerplexityBot. There is also an npm CLI (<code>@seomator/seo-audit</code>). For a broad free audit, it is a good choice.</p>
+        <p>SEOmator gives you a list of findings. SEO Fix Kit puts each confirmed finding in a repair queue and reruns the audit after your fix ships, so every item ends as fixed, still open, new or regressed. SEOmator's GEO audit reads AI crawler access from robots.txt; our AI Answer Readiness checks the rendered page.</p>
       </section>
       <section class="band">
-        <h2>Why not just use Juma.ai's free GEO Audit?</h2>
-        <p>Juma.ai publishes a <a href="https://geo.juma.ai/" rel="nofollow noopener" target="_blank">free GEO Audit</a> with no signup: paste a URL with no account and no credit card, and it returns a shareable report. The scoring rubric is a <a href="https://geo.juma.ai/methodology" rel="nofollow noopener" target="_blank">published open methodology</a> of ten weighted dimensions, every sub-check documented. Findings are ranked on an impact × effort matrix. The same GEO audit is also callable through Juma's public <a href="https://juma.ai/mcp" rel="nofollow noopener" target="_blank">MCP server</a> via a <code>run_geo_audit</code> tool. If what you need today is a free, no-account GEO score with an open rubric, that is a fair choice.</p>
-        <p>The difference starts where the ranked report ends. Juma hands you a ranked report; SEO Fix Kit turns each proven finding into a persistent repair-queue item with severity, source proof, a suggested action, approval state, and an acceptance check, then re-measures after your fix ships so the queue says fixed, still-open, new, or regressed. For sites that need fixes rather than another findings list, that repair queue plus rerun proof is the product.</p>
-        <p>Honest differences in the other direction: Juma's published methodology scores robots.txt crawler access, page HTML, Firecrawl-rendered content, and SERP/AI Overview citations rather than sampling ChatGPT, Claude, Gemini, or Perplexity live during a run, while AI Answer Readiness here is proof-derived from rendered pages without claiming live engine visibility. No live AI-engine sampling, no AI citation monitoring, and no ranking guarantees — the limits above apply to every comparison on this page.</p>
+        <h2>Compared with Volume Nine's GEO Grader</h2>
+        <p>Volume Nine, a Denver-based digital marketing agency, publishes the ${ext("https://www.v9digital.com/geo-grader/", "free GEO Grader")}. Its quick facts say it launched in January 2026 and is totally free, and the grader runs at ${ext("https://geo.v9digital.com/grader/", "geo.v9digital.com")}. It scores 60+ signals across six categories: discoverability, structured data, AI readiness, performance, reputation and trust, and LLM-ready content. It reads robots.txt rules to check whether AI and search crawlers are allowed in, and samples ChatGPT, Claude, Gemini, Perplexity, and Grok live during a run.</p>
+        <p>The GEO Grader emails a detailed report with actionable to-dos. SEO Fix Kit does not sample AI models. It checks your rendered pages and keeps each confirmed problem in the repair queue until a rerun clears it. Volume Nine's FAQ notes that scores can vary between runs as live conditions change.</p>
       </section>
       <section class="band">
-        <h2>Why not just use AEO Engine's free GEO audit?</h2>
-        <p>AEO Engine describes itself as a <a href="https://aeoengine.ai" rel="nofollow noopener" target="_blank">human-managed, AI-powered Growth Engine</a> and publishes a <a href="https://aeoengine.ai/geo-audit" rel="nofollow noopener" target="_blank">free GEO Audit</a> that reviews crawlability, schema, content structure, entity clarity, and citation readiness for generative engines such as ChatGPT, Perplexity, Gemini, Claude, and Google AI Overviews. The same page states that AEO Engine <a href="https://aeoengine.ai/geo-audit" rel="nofollow noopener" target="_blank">turns GEO audit findings into shipped fixes</a>: schema, crawl access, answer-ready page updates, comparison content, source building, and recurring AI visibility checks. It also offers an <a href="https://aeoengine.ai/embed/geo-audit?utm_source=embed&utm_medium=widget&utm_campaign=aeo_tools" rel="nofollow noopener" target="_blank">embeddable GEO audit widget</a> for other sites. If what you need is a free GEO audit plus a shipped-fix path and an embeddable widget, that is a fair choice.</p>
-        <p>The difference starts where the fix ships. AEO Engine turns audit findings into shipped fixes; SEO Fix Kit turns each proven finding into an approval-first repair-queue item with severity, source proof, a suggested action, approval state, and an acceptance check, then re-measures after your fix ships so the queue says fixed, still-open, new, or regressed. For sites that need an approval gate and rerun proof before anything changes, that repair queue plus rerun proof is the product.</p>
-        <p>Honest differences in the other direction: AEO Engine's shipped-fix path makes it a fast execution service, while SEO Fix Kit does not publish CMS changes, open pull requests, merge code, or call provider admin APIs — every action is owner-approved and comes with a rerun proof receipt. No live AI-engine sampling, no AI citation monitoring, and no ranking guarantees — the limits above apply to every comparison on this page.</p>
+        <h2>Compared with Juma.ai's GEO Audit</h2>
+        <p>Juma.ai publishes a ${ext("https://geo.juma.ai/", "free GEO Audit")} with no signup and no card that returns a shareable report. It scores pages with a ${ext("https://geo.juma.ai/methodology", "published open methodology")} of ten weighted dimensions and ranks findings on an impact × effort matrix. The same audit is available through Juma's ${ext("https://juma.ai/mcp", "MCP server")} as a <code>run_geo_audit</code> tool.</p>
+        <p>Juma's methodology scores robots.txt crawler access, page HTML, Firecrawl-rendered content, and SERP and AI Overview citations, rather than sampling ChatGPT, Claude, Gemini, or Perplexity live during a run. Juma hands you a ranked report. SEO Fix Kit tracks each confirmed finding in a repair queue and reruns the audit to confirm the fix.</p>
       </section>
       <section class="band">
-        <h2>Why not just use a tracker like Otterly.ai or Peec.ai?</h2>
-        <p>Otterly.ai and Peec.ai are the funded AI-visibility trackers this page will name. <a href="https://otterly.ai" rel="nofollow noopener" target="_blank">Otterly.ai</a> says it is trusted by 40,000+ Marketing Pros worldwide; its <a href="https://otterly.ai/pricing" rel="nofollow noopener" target="_blank">pricing page</a> lists a $29/mo Lite plan with Tracking of 4 AI Search Engines: ChatGPT, Google AI Overviews, Perplexity, MS Copilot — with Claude, Google AI Mode, Gemini as paid add-ons. <a href="https://peec.ai" rel="nofollow noopener" target="_blank">Peec AI</a> says it is trusted by 3000+ brands and agencies; its <a href="https://peec.ai/pricing" rel="nofollow noopener" target="_blank">pricing page</a> lists a $80/mo Starter plan (annual, 50 prompts), and its <a href="https://peec.ai/blog/we-raised-21m-series-a-to-help-brands-win-in-ai-search" rel="nofollow noopener" target="_blank">funding announcement</a> states a $21M Series A led by Singular, following a Seed led by 20VC, for total funding to $29M. Both track how a brand appears across AI search engines — mentions, position, and sentiment — rather than auditing the rendered page. If what you need is ongoing AI-visibility monitoring, those are fair choices.</p>
-        <p>The difference starts where the tracker ends. A tracker tells you whether your brand is mentioned, visible, and perceived across AI search engines; SEO Fix Kit turns each proven page-level finding into a persistent repair-queue item with severity, source proof, a suggested action, approval state, and an acceptance check, then re-measures after your fix ships so the queue says fixed, still-open, new, or regressed. For sites that need fixes rather than another visibility score, that repair queue plus rerun proof is the product.</p>
-        <p>Honest differences in the other direction: both trackers observe AI search outputs to report visibility, position, and sentiment, while AI Answer Readiness here is proof-derived from rendered pages, schema, canonicals, links, sitemap context, and optional llms.txt without claiming live engine visibility. No live AI-engine sampling, no AI citation monitoring, and no ranking guarantees — the limits above apply to every comparison on this page.</p>
+        <h2>Compared with AEO Engine</h2>
+        <p>AEO Engine calls itself a ${ext("https://aeoengine.ai", "human-managed, AI-powered Growth Engine")}. Its ${ext("https://aeoengine.ai/geo-audit", "free GEO audit")} reviews crawlability, schema, content structure, entity clarity, and citation readiness for ChatGPT, Perplexity, Gemini, Claude, and Google AI Overviews. The same page says AEO Engine ${ext("https://aeoengine.ai/geo-audit", "turns GEO audit findings into shipped fixes")}, from schema and crawl access to new content and recurring AI visibility checks. It also offers an ${ext("https://aeoengine.ai/embed/geo-audit?utm_source=embed&utm_medium=widget&utm_campaign=aeo_tools", "embeddable GEO audit widget")}.</p>
+        <p>AEO Engine is a service that ships fixes for you. SEO Fix Kit is approval-first: you approve every repair-queue item, your team ships it, and a rerun confirms it. We do not publish CMS changes, open pull requests, merge code, or call provider admin APIs.</p>
       </section>
       <section class="band">
-        <h2>Why not just use an agentic SEO auditor that files its own GitHub issues?</h2>
-        <p>SEO Automation Club <a href="https://seoautomationclub.com/agentic-seo-autonomous-technical-audit-claude-code-github-issues/" rel="nofollow noopener" target="_blank">published a teardown</a> of the clearest current example of this shape: a scheduled, diff-first technical auditor that does not stop at a report. It crawls on a cadence, diffs the latest run against the previous run, and files a GitHub issue only for findings that are genuinely new. Resolved findings auto-close their matching issue; persisting findings can roll up into a single escalation instead of creating hundreds of individual tickets. For engineering teams that want SEO findings turned straight into a triage queue, that pattern is a fair choice.</p>
-        <p>The trade-off is exactly where the ticket lands. An autonomous agent that files issues has no approval gate before the issue is created, no source-proof handoff, and no re-measurement that issues a proof receipt after the fix is applied. If a finding is a rendered-vs-static false positive, the issue is still filed; if the fix introduces a regression, the agent sees it only on the next scheduled run.</p>
-        <p>SEO Fix Kit's repair queue is the hosted alternative: every proven finding becomes a queue item with severity, source proof, a suggested action, and an acceptance check, and nothing is approved until the owner says so. After the fix ships, a rerun issues a receipt that says fixed, still-open, new, or regressed. The agentic auditor automates ticket creation; the repair queue automates proof, approval, and rerun. For sites where a wrong fix can break revenue, that inspection loop is the safer shape.</p>
-        <p>This is about issue-filing agents, not the separate class of agents that edit source code directly. Those are a different trade-off and are not what this section is comparing. The same boundaries apply: No live AI-engine sampling, no AI citation monitoring, and no ranking guarantees.</p>
+        <h2>Compared with Otterly.ai and Peec.ai</h2>
+        <p>${ext("https://otterly.ai", "Otterly.ai")} says it is trusted by 40,000+ Marketing Pros worldwide. Its ${ext("https://otterly.ai/pricing", "pricing page")} lists a $29/mo Lite plan with Tracking of 4 AI Search Engines: ChatGPT, Google AI Overviews, Perplexity, MS Copilot, with Claude, Google AI Mode, Gemini as paid add-ons. ${ext("https://peec.ai", "Peec AI")} says it is trusted by 3000+ brands and agencies. Its ${ext("https://peec.ai/pricing", "pricing page")} lists a $80/mo Starter plan (annual, 50 prompts), and its ${ext("https://peec.ai/blog/we-raised-21m-series-a-to-help-brands-win-in-ai-search", "funding announcement")} states a $21M Series A led by Singular, after a Seed led by 20VC, bringing total funding to $29M.</p>
+        <p>Otterly.ai and Peec.ai track how a brand shows up in AI search: mentions, position and sentiment. For ongoing AI visibility monitoring, they are good choices. SEO Fix Kit audits the page itself, puts each confirmed problem in a repair queue, and reruns the audit to confirm the fix.</p>
       </section>
       <section class="band">
-        <h2>Why not just use a free AI SEO agent skill?</h2>
-        <p>Free installable SEO agent skills are genuinely useful for quick, single-page checks: read a page, spot a missing title or description, draft a fix. Open-source SEO tooling is good at that, and you should keep using it. Those skills run per prompt, though, with no persisted state across a whole site.</p>
-        <p>The hosted product earns its place by doing the parts that need infrastructure and persistence: rendered crawl scope at site scale (self-serve audits up to 1,000 pages, sitemap inventory up to 50,000 discovered URLs, and staged large rendered crawl jobs), a persistent repair queue with approval, acceptance checks, and fixed-rerun proof receipts, owner-approved implementation packs, and paid Fix Pack fulfillment with one rerun after fixes.</p>
-        <p>The boundaries stay the same as a free skill's: no live AI-engine sampling, no AI citation monitoring, and no ranking guarantees. If a one-page check is all you need, <a href="${origin}/check">${origin}/check</a> is free and needs no account; if you need the hosted loop, see <a href="${origin}/pricing">pricing</a>.</p>
+        <h2>Compared with agents that file GitHub issues</h2>
+        <p>SEO Automation Club ${ext("https://seoautomationclub.com/agentic-seo-autonomous-technical-audit-claude-code-github-issues/", "published a teardown")} of a scheduled technical auditor that crawls on a cadence, diffs each run against the previous run, and files GitHub issues only for new findings. Resolved findings close their issue automatically. For engineering teams that want SEO findings in their issue tracker, it is a good pattern.</p>
+        <p>That agent files issues with no approval step, no evidence handoff, and no proof receipt after a fix. A rendered-vs-static false alarm still becomes an issue. In SEO Fix Kit's repair queue, nothing moves until the owner approves it, and a rerun issues a proof receipt that says fixed, still open, new or regressed. This comparison covers issue-filing agents, not agents that edit code directly.</p>
+      </section>
+      <section class="band">
+        <h2>Compared with free AI SEO agent skills</h2>
+        <p>Free SEO skills you install in an AI agent are useful for quick one-page checks: read a page, spot a missing title, draft a fix. Open-source SEO tooling is good at that, and you should keep using it. Those skills run one prompt at a time and keep nothing between runs.</p>
+        <p>SEO Fix Kit handles what needs a server: audits of up to 1,000 pages, a sitemap inventory of up to 50,000 URLs, staged large crawls, a repair queue that keeps approvals and rerun results, implementation notes, and the Fix Pack. For one page, <a href="${origin}/check">${origin}/check</a> is free with no account. For a whole site, see <a href="${origin}/pricing">pricing</a>.</p>
       </section>
     `
   });
@@ -476,7 +468,7 @@ const PRICING_PLANS = [
     name: "Page check",
     price: "Free",
     cadence: "No account needed",
-    summary: "See what a real browser finds on one public page, with the evidence.",
+    summary: "Load one public page in a real browser and see what is wrong, with the evidence.",
     cta: { label: "Check a page", href: "/check" }
   },
   {
@@ -484,8 +476,8 @@ const PRICING_PLANS = [
     name: "Site audit",
     price: "Free",
     cadence: "During the beta",
-    summary: "Audit your whole site, keep the reports, and get a repair queue your developer can work from.",
-    cta: { label: "Get started", href: "/#get-started" },
+    summary: "Audit up to 1,000 pages, keep every report, and work through the fixes in a repair queue.",
+    cta: { label: "Create an account", href: "/#get-started" },
     featured: true
   },
   {
@@ -493,51 +485,51 @@ const PRICING_PLANS = [
     name: "Fix Pack",
     price: FIX_PACK_PUBLIC_PRICE.replace(/\.00 one-time$/, ""),
     cadence: "One-time, per report",
-    summary: "We work through the proven fixes on one report with you, then rerun the audit to prove what got fixed.",
+    summary: "We go through the confirmed fixes on one report with you, then rerun the audit to show what got fixed.",
     cta: { label: "Start with a free audit", href: "/#get-started" }
   }
 ];
 
 const PRICING_FEATURES = [
-  { label: "Real-browser rendering with page evidence", plans: ["check", "audit", "fixpack"] },
+  { label: "Real-browser rendering with evidence", plans: ["check", "audit", "fixpack"] },
   { label: "False alarms filtered out", plans: ["check", "audit", "fixpack"] },
   { label: "Pages per audit", values: { check: "1", audit: "Up to 1,000", fixpack: "Up to 1,000" } },
   { label: "Saved reports and history", plans: ["audit", "fixpack"] },
-  { label: "Repair queue with ready-to-paste fixes", plans: ["audit", "fixpack"] },
+  { label: "Repair queue with code to paste", plans: ["audit", "fixpack"] },
   { label: "Weekly monitoring for verified sites", plans: ["audit", "fixpack"] },
   { label: "Developer API and webhooks", plans: ["audit", "fixpack"] },
   { label: "Guided repair pass on one report", plans: ["fixpack"] },
-  { label: "Rerun with a before/after proof receipt", plans: ["fixpack"] }
+  { label: "Rerun that confirms each fix", plans: ["fixpack"] }
 ];
 
 const PRICING_FAQ = [
   {
     q: "When do I pay?",
-    a: `Only when a report finds something worth fixing. Audits are free during the beta. The Fix Pack (${FIX_PACK_PUBLIC_PRICE}) is offered from a report that has real, proven fixes, and the final price including any local tax is shown at checkout before you pay.`
+    a: `Only if you buy a Fix Pack. Page checks and site audits are free during the beta. The Fix Pack (${FIX_PACK_PUBLIC_PRICE}) is offered on reports with real problems, and the final price including any local tax is shown at checkout before you pay.`
   },
   {
     q: "Who processes payment?",
-    a: "Dodo Payments handles checkout as merchant of record, so they take care of cards, local taxes, and receipts. We never see or store your card details."
+    a: "Dodo Payments handles checkout as merchant of record: cards, local taxes and receipts. We never see or store your card details."
   },
   {
-    q: "What if the Fix Pack cannot start?",
-    a: "If payment goes through but the repair queue cannot start, we refund you. The support page has the full refund policy."
+    q: "What if the Fix Pack can’t start?",
+    a: "If you have paid and the repair pass can’t start, we refund you in full. The support page has the refund policy."
   },
   {
     q: "Do you guarantee rankings or traffic?",
-    a: "No. Nobody honest can. We prove what is broken, help you fix it, and rerun the same check to show it is fixed. No ranking or traffic guarantee is made."
+    a: "No. We show what is broken, help you fix it, and rerun the same audit to confirm the fix. No ranking or traffic guarantee is made."
   },
   {
     q: "Will you change my site?",
-    a: "No. Nothing is applied to your site. You approve each fix and your team or developer ships it; then we rerun the audit to confirm."
+    a: "No. You approve each fix and your developer ships it. Then we rerun the audit to confirm."
   },
   {
-    q: "Why pay more for a Fix Pack when GEO Auditor applies agent fixes at $29?",
-    a: "GEO Auditor's Agent Fix Mode hands you one command and your AI agent applies every fix automatically. That is fast and fairly priced. The Fix Pack is the careful alternative: every fix comes with evidence from a real browser, you approve each one before anything changes, and a rerun shows what actually got fixed."
+    q: "How is this different from GEO Auditor’s $29 Agent Fix Mode?",
+    a: "GEO Auditor’s Agent Fix Mode gives you one command, and your AI agent applies every fix automatically. That is fast and fairly priced. The Fix Pack is slower and more careful: every fix comes with evidence from a real browser, you approve each one before anything changes, and a rerun shows what actually got fixed."
   },
   {
-    q: "Is Proof Monitoring available?",
-    a: "Weekly monitoring is included free for verified sites during the beta. A paid monitoring plan is coming soon; it is not on sale yet."
+    q: "Is monitoring included?",
+    a: "Yes, for verified sites during the beta: we rerun the audit every week. A paid monitoring plan is planned but not on sale yet."
   }
 ];
 
@@ -573,7 +565,7 @@ function pricingHtml(origin) {
     const previous = PRICING_PLANS[index - 1];
     return `
         <article class="plan${plan.featured ? " featured" : ""}">
-          ${plan.featured ? `<p class="plan-badge">Most popular</p>` : ""}
+          ${plan.featured ? `<p class="plan-badge">Start here</p>` : ""}
           <h2>${escapeHtml(plan.name)}</h2>
           <p class="plan-price"><strong>${escapeHtml(plan.price)}</strong><span>${escapeHtml(plan.cadence)}</span></p>
           <p class="plan-summary">${escapeHtml(plan.summary)}</p>
@@ -597,10 +589,10 @@ function pricingHtml(origin) {
     origin,
     path: "/pricing",
     title: "Pricing",
-    description: `Free one-page checks and free site audits during the beta. Pay ${FIX_PACK_PUBLIC_PRICE} for a Fix Pack only when a report finds real fixes.`,
+    description: `Free page checks and free site audits during the beta. The ${FIX_PACK_PUBLIC_PRICE} Fix Pack is offered only when a report finds real problems.`,
     eyebrow: "Pricing",
-    heading: "Free to find it. Pay only to fix it.",
-    lead: "Check pages and audit your site for free. When a report finds real problems, a one-time Fix Pack walks you through the repairs and proves they worked.",
+    heading: "Audits are free. Fixes are $99, once.",
+    lead: "Check a page or audit up to 1,000 pages free during the beta. When a report finds real problems, the Fix Pack covers one repair pass and the rerun that confirms it.",
     body: `
       <section class="plans" id="plans" aria-label="Plans">${cards}
       </section>
@@ -621,7 +613,7 @@ function pricingHtml(origin) {
         <div>
           <p class="eyebrow">Coming soon</p>
           <h2>Proof Monitoring</h2>
-          <p>Weekly reruns, before/after changes, and alerts when something breaks again. Included free for verified sites during the beta; a paid plan is not on sale yet.</p>
+          <p>Weekly reruns, a list of what changed, and alerts when something breaks again. Free for verified sites during the beta; a paid plan is not on sale yet.</p>
         </div>
         <a class="btn btn-secondary" href="${origin}/methodology">How monitoring works</a>
       </section>
@@ -667,57 +659,57 @@ function smallBusinessSeoAuditHtml(origin) {
     path: "/small-business-seo-audit",
     title: "Small Business SEO Audit",
     description:
-      "An SEO audit for small businesses: check one page free, see the evidence behind each problem, and pay for a repair pass only when real fixes exist.",
-    eyebrow: "Small-business SEO audit",
-    heading: "An SEO audit that shows proof, not homework.",
-    lead: "Small businesses lose hours to audit tools that dump red flags and generic checklists. SEO Fix Kit checks one page free, shows the rendered proof behind each finding, and only queues a repair when the browser-visible page is actually wrong.",
+      "An SEO audit for small business sites: check one page free, see the evidence behind each problem, and pay for a repair pass only when there is something real to fix.",
+    eyebrow: "Small business SEO audit",
+    heading: "An SEO audit that shows its evidence.",
+    lead: "Most audit tools hand small businesses a long list of red flags and a generic checklist. SEO Fix Kit checks one page free, shows the rendered evidence behind each problem, and only queues a fix when the page a visitor sees is actually wrong.",
     softwareDescription:
-      "Private-beta SEO repair software for small businesses that turns rendered proof into safe repair queues, approval records, and rerun checks.",
+      "SEO audit software for small business sites that loads pages in a real browser, lists confirmed problems with fixes, and reruns the audit to confirm repairs.",
     body: `
       <section class="band">
-        <h2>What a small-business audit should actually show</h2>
+        <h2>What you get from an audit</h2>
         <ul class="check-list">
-          <li>The earliest failure stage on each URL, with page-level evidence you can open and re-check.</li>
-          <li>Which findings are real and which are static-crawler false positives on JavaScript-rendered pages.</li>
-          <li>A plain-language repair brief with priority, effort, and an acceptance check you can rerun after a change ships.</li>
-          <li>Fixed, still-open, new, and regressed status on reruns instead of a one-time red-flag dump.</li>
+          <li>For each page, the first thing that fails, with evidence you can open and check yourself.</li>
+          <li>Which problems are real, and which are false alarms caused by JavaScript the scanner did not run.</li>
+          <li>A plain repair brief for each problem: priority, effort, and a check you can rerun after the change ships.</li>
+          <li>After a rerun, each problem is marked fixed, still open, new or regressed.</li>
         </ul>
       </section>
       <section class="grid three" aria-label="How to start">
-        <article class="panel proof"><strong>Free one-page check</strong><p>Paste a public URL at ${origin}/check. You get real-browser evidence, the false alarms it rules out, and real problems with fixes — no account, no email, nothing stored.</p></article>
-        <article class="panel"><strong>Private audit for your site</strong><p>Request a secure email access link for rate-limited private audits. Verified hosts unlock self-serve crawl depth up to 1,000 pages per queued audit.</p></article>
-        <article class="panel"><strong>Fix Pack only when fixes exist</strong><p>The paid offer is one proof-backed repair pass tied to one report, plus one rerun after fixes. Dodo shows the checkout price before payment.</p></article>
+        <article class="panel proof"><strong>Free one-page check</strong><p>Paste a public URL at ${origin}/check. You get the rendered evidence, the false alarms ruled out, and real problems with fixes. No account, no email, nothing stored.</p></article>
+        <article class="panel"><strong>Audit your whole site</strong><p>Sign in with an emailed link to run audits. Once you verify the site, each audit can cover up to 1,000 pages.</p></article>
+        <article class="panel"><strong>Fix Pack when you need it</strong><p>One repair pass on one report, plus one rerun after the fixes ship. You see the price at checkout before you pay.</p></article>
       </section>
       <section class="band">
-        <h2>Why proof beats a checklist</h2>
-        <p>A generic audit can say "add an H1" to a page whose rendered version already has one. SEO Fix Kit opens the page in a real browser, compares raw HTML with the rendered DOM, and keeps that item out of the repair queue. The same standard applies to every report: render, prove, queue, re-measure.</p>
+        <h2>Why evidence beats a checklist</h2>
+        <p>A generic audit can tell you to “add an H1” on a page that already has one once it loads. SEO Fix Kit opens the page in a real browser, compares the raw HTML with the rendered page, and keeps that item off your list. Every report works the same way: render, confirm, queue, rerun.</p>
       </section>
       <section class="band">
         <h2>What this page does not claim</h2>
-        <p>This page is a landing page, not an audit of your site. The free check covers one public page at one moment; full multi-page reports run inside the private beta. SEO Fix Kit does not replace Ahrefs or Semrush, does not provide live AI citation monitoring or answer-engine sampling, and never guarantees rankings, traffic, indexing, or revenue.</p>
+        <p>This page describes the product; it is not an audit of your site. The free check covers one public page at one moment. Full site audits need an account. SEO Fix Kit does not replace Ahrefs or Semrush, does not provide live AI citation monitoring or answer-engine sampling, and never guarantees rankings, traffic, indexing or revenue.</p>
       </section>
       <section class="band">
-        <h2>Start with proof</h2>
-        <p><a class="cta" href="${origin}/check">Check one page now</a></p>
-        <p><a href="${origin}/demo">View the proof sample</a> · <a href="${origin}/methodology">Read methodology and limits</a> · <a href="${origin}/pricing">See pricing</a></p>
+        <h2>Start with one page</h2>
+        <p><a class="cta" href="${origin}/check">Check a page</a></p>
+        <p><a href="${origin}/demo">See a sample report</a> · <a href="${origin}/methodology">How it works</a> · <a href="${origin}/pricing">Pricing</a></p>
       </section>
     `,
     faq: [
       {
-        q: "Is there a free way to check my site before requesting access?",
-        a: "Yes. The one-page check at /check accepts one public URL, renders it in a real browser, and returns proof fields and findings when present, with no account, no email, and nothing stored."
+        q: "Can I check my site for free before signing up?",
+        a: "Yes. The one-page check at /check loads one public URL in a real browser and shows the evidence and any problems it finds. No account, no email, nothing stored."
       },
       {
-        q: "What does the paid Fix Pack include?",
-        a: "One proof-backed repair pass tied to one saved report, plus one rerun after fixes. Dodo shows the checkout price before payment, and no ranking, traffic, or revenue promise is made."
+        q: "What does the Fix Pack include?",
+        a: "One repair pass on one saved report, plus one rerun after your fixes ship. You see the price at checkout before you pay. No ranking, traffic or revenue promise is made."
       },
       {
-        q: "Do I need to verify my site to start?",
-        a: "A one-page Lite check runs before verification. Verified hosts unlock normal self-serve crawl depth up to 1,000 pages per queued audit."
+        q: "Do I need to verify my site first?",
+        a: "Not for a one-page audit. Once you verify the site, each audit can cover up to 1,000 pages."
       },
       {
         q: "Will SEO Fix Kit guarantee my rankings?",
-        a: "No. Reports are diagnostic and reflect what the crawl and browser render could observe at scan time. Rankings, traffic, indexing, and revenue are never guaranteed."
+        a: "No. A report shows what the crawl and the browser could see at the time of the audit. Rankings, traffic, indexing and revenue are never guaranteed."
       }
     ]
   });
@@ -729,82 +721,82 @@ function renderedVsStaticAuditHtml(origin) {
     path: "/rendered-vs-static-seo-audit",
     title: "Rendered vs Static SEO Audit",
     description:
-      "AI crawlers like GPTBot read raw HTML and skip JavaScript. Compare raw HTML with the rendered page to see what they miss, without false alarms.",
-    eyebrow: "AI crawler visibility · Rendered vs static audit",
-    heading: "Static scanners invent work. AI crawlers miss content. Rendered proof handles both.",
-    lead: "JavaScript-heavy sites fail static scanners that read the raw app shell, and AI crawlers never execute JavaScript at all. SEO Fix Kit opens the page in a real browser, compares raw HTML with the rendered DOM, shows exactly what a JavaScript-blind crawler can see, and only creates a repair when the browser-visible page is actually wrong.",
+      "AI crawlers like GPTBot read raw HTML and skip JavaScript. Compare the raw HTML with the rendered page to see what they miss, without false alarms.",
+    eyebrow: "JavaScript sites and AI crawlers",
+    heading: "See your page the way a crawler sees it.",
+    lead: "Scanners that read only raw HTML flag problems on JavaScript sites that are not really there. AI crawlers read that same raw HTML and never run JavaScript. SEO Fix Kit loads the page in a real browser, compares it with the raw HTML, shows what a crawler without JavaScript can see, and only queues a fix when the page a visitor sees is actually wrong.",
     softwareDescription:
-      "Private-beta SEO repair software that renders pages in a real browser to compare static HTML with the final DOM — measuring AI crawler visibility for JavaScript-blind crawlers and guarding static-crawler false positives.",
+      "SEO audit software that loads pages in a real browser and compares them with the raw HTML, to show what crawlers that skip JavaScript can read and to filter out false alarms.",
     body: `
-      <section class="grid three" aria-label="Static scanner vs rendered proof">
-        <article class="panel"><strong>Static scanner</strong><p>No H1. No internal links. Thin content. Needs cleanup.</p></article>
-        <article class="panel proof"><strong>Rendered proof</strong><p>Browser render shows a real H1, normal internal links, and substantial page content.</p></article>
-        <article class="panel"><strong>Repair brief</strong><p>No duplicate H1. No fake internal links. No busywork. Keep monitoring and rerun after real content changes.</p></article>
+      <section class="grid three" aria-label="Raw HTML scanner compared with a real browser">
+        <article class="panel"><strong>Raw HTML scanner</strong><p>No H1. No internal links. Thin content.</p></article>
+        <article class="panel proof"><strong>Real browser</strong><p>One H1, normal internal links, and the full page content.</p></article>
+        <article class="panel"><strong>Repair queue</strong><p>Nothing to fix for those three. Rerun after the content changes.</p></article>
       </section>
       <section class="band">
-        <h2>The same diff is your AI crawler visibility check</h2>
-        <p>Search Engine Journal confirms the major AI crawlers — GPTBot (OpenAI), ClaudeBot (Anthropic), PerplexityBot, and CCBot — fetch raw HTML and do not execute JavaScript. A page whose content appears only after a browser render hands those crawlers an empty shell: no headings, no internal links, no text to retrieve or cite. The rendered-vs-static comparison doubles as an AI crawler visibility check, because the raw-HTML side of the diff is precisely what those crawlers can read.</p>
+        <h2>The same comparison shows what AI crawlers can read</h2>
+        <p>Search Engine Journal reports that the major AI crawlers (GPTBot from OpenAI, ClaudeBot from Anthropic, PerplexityBot and CCBot) fetch raw HTML and do not run JavaScript. If your content only appears after rendering, those crawlers get an empty shell: no headings, no links, no text to quote. The raw-HTML side of the comparison is exactly what they can read.</p>
       </section>
       <section class="band">
-        <h2>Why this matters for repair work</h2>
-        <p>An agent that trusts a static crawl can make a site worse: if a scanner says "add an H1" when the rendered page already has one, the suggested repair is a duplicate heading, not a fix. Rendered-vs-static comparison separates a crawler limitation from a real customer problem, so the repair queue only receives proven findings — and the same proof tells you which pages are invisible to AI crawlers until the content ships in the raw HTML.</p>
+        <h2>Why this matters for fixes</h2>
+        <p>An agent that trusts a raw-HTML scan can make a site worse. If the scanner says “add an H1” when the rendered page already has one, the fix is a duplicate heading. Comparing both views separates a crawler limitation from a real problem, so the repair queue only gets confirmed problems. It also shows which pages stay invisible to AI crawlers until the content is in the raw HTML.</p>
       </section>
       <section class="band">
         <h2>Compared with free static-vs-rendered checkers</h2>
-        <p>Three free tools already publish a static-vs-rendered or JavaScript-blind-crawler check, and they deserve a straight answer rather than a feature table.</p>
+        <p>Three free tools already compare raw HTML with the rendered page or test crawlers that skip JavaScript.</p>
         <ul class="check-list">
-          <li><a href="https://llmpulse.ai/geo-crawlability-checker" rel="nofollow noopener" target="_blank">LLM Pulse GEO Crawlability Checker</a> fetches the page as a plain HTTP request and again with JavaScript rendering, then diffs headings, body copy, links, meta tags, and structured data. The checker is free; the report is emailed. LLM Pulse also hosts a broader free GEO suite at <a href="https://llmpulse.ai/free-ai-search-tools" rel="nofollow noopener" target="_blank">llmpulse.ai/free-ai-search-tools</a>.</li>
-          <li><a href="https://freeseoaudit.vercel.app/" rel="nofollow noopener" target="_blank">Free SEO Auditor</a> (open-source MIT, <a href="https://github.com/ravigupta0210/seo-auditor" rel="nofollow noopener" target="_blank">ravigupta0210/seo-auditor</a>) ships a no-signup audit with copy-paste fixes, a JS-dependency check, cloaking detection across five AI user-agents, and an optional Playwright renderer. Site-wide crawls default to 25 pages from sitemap.xml.</li>
-          <li><a href="https://github.com/abouchard11/geo-crawl-audit" rel="nofollow noopener" target="_blank">geo-crawl-audit</a> is a zero-dependency Python+curl probe: baseline browser UA then ~12 real AI crawler UAs, TTFB, bot differentials, and a raw-HTML classification of SSR_FULL / SSR_THIN / CSR_SHELL with no JavaScript execution. A free single-domain scan is at <a href="https://readablebyai.com" rel="nofollow noopener" target="_blank">readablebyai.com</a>.</li>
+          <li><a href="https://llmpulse.ai/geo-crawlability-checker" rel="nofollow noopener" target="_blank">LLM Pulse GEO Crawlability Checker</a> fetches the page once as a plain HTTP request and once with JavaScript, then compares headings, body text, links, meta tags and structured data. It is free and emails the report. LLM Pulse has more free GEO tools at <a href="https://llmpulse.ai/free-ai-search-tools" rel="nofollow noopener" target="_blank">llmpulse.ai/free-ai-search-tools</a>.</li>
+          <li><a href="https://freeseoaudit.vercel.app/" rel="nofollow noopener" target="_blank">Free SEO Auditor</a> (open source, MIT, <a href="https://github.com/ravigupta0210/seo-auditor" rel="nofollow noopener" target="_blank">ravigupta0210/seo-auditor</a>) runs a no-signup audit with copy-paste fixes, a JavaScript dependency check, cloaking detection across five AI user agents, and an optional Playwright renderer. Site crawls default to 25 pages from sitemap.xml.</li>
+          <li><a href="https://github.com/abouchard11/geo-crawl-audit" rel="nofollow noopener" target="_blank">geo-crawl-audit</a> is a Python and curl script with no dependencies. It fetches with a browser user agent, then with about 12 real AI crawler user agents, and reports TTFB, differences between bots, and a raw-HTML class of SSR_FULL / SSR_THIN / CSR_SHELL without running JavaScript. A free single-domain scan is at <a href="https://readablebyai.com" rel="nofollow noopener" target="_blank">readablebyai.com</a>.</li>
         </ul>
-        <p>If you only need that one-page diff, those tools are a fair choice. SEO Fix Kit uses the same rendered-vs-static comparison as a false-positive guard so the persistent repair queue only receives proven findings, then issues a rerun proof receipt that says fixed, still-open, new, or regressed. Hosted crawl scope is self-serve audits up to 1,000 pages, sitemap inventory up to 50,000 discovered URLs, and staged large rendered crawl jobs. No live AI-engine sampling, no AI citation monitoring, and no ranking guarantees.</p>
+        <p>If you only need that one-page comparison, any of them is a fair choice. SEO Fix Kit uses the comparison to filter false alarms, so its persistent repair queue only receives proven findings, and each rerun marks them fixed, still-open, new, or regressed. Audits cover up to 1,000 pages, with a sitemap inventory of up to 50,000 URLs and staged large crawls. No live AI-engine sampling, no AI citation monitoring, and no ranking guarantees.</p>
       </section>
       <section class="band">
-        <h2>Where you can see it live</h2>
+        <h2>See it on a real page</h2>
         <ul class="check-list">
-          <li>${origin}/demo: the public sample shows a static scanner's false positive against the rendered proof, step by step.</li>
-          <li>${origin}/check: paste any public URL and get real-browser evidence, the false alarms it rules out, and real problems with fixes — no account and nothing stored.</li>
-          <li>Private reports for verified sites include rendered crawl intelligence, resource waterfall proof, and rerun deltas.</li>
+          <li><a href="${origin}/demo">${origin}/demo</a>: a sample report that shows a raw-HTML false alarm next to the rendered evidence.</li>
+          <li><a href="${origin}/check">${origin}/check</a>: paste any public URL to see the rendered evidence, the false alarms ruled out, and real problems with fixes. No account, nothing stored.</li>
+          <li>Reports for verified sites add internal link analysis, page load waterfalls and rerun comparisons.</li>
         </ul>
       </section>
       <section class="band">
         <h2>What this page does not claim</h2>
-        <p>The one-page check covers a single public URL, not a full site audit. Full multi-page reports run inside the private beta. AI crawler visibility here means what a fetcher that does not execute JavaScript can retrieve from your raw HTML, based on public reporting about those crawlers — it is not live sampling of ChatGPT, Perplexity, or any answer engine, and SEO Fix Kit does not provide live AI citation monitoring or answer-engine sampling. Rendered proof does not guarantee rankings, traffic, indexing, revenue, or AI citations.</p>
+        <p>The one-page check covers a single public URL, not a full site audit. Full site audits need an account. “What AI crawlers can read” here means what a fetcher that does not run JavaScript gets from your raw HTML, based on public reporting about those crawlers. It is not live sampling of ChatGPT, Perplexity or any other answer engine, and SEO Fix Kit does not provide live AI citation monitoring or answer-engine sampling. SEO Fix Kit never guarantees rankings, traffic, indexing, revenue or AI citations.</p>
       </section>
       <section class="band">
-        <h2>Start with proof</h2>
-        <p><a class="cta" href="${origin}/check">Check one page now</a></p>
-        <p><a href="${origin}/demo">View the proof sample</a> · <a href="${origin}/methodology">Read methodology and limits</a> · <a href="${origin}/pricing">See pricing</a></p>
+        <h2>Start with one page</h2>
+        <p><a class="cta" href="${origin}/check">Check a page</a></p>
+        <p><a href="${origin}/demo">See a sample report</a> · <a href="${origin}/methodology">How it works</a> · <a href="${origin}/pricing">Pricing</a></p>
       </section>
     `,
     faq: [
       {
-        q: "Why does my static SEO tool report problems I cannot see in the browser?",
-        a: "Static scanners read the raw HTML response and miss content rendered by JavaScript. SEO Fix Kit renders the page in a real browser and only reports what the final DOM actually shows."
+        q: "Why does my SEO tool report problems I can’t see in the browser?",
+        a: "Most scanners read only the raw HTML and miss content that JavaScript adds. SEO Fix Kit loads the page in a real browser and reports only what the rendered page actually shows."
       },
       {
-        q: "Which AI crawlers cannot see JavaScript-rendered content?",
-        a: "Search Engine Journal confirms GPTBot, ClaudeBot, PerplexityBot, and CCBot fetch raw HTML without executing JavaScript. If your page's content exists only in the rendered DOM, those crawlers never see it — the rendered-vs-static diff shows exactly what they can."
+        q: "Which AI crawlers can’t see content rendered with JavaScript?",
+        a: "Search Engine Journal reports that GPTBot, ClaudeBot, PerplexityBot and CCBot fetch raw HTML without running JavaScript. If your content only exists after rendering, they never see it. The raw-HTML side of the comparison shows exactly what they can read."
       },
       {
-        q: "Is AI crawler visibility the same as sampling ChatGPT or Perplexity?",
-        a: "No. SEO Fix Kit never queries AI engines. Visibility here is measured from your own pages: the raw HTML is what a JavaScript-blind crawler can retrieve, and the rendered DOM is what a browser user gets."
+        q: "Is this the same as checking what ChatGPT or Perplexity say about me?",
+        a: "No. SEO Fix Kit never queries AI engines. It measures your own pages: the raw HTML is what a crawler without JavaScript gets, and the rendered page is what a visitor gets."
       },
       {
-        q: "Can I see a rendered-vs-static example before signing up?",
-        a: "Yes. The public sample at /demo shows a static scanner false positive against the rendered proof, and the free one-page check at /check runs the same proof loop on any public URL."
+        q: "Can I see an example before signing up?",
+        a: "Yes. The sample report at /demo shows a raw-HTML false alarm next to the rendered evidence, and the free check at /check runs the same comparison on any public URL."
       },
       {
         q: "Why not use a free static-vs-rendered checker like LLM Pulse?",
-        a: "Use one if you only need a one-page static-vs-rendered diff. LLM Pulse, Free SEO Auditor, and geo-crawl-audit already do that for free. SEO Fix Kit uses the same comparison to keep false positives out of a persistent repair queue with approval state and a rerun proof receipt. It does not sample live answer engines or monitor citations."
+        a: "Use one if you only need a one-page comparison. LLM Pulse, Free SEO Auditor and geo-crawl-audit do that for free. SEO Fix Kit uses the same comparison to keep false alarms out of a repair queue that tracks approvals and rerun results. It does not sample live answer engines or monitor citations."
       },
       {
-        q: "Does rendered proof mean guaranteed fixes or rankings?",
-        a: "No. Every report is diagnostic and reflects what the crawl could observe at scan time. Rankings, traffic, indexing, revenue, and AI citations are never guaranteed."
+        q: "Does a clean result guarantee rankings?",
+        a: "No. A report shows what the crawl could see at the time of the audit. Rankings, traffic, indexing, revenue and AI citations are never guaranteed."
       },
       {
-        q: "How does the repair queue use rendered proof?",
-        a: "Only proven findings become queue items. Each item keeps its source proof, suggested action, effort estimate, and an acceptance check that can be rerun after a change ships."
+        q: "How does the repair queue use the comparison?",
+        a: "Only confirmed problems enter the queue. Each keeps its evidence, a suggested fix, an effort estimate and a check you can rerun after the change ships."
       }
     ]
   });
@@ -816,100 +808,100 @@ function aiAnswerReadinessHtml(origin) {
     path: "/ai-answer-readiness",
     title: "AI Answer Readiness Check",
     description:
-      "A site-proof AI Answer Readiness check with optional traffic-ranked faults from imported Search Console rows — no live citation monitoring, no auto-join to GA4.",
+      "Check whether AI answer engines can read and use your pages: rendered content, schema, links and sitemap. Optionally rank problems by Search Console traffic. No citation tracking.",
     eyebrow: "AI Answer Readiness",
-    heading: "A site-proof AI readiness check, not a citation tracker.",
-    lead: "AI search visibility starts with content and markup answer engines can actually use. SEO Fix Kit derives AI Answer Readiness from your rendered pages, schema, links, sitemap context, and optional llms.txt. When you import Search Console rows, those proof-derived faults are ranked by the traffic behind them. It does not sample live answer engines or monitor citations.",
+    heading: "Check whether AI engines can use your pages.",
+    lead: "AI answers start with pages an engine can read. SEO Fix Kit works out AI Answer Readiness from your rendered pages, schema, links, sitemap and optional llms.txt. Import Search Console rows and the problems are ranked by the traffic behind them. It does not sample live answer engines or monitor citations.",
     softwareDescription:
-      "Private-beta SEO repair software with proof-derived AI Answer Readiness checks built from rendered content, schema, canonical and internal-link clarity, sitemap context, and optional llms.txt reachability. Imported Search Console rows rank those faults by clicks and impressions on the affected pages.",
+      "SEO audit software with AI Answer Readiness checks built from rendered content, schema, canonical and internal-link clarity, sitemap context, and optional llms.txt reachability. Imported Search Console rows rank the problems by clicks and impressions on the affected pages.",
     body: `
       <section class="band">
-        <h2>What the readiness check measures</h2>
+        <h2>What the check measures</h2>
         <ul class="check-list">
-          <li>Rendered content depth: whether the browser-visible page carries substantive, crawlable text.</li>
-          <li>Helpful schema: Organization, WebSite, SoftwareApplication, WebPage, FAQPage, and product markup that names entities clearly.</li>
-          <li>Canonical and internal-link clarity: one canonical per URL and a link graph an engine can follow.</li>
-          <li>Question-led structure: headings and copy that answer the questions searchers and answer engines ask.</li>
-          <li>Sitemap context and coverage, plus optional llms.txt reachability when present.</li>
-          <li>Traffic-ranked prioritization: when Search Console or rank-tracker rows are imported, faults on pages with more clicks and impressions come first.</li>
+          <li>Content depth: whether the rendered page has enough real text to quote.</li>
+          <li>Schema: Organization, WebSite, SoftwareApplication, WebPage, FAQPage and product markup that names things clearly.</li>
+          <li>Canonicals and internal links: one canonical per URL, and links an engine can follow.</li>
+          <li>Structure: headings and text that answer the questions people ask.</li>
+          <li>Sitemap coverage, plus llms.txt if you have one.</li>
+          <li>Traffic ranking: import Search Console or rank tracker rows, and problems on pages with more clicks and impressions come first.</li>
         </ul>
       </section>
       <section class="band">
         <h2>Compared with CrawlRaven</h2>
-        <p>CrawlRaven defines AI search readiness auditors as tools that find the technical reasons you are not cited, and it sells a one-time readiness audit that joins Search Console and GA4 so faults are ranked by the traffic behind them. SEO Fix Kit's AI Answer Readiness wedge is the same job: prove why a rendered page is hard for an answer engine to use.</p>
+        <p>CrawlRaven describes AI search readiness auditors as tools that find the technical reasons you are not cited. It sells a one-time readiness audit that connects Search Console and GA4 so problems are ranked by the traffic behind them. SEO Fix Kit's AI Answer Readiness does the same job: show why a rendered page is hard for an answer engine to use.</p>
         <ul class="check-list">
-          <li>When you import Search Console or rank-tracker rows, SEO Fix Kit ranks proof-derived readiness faults by the clicks and impressions on the affected pages.</li>
-          <li>SEO Fix Kit does not connect to Search Console or GA4 automatically, and it does not sample ChatGPT, Perplexity, Google AI Overviews, or other engines.</li>
-          <li>Proof without traffic is still useful: a tracker can say a page is invisible, while a readiness check says why the rendered page is thin, unclear, or missing schema. Traffic ranking then puts the proven faults that sit on pages with search demand first.</li>
+          <li>When you import Search Console or rank tracker rows, SEO Fix Kit ranks readiness problems by the clicks and impressions on the affected pages.</li>
+          <li>SEO Fix Kit does not connect to Search Console or GA4 automatically, and it does not sample ChatGPT, Perplexity, Google AI Overviews or other engines.</li>
+          <li>Without traffic data the check still tells you why a page is thin, unclear or missing schema. Traffic data then puts problems on pages with real search demand first.</li>
         </ul>
       </section>
       <section class="band">
         <h2>Compared with free AI visibility checkers</h2>
-        <p>Free tools such as these check whether AI engines cite or mention your site. That is AI citation tracking. SEO Fix Kit does not check AI-engine citations or visibility scores.</p>
+        <p>These free tools check whether AI engines cite or mention your site. That is AI citation tracking. SEO Fix Kit does not check AI-engine citations or visibility scores.</p>
         <ul class="check-list">
-          <li><a href="https://definiteseo.com/ai-visibility-checker" rel="nofollow noopener" target="_blank">DefiniteSEO</a> is a free AI visibility checker that sees whether ChatGPT and Google AI Overviews cite your site.</li>
-          <li><a href="https://revsurgedigital.com/free-tools/geo-audit" rel="nofollow noopener" target="_blank">RevSurge Digital</a> is a free GEO audit that checks whether AI answer engines can read, understand, and cite your website.</li>
-          <li><a href="https://answervisibilitylab.com/geo-audit-tool" rel="nofollow noopener" target="_blank">Answer Visibility Lab</a> is a free GEO audit tool that checks brand mentions and owned-URL citations across ChatGPT, Perplexity, Gemini, Claude, and Google AI Overviews.</li>
-          <li><a href="https://websiteaeogeochecker.com" rel="nofollow noopener" target="_blank">Website AEO GEO Checker</a> is a free AEO and GEO checker for AI search that shows how ChatGPT, Perplexity, Gemini, Claude AI, and Bing AI read your site.</li>
-          <li><a href="https://www.veuno.com/ai-visibility-checker" rel="nofollow noopener" target="_blank">Veuno</a> is a free AI visibility checker that scores how easily ChatGPT, Claude, Perplexity, and Google AI Overviews can find, understand, and cite your website.</li>
+          <li><a href="https://definiteseo.com/ai-visibility-checker" rel="nofollow noopener" target="_blank">DefiniteSEO</a> checks whether ChatGPT and Google AI Overviews cite your site.</li>
+          <li><a href="https://revsurgedigital.com/free-tools/geo-audit" rel="nofollow noopener" target="_blank">RevSurge Digital</a> checks whether AI answer engines can read, understand and cite your website.</li>
+          <li><a href="https://answervisibilitylab.com/geo-audit-tool" rel="nofollow noopener" target="_blank">Answer Visibility Lab</a> checks brand mentions and citations of your URLs across ChatGPT, Perplexity, Gemini, Claude and Google AI Overviews.</li>
+          <li><a href="https://websiteaeogeochecker.com" rel="nofollow noopener" target="_blank">Website AEO GEO Checker</a> shows how ChatGPT, Perplexity, Gemini, Claude AI and Bing AI read your site.</li>
+          <li><a href="https://www.veuno.com/ai-visibility-checker" rel="nofollow noopener" target="_blank">Veuno</a> scores how easily ChatGPT, Claude, Perplexity and Google AI Overviews can find, understand and cite your website.</li>
         </ul>
-        <p>If you only need that visibility score, those tools are a fair choice. SEO Fix Kit stays on the site-proof side: readiness here is derived from your rendered pages, schema, links, sitemap context, and optional llms.txt, and only proven findings reach the persistent repair queue with a rerun proof receipt.</p>
+        <p>If you only need a visibility score, those tools are a fair choice. SEO Fix Kit checks your own pages, and only confirmed problems reach the repair queue, where a rerun confirms each fix.</p>
         <p>No live AI-engine sampling, no AI citation monitoring, and no ranking guarantees.</p>
       </section>
       <section class="band">
         <h2>On "technical readiness predicts nothing (r=0.009)"</h2>
-        <p>getaisearchscore.com's own study — 441 domains, Perplexity-only citations, cross-sectional — found its original 26-check aggregate score did not predict citations (r=0.009), and it rebuilt its product around content relevance. That null is real, and it matches our boundary rather than refuting it:</p>
+        <p>getaisearchscore.com studied 441 domains, Perplexity-only citations, cross-sectional, and found its original 26-check score did not predict citations (r=0.009). It rebuilt its product around content relevance. The result is real, and it fits our limits:</p>
         <ul class="check-list">
-          <li>The null is on one vendor's aggregate score, not on individual technical faults. A site that blocks AI crawlers is invisible; a site with an app-shell render is empty to an extractor. getaisearchscore.com itself calls AI-crawler access "the only structural factor with an unambiguous effect."</li>
-          <li>The study could not see content that only appears after JavaScript renders. SEO Fix Kit judges readiness on the rendered page — the DOM an answer engine would actually parse — not on a static crawl.</li>
-          <li>"Not sufficient" is not "predicts nothing." The vendor's own Readiness Paradox (low-scoring established brands cited at 38.8%) is a domain-authority confound, not a proof that technical faults do not matter.</li>
+          <li>The null result is on one vendor's combined score, not on individual technical faults. A site that blocks AI crawlers is invisible, and a page that only renders with JavaScript is empty to an extractor. getaisearchscore.com itself calls AI crawler access “the only structural factor with an unambiguous effect.”</li>
+          <li>The study could not see content that appears only after JavaScript runs. SEO Fix Kit judges readiness on the rendered page, the version an answer engine would parse.</li>
+          <li>“Not enough on its own” is different from “predicts nothing.” The vendor's own finding that low-scoring established brands are cited 38.8% of the time points to domain authority, not to technical faults being irrelevant.</li>
         </ul>
-        <p>SEO Fix Kit's AI Answer Readiness is proof-derived from the rendered page and never claims to predict citations. Readiness is a diagnostic, not a citation guarantee. Content relevance is the citation driver; technical health is the hygiene floor that keeps content retrievable at all. We agree with getaisearchscore.com on both halves.</p>
+        <p>SEO Fix Kit never claims to predict citations. Readiness is a diagnostic, not a citation guarantee. Content relevance is the citation driver; technical health is the hygiene floor that keeps content readable at all. We agree with getaisearchscore.com on both.</p>
       </section>
-      <section class="grid two" aria-label="Readiness boundaries">
-        <article class="panel"><strong>No live answer-engine sampling</strong><p>SEO Fix Kit does not query ChatGPT, Perplexity, Google AI Overview, or other engines to see what they answer about your site.</p></article>
-        <article class="panel"><strong>No AI citation monitoring</strong><p>There is no live tracking of citations, mentions, or visibility scores across AI engines.</p></article>
-        <article class="panel"><strong>llms.txt stays optional</strong><p>llms.txt reachability is an optional signal. SEO Fix Kit does not claim llms.txt is required for Google Search or generative search surfaces.</p></article>
-        <article class="panel"><strong>Site-proof only</strong><p>Readiness is derived from your rendered pages, schema, links, sitemap, and optional llms.txt — not from any engine's internal behavior.</p></article>
+      <section class="grid two" aria-label="Limits of the readiness check">
+        <article class="panel"><strong>No live answer-engine sampling</strong><p>SEO Fix Kit does not ask ChatGPT, Perplexity, Google AI Overviews or other engines what they say about your site.</p></article>
+        <article class="panel"><strong>No AI citation monitoring</strong><p>There is no tracking of citations, mentions or visibility scores across AI engines.</p></article>
+        <article class="panel"><strong>llms.txt stays optional</strong><p>llms.txt is an optional signal. SEO Fix Kit does not claim llms.txt is required for Google Search or AI search.</p></article>
+        <article class="panel"><strong>Your pages only</strong><p>Readiness comes from your rendered pages, schema, links, sitemap and optional llms.txt, not from how any engine works inside.</p></article>
       </section>
       <section class="band">
-        <h2>How to get the check</h2>
+        <h2>How to run the check</h2>
         <ul class="check-list">
-          <li>Free: paste a public URL at ${origin}/check for real-browser evidence, the false alarms it rules out, and real problems with fixes — no account and nothing stored.</li>
-          <li>Private reports for verified sites include proof-derived AI Answer Readiness checks beside the rendered crawl evidence. Import Search Console rows on the same audit to rank those faults by traffic.</li>
-          <li>Read the exact boundaries on ${origin}/methodology before relying on any readiness signal.</li>
+          <li>Free: paste a public URL at <a href="${origin}/check">${origin}/check</a> to see the rendered evidence, the false alarms ruled out, and real problems with fixes. No account, nothing stored.</li>
+          <li>Reports for verified sites include AI Answer Readiness next to the rest of the audit. Import Search Console rows on the same audit to rank the problems by traffic.</li>
+          <li>Read the limits on <a href="${origin}/methodology">How it works</a> before relying on any readiness signal.</li>
         </ul>
       </section>
       <section class="band">
         <h2>What this page does not claim</h2>
-        <p>This page is a landing page, not a readiness report for your site. SEO Fix Kit does not provide live AI citation monitoring or answer-engine sampling, does not auto-join Search Console or GA4, and does not guarantee rankings, traffic, AI citations, or revenue.</p>
+        <p>This page describes the check; it is not a readiness report for your site. SEO Fix Kit does not provide live AI citation monitoring or answer-engine sampling, does not connect Search Console or GA4 automatically, and does not guarantee rankings, traffic, AI citations or revenue.</p>
       </section>
       <section class="band">
-        <h2>Start with proof</h2>
-        <p><a class="cta" href="${origin}/check">Check one page now</a></p>
-        <p><a href="${origin}/demo">View the proof sample</a> · <a href="${origin}/methodology">Read methodology and limits</a> · <a href="${origin}/pricing">See pricing</a></p>
+        <h2>Start with one page</h2>
+        <p><a class="cta" href="${origin}/check">Check a page</a></p>
+        <p><a href="${origin}/demo">See a sample report</a> · <a href="${origin}/methodology">How it works</a> · <a href="${origin}/pricing">Pricing</a></p>
       </section>
     `,
     faq: [
       {
-        q: "Is AI Answer Readiness the same as monitoring citations in ChatGPT or Perplexity?",
-        a: "No. Readiness is site-proof: it evaluates what your rendered pages, schema, links, sitemap context, and optional llms.txt allow an answer engine to understand. Live answer-engine sampling, AI citation monitoring, and AI visibility score tracking are not live."
+        q: "Is this the same as tracking citations in ChatGPT or Perplexity?",
+        a: "No. Readiness looks at what your rendered pages, schema, links, sitemap and optional llms.txt let an answer engine understand. Live answer-engine sampling, AI citation monitoring and AI visibility score tracking are not part of the product."
       },
       {
         q: "Does SEO Fix Kit rank AI readiness faults by traffic like CrawlRaven?",
-        a: "When you import Search Console or rank-tracker rows, yes: readiness faults are ranked by the clicks and impressions on the affected pages. SEO Fix Kit does not auto-join Search Console or GA4, and it does not provide live AI citation monitoring or answer-engine sampling."
+        a: "Yes, when you import Search Console or rank tracker rows: problems are ranked by the clicks and impressions on the affected pages. SEO Fix Kit does not connect Search Console or GA4 automatically, and it does not provide live AI citation monitoring or answer-engine sampling."
       },
       {
-        q: "Do I need an llms.txt file to pass the check?",
-        a: "No. llms.txt reachability is an optional signal. SEO Fix Kit does not claim llms.txt is required for Google Search or generative search surfaces."
+        q: "Do I need an llms.txt file to pass?",
+        a: "No. llms.txt is an optional signal. SEO Fix Kit does not claim llms.txt is required for Google Search or AI search."
       },
       {
-        q: "Can I check my site's AI readiness for free?",
-        a: "The anonymous one-page check at /check renders one public URL and returns proof fields and findings when present. Full proof-derived AI Answer Readiness checks appear in private reports for verified sites."
+        q: "Can I check AI readiness for free?",
+        a: "The one-page check at /check loads one public URL in a real browser and shows the evidence and any problems. Full AI Answer Readiness checks are in reports for verified sites."
       },
       {
-        q: "Does a good readiness signal guarantee AI visibility?",
-        a: "No. Readiness is a site-proof diagnostic, and rankings, traffic, AI citations, and revenue are never guaranteed."
+        q: "Does a good readiness result guarantee AI visibility?",
+        a: "No. Readiness is a diagnostic. Rankings, traffic, AI citations and revenue are never guaranteed."
       }
     ]
   });
@@ -1069,8 +1061,8 @@ const PROOF_CASE = {
 };
 
 function proofCaseHtml(origin) {
-  const description = `Real before/after proof: a portfolio site went from ${PROOF_CASE.before.score}/100 with ${PROOF_CASE.before.findings} findings to ${PROOF_CASE.after.score}/100 with ${PROOF_CASE.after.findings} after owner-approved fixes.`;
-  const title = "Before/After Repair Proof - SEO Fix Kit";
+  const description = `Case study: a portfolio site went from ${PROOF_CASE.before.score}/100 with ${PROOF_CASE.before.findings} problems to ${PROOF_CASE.after.score}/100 with ${PROOF_CASE.after.findings} after two owner-approved fixes, measured by the same audit each time.`;
+  const title = "Case Study: 85 to 100 in Two Fixes - SEO Fix Kit";
   return `<!doctype html>
 <html lang="en" data-theme="light">
   <head>
@@ -1088,7 +1080,7 @@ ${ldBlock({
   url: origin,
   provider: { "@type": "Organization", name: "SEO Fix Kit", url: origin },
   description:
-    "Proof-backed SEO audits, repair queue, implementation packs, and fixed-rerun proof receipts; publishes no CMS changes and makes no ranking promise."
+    "SEO audits in a real browser with a repair queue, implementation notes and reruns that confirm each fix. It never publishes changes to your site and makes no ranking promise."
 })}
     <style>
       * { box-sizing: border-box; }
@@ -1123,59 +1115,59 @@ ${ldBlock({
     ${siteHeader(origin)}
     <main class="hero-light" id="main">
       <section class="enter">
-        <p class="kicker">Real before/after · Repair proof receipt</p>
-        <h1>One real repair, with the same measurement path before and after.</h1>
-        <p>This page is a proof receipt for the first completed beta repair done with SEO Fix Kit: the founder-owned Tiny Studio portfolio site, audited with consent, repaired by the operator with the help of an SEO Fix Kit implementation pack, and rerun on the same host with the same measurement path. The receipt states the founder-owned scope, names the owner-approved change, links the same audit path before and after, and restates the no-ranking boundary.</p>
-        <p><a class="cta" href="${origin}/proof.md">Get the markdown receipt</a></p>
+        <p class="kicker">Case study</p>
+        <h1>85 to 100 in two fixes.</h1>
+        <p>The first repair done with SEO Fix Kit was on our founder’s own portfolio site, Tiny Studio, published here with consent. The owner shipped two changes using an SEO Fix Kit implementation pack, and the same audit ran on the same host before and after each one.</p>
+        <p><a class="cta" href="${origin}/proof.md">Download as Markdown</a></p>
       </section>
-      <section class="grid" aria-label="Audit scores before, intermediate, and after">
+      <section class="grid" aria-label="Audit scores before and after each fix">
         <article class="panel before score">
           <strong>Before</strong>
-          <p>Score <strong>${PROOF_CASE.before.score}</strong>/100 &middot; ${PROOF_CASE.before.findings} findings</p>
-          <p><a href="${PROOF_CASE.before.reportUrl}">Source report</a></p>
+          <p>Score <strong>${PROOF_CASE.before.score}</strong>/100 &middot; ${PROOF_CASE.before.findings} problems</p>
+          <p><a href="${PROOF_CASE.before.reportUrl}">Report</a></p>
         </article>
         <article class="panel intermediate score">
-          <strong>Intermediate rerun</strong>
-          <p>Score <strong>${PROOF_CASE.intermediate.score}</strong>/100 &middot; ${PROOF_CASE.intermediate.findings} findings</p>
-          <p><a href="${PROOF_CASE.intermediate.reportUrl}">Rerun report</a></p>
+          <strong>After fix 1</strong>
+          <p>Score <strong>${PROOF_CASE.intermediate.score}</strong>/100 &middot; ${PROOF_CASE.intermediate.findings} problems</p>
+          <p><a href="${PROOF_CASE.intermediate.reportUrl}">Report</a></p>
         </article>
         <article class="panel after score">
-          <strong>After</strong>
-          <p>Score <strong>${PROOF_CASE.after.score}</strong>/100 &middot; ${PROOF_CASE.after.findings} findings</p>
-          <p><a href="${PROOF_CASE.after.reportUrl}">Final rerun report</a></p>
+          <strong>After fix 2</strong>
+          <p>Score <strong>${PROOF_CASE.after.score}</strong>/100 &middot; ${PROOF_CASE.after.findings} problems</p>
+          <p><a href="${PROOF_CASE.after.reportUrl}">Report</a></p>
         </article>
       </section>
-      <section class="receipt" aria-label="Receipt details">
-        <h3>Receipt</h3>
+      <section class="receipt" aria-label="Case details">
+        <h3>Details</h3>
         <dl>
           <dt>Site</dt><dd>${escapeHtml(PROOF_CASE.siteLabel)} (${escapeHtml(PROOF_CASE.site)})</dd>
           <dt>Owner</dt><dd>${escapeHtml(PROOF_CASE.owner)}</dd>
           <dt>Case date</dt><dd>${PROOF_CASE.caseDate}</dd>
-          <dt>Source measurement</dt><dd>Production SEO Fix Kit audit against <code>https://${PROOF_CASE.site}/</code></dd>
-          <dt>Same-host reruns</dt><dd>Intermediate (${PROOF_CASE.intermediate.score}/${PROOF_CASE.intermediate.findings}) and final (${PROOF_CASE.after.score}/${PROOF_CASE.after.findings})</dd>
+          <dt>Audit</dt><dd>SEO Fix Kit production audit of <code>https://${PROOF_CASE.site}/</code></dd>
+          <dt>Reruns</dt><dd>After fix 1: ${PROOF_CASE.intermediate.score}/100, ${PROOF_CASE.intermediate.findings} problems. After fix 2: ${PROOF_CASE.after.score}/100, ${PROOF_CASE.after.findings} problems.</dd>
           <dt>Approval</dt><dd>Owner-approved implementation pack; merged PRs ${PROOF_CASE.changes.map((change) => change.label).join(" and ")}</dd>
-          <dt>Outcome</dt><dd>Findings went from ${PROOF_CASE.before.findings} to ${PROOF_CASE.after.findings}; final score ${PROOF_CASE.before.score} &rarr; ${PROOF_CASE.after.score}/100</dd>
+          <dt>Result</dt><dd>${PROOF_CASE.before.findings} problems to ${PROOF_CASE.after.findings}; score ${PROOF_CASE.before.score} &rarr; ${PROOF_CASE.after.score}/100</dd>
         </dl>
       </section>
       <section>
-        <h2>Owner-approved changes</h2>
+        <h2>What changed</h2>
         <ul>
-${PROOF_CASE.changes.map((change) => `          <li><strong>${escapeHtml(change.label)}</strong> &mdash; ${escapeHtml(change.summary)} (<a href="${escapeHtml(change.ref)}">${escapeHtml(change.ref)}</a>)</li>`).join("\n")}
+${PROOF_CASE.changes.map((change) => `          <li><strong>${escapeHtml(change.label)}</strong>: ${escapeHtml(change.summary)} (<a href="${escapeHtml(change.ref)}">${escapeHtml(change.ref)}</a>)</li>`).join("\n")}
         </ul>
       </section>
       <section class="boundary">
-        <h2>What this receipt does not claim</h2>
+        <h2>What this case study does not claim</h2>
         <ul>
           <li>No ranking, traffic, indexing, citation, or revenue promise is made for ${escapeHtml(PROOF_CASE.site)} or any other site.</li>
-          <li>SEO Fix Kit did not publish CMS changes, open GitHub pull requests, merge code, or call provider admin APIs. The merged PRs are owner-applied.</li>
-          <li>The receipt is published with founder consent and redaction of internal implementation detail; it is not a paid Fix Pack delivery certificate.</li>
-          <li>A different site, a different host, or a different starting audit will not produce the same numbers. The receipt is a real measurement path on this site only.</li>
+          <li>SEO Fix Kit did not publish CMS changes, open GitHub pull requests, merge code, or call provider admin APIs. The owner applied and merged both PRs.</li>
+          <li>Published with the founder’s consent, with internal details removed. It is not a paid Fix Pack delivery.</li>
+          <li>Another site will start from different numbers and end at different ones. This result applies to this site only.</li>
         </ul>
       </section>
       <section>
         <h2>How to read this page</h2>
-        <p>The same audit path ran three times against the same host: once before the repair, once after the first merge, and once after the second. The proof receipt pins the report ids, scores, finding counts, and merged PR refs so anyone can rerun the same measurement path against <code>https://${PROOF_CASE.site}/</code> and compare. SEO Fix Kit does not claim this receipt represents the result you will see on your site; it is evidence that the same measurement path can connect a real issue to a real operator-applied fix and a real rerun.</p>
-        <p>For an anonymous one-page check on any public URL, see <a href="${origin}/check">${origin}/check</a>. For methodology and limits, see <a href="${origin}/methodology">${origin}/methodology</a>. For plans and prices, see <a href="${origin}/pricing">${origin}/pricing</a>.</p>
+        <p>The same audit ran three times on the same host: before the repair, after the first merge and after the second. The report links, scores, problem counts and PR links are all here, so anyone can audit <code>https://${PROOF_CASE.site}/</code> again and compare. This is not a prediction of your results. It shows real problems, the fixes that closed them, and the reruns that confirmed it.</p>
+        <p><a href="${origin}/check">Check a page on your site</a>, read <a href="${origin}/methodology">how the audit works</a>, or see <a href="${origin}/pricing">pricing</a>.</p>
       </section>
     </main>
     ${siteFooter(origin)}
@@ -1184,45 +1176,45 @@ ${PROOF_CASE.changes.map((change) => `          <li><strong>${escapeHtml(change.
 }
 
 function proofCaseMarkdown(origin) {
-  return `# SEO Fix Kit — Repair proof receipt (${PROOF_CASE.caseDate})
+  return `# SEO Fix Kit case study: 85 to 100 in two fixes (${PROOF_CASE.caseDate})
 
-Real before/after repair proof receipt: founder-owned ${PROOF_CASE.siteLabel} (${PROOF_CASE.site}) went from ${PROOF_CASE.before.score}/100 with ${PROOF_CASE.before.findings} findings to ${PROOF_CASE.after.score}/100 with ${PROOF_CASE.after.findings} findings after owner-approved changes. Published with consent and redaction.
+Our founder’s ${PROOF_CASE.siteLabel} (${PROOF_CASE.site}) went from ${PROOF_CASE.before.score}/100 with ${PROOF_CASE.before.findings} problems to ${PROOF_CASE.after.score}/100 with ${PROOF_CASE.after.findings} problems after two owner-approved changes. Published with consent, with internal details removed.
 
-## Receipt
+## Details
 
 - Site: ${PROOF_CASE.siteLabel} (${PROOF_CASE.site})
 - Owner: ${PROOF_CASE.owner}
 - Case date: ${PROOF_CASE.caseDate}
-- Source measurement: Production SEO Fix Kit audit against https://${PROOF_CASE.site}/
-- Same-host reruns: intermediate (${PROOF_CASE.intermediate.score}/${PROOF_CASE.intermediate.findings}) and final (${PROOF_CASE.after.score}/${PROOF_CASE.after.findings})
+- Audit: SEO Fix Kit production audit of https://${PROOF_CASE.site}/
+- Reruns: after fix 1, ${PROOF_CASE.intermediate.score}/100 with ${PROOF_CASE.intermediate.findings} problems; after fix 2, ${PROOF_CASE.after.score}/100 with ${PROOF_CASE.after.findings} problems
 - Approval: Owner-approved implementation pack; merged PRs ${PROOF_CASE.changes.map((change) => change.label).join(" and ")}
-- Outcome: Findings went from ${PROOF_CASE.before.findings} to ${PROOF_CASE.after.findings}; final score ${PROOF_CASE.before.score} -> ${PROOF_CASE.after.score}/100
+- Result: ${PROOF_CASE.before.findings} problems to ${PROOF_CASE.after.findings}; score ${PROOF_CASE.before.score} -> ${PROOF_CASE.after.score}/100
 
-## Measurement path
+## Scores
 
-| Stage | Score | Findings | Report |
+| Stage | Score | Problems | Report |
 | --- | --- | --- | --- |
 | Before | ${PROOF_CASE.before.score} | ${PROOF_CASE.before.findings} | ${PROOF_CASE.before.reportUrl} |
-| Intermediate rerun | ${PROOF_CASE.intermediate.score} | ${PROOF_CASE.intermediate.findings} | ${PROOF_CASE.intermediate.reportUrl} |
-| After | ${PROOF_CASE.after.score} | ${PROOF_CASE.after.findings} | ${PROOF_CASE.after.reportUrl} |
+| After fix 1 | ${PROOF_CASE.intermediate.score} | ${PROOF_CASE.intermediate.findings} | ${PROOF_CASE.intermediate.reportUrl} |
+| After fix 2 | ${PROOF_CASE.after.score} | ${PROOF_CASE.after.findings} | ${PROOF_CASE.after.reportUrl} |
 
-## Owner-approved changes
+## What changed
 
 ${PROOF_CASE.changes.map((change) => `- ${change.label}: ${change.summary} (${change.ref})`).join("\n")}
 
-## What this receipt does not claim
+## What this case study does not claim
 
 - No ranking, traffic, indexing, citation, or revenue promise is made for ${PROOF_CASE.site} or any other site.
-- SEO Fix Kit did not publish CMS changes, open GitHub pull requests, merge code, or call provider admin APIs. The merged PRs are owner-applied.
-- The receipt is published with founder consent and redaction of internal implementation detail; it is not a paid Fix Pack delivery certificate.
-- A different site, a different host, or a different starting audit will not produce the same numbers. The receipt is a real measurement path on this site only.
+- SEO Fix Kit did not publish CMS changes, open GitHub pull requests, merge code, or call provider admin APIs. The owner applied and merged both PRs.
+- Published with the founder’s consent, with internal details removed. It is not a paid Fix Pack delivery.
+- Another site will start from different numbers and end at different ones. This result applies to this site only.
 
 ## How to read this page
 
-The same audit path ran three times against the same host: once before the repair, once after the first merge, and once after the second. The proof receipt pins the report ids, scores, finding counts, and merged PR refs so anyone can rerun the same measurement path against https://${PROOF_CASE.site}/ and compare. SEO Fix Kit does not claim this receipt represents the result you will see on your site; it is evidence that the same measurement path can connect a real issue to a real operator-applied fix and a real rerun.
+The same audit ran three times on the same host: before the repair, after the first merge and after the second. The report links, scores, problem counts and PR links are all here, so anyone can audit https://${PROOF_CASE.site}/ again and compare. This is not a prediction of your results. It shows real problems, the fixes that closed them, and the reruns that confirmed it.
 
 - Anonymous one-page check: ${origin}/check
-- Methodology and limits: ${origin}/methodology
+- How the audit works: ${origin}/methodology
 - Pricing: ${origin}/pricing
 `;
 }
@@ -1234,8 +1226,8 @@ function privacyHtml(origin) {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Privacy - SEO Fix Kit</title>
-    <meta name="description" content="SEO Fix Kit privacy note for access requests, private beta audits, payments, and fulfillment." />
-${pageSocialHead({ origin, title: "Privacy - SEO Fix Kit", description: "SEO Fix Kit privacy note for access requests, private beta audits, payments, and fulfillment.", path: "/privacy" })}
+    <meta name="description" content="What SEO Fix Kit collects, why, who processes it, how long we keep it, and how to have it deleted." />
+${pageSocialHead({ origin, title: "Privacy - SEO Fix Kit", description: "What SEO Fix Kit collects, why, who processes it, how long we keep it, and how to have it deleted.", path: "/privacy" })}
     <style>
       body { margin: 0; min-width: 0; }
       main { margin: 0 auto; max-width: 760px; padding: clamp(40px, 6vw, 72px) 22px 24px; min-width: 0; }
@@ -1251,13 +1243,13 @@ ${pageSocialHead({ origin, title: "Privacy - SEO Fix Kit", description: "SEO Fix
     ${siteHeader(origin)}
     <main class="hero-light" id="main">
       <h1>Privacy</h1>
-      <p>SEO Fix Kit ("we") collects the information needed to run self-serve access, create proof-backed SEO reports, process paid Fix Pack checkout, and deliver repair updates. We are the data controller for this information; reach us at <a href="mailto:support@seofixkit.com">support@seofixkit.com</a>.</p>
+      <p>SEO Fix Kit ("we") collects only what we need to sign you in, run your audits, take payment for a Fix Pack, and send you repair updates. We are the data controller for this information. Contact us at <a href="mailto:support@seofixkit.com">support@seofixkit.com</a>.</p>
       <ul>
         <li>We store your email address, signup source, UTM fields, landing path, referrer, browser user agent, country code when Cloudflare provides it, signup timestamps, and short-lived access-link records.</li>
         <li>Private audits store the website URL, rendered-page audit findings, screenshots or extracted page facts when available, report owner, beta session reference, target host, and report expiry timestamp.</li>
         <li>Fix Pack records store checkout status, Dodo payment identifiers, payment amount and currency, fulfillment notes, final rerun report links, delivery notifications, and admin audit events. We never see or store your card details; Dodo Payments processes payment as merchant of record under its own privacy policy.</li>
         <li>Cookies and local browser storage: we set only essential, HttpOnly session cookies (beta login, admin login, and report-unlock state), and the beta dashboard may keep your access email and dashboard state in sessionStorage on your device. No advertising, analytics, or cross-site tracking cookies are set.</li>
-        <li>Processors: Cloudflare (hosting, database, email delivery, browser rendering — data may be processed on Cloudflare's global network) and Dodo Payments (checkout and payment webhooks).</li>
+        <li>Processors: Cloudflare (hosting, database, email delivery, browser rendering; data may be processed anywhere on Cloudflare's network) and Dodo Payments (checkout and payment webhooks).</li>
         <li>Retention: reports expire after 30 days, except reports tied to a paid Fix Pack, which stay available while we operate the service. Admin logs, payment records, and notification logs are kept for operating, support, abuse prevention, and payment reconciliation. Rate-limit counters expire automatically.</li>
         <li>We do not sell your personal data and do not send unrelated promotions.</li>
         <li>Deletion and access: email <a href="mailto:support@seofixkit.com">support@seofixkit.com</a> (or reply to any email we send) to request a copy or deletion of your beta data. We honor verified requests within 30 days, except records we must keep for payment reconciliation or abuse prevention.</li>
@@ -1275,30 +1267,30 @@ function supportHtml(origin) {
     title: "Support",
     path: "/support",
     description:
-      "Get help with SEO Fix Kit: contact support for Fix Pack delivery, billing, and refund questions, or security reports. We reply from support@seofixkit.com.",
+      "Email support@seofixkit.com for help with audits, the Fix Pack, billing, refunds or security reports.",
     body: `
-      <p>Email <a href="mailto:support@seofixkit.com">support@seofixkit.com</a> for any question, billing issue, or problem — including when an expected email never arrived. You can also reply to any SEO Fix Kit email; we use that thread to verify account ownership.</p>
+      <p>Email <a href="mailto:support@seofixkit.com">support@seofixkit.com</a> with any question or problem, including an email you expected that never arrived. You can also reply to any SEO Fix Kit email; we use that thread to confirm the account is yours.</p>
 
       <h2>What to include</h2>
-      <p>For the fastest answer, include the account email, audited domain, report link or report id, checkout email if different, and the exact repair queue item you are asking about. If the question is about a rerun, include what changed on the site and when it shipped. If the question is about billing, include the Dodo receipt email, payment date, and whether the Fix Pack repair pass has already started.</p>
+      <p>Include your account email, the site, the report link or ID, your checkout email if it is different, and the repair-queue item you are asking about. For a rerun question, say what changed on the site and when it shipped. For billing, include the Dodo receipt email, the payment date, and whether the Fix Pack repair pass has started.</p>
 
       <h2>Fix Pack support</h2>
       <ul>
-        <li>Fix Pack covers one proof-backed repair pass for one report plus one rerun after fixes.</li>
+        <li>The Fix Pack covers one repair pass on one report, plus one rerun after the fixes ship.</li>
         <li>No ranking, traffic, or revenue promise is made.</li>
-        <li>If payment succeeds but the repair queue cannot start, you are entitled to a full refund.</li>
-        <li>Refunds: full refund on request within 14 days of payment if the repair pass has not started. After work starts or delivery, requests are reviewed against the Dodo payment record, report proof, and fulfillment state.</li>
+        <li>If payment succeeds but the repair pass can’t start, you get a full refund.</li>
+        <li>Refunds: a full refund on request within 14 days of payment if the repair pass has not started. After work starts, requests are reviewed against the Dodo payment record, the report and the delivery status.</li>
         <li>Security or abuse reports should include the affected URL, account email, and timestamp.</li>
       </ul>
 
       <h2>Delivery expectations</h2>
-      <p>The paid beta is deliberately narrow. We review the saved report, confirm which findings are supported by proof, prepare repair proposals, and keep delivery notes tied to that report. Some fixes are handled as human-readable implementation guidance, some as safe draft actions, and some may be marked unsupported when the product cannot safely execute them yet. We do not log into private CMS accounts, publish changes, merge code, or call provider admin APIs from the browser.</p>
+      <p>The Fix Pack is deliberately narrow. We review the saved report, confirm which problems have evidence, prepare repair proposals, and keep delivery notes on the report. Some fixes come as written instructions, some as draft actions you approve, and some may be marked unsupported when we can’t do them safely yet. We do not log in to your CMS, publish changes, merge code, or call provider admin APIs from the browser.</p>
 
       <h2>Security and abuse</h2>
-      <p>Security reports should include the affected route, account email if relevant, timestamp, browser details, and clear reproduction steps. Do not send secrets, private keys, passwords, payment card numbers, or production credentials by email. If you believe a report exposes data from a site or account you do not own, stop using the data and contact support immediately so we can investigate and lock down the affected report.</p>
+      <p>Include the affected page or route, your account email if relevant, the time, your browser, and steps to reproduce. Do not send secrets, private keys, passwords, payment card numbers, or production credentials by email. If a report shows data from a site or account you do not own, stop using it and email support right away so we can lock the report.</p>
 
       <h2>Ownership and deletion</h2>
-      <p>SEO Fix Kit is for sites you own or are authorized to audit. We may pause audits, delete reports, or revoke access when ownership is unclear, the target appears abusive, or the crawl could overload a third-party site. To request deletion or a copy of beta data, email from the account address or reply to a SEO Fix Kit email thread so ownership can be verified.</p>
+      <p>SEO Fix Kit is for sites you own or are authorized to audit. We may pause audits, delete reports or revoke access when ownership is unclear, the target looks abusive, or a crawl could overload someone else’s site. To get a copy of your data or have it deleted, email us from your account address or reply to an SEO Fix Kit email so we can confirm it is you.</p>
       <p>Last updated: June 19, 2026.</p>
     `
   });
@@ -1309,13 +1301,13 @@ function termsHtml(origin) {
     origin,
     title: "Terms",
     path: "/terms",
-    description: "SEO Fix Kit product terms for audits, Fix Pack checkout, refunds, and fulfillment.",
+    description: "The terms for using SEO Fix Kit: audits, the Fix Pack, payments, refunds and liability.",
     body: `
       <p>These terms govern your use of SEO Fix Kit at seofixkit.com ("the service", "we", "us"). By requesting access, running an audit, or purchasing a Fix Pack you agree to them. Contact: <a href="mailto:support@seofixkit.com">support@seofixkit.com</a>.</p>
 
       <h2>The service</h2>
       <ul>
-        <li>SEO Fix Kit provides proof-backed SEO audits and a paid Fix Pack repair service for proven findings in one report plus one rerun after fixes.</li>
+        <li>SEO Fix Kit provides SEO audits and a paid Fix Pack: one repair pass on the confirmed problems in one report, plus one rerun after the fixes.</li>
         <li>Reports are diagnostic. They reflect what the crawl and browser render could observe at scan time and may miss issues outside that scope.</li>
         <li>No ranking, indexing, traffic, revenue, or search-engine outcome is promised or implied, before or after repairs.</li>
         <li>The service is in active development; features may change, and beta access may be adjusted or revoked for abuse.</li>
@@ -1392,7 +1384,7 @@ ${pageSocialHead({ origin, title: `${title} - SEO Fix Kit`, description, path })
 // broken URL rendered as if SEO Fix Kit had just checked it.
 function notFoundHtml(origin = "") {
   const description =
-    "This page does not exist on SEO Fix Kit. Start from the homepage, check one page for free, or read the methodology.";
+    "This page does not exist on SEO Fix Kit. Go to the homepage, check a page for free, or contact support.";
   return `<!doctype html>
 <html lang="en" data-theme="light">
   <head>
@@ -1432,7 +1424,7 @@ function notFoundHtml(origin = "") {
           <p>We couldn’t find that page. It may have moved, or the link may be out of date.</p>
           <nav class="links" aria-label="Alternative pages">
             <a class="btn btn-primary" href="${origin}/">Go to homepage</a>
-            <a class="btn btn-secondary" href="${origin}/check">Check one page for free</a>
+            <a class="btn btn-secondary" href="${origin}/check">Check a page</a>
             <a class="btn btn-ghost" href="${origin}/support">Contact support</a>
           </nav>
         </div>

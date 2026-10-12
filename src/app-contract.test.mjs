@@ -278,7 +278,7 @@ test("billing delivery readiness copy is customer-facing", () => {
 
   assert.equal(
     text,
-    "We are preparing your delivery update. We are preparing the delivery link. Final rerun proof is not attached yet."
+    "We’re writing your delivery note. We’re preparing your delivery link. The final rerun report isn’t attached yet."
   );
   assert.equal(text.includes("Add "), false);
   assert.equal(text.includes("Attach "), false);
@@ -291,23 +291,23 @@ test("billing delivery readiness label does not call blocked requests start-read
       readyForStart: true,
       readyForDelivery: false
     }),
-    "Waiting on repair proof"
+    "Not ready to deliver"
   );
 });
 
 test("billing delivery readiness copy covers ready delivered and proposal states", () => {
   assert.equal(
     deliveryReadinessText({ status: "ready", readyForDelivery: true }),
-    "Delivery note, delivery link, approval, and rerun proof are ready."
+    "Delivery note, link, approval and rerun report are ready."
   );
-  assert.equal(deliveryReadinessText({ status: "delivered" }), "Delivery and rerun proof are attached.");
+  assert.equal(deliveryReadinessText({ status: "delivered" }), "Your delivery note and rerun report are attached.");
   assert.equal(
     deliveryReadinessText({ status: "blocked", blockers: [{ id: "approved_proposal_missing" }] }),
-    "A repair proposal still needs your approval."
+    "Approve a proposed fix on the report so we can continue."
   );
   assert.equal(
     deliveryReadinessText({ status: "blocked", blockers: [{ id: "proposal_state_unavailable" }] }),
-    "Repair proposal status is temporarily unavailable."
+    "Proposed fix status can’t be shown right now. Check back shortly."
   );
 });
 
@@ -317,7 +317,7 @@ test("billing delivery readiness copy hides unknown backend blocker labels", () 
     blockers: [{ id: "future_internal_blocker", label: "Attach payment-secret-123 before delivery." }]
   });
 
-  assert.equal(text, "We are still preparing this repair pass.");
+  assert.equal(text, "We’re still working on this repair pass.");
   assert.equal(text.includes("payment-secret-123"), false);
   assert.equal(text.includes("Attach"), false);
 });

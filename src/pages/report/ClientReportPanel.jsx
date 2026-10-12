@@ -73,11 +73,11 @@ export function ClientReportPanel({ report }) {
   const message =
     actionMessage ||
     (tools.isLoading
-      ? "Loading client report tools."
+      ? "Loading client links and branding…"
       : tools.isError
-        ? tools.error?.message || "Could not load client report tools."
+        ? tools.error?.message || "Client links and branding didn’t load. Reload the page to try again."
         : tools.isSuccess
-          ? "Client reports ready."
+          ? "Client links and branding loaded."
           : "");
 
   function updateTools(field, update) {
@@ -99,7 +99,7 @@ export function ClientReportPanel({ report }) {
   async function onBrandingSave(event) {
     event.preventDefault();
     setStatus("loading");
-    setMessage("Saving branding.");
+    setMessage("Saving branding…");
     try {
       const payload = await saveReportBranding(branding);
       updateTools("branding", { ...branding, ...(payload.branding || {}) });
@@ -108,14 +108,14 @@ export function ClientReportPanel({ report }) {
       setMessage("Branding saved.");
     } catch (error) {
       setStatus("error");
-      setMessage(error.message || "Could not save branding.");
+      setMessage(error.message || "Branding didn’t save. Try again.");
     }
   }
 
   async function onShareCreate(event) {
     event.preventDefault();
     setStatus("loading");
-    setMessage("Creating client link.");
+    setMessage("Creating client link…");
     try {
       const payload = await createReportShare(report.id, {
         clientName,
@@ -129,13 +129,13 @@ export function ClientReportPanel({ report }) {
       setMessage("Client link created.");
     } catch (error) {
       setStatus("error");
-      setMessage(error.message || "Could not create client link.");
+      setMessage(error.message || "The client link wasn’t created. Try again.");
     }
   }
 
   async function onShareRevoke(id) {
     setStatus("loading");
-    setMessage("Revoking client link.");
+    setMessage("Revoking client link…");
     try {
       await revokeReportShare(id);
       setShares((current) => current.filter((share) => share.id !== id));
@@ -143,55 +143,55 @@ export function ClientReportPanel({ report }) {
       setMessage("Client link revoked.");
     } catch (error) {
       setStatus("error");
-      setMessage(error.message || "Could not revoke client link.");
+      setMessage(error.message || "The client link wasn’t revoked. Try again.");
     }
   }
 
   async function onDomainCreate(event) {
     event.preventDefault();
     setStatus("loading");
-    setMessage("Creating report domain proof.");
+    setMessage("Adding domain…");
     try {
       const payload = await createReportDomain(domainName);
       setDomains((current) => [payload.domain, ...current.filter((domain) => domain.id !== payload.domain.id)]);
       setDomainName("");
       setStatus("success");
-      setMessage("Report domain proof is ready.");
+      setMessage("Domain added. Add the DNS records shown, then click Verify.");
     } catch (error) {
       setStatus("error");
-      setMessage(error.message || "Could not create report domain.");
+      setMessage(error.message || "The domain wasn’t added. Check it and try again.");
     }
   }
 
   async function onDomainVerify(id) {
     setStatus("loading");
-    setMessage("Checking report domain proof.");
+    setMessage("Checking DNS records…");
     try {
       const payload = await verifyReportDomain(id);
       setDomains((current) => [payload.domain, ...current.filter((domain) => domain.id !== payload.domain.id)]);
       setStatus("success");
-      setMessage("Report domain verified.");
+      setMessage("Domain verified.");
       const sharesPayload = await loadReportShares(report.id);
       setShares(sharesPayload.shares || []);
     } catch (error) {
       setStatus("error");
-      setMessage(error.message || "Could not verify report domain.");
+      setMessage(error.message || "Domain not verified yet. DNS changes can take a few minutes. Try again shortly.");
     }
   }
 
   async function onDomainRevoke(id) {
     setStatus("loading");
-    setMessage("Removing report domain.");
+    setMessage("Removing domain…");
     try {
       await revokeReportDomain(id);
       setDomains((current) => current.filter((domain) => domain.id !== id));
       setStatus("success");
-      setMessage("Report domain removed.");
+      setMessage("Domain removed.");
       const sharesPayload = await loadReportShares(report.id);
       setShares(sharesPayload.shares || []);
     } catch (error) {
       setStatus("error");
-      setMessage(error.message || "Could not remove report domain.");
+      setMessage(error.message || "The domain wasn’t removed. Try again.");
     }
   }
 
@@ -199,21 +199,21 @@ export function ClientReportPanel({ report }) {
     <section className="client-report-panel">
       <div className="section-heading">
         <p className="beta-eyebrow">Client reports</p>
-        <h2>White-label report links</h2>
+        <h2>Share this report with a client</h2>
         <StatusMessage tone={status}>{message}</StatusMessage>
       </div>
       <div className={`agency-workspace-strip ${agencyWorkspace.status || "beta_allowance"}`}>
         <div>
           <span className="status-pill">Agency Workspace</span>
-          <strong>{agencyWorkspace.status === "active" ? "Entitlement active" : "Beta allowance"}</strong>
+          <strong>{agencyWorkspace.status === "active" ? "Active" : "Free during the beta"}</strong>
         </div>
         <p>
           {agencyWorkspace.message ||
-            "White-label proof, client links, report domains, and team assignment are beta-gated until Agency Workspace checkout is live."}
+            "Your branding, client links, custom domains and teammates are free during the beta. Agency Workspace isn’t on sale yet."}
         </p>
         {agencyWorkspace.limits && (
           <div className="agency-limit-list">
-            <span>{agencyWorkspace.limits.clientLinksPerReport || 10} links/report</span>
+            <span>{agencyWorkspace.limits.clientLinksPerReport || 10} links per report</span>
             <span>{agencyWorkspace.limits.teamSeats || 10} seats</span>
             <span>{agencyWorkspace.limits.reportDomains || 1} domain</span>
           </div>
@@ -225,7 +225,7 @@ export function ClientReportPanel({ report }) {
           <div className="client-report-card-head">
             <strong>Branding</strong>
             <button disabled={status === "loading"} type="submit">
-              Save
+              Save branding
             </button>
           </div>
           <label htmlFor="agency-name">Agency name</label>
@@ -246,7 +246,7 @@ export function ClientReportPanel({ report }) {
           />
           <div className="color-row">
             <label htmlFor="brand-color">
-              Brand
+              Brand color
               <input
                 id="brand-color"
                 onChange={(event) => updateBranding("brandColor", event.target.value)}
@@ -255,7 +255,7 @@ export function ClientReportPanel({ report }) {
               />
             </label>
             <label htmlFor="accent-color">
-              Accent
+              Accent color
               <input
                 id="accent-color"
                 onChange={(event) => updateBranding("accentColor", event.target.value)}
@@ -271,7 +271,7 @@ export function ClientReportPanel({ report }) {
             placeholder="reports.example.com"
             value={branding.customDomain || ""}
           />
-          <label htmlFor="footer-text">Footer</label>
+          <label htmlFor="footer-text">Footer text</label>
           <input
             id="footer-text"
             onChange={(event) => updateBranding("footerText", event.target.value)}
@@ -283,7 +283,7 @@ export function ClientReportPanel({ report }) {
           <div className="client-report-card-head">
             <strong>Custom domain</strong>
             <button disabled={status === "loading"} type="submit">
-              Add
+              Add domain
             </button>
           </div>
           <label htmlFor="report-domain">Report subdomain</label>
@@ -299,7 +299,7 @@ export function ClientReportPanel({ report }) {
               <article className={`domain-row ${domain.status}`} key={domain.id}>
                 <div>
                   <strong>{domain.domain}</strong>
-                  <span>{domain.status === "verified" ? "Verified" : "Pending verification"}</span>
+                  <span>{domain.status === "verified" ? "Verified" : "Not verified yet"}</span>
                   {domain.cnameTarget && <code>CNAME {domain.cnameTarget}</code>}
                   {domain.dnsName ? (
                     <code>
@@ -338,15 +338,17 @@ export function ClientReportPanel({ report }) {
                 </div>
               </article>
             ))}
-            {!domains.length && <p className="quiet-note">No report domain connected yet.</p>}
+            {!domains.length && (
+              <p className="quiet-note">No custom domain yet. Add a subdomain like reports.example.com.</p>
+            )}
           </div>
         </form>
 
         <form className="client-report-card" onSubmit={onShareCreate}>
           <div className="client-report-card-head">
-            <strong>Create link</strong>
+            <strong>Client link</strong>
             <button disabled={status === "loading"} type="submit">
-              Create
+              Create link
             </button>
           </div>
           <label htmlFor="client-name">Client name</label>
@@ -366,7 +368,7 @@ export function ClientReportPanel({ report }) {
             placeholder="Optional"
             value={passwordHint}
           />
-          <label htmlFor="expires-days">Expires after days</label>
+          <label htmlFor="expires-days">Expires after (days)</label>
           <input
             id="expires-days"
             inputMode="numeric"
@@ -386,7 +388,7 @@ export function ClientReportPanel({ report }) {
             <div>
               <strong>{share.clientName || safeHostnameLabel(report.url)}</strong>
               <span>
-                {share.passwordProtected ? "Password protected" : "Open link"}
+                {share.passwordProtected ? "Password protected" : "No password"}
                 {share.expiresAt ? ` · Expires ${formatDate(share.expiresAt)}` : ""}
                 {share.lastViewedAt ? ` · Viewed ${formatDate(share.lastViewedAt)}` : ""}
               </span>
@@ -394,7 +396,7 @@ export function ClientReportPanel({ report }) {
             </div>
             <div className="client-share-actions">
               <button className="text-button accent-text" onClick={() => copyText(share.shareUrl)} type="button">
-                Copy
+                Copy link
               </button>
               <a className="text-button accent-text" href={share.sharePath} target="_blank" rel="noreferrer">
                 Open
@@ -413,7 +415,7 @@ export function ClientReportPanel({ report }) {
             </div>
           </article>
         ))}
-        {!shares.length && <p className="quiet-note">No active client links for this report.</p>}
+        {!shares.length && <p className="quiet-note">No client links yet. Create one above.</p>}
       </div>
     </section>
   );

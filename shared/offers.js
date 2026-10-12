@@ -15,8 +15,8 @@ const OFFER_CATALOG = [
     statusLabel: "Live beta",
     priceRange: "Dodo checkout price",
     checkoutState: "report_checkout",
-    description: "One proof-backed repair pass for one saved report plus one rerun after fixes.",
-    availability: "Starts from a saved report with proven issues.",
+    description: "One guided repair pass on one saved report, then one rerun to check the fixes.",
+    availability: "Buy it from a saved report that has open problems.",
     requirements: ["Saved report", "Proven findings", "Dodo checkout config", "No ranking promises"],
     limits: { reports: 1, reruns: 1 }
   },
@@ -28,9 +28,9 @@ const OFFER_CATALOG = [
     statusLabel: "Config gated",
     priceRange: "$49-$99/mo target",
     checkoutState: "account_checkout",
-    description: "Recurring proof monitoring, report deltas, and change alerts for verified sites.",
+    description: "Scheduled reruns on verified sites, with a list of what got fixed, what's still open and what's new.",
     availability:
-      "Available for verified sites only when Dodo subscription checkout and webhook entitlements are configured.",
+      "For verified sites. Weekly monitoring is free during the beta. The paid plan is sold only once checkout is turned on.",
     requirements: ["Verified site", "Audit schedules", "Report deltas", "Billing entitlement"],
     limits: { monitoredSites: 1, cadenceDays: 7 }
   },
@@ -42,9 +42,9 @@ const OFFER_CATALOG = [
     statusLabel: "Config gated",
     priceRange: "$249-$499 one-time target",
     checkoutState: "report_checkout",
-    description: "A scoped repair queue, owner approval, delivery notes, and final rerun proof.",
+    description: "A fixed list of repairs you approve, notes on what changed, and a final rerun.",
     availability:
-      "Available from a report after executable proposals are approved and Repair Sprint checkout is configured.",
+      "Starts from a report once you approve at least one proposed fix. Sold only once checkout is turned on.",
     requirements: ["Saved report", "Executable proposals", "Owner approval", "Final rerun proof"],
     limits: { proposalQueue: 1, reruns: 1 }
   },
@@ -56,8 +56,8 @@ const OFFER_CATALOG = [
     statusLabel: "Planned",
     priceRange: "$199-$399/mo target",
     checkoutState: "paused",
-    description: "Recurring SEO and AI-search readiness repair proposals from live proof.",
-    availability: "Can be sold after recurring prioritization and approval workflows exist.",
+    description: "Regular SEO and AI search readiness fix proposals based on fresh audits.",
+    availability: "Planned. Not available yet.",
     requirements: ["Verified site", "Recurring monitors", "Keyword or opportunity inputs", "Owner approval"],
     limits: { monitoredSites: 1, monthlyProposalBatches: 1 }
   },
@@ -69,8 +69,8 @@ const OFFER_CATALOG = [
     statusLabel: "Planned",
     priceRange: "$299-$799/mo target",
     checkoutState: "paused",
-    description: "Multi-client branded proof, client links, team assignment, and repair status.",
-    availability: "Can be sold after workspace limits and client-safe proof are coherent.",
+    description: "Branded reports for several clients, client share links, team assignment and repair status.",
+    availability: "Planned. Not available yet.",
     requirements: ["Branding", "Client share links", "Team members", "Workspace entitlements"],
     limits: { clientSites: 5, teamSeats: 3 }
   }
@@ -134,9 +134,9 @@ function monitoringAccessFromEntitlements(entitlements = [], activeCount = 0, op
     checkoutLive,
     currentPeriodEnd: entitlement?.current_period_end || entitlement?.currentPeriodEnd || "",
     message: entitlement
-      ? "Proof Monitoring entitlement is active for this workspace."
+      ? "Paid monitoring is active for this workspace."
       : checkoutLive
-        ? "Paid Proof Monitoring checkout is available for verified sites; access activates after the subscription webhook."
+        ? "You can buy monitoring for verified sites. It turns on once payment is confirmed."
         : "Weekly monitoring is included free for verified sites during the beta."
   };
 }
@@ -174,14 +174,14 @@ function repairSprintEligibilityFromProposals(proposals = [], fixRequest = null,
     hasPaidRequest,
     message:
       status === "unsupported"
-        ? "This report does not have enough executable proposal proof for a Repair Sprint."
+        ? "This report has no fixes we can carry out as a Repair Sprint."
         : status === "needs_owner_approval"
-          ? "Approve at least one executable proposal before packaging this as a Repair Sprint."
+          ? "Approve at least one proposed fix to start a Repair Sprint."
           : hasPaidRequest
-            ? "Repair Sprint execution can use the paid Fix Pack fulfillment path for this report."
+            ? "This report has a paid Fix Pack, so the approved fixes go through it."
             : checkoutReady
-              ? "Repair Sprint checkout is available for this approved proposal queue."
-              : "Proposal approval is ready; distinct Repair Sprint checkout remains gated until product billing is wired."
+              ? "You can buy a Repair Sprint for the fixes you approved."
+              : "Your fixes are approved. Repair Sprint isn't on sale yet."
   };
 }
 
@@ -205,8 +205,8 @@ function agencyWorkspaceAccessFromEntitlements(entitlements = [], usage = {}) {
       clientSites: Number(usage.clientSites || 0)
     },
     message: entitlement
-      ? "Agency Workspace entitlement is active for this workspace."
-      : "Private beta includes white-label proof tools while Agency Workspace checkout is gated."
+      ? "Agency Workspace is active for this workspace."
+      : "The beta includes white-label reports. Agency Workspace isn't on sale yet."
   };
 }
 

@@ -400,7 +400,7 @@ test("Fix Pack checkout fails closed without a Dodo call when the product id is 
   assert.equal(response.body.mode, "request");
   assert.equal(response.body.checkoutAvailable, false);
   assert.equal(response.body.checkoutUrl, undefined);
-  assert.match(response.body.message, /Checkout is paused/);
+  assert.match(response.body.message, /Checkout is not open yet/);
   assert.equal(calls.length, 0, "no outgoing Dodo call");
 
   // The request is kept so the owner is not lost, but no checkout was opened.

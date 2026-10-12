@@ -83,9 +83,9 @@ export function TeamRepairBoard({ report }) {
   const message =
     actionMessage ||
     (board.isLoading
-      ? "Loading repair board."
+      ? "Loading repair queue…"
       : board.isError
-        ? board.error?.message || "Could not load repair queue."
+        ? board.error?.message || "The repair queue didn’t load. Reload the page to try again."
         : board.isSuccess
           ? "Repair queue ready."
           : "");
@@ -127,33 +127,33 @@ export function TeamRepairBoard({ report }) {
   async function onMemberCreate(event) {
     event.preventDefault();
     setStatus("loading");
-    setMessage("Adding teammate.");
+    setMessage("Adding teammate…");
     try {
       await createTeamMember(draftMember);
       setDraftMember({ email: "", name: "", role: "editor" });
       await reloadBoard("Teammate added.");
     } catch (error) {
       setStatus("error");
-      setMessage(error.message || "Could not add teammate.");
+      setMessage(error.message || "The teammate wasn’t added. Check the email and try again.");
     }
   }
 
   async function onMemberRevoke(id) {
     setStatus("loading");
-    setMessage("Removing teammate.");
+    setMessage("Removing teammate…");
     try {
       await revokeTeamMember(id);
       await reloadBoard("Teammate removed.");
     } catch (error) {
       setStatus("error");
-      setMessage(error.message || "Could not remove teammate.");
+      setMessage(error.message || "The teammate wasn’t removed. Try again.");
     }
   }
 
   async function onIssueSave(issue) {
     setSavingIssueId(issue.issueId);
     setStatus("loading");
-    setMessage("Saving repair item.");
+    setMessage("Saving…");
     try {
       const queueItem = {
         issueId: issue.issueId,
@@ -184,10 +184,10 @@ export function TeamRepairBoard({ report }) {
         );
       }
       await Promise.all(writes);
-      await reloadBoard("Repair item saved.");
+      await reloadBoard("Saved.");
     } catch (error) {
       setStatus("error");
-      setMessage(error.message || "Could not save repair item.");
+      setMessage(error.message || "That fix didn’t save. Try again.");
     } finally {
       setSavingIssueId("");
     }
@@ -196,7 +196,7 @@ export function TeamRepairBoard({ report }) {
   async function onActionDraft(issue) {
     setActingIssueId(issue.issueId);
     setStatus("loading");
-    setMessage("Drafting agent action.");
+    setMessage("Drafting a change…");
     try {
       const payload = await createRepairAction(report.id, {
         issueId: issue.issueId,
@@ -209,13 +209,13 @@ export function TeamRepairBoard({ report }) {
         setIssues(mergeRepairQueueWithCollaboration(payload.queue.items, collaborationPayload.issues || []));
         queryClient.invalidateQueries({ queryKey: queryKeys.repairQueue(report.id), exact: true });
       } else {
-        await reloadBoard("Agent action drafted.");
+        await reloadBoard("Draft saved.");
       }
       setStatus("success");
-      setMessage("Agent action drafted for review.");
+      setMessage("Draft saved for review.");
     } catch (error) {
       setStatus("error");
-      setMessage(error.message || "Could not draft agent action.");
+      setMessage(error.message || "The draft wasn’t created. Try again.");
     } finally {
       setActingIssueId("");
     }
@@ -225,7 +225,7 @@ export function TeamRepairBoard({ report }) {
     if (!issue.latestAction?.id) return;
     setActingIssueId(issue.issueId);
     setStatus("loading");
-    setMessage(options.pendingMessage || "Updating agent action.");
+    setMessage(options.pendingMessage || "Updating draft…");
     try {
       const payload = await updateRepairAction(report.id, issue.latestAction.id, patch);
       if (payload.queue?.items) {
@@ -233,13 +233,13 @@ export function TeamRepairBoard({ report }) {
         setIssues(mergeRepairQueueWithCollaboration(payload.queue.items, collaborationPayload.issues || []));
         queryClient.invalidateQueries({ queryKey: queryKeys.repairQueue(report.id), exact: true });
       } else {
-        await reloadBoard("Agent action updated.");
+        await reloadBoard("Draft updated.");
       }
       setStatus("success");
-      setMessage(options.successMessage || "Agent action updated.");
+      setMessage(options.successMessage || "Draft updated.");
     } catch (error) {
       setStatus("error");
-      setMessage(error.message || "Could not update agent action.");
+      setMessage(error.message || "The draft wasn’t updated. Try again.");
     } finally {
       setActingIssueId("");
     }
@@ -249,12 +249,12 @@ export function TeamRepairBoard({ report }) {
     const rerunReportId = issue.lastRerunReportId || issue.rerunReportId || "";
     if (!rerunReportId) {
       setStatus("error");
-      setMessage("Enter the rerun report ID before closing proof.");
+      setMessage("Paste the rerun report ID first.");
       return;
     }
     await onActionUpdate(issue, repairActionRerunPatch(rerunState, rerunReportId), {
-      pendingMessage: "Attaching rerun proof.",
-      successMessage: rerunState === "fixed" ? "Repair marked fixed from rerun proof." : "Rerun proof recorded."
+      pendingMessage: "Saving rerun result…",
+      successMessage: rerunState === "fixed" ? "Marked fixed. The rerun confirms it." : "Rerun result saved."
     });
   }
 
@@ -262,8 +262,8 @@ export function TeamRepairBoard({ report }) {
     <section className="team-repair-panel">
       <div className="section-heading queue-heading">
         <div>
-          <p className="beta-eyebrow">Repair agent</p>
-          <h2>Proof-backed queue and safe action drafts</h2>
+          <p className="beta-eyebrow">Repair queue</p>
+          <h2>Assign, draft and track each fix</h2>
           <StatusMessage tone={status}>{message}</StatusMessage>
         </div>
         <label className="repair-filter">
@@ -282,7 +282,7 @@ export function TeamRepairBoard({ report }) {
       </div>
 
       <div className="team-board-summary">
-        <Metric label="Issues" value={boardCounts.total} />
+        <Metric label="Problems" value={boardCounts.total} />
         <Metric label="Drafted" value={boardCounts.drafted} />
         <Metric label="Approved" value={boardCounts.approved} />
         <Metric label="Fixed" value={boardCounts.fixed} />
@@ -343,7 +343,7 @@ export function TeamRepairBoard({ report }) {
                 </button>
               </div>
             ))}
-            {!members.length && <p className="quiet-note">Add teammates to assign proven issues.</p>}
+            {!members.length && <p className="quiet-note">No teammates yet. Add one to assign problems.</p>}
           </div>
         </form>
 
@@ -361,7 +361,7 @@ export function TeamRepairBoard({ report }) {
                   </div>
                   <h3>{issue.title}</h3>
                   <p>
-                    {issue.pageLabel || safeUrlLabel(issue.pageUrl)} - {issue.fix}
+                    {issue.pageLabel || safeUrlLabel(issue.pageUrl)}: {issue.fix}
                   </p>
                 </div>
                 <button
@@ -375,12 +375,12 @@ export function TeamRepairBoard({ report }) {
               </div>
               <div className="repair-proof-block">
                 <div>
-                  <span>Proof</span>
-                  <p>{issue.proof || "Proof was stored with the report finding."}</p>
+                  <span>Evidence</span>
+                  <p>{issue.proof || "See this problem in the Problems tab for evidence."}</p>
                 </div>
                 <div>
-                  <span>Acceptance</span>
-                  <p>{issue.acceptance || "Rerun the audit and confirm the finding no longer appears."}</p>
+                  <span>Done when</span>
+                  <p>{issue.acceptance || "A rerun no longer finds this problem."}</p>
                 </div>
                 {issue.snippet && <CodeBlock code={issue.snippet} />}
               </div>
@@ -393,23 +393,23 @@ export function TeamRepairBoard({ report }) {
                     }
                     value={manualRepairQueueStatus(issue.status)}
                   >
-                    <option value="">Managed by action</option>
+                    <option value="">Set by draft</option>
                     <option value="open">Open</option>
                     <option value="in_progress">In progress</option>
                     <option value="ignored">Ignored</option>
                   </select>
                 </label>
                 <label>
-                  Action mode
+                  Who fixes it
                   <select
                     onChange={(event) => updateIssue(issue.issueId, { actionMode: event.target.value })}
                     value={issue.actionMode || "self_serve"}
                   >
-                    <option value="self_serve">Self serve</option>
+                    <option value="self_serve">Do it yourself</option>
                     <option value="teammate">Teammate</option>
                     <option value="fix_pack">Fix Pack</option>
                     <option value="cms_draft">CMS draft</option>
-                    <option value="github_pr">Future PR</option>
+                    <option value="github_pr">GitHub PR (planned)</option>
                   </select>
                 </label>
                 {issue.sourceKind !== "repair_plan" && (
@@ -443,7 +443,7 @@ export function TeamRepairBoard({ report }) {
                     Note
                     <textarea
                       onChange={(event) => updateIssue(issue.issueId, { note: event.target.value })}
-                      placeholder="Internal note or next repair step"
+                      placeholder="Note for your team"
                       value={issue.note || ""}
                     />
                   </label>
@@ -451,11 +451,11 @@ export function TeamRepairBoard({ report }) {
               </div>
               <div className="repair-action-strip">
                 <div>
-                  <strong>{issue.latestAction ? "Latest agent action" : "No agent action drafted"}</strong>
+                  <strong>{issue.latestAction ? "Latest draft" : "No draft yet"}</strong>
                   <span>
                     {issue.latestAction
-                      ? `${repairActionModeLabel(issue.latestAction.actionMode)} - ${repairApprovalLabel(issue.latestAction.approvalState)} - ${repairExecutionLabel(issue.latestAction.executionState)}`
-                      : "Drafts are saved for review and do not publish anything."}
+                      ? `${repairActionModeLabel(issue.latestAction.actionMode)} · ${repairApprovalLabel(issue.latestAction.approvalState)} · ${repairExecutionLabel(issue.latestAction.executionState)}`
+                      : "Drafts are saved for review. Nothing changes on your site."}
                   </span>
                   {issue.latestAction?.proposedChange && <p>{issue.latestAction.proposedChange}</p>}
                 </div>
@@ -467,7 +467,7 @@ export function TeamRepairBoard({ report }) {
                       rel="noreferrer"
                       target="_blank"
                     >
-                      Implementation pack
+                      Implementation steps
                     </a>
                   )}
                   {issue.rerunStatus === "fixed" && repairActionProofReceiptAvailable(issue.latestAction) && (
@@ -486,7 +486,7 @@ export function TeamRepairBoard({ report }) {
                     onClick={() => onActionDraft(issue)}
                     type="button"
                   >
-                    Draft action
+                    Draft change
                   </button>
                   {issue.latestAction?.approvalState === "drafted" && (
                     <>
@@ -495,8 +495,8 @@ export function TeamRepairBoard({ report }) {
                         disabled={actingIssueId === issue.issueId || status === "loading"}
                         onClick={() =>
                           onActionUpdate(issue, repairActionApprovalPatch(), {
-                            pendingMessage: "Approving agent action.",
-                            successMessage: "Agent action approved."
+                            pendingMessage: "Approving…",
+                            successMessage: "Draft approved."
                           })
                         }
                         type="button"
@@ -508,8 +508,8 @@ export function TeamRepairBoard({ report }) {
                         disabled={actingIssueId === issue.issueId || status === "loading"}
                         onClick={() =>
                           onActionUpdate(issue, repairActionIgnorePatch(), {
-                            pendingMessage: "Ignoring agent action.",
-                            successMessage: "Agent action ignored."
+                            pendingMessage: "Ignoring…",
+                            successMessage: "Draft ignored."
                           })
                         }
                         type="button"
@@ -525,13 +525,13 @@ export function TeamRepairBoard({ report }) {
                         disabled={actingIssueId === issue.issueId || status === "loading"}
                         onClick={() =>
                           onActionUpdate(issue, repairActionApplyPatch(), {
-                            pendingMessage: "Marking approved action applied.",
-                            successMessage: "Agent action marked applied."
+                            pendingMessage: "Marking as applied…",
+                            successMessage: "Marked as applied."
                           })
                         }
                         type="button"
                       >
-                        Apply
+                        Mark applied
                       </button>
                     )}
                   {issue.latestAction?.executionState === "applied" && (
@@ -542,7 +542,7 @@ export function TeamRepairBoard({ report }) {
                         onClick={() => onActionRerun(issue, "fixed")}
                         type="button"
                       >
-                        Fixed
+                        Mark fixed
                       </button>
                       <button
                         className="text-button"
@@ -550,7 +550,7 @@ export function TeamRepairBoard({ report }) {
                         onClick={() => onActionRerun(issue, "still_open")}
                         type="button"
                       >
-                        Still open
+                        Mark still open
                       </button>
                       <button
                         className="text-button"
@@ -558,7 +558,7 @@ export function TeamRepairBoard({ report }) {
                         onClick={() => onActionRerun(issue, "regressed")}
                         type="button"
                       >
-                        Regressed
+                        Mark regressed
                       </button>
                     </>
                   )}
@@ -572,7 +572,7 @@ export function TeamRepairBoard({ report }) {
               )}
             </article>
           ))}
-          {!visibleIssues.length && <p className="quiet-note">No repair items match this filter.</p>}
+          {!visibleIssues.length && <p className="quiet-note">No fixes with this status.</p>}
         </div>
       </div>
     </section>

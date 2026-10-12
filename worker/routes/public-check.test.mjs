@@ -390,7 +390,7 @@ test("public check page labels generated repair markup as a proposed change, nev
   assert.match(html, /finding\.proposedMarkup/, "the renderer reads the explicitly named field");
   assert.match(
     html,
-    /Proposed change — generated repair markup, not a quote from the page/,
+    /Suggested markup\. Generated for this page, not copied from it/,
     "the code block carries an explicit label before the markup"
   );
   assert.match(html, /snippet-label/, "the label has a distinct style class");
@@ -404,7 +404,7 @@ test("public check page carries WebPage and truthful FAQ JSON-LD", () => {
   const faq = graph.find((node) => node["@type"] === "FAQPage");
 
   assert.ok(webpage, "WebPage JSON-LD is present");
-  assert.equal(webpage.name, "Check One Page for SEO Proof - SEO Fix Kit");
+  assert.equal(webpage.name, "Free SEO Page Check - SEO Fix Kit");
   assert.equal(webpage.url, "https://seofixkit.com/check");
   assert.equal(webpage.isPartOf.name, "SEO Fix Kit");
   assert.equal(webpage.publisher["@type"], "Organization");

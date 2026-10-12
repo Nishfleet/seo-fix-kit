@@ -17,7 +17,7 @@ export function fixPackRepairTarget(report = {}, queueItems = []) {
     source: "report",
     queueItemId: "",
     issueId: repairIssueId(repair) || repair.id || "",
-    title: repair.title || "Proof-backed repair",
+    title: repair.title || "Top repair",
     severity: repair.severity || "notice",
     status: repairStatus(repair) || "open",
     priority: Number(repair.priority || 0)
@@ -38,10 +38,15 @@ export function fixPackCheckoutDisabled({ hasPriorityFixes = false, pricingStatu
 export function fixPackCheckoutOutcome(result = {}) {
   const checkoutUrl = safeDodoCheckoutUrl(result?.checkoutUrl || "");
   if (checkoutUrl) {
-    return { status: "success", message: "Opening secure checkout.", checkoutUrl };
+    return { status: "success", message: "Opening checkout…", checkoutUrl };
   }
   if (result?.checkoutUrl) {
-    return { status: "error", message: "Checkout returned an invalid provider URL.", checkoutUrl: "" };
+    return {
+      status: "error",
+      message:
+        "Checkout sent back a link we couldn’t verify, so we didn’t open it. Try again or email support@seofixkit.com.",
+      checkoutUrl: ""
+    };
   }
 
   if (result?.ok) {
@@ -50,7 +55,7 @@ export function fixPackCheckoutOutcome(result = {}) {
 
   return {
     status: "error",
-    message: result?.message || result?.error || "Checkout could not open.",
+    message: result?.message || result?.error || "Checkout didn’t open. Try again or email support@seofixkit.com.",
     checkoutUrl: ""
   };
 }
@@ -58,7 +63,7 @@ export function fixPackCheckoutOutcome(result = {}) {
 export function fixPackCheckoutErrorOutcome(error = null) {
   return {
     status: "error",
-    message: error?.message || "Checkout could not open.",
+    message: error?.message || "Checkout didn’t open. Try again or email support@seofixkit.com.",
     checkoutUrl: ""
   };
 }
@@ -84,7 +89,7 @@ function repairTargetFromQueueItem(item = {}) {
     source: "repair_queue",
     queueItemId: repairId(item),
     issueId: repairIssueId(item),
-    title: item.title || "Proof-backed repair",
+    title: item.title || "Top repair",
     severity: item.severity || "notice",
     status: repairStatus(item) || "open",
     priority: Number(item.priority || 0)

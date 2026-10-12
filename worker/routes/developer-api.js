@@ -87,7 +87,11 @@ const ApiAuditBody = body(
 async function getDeveloperApiSummary(request, env) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
-  if (!env.WAITLIST_DB) return json({ error: "Developer API storage is not configured." }, 503);
+  if (!env.WAITLIST_DB)
+    return json(
+      { error: "Developer API storage is not set up on this server. Email support@seofixkit.com for help." },
+      503
+    );
 
   const [tokens, webhooks] = await Promise.all([
     env.WAITLIST_DB.prepare(
@@ -153,7 +157,11 @@ async function createDeveloperApiToken(request, env) {
   const parsed = await parseJsonBody(request, DeveloperApiTokenBody);
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
-  if (!env.WAITLIST_DB) return json({ error: "Developer API storage is not configured." }, 503);
+  if (!env.WAITLIST_DB)
+    return json(
+      { error: "Developer API storage is not set up on this server. Email support@seofixkit.com for help." },
+      503
+    );
   if (parsed.error) return jsonNoStore(parsed.error, 400);
   const body = parsed.data;
 
@@ -216,14 +224,18 @@ async function createDeveloperApiToken(request, env) {
     ok: true,
     token: apiTokenResponse(row),
     tokenSecret,
-    message: "Copy this API key now. It will not be shown again."
+    message: "Copy this API key now. You will not be able to see it again."
   });
 }
 
 async function revokeDeveloperApiToken(request, env) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
-  if (!env.WAITLIST_DB) return json({ error: "Developer API storage is not configured." }, 503);
+  if (!env.WAITLIST_DB)
+    return json(
+      { error: "Developer API storage is not set up on this server. Email support@seofixkit.com for help." },
+      503
+    );
   const url = new URL(request.url);
   const id = decodeURIComponent(url.pathname.slice("/api/developer/tokens/".length));
   if (!isSafeUuid(id)) return json({ error: "API key not found." }, 404);
@@ -245,7 +257,11 @@ async function createDeveloperWebhook(request, env) {
   const parsed = await parseJsonBody(request, DeveloperWebhookBody);
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
-  if (!env.WAITLIST_DB) return json({ error: "Developer API storage is not configured." }, 503);
+  if (!env.WAITLIST_DB)
+    return json(
+      { error: "Developer API storage is not set up on this server. Email support@seofixkit.com for help." },
+      503
+    );
   if (parsed.error) return jsonNoStore(parsed.error, 400);
   const body = parsed.data;
   const urlCheck = publicWebhookUrlStatus(body.url || "");
@@ -300,14 +316,18 @@ async function createDeveloperWebhook(request, env) {
     ok: true,
     webhook: apiWebhookResponse(row),
     signingSecret: await apiWebhookSigningSecret(env, row.id),
-    message: "Copy this signing secret now. It will not be shown again."
+    message: "Copy this signing secret now. You will not be able to see it again."
   });
 }
 
 async function revokeDeveloperWebhook(request, env) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
-  if (!env.WAITLIST_DB) return json({ error: "Developer API storage is not configured." }, 503);
+  if (!env.WAITLIST_DB)
+    return json(
+      { error: "Developer API storage is not set up on this server. Email support@seofixkit.com for help." },
+      503
+    );
   const url = new URL(request.url);
   const id = decodeURIComponent(url.pathname.slice("/api/developer/webhooks/".length));
   if (!isSafeUuid(id)) return json({ error: "Webhook not found." }, 404);
@@ -347,7 +367,7 @@ async function apiCreateProject(request, env) {
   const parsed = await parseJsonBody(request, ApiProjectBody);
   if (parsed.error) return jsonNoStore(parsed.error, 400);
   const host = claimHostFromInput(parsed.data.host);
-  if (!host) return jsonNoStore({ error: "Enter a public website host to verify." }, 400);
+  if (!host) return jsonNoStore({ error: "Enter the domain you want to verify, like example.com." }, 400);
 
   const existing = await env.WAITLIST_DB.prepare(
     `SELECT *
@@ -799,7 +819,7 @@ async function apiDeleteAudit(request, env) {
         const protectedFixRequest = await protectedFixRequestForReport(env, row.report_id);
         return jsonNoStore(
           {
-            error: "This audit report is locked because it is attached to a paid Fix Pack record.",
+            error: "This report is linked to a paid Fix Pack, so it cannot be deleted.",
             code: "FIX_PACK_REPORT_LOCKED",
             fixRequestId: protectedFixRequest?.id || ""
           },
@@ -807,7 +827,7 @@ async function apiDeleteAudit(request, env) {
         );
       }
       if (!deleted.deletedIds.includes(row.report_id)) {
-        return jsonNoStore({ error: "Audit report could not be deleted." }, 409);
+        return jsonNoStore({ error: "The report could not be deleted. Try again in a minute." }, 409);
       }
       jobDeletedWithReport = true;
     }
@@ -872,7 +892,11 @@ async function resolveApiAuditReport(env, access, id) {
   }
   if (!reportId) {
     if (job?.status === "failed") return { ok: false, status: 409, error: job.error || "Audit failed." };
-    return { ok: false, status: 409, error: "Audit is still running." };
+    return {
+      ok: false,
+      status: 409,
+      error: "This audit is still running. Poll the audit status and try again when it finishes."
+    };
   }
   if (!isSafeReportId(reportId)) return { ok: false, status: 404, error: "Report not found." };
   const row = await env.WAITLIST_DB.prepare(
@@ -886,7 +910,11 @@ async function resolveApiAuditReport(env, access, id) {
     .first();
   if (!row?.report_json) {
     if (job?.status === "queued" || job?.status === "running")
-      return { ok: false, status: 409, error: "Audit is still running." };
+      return {
+        ok: false,
+        status: 409,
+        error: "This audit is still running. Poll the audit status and try again when it finishes."
+      };
     return { ok: false, status: 404, error: "Report not found." };
   }
   if (row.expires_at && row.expires_at <= new Date().toISOString()) {
@@ -899,7 +927,7 @@ async function resolveApiAuditReport(env, access, id) {
       if (!parsedReport) return { ok: false, status: 404, error: "Report not found." };
       return { ok: true, job, report: reportWithAuditRow(parsedReport, row, reportId) };
     }
-    return { ok: false, status: 404, error: "Report expired." };
+    return { ok: false, status: 404, error: "This report expired. Run a new audit to get a fresh report." };
   }
   const reportJson = await reportJsonForRow(env, row);
   if (!reportJson) return { ok: false, status: 404, error: "Report not found." };

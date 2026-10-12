@@ -60,10 +60,16 @@ export function parseKeywordRows(input = {}, targetUrl = "", options = {}) {
       row.pageUrl || row.page_url || row.page || row.url || row.landingPage || row.landing_page || row.destination || ""
     );
     if (pageUrl && !options.allowPrivate && isPrivateHost(pageUrl)) {
-      return { ok: false, error: "Keyword landing page URLs must be public URLs." };
+      return {
+        ok: false,
+        error: "Keyword landing page URLs must be public. Remove private or local URLs and try again."
+      };
     }
     if (pageUrl && targetHost && safeHost(pageUrl) !== targetHost) {
-      return { ok: false, error: "Keyword landing page URLs must match the audited host." };
+      return {
+        ok: false,
+        error: "Keyword landing page URLs must be on the site you are auditing. Remove URLs from other sites."
+      };
     }
 
     const clicks = parseMetric(row.clicks || row.currentClicks || row.current_clicks);
@@ -161,7 +167,7 @@ export function buildKeywordRankAudit(report = {}, input = [], options = {}) {
   return {
     status: "ready",
     source: "self-serve-keyword-import",
-    note: "Keyword audit uses supplied Search Console or rank-tracker rows plus rendered page proof. It is not a keyword volume, rank-tracking, or backlink database.",
+    note: "The keyword audit uses the Search Console or rank-tracker data you import, checked against your loaded pages. It is not a keyword volume, rank-tracking, or backlink database.",
     summary,
     rows,
     checks,
@@ -195,7 +201,7 @@ export function keywordRankAuditBriefLines(audit = {}) {
     }
     lines.push("");
   } else {
-    lines.push("No keyword repair actions were created from the imported rows.", "");
+    lines.push("No problems found in the imported keywords.", "");
   }
 
   return lines;
@@ -396,7 +402,7 @@ function keywordRepairOpportunities(checks) {
       confidence: "needs-review",
       estimatedEffort: item.estimatedEffort || "30-90 min",
       workType: item.workType || "content",
-      acceptance: item.acceptance || "Rerun with fresh keyword rows and confirm this keyword proof no longer appears.",
+      acceptance: item.acceptance || "Import fresh keyword data, rerun, and check this problem no longer shows.",
       source: "keyword-rank-audit",
       ...item
     });
@@ -408,8 +414,8 @@ function keywordRepairOpportunities(checks) {
       severity: "warning",
       title: "High-impression keywords have low CTR",
       proof: `${checks.lowCtrRows.length} imported keyword rows rank in the top 10 with CTR below ${formatPercent(LOW_CTR_THRESHOLD)}, led by "${row.query}" on ${row.pageLabel} at ${formatPercent(row.ctr)} CTR.`,
-      fix: "Rewrite the page title and meta description around the proven query intent, then make the on-page H1 and opening copy match that promise.",
-      acceptance: "Fresh Search Console rows show CTR at or above the site baseline for these top-10 queries."
+      fix: "Rewrite the title and meta description around what people searched for, then make the H1 and first paragraph match.",
+      acceptance: "Fresh Search Console data shows these top-10 queries getting at least your site's usual click rate."
     });
   }
 
@@ -419,9 +425,8 @@ function keywordRepairOpportunities(checks) {
       severity: "notice",
       title: "Page-two keywords are close to traffic",
       proof: `${checks.pageTwoRows.length} keyword rows sit in positions 11-20, led by "${row.query}" at position ${formatPosition(row.position)} with ${formatCount(row.impressions)} impressions.`,
-      fix: "Strengthen the matching landing page with missing subtopics, internal links from relevant hubs, and clearer title/H1 language for the query.",
-      acceptance:
-        "Fresh keyword rows show the target queries moving into the top 10 or receiving materially more clicks."
+      fix: "Improve the matching page: cover the subtopics it misses, add internal links to it from related hub pages, and use the search phrase in the title and H1.",
+      acceptance: "Fresh keyword data shows these queries in the top 10 or getting clearly more clicks."
     });
   }
 
@@ -431,8 +436,8 @@ function keywordRepairOpportunities(checks) {
       severity: "notice",
       title: "High-impression keywords get zero clicks",
       proof: `${checks.zeroClickRows.length} imported keyword rows have impressions but no clicks, led by "${row.query}" with ${formatCount(row.impressions)} impressions at position ${formatPosition(row.position)}.`,
-      fix: "Check intent fit, SERP title/snippet appeal, and whether the page answers the query directly above the fold.",
-      acceptance: "Fresh keyword rows show nonzero clicks or the query is intentionally deprioritized."
+      fix: "Check that the page matches what the searcher wants, that its title and snippet make them want to click, and that it answers them near the top.",
+      acceptance: "Fresh keyword data shows clicks, or you decide to drop this query."
     });
   }
 
@@ -442,8 +447,8 @@ function keywordRepairOpportunities(checks) {
       severity: "warning",
       title: "Imported keywords show ranking or click declines",
       proof: `${checks.decliningRows.length} keyword rows declined versus the previous period, led by "${row.query}" from ${formatCount(row.previousClicks)} to ${formatCount(row.clicks)} clicks.`,
-      fix: "Refresh the affected pages, compare against current SERP intent, restore lost internal links, and update stale claims or examples.",
-      acceptance: "Fresh keyword rows show clicks or average position recovering for the affected queries."
+      fix: "Update the affected pages: check what now ranks for the query, put back internal links you removed, and refresh outdated claims or examples.",
+      acceptance: "Fresh keyword data shows clicks or average position coming back for these queries."
     });
   }
 
@@ -453,9 +458,9 @@ function keywordRepairOpportunities(checks) {
       severity: "warning",
       title: "Multiple landing pages compete for the same query",
       proof: `${checks.cannibalizationGroups.length} query groups map to multiple landing pages, led by "${group.keyword}" across ${group.pages.length} pages.`,
-      fix: "Pick one primary URL for each query intent, merge or differentiate overlapping pages, and link secondary pages to the primary page.",
+      fix: "Pick one main page per search topic. Merge overlapping pages or make them clearly different, and link the others to the main page.",
       acceptance:
-        "Fresh keyword rows show one primary landing page for the query, or the pages target clearly different intents."
+        "Fresh keyword data shows one main page for the query, or the pages now target clearly different searches."
     });
   }
 
@@ -465,8 +470,8 @@ function keywordRepairOpportunities(checks) {
       severity: "notice",
       title: "Ranking pages do not clearly reflect query intent",
       proof: `${checks.landingMismatchRows.length} matched landing pages do not cover the imported query in the rendered title/H1/description, led by "${row.query}" on ${row.pageLabel}.`,
-      fix: "Update title, H1, intro copy, and supporting sections so the page visibly answers the query it already ranks for.",
-      acceptance: "Rerun the audit and confirm the rendered title/H1/description cover the imported query intent."
+      fix: "Update the title, H1, first paragraph and sections so the page clearly answers the search it already ranks for.",
+      acceptance: "Rerun the audit. The title, H1 or description now covers the search phrase."
     });
   }
 
@@ -476,8 +481,8 @@ function keywordRepairOpportunities(checks) {
       severity: "notice",
       title: "Keyword landing pages were not crawled in this proof run",
       proof: `${checks.missingLandingPageRows.length} imported keyword landing pages were not present in the rendered crawl, including ${row.pageUrl}.`,
-      fix: "Increase crawl depth, audit the ranking page directly, or confirm the imported page URL still resolves and is linked internally.",
-      acceptance: "The keyword landing page appears in a rendered audit and can be checked against the query proof.",
+      fix: "Raise the page limit, audit the ranking page directly, or check the URL still loads and is linked from your site.",
+      acceptance: "The ranking page is included in an audit, so it can be checked against the keyword data.",
       workType: "technical"
     });
   }

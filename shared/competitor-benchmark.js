@@ -34,7 +34,7 @@ export function buildCompetitorBenchmark(targetReport = {}, competitorReports = 
   return {
     status: "ready",
     source: "homepage-proof-snapshot",
-    note: "Competitor snapshots compare public homepages with the same proof engine. They are not backlink, keyword-volume, or rank-tracking data.",
+    note: "Each competitor's public homepage is checked with the same audit as yours. This is not backlink, keyword volume or rank-tracking data.",
     summary: {
       competitorsCompared: competitors.length,
       targetRank,
@@ -73,7 +73,7 @@ export function competitorBenchmarkBriefLines(benchmark = {}) {
     }
     lines.push("");
   } else {
-    lines.push("No competitor-backed repair gaps were found in this homepage benchmark.", "");
+    lines.push("No gaps found against the competitor homepages checked.", "");
   }
 
   return lines;
@@ -81,14 +81,14 @@ export function competitorBenchmarkBriefLines(benchmark = {}) {
 
 export function competitorBenchmarkSummaryCopy(benchmark = {}) {
   if (benchmark.status !== "ready" || !benchmark.competitors?.length) {
-    return "No competitor benchmark was included in this report.";
+    return "This report has no competitor comparison.";
   }
   const compared = benchmark.summary?.competitorsCompared || benchmark.competitors.length;
   const gap = Number(benchmark.summary?.scoreGapToBest || 0);
   if (gap > 0) {
-    return `Compared ${compared} competitor homepage${compared === 1 ? "" : "s"}. The strongest competitor scored ${gap} points higher, and the repair gaps below show what to fix first.`;
+    return `Compared ${compared} competitor homepage${compared === 1 ? "" : "s"}. The best one scored ${gap} points higher. Fix the gaps below first.`;
   }
-  return `Compared ${compared} competitor homepage${compared === 1 ? "" : "s"}. The target is at or above the strongest competitor on this proof snapshot.`;
+  return `Compared ${compared} competitor homepage${compared === 1 ? "" : "s"}. Your homepage scored the same as or higher than the best one.`;
 }
 
 function benchmarkSite(report = {}, targetReport = {}) {
@@ -150,8 +150,8 @@ function benchmarkRepairOpportunities(targetReport = {}, competitors = []) {
       pageUrl: finding.pageUrl || null,
       pageLabel: finding.pageLabel || null,
       proof: `${cleanCompetitors.map((site) => site.host).join(", ")} did not show this issue in the benchmark snapshot. Your audit proof: ${finding.evidence || finding.title}`,
-      fix: finding.fix || "Fix the verified issue and rerun the audit.",
-      acceptance: finding.acceptance || "Rerun the audit and confirm the competitor gap no longer appears.",
+      fix: finding.fix || "Fix this problem and rerun the audit.",
+      acceptance: finding.acceptance || "Rerun the audit. The gap no longer shows.",
       competitorHosts: cleanCompetitors.map((site) => site.host),
       estimatedEffort: estimatedEffortForArea(area),
       workType: workTypeForArea(area)

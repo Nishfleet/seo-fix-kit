@@ -6,16 +6,16 @@ export function PerformancePanel({ performance }) {
   const opportunities = performance.opportunities || [];
   const score = Number.isFinite(Number(performance.performanceScore))
     ? `${performance.performanceScore}/100`
-    : "local proof";
+    : "Not measured";
   return (
     <section className="performance-panel">
       <div className="section-heading">
-        <p className="beta-eyebrow">Performance proof</p>
-        <h2>{performance.status === "success" ? "PageSpeed lab data" : "Rendered load snapshot"}</h2>
+        <p className="beta-eyebrow">Page speed</p>
+        <h2>{performance.status === "success" ? "PageSpeed Insights results" : "Load time from our browser"}</h2>
         <p>
           {performance.status === "success"
-            ? "Mobile Lighthouse metrics from PageSpeed Insights are converted into repair-ready findings."
-            : performance.reason || "The rendered browser audit still captured local load proof."}
+            ? "Mobile lab results from Google PageSpeed Insights. Slow results show up as problems in this report."
+            : performance.reason || "PageSpeed Insights returned no data. These load times come from our own browser."}
         </p>
       </div>
       <div className="performance-grid">
@@ -29,8 +29,8 @@ export function PerformancePanel({ performance }) {
         <div className="performance-details">
           {performance.fieldData?.overallCategory && (
             <p>
-              Field data: <strong>{performance.fieldData.overallCategory}</strong>
-              {performance.fieldData.originFallback ? " via origin fallback" : ""}
+              Real-user data: <strong>{performance.fieldData.overallCategory}</strong>
+              {performance.fieldData.originFallback ? " (whole-site average)" : ""}
             </p>
           )}
           {opportunities.length > 0 && (
@@ -57,7 +57,7 @@ export function ResourceWaterfallPanel({ waterfall }) {
   const thirdPartyHosts = waterfall.thirdPartyHosts || [];
   const rows = [
     { label: "Requests", value: summary.totalRequests || 0 },
-    { label: "Transfer", value: formatBytes(summary.totalTransferBytes || 0) },
+    { label: "Downloaded", value: formatBytes(summary.totalTransferBytes || 0) },
     { label: "JavaScript", value: formatBytes(summary.scriptBytes || 0) },
     { label: "CSS", value: formatBytes(summary.stylesheetBytes || 0) },
     { label: "Images", value: formatBytes(summary.imageBytes || 0) },
@@ -69,9 +69,9 @@ export function ResourceWaterfallPanel({ waterfall }) {
     return (
       <section className="resource-waterfall-panel">
         <div className="section-heading">
-          <p className="beta-eyebrow">Resource waterfall</p>
-          <h2>Browser resource timing was unavailable.</h2>
-          <p>{waterfall.reason || "The rendered scan did not expose request-level timing rows."}</p>
+          <p className="beta-eyebrow">Files the page loads</p>
+          <h2>No request timing for this page</h2>
+          <p>{waterfall.reason || "The browser didn’t report timing for individual requests."}</p>
         </div>
       </section>
     );
@@ -80,9 +80,11 @@ export function ResourceWaterfallPanel({ waterfall }) {
   return (
     <section className="resource-waterfall-panel">
       <div className="section-heading">
-        <p className="beta-eyebrow">Resource waterfall</p>
-        <h2>Browser-loaded resources with repair proof.</h2>
-        <p>Request timing, transfer size, and early render-blocking candidates from the rendered browser pass.</p>
+        <p className="beta-eyebrow">Files the page loads</p>
+        <h2>Requests, file sizes and slow files</h2>
+        <p>
+          Timing and size of each file the page loaded, plus scripts and stylesheets that may delay the first paint.
+        </p>
       </div>
       <div className="resource-waterfall-metrics">
         {rows.map((row) => (
@@ -92,19 +94,19 @@ export function ResourceWaterfallPanel({ waterfall }) {
       <div className="resource-waterfall-grid">
         <ResourceTimingList
           title="Slow requests"
-          empty="No slow resource requests captured."
+          empty="No slow requests."
           resources={slowResources}
           value={(resource) => formatMs(resource.durationMs)}
         />
         <ResourceTimingList
-          title="Heavy resources"
-          empty="No heavy resources crossed the review threshold."
+          title="Large files"
+          empty="No files over the size limit."
           resources={heavyResources}
           value={(resource) => formatBytes(resource.sizeBytes || 0)}
         />
         <ResourceTimingList
           title="Render blockers"
-          empty="No early script or stylesheet blockers captured."
+          empty="No scripts or stylesheets delaying the first paint."
           resources={blockers}
           value={(resource) => formatMs(resource.durationMs)}
         />
@@ -120,7 +122,7 @@ export function ResourceWaterfallPanel({ waterfall }) {
               </div>
             ))
           ) : (
-            <p>No third-party resource hosts captured.</p>
+            <p>No third-party requests.</p>
           )}
         </div>
       </div>

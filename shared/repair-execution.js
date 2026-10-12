@@ -91,14 +91,15 @@ function classifyRepairItem(item = {}) {
     return {
       mode: "unsupported",
       workType: "review",
-      reason: "The report proves an issue, but does not include enough repair detail to execute safely."
+      reason: "The report found the problem but has no fix detailed enough to carry out safely."
     };
   }
   if (hasAny(haystack, ["wordpress", "woocommerce", "shopify", "webflow", "cms", "platform-seo-audit"])) {
     return {
       mode: "cms_candidate",
       workType: item.workType || "content",
-      reason: "Platform evidence exists, so this can become a CMS edit after owner approval and integration review."
+      reason:
+        "The site runs on a known platform, so this can become a CMS edit once you approve it and the connection is checked."
     };
   }
   if (
@@ -117,14 +118,14 @@ function classifyRepairItem(item = {}) {
     return {
       mode: "github_pr_candidate",
       workType: item.workType || "code",
-      reason: "The audit produced a concrete head or markup snippet that can be reviewed as a code change."
+      reason: "The audit wrote an exact code snippet you can review as a code change."
     };
   }
   if (item.snippet && hasAny(haystack, ["title", "description", "h1", "alt"])) {
     return {
       mode: "generated_proposal",
       workType: item.workType || "content",
-      reason: "The audit produced a concrete snippet or copy suggestion that still needs owner approval."
+      reason: "The audit wrote a snippet or suggested text. It needs your approval first."
     };
   }
   if (
@@ -155,38 +156,38 @@ function classifyRepairItem(item = {}) {
     return {
       mode: "manual_task",
       workType: item.workType || "technical",
-      reason: "This needs customer, developer, or admin execution rather than a safe generated edit."
+      reason: "You or your developer need to make this change. It can't be generated safely."
     };
   }
   return {
     mode: "manual_task",
     workType: item.workType || "review",
-    reason: "The repair should be reviewed manually before execution."
+    reason: "Review this by hand before making the change."
   };
 }
 
 function generatedProposalTitle(item, classification) {
   const prefix =
     {
-      generated_proposal: "Approve generated fix",
-      cms_candidate: "Review CMS edit candidate",
-      github_pr_candidate: "Review code change candidate",
+      generated_proposal: "Approve suggested fix",
+      cms_candidate: "Review CMS edit",
+      github_pr_candidate: "Review code change",
       manual_task: "Assign manual repair",
-      unsupported: "Needs unsupported-work review"
+      unsupported: "Needs manual review"
     }[classification.mode] || "Review repair";
   return `${prefix}: ${item.title}`;
 }
 
 function generatedProposalSummary(item, classification) {
-  const fix = item.fix || "Review the evidence and decide whether this should be repaired.";
+  const fix = item.fix || "Look at what the audit found and decide whether to fix it.";
   return compactText(`${classification.reason} ${fix}`, 700);
 }
 
 function acceptanceForMode(item, classification) {
   if (classification.mode === "unsupported")
-    return "Do not sell execution for this item until a safe repair path exists.";
-  if (item.snippet) return "Owner approves the proposed change, then a rerun confirms the finding no longer appears.";
-  return "Owner approves the task, execution is documented, and a rerun confirms the finding is gone or intentionally accepted.";
+    return "Don't sell this as a done-for-you fix until there is a safe way to make it.";
+  if (item.snippet) return "You approve the change, then a rerun shows the problem is gone.";
+  return "You approve the task, the change is written down, and a rerun shows the problem gone or marked as accepted.";
 }
 
 function normalizeRepairExecutionMode(value, fallback = "manual_task") {
