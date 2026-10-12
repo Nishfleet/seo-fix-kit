@@ -65,6 +65,9 @@ It is not trying to replace Ahrefs or Semrush keyword and backlink databases. Th
 
 ## Run locally
 
+Requires Node 22 (`>=22.12`; pinned in `.nvmrc`, so `nvm use` picks it up).
+CI and the production deploy both read `.nvmrc`.
+
 ```bash
 npm install
 npm run dev
@@ -75,8 +78,17 @@ Open `http://127.0.0.1:5173`.
 ## Check
 
 ```bash
-npm run check
+npm run lint    # ESLint (flat config, eslint.config.js); CI fails on errors only
+npm run check   # all test suites + build: the protected CI gate
 ```
+
+`npm run test:audit` runs offline against a local fixture site. To audit a live
+URL instead, set `TEST_URL`, e.g. `TEST_URL=https://seofixkit.com/ npm run test:audit`.
+
+Formatting uses Prettier (`.prettierrc.json`). `npm run format:check` reports
+drift and `npm run format` rewrites files; the existing code has not been
+bulk-reformatted, so format only the files you touch (`npx prettier --write <files>`).
+`npm run lint:fix` applies ESLint autofixes.
 
 For a live spot-check that the public `/check`, `/demo`, `/methodology`, `/packages`,
 `/proof`, `/support`, `/terms`, and `/privacy` pages on the deployed site still show the anonymous
