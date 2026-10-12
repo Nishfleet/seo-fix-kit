@@ -4616,12 +4616,16 @@ a.app-table-row:hover {
   justify-content: space-between;
 }
 
+/* Wraps onto a second row on narrow phones instead of pushing Notices off
+   screen; the 19px radius stays a pill on one row and a soft card on two. */
 .severity-filter {
   background: rgba(251, 248, 239, 0.035);
   border: 1px solid rgba(251, 248, 239, 0.1);
-  border-radius: 999px;
+  border-radius: 19px;
   display: inline-flex;
+  flex-wrap: wrap;
   gap: 2px;
+  max-width: 100%;
   padding: 3px;
 }
 

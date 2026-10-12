@@ -93,6 +93,11 @@ test("a report lists every problem and jumps from the top fixes to the proof", a
   // The severity filter narrows the list; a top fix still jumps to its proof
   // when the filter hides it.
   const filters = page.getByRole("group", { name: "Filter problems by severity" });
+  // Every filter stays on screen, even on a narrow phone.
+  await page.setViewportSize({ width: 320, height: 700 });
+  const notices = await filters.getByRole("button", { name: /^Notices/ }).boundingBox();
+  expect(notices.x + notices.width).toBeLessThanOrEqual(320);
+  await page.setViewportSize(testInfo.project.use.viewport);
   await filters.getByRole("button", { name: /^Warnings/ }).click();
   await expect(filters.getByRole("button", { name: /^Warnings/ })).toHaveAttribute("aria-pressed", "true");
   await expect(rows).toHaveCount(2);
