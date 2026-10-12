@@ -5,7 +5,14 @@ import { createTestD1 } from "./d1.mjs";
 test("test D1 applies every migration and enforces the real schema", async () => {
   const db = createTestD1();
   const tables = db.rows("SELECT name FROM sqlite_master WHERE type = 'table'").map((row) => row.name);
-  for (const table of ["waitlist_leads", "beta_sessions", "audit_reports", "fix_requests", "dodo_webhook_events", "repair_queue_items"]) {
+  for (const table of [
+    "waitlist_leads",
+    "beta_sessions",
+    "audit_reports",
+    "fix_requests",
+    "dodo_webhook_events",
+    "repair_queue_items"
+  ]) {
     assert.ok(tables.includes(table), `migrations create ${table}`);
   }
   await assert.rejects(

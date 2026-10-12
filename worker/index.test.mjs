@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { unstable_readConfig } from "wrangler";
 import worker from "./index.js";
 import { sha256Hex } from "./lib/security.js";
 
@@ -476,9 +478,8 @@ test("Worker never leaks internal error text and rejects malformed URL escapes",
 });
 
 test("Deploy surface serves a real 404 page instead of the single-page-application homepage catch-all", () => {
-  const config = readFileSync(new URL("../wrangler.jsonc", import.meta.url), "utf8");
-  assert.match(config, /"not_found_handling"\s*:\s*"404-page"/);
-  assert.doesNotMatch(config, /"not_found_handling"\s*:\s*"single-page-application"/);
+  const config = unstable_readConfig({ config: fileURLToPath(new URL("../wrangler.jsonc", import.meta.url)) });
+  assert.equal(config.assets.not_found_handling, "404-page");
 
   const notFoundPage = readFileSync(new URL("../public/404.html", import.meta.url), "utf8");
   assert.match(notFoundPage, /<title>Page not found - SEO Fix Kit<\/title>/);

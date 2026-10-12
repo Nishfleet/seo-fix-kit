@@ -41,7 +41,12 @@ class TestD1Statement {
     const { changes, lastInsertRowid } = statement.run(...this.values);
     return {
       results: [],
-      meta: { changes: Number(changes), last_row_id: Number(lastInsertRowid), rows_read: 0, rows_written: Number(changes) }
+      meta: {
+        changes: Number(changes),
+        last_row_id: Number(lastInsertRowid),
+        rows_read: 0,
+        rows_written: Number(changes)
+      }
     };
   }
 
@@ -65,7 +70,13 @@ class TestD1Statement {
     const { results } = this.execute();
     const rows = results.map((row) => Object.values(row));
     if (!columnNames) return rows;
-    return [this.db.sqlite.prepare(this.sql).columns().map((column) => column.name), ...rows];
+    return [
+      this.db.sqlite
+        .prepare(this.sql)
+        .columns()
+        .map((column) => column.name),
+      ...rows
+    ];
   }
 }
 
@@ -103,7 +114,10 @@ export class TestD1 {
 
   // Test-only helpers for arranging and inspecting state.
   rows(sql, ...values) {
-    return this.sqlite.prepare(sql).all(...values.map(toSqliteValue)).map((row) => ({ ...row }));
+    return this.sqlite
+      .prepare(sql)
+      .all(...values.map(toSqliteValue))
+      .map((row) => ({ ...row }));
   }
 
   insert(table, row) {
