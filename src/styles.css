@@ -226,6 +226,8 @@ a {
 
 .landing-header nav a {
   color: var(--ink-soft);
+  display: inline-block;
+  padding: 6px 0;
   font-size: 14px;
   font-weight: 500;
 }
@@ -368,7 +370,9 @@ a {
 .landing-form-alt a,
 .landing-link {
   color: var(--accent);
+  display: inline-block;
   font-weight: 600;
+  padding: 4px 0;
 }
 
 .landing-form-alt a:hover,
@@ -4679,4 +4683,12 @@ a.app-table-row:hover {
 
 .error-state .app-button-secondary {
   margin-top: 14px;
+}
+
+.app-loading {
+  min-height: 100vh;
+}
+
+.signin-alt .text-button {
+  padding: 6px 4px;
 }

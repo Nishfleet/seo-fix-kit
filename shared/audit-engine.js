@@ -3210,11 +3210,11 @@ export const ROOT_PUBLIC_LASTMODS = {
   "/check": "2026-10-12T17:35:08Z",
   "/methodology": "2026-10-12T17:35:08Z",
   "/pricing": "2026-10-12T17:35:07Z",
-  "/small-business-seo-audit": "2026-10-12T17:35:08Z",
-  "/rendered-vs-static-seo-audit": "2026-10-12T17:35:08Z",
+  "/small-business-seo-audit": "2026-10-12T17:35:09Z",
+  "/rendered-vs-static-seo-audit": "2026-10-12T17:35:09Z",
   "/ai-answer-readiness": "2026-10-12T17:35:08Z",
   "/privacy": "2026-10-12T17:35:07Z",
-  "/proof": "2026-10-12T17:35:07Z",
+  "/proof": "2026-10-12T17:35:08Z",
   "/support": "2026-10-12T17:35:07Z",
   "/terms": "2026-10-12T17:35:07Z"
 };

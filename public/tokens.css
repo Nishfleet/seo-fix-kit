@@ -175,6 +175,8 @@ a:hover {
 
 .site-header nav a {
   color: var(--ink-soft);
+  display: inline-block;
+  padding: 6px 0;
   font-size: var(--text-14);
   font-weight: var(--weight-medium);
 }

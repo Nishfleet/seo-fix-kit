@@ -624,7 +624,7 @@ function smallBusinessSeoAuditHtml(origin) {
     path: "/small-business-seo-audit",
     title: "Small Business SEO Audit",
     description:
-      "A proof-backed SEO audit for small businesses: check one public page free, see the rendered evidence behind each finding, and only pay for a repair pass when real fixes exist.",
+      "An SEO audit for small businesses: check one page free, see the evidence behind each problem, and pay for a repair pass only when real fixes exist.",
     eyebrow: "Small-business SEO audit",
     heading: "An SEO audit that shows proof, not homework.",
     lead: "Small businesses lose hours to audit tools that dump red flags and generic checklists. SEO Fix Kit checks one page free, shows the rendered proof behind each finding, and only queues a repair when the browser-visible page is actually wrong.",
@@ -686,7 +686,7 @@ function renderedVsStaticAuditHtml(origin) {
     path: "/rendered-vs-static-seo-audit",
     title: "Rendered vs Static SEO Audit",
     description:
-      "GPTBot, ClaudeBot, PerplexityBot, and CCBot read raw HTML without executing JavaScript. SEO Fix Kit compares raw HTML with the rendered DOM to show your AI crawler visibility and keep false positives out of the repair queue.",
+      "AI crawlers like GPTBot read raw HTML and skip JavaScript. Compare raw HTML with the rendered page to see what they miss, without false alarms.",
     eyebrow: "AI crawler visibility · Rendered vs static audit",
     heading: "Static scanners invent work. AI crawlers miss content. Rendered proof handles both.",
     lead: "JavaScript-heavy sites fail static scanners that read the raw app shell, and AI crawlers never execute JavaScript at all. SEO Fix Kit opens the page in a real browser, compares raw HTML with the rendered DOM, shows exactly what a JavaScript-blind crawler can see, and only creates a repair when the browser-visible page is actually wrong.",
@@ -1026,7 +1026,7 @@ const PROOF_CASE = {
 };
 
 function proofCaseHtml(origin) {
-  const description = `Real before/after repair proof receipt: founder-owned Tiny Studio portfolio site went from ${PROOF_CASE.before.score}/100 with ${PROOF_CASE.before.findings} findings to ${PROOF_CASE.after.score}/100 with ${PROOF_CASE.after.findings} findings after owner-approved changes. Published with consent and redaction.`;
+  const description = `Real before/after proof: a portfolio site went from ${PROOF_CASE.before.score}/100 with ${PROOF_CASE.before.findings} findings to ${PROOF_CASE.after.score}/100 with ${PROOF_CASE.after.findings} after owner-approved fixes.`;
   const title = "Before/After Repair Proof - SEO Fix Kit";
   return `<!doctype html>
 <html lang="en">
