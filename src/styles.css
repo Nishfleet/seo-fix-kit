@@ -4513,18 +4513,26 @@ a.app-table-row:hover {
   color: var(--ink);
 }
 
+/* The dot sits in the gap before each item and is clipped when an item
+   wraps to the start of a line, so no line starts with a stray separator. */
 .report-header-meta {
   color: var(--ink-muted);
   display: flex;
   flex-wrap: wrap;
   font-size: 13px;
-  gap: 4px 0;
+  gap: 4px 17px;
   margin: 2px 0 0;
+  overflow: hidden;
 }
 
-.report-header-meta span + span::before {
+.report-header-meta span {
+  position: relative;
+}
+
+.report-header-meta span::before {
   content: "·";
-  margin: 0 8px;
+  left: -11px;
+  position: absolute;
 }
 
 .report-header-actions {
@@ -4598,6 +4606,92 @@ a.app-table-row:hover {
   color: var(--ink-soft);
   font-size: 12px;
   padding: 2px 7px;
+}
+
+.findings-section > .section-heading {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+/* Wraps onto a second row on narrow phones instead of pushing Notices off
+   screen; the 19px radius stays a pill on one row and a soft card on two. */
+.severity-filter {
+  background: rgba(251, 248, 239, 0.035);
+  border: 1px solid rgba(251, 248, 239, 0.1);
+  border-radius: 19px;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  max-width: 100%;
+  padding: 3px;
+}
+
+.severity-filter button {
+  align-items: center;
+  background: none;
+  border: 0;
+  border-radius: 999px;
+  color: var(--ink-muted);
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 7px;
+  min-height: 32px;
+  padding: 0 12px;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+.severity-filter button:hover {
+  color: var(--ink);
+}
+
+.severity-filter button[aria-pressed="true"] {
+  background: rgba(251, 248, 239, 0.1);
+  color: var(--ink);
+}
+
+.severity-filter button:not([data-tone="all"])::before,
+.app-stats > div[data-tone] > span::before {
+  background: var(--tone, var(--ink-muted));
+  border-radius: 999px;
+  content: "";
+  display: inline-block;
+  flex: none;
+  height: 7px;
+  width: 7px;
+}
+
+.app-stats > div[data-tone] > span {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+}
+
+[data-tone="critical"] {
+  --tone: var(--error);
+}
+
+[data-tone="warning"] {
+  --tone: var(--gold);
+}
+
+[data-tone="notice"] {
+  --tone: var(--ink-soft);
+}
+
+[data-tone="good"] {
+  --tone: var(--accent);
+}
+
+.severity-filter-count {
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 
 .report-tab-panel {
