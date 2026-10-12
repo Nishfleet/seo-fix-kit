@@ -60,7 +60,10 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           # Project runs on Node 22 (Vite 8 requires >= 20.19 / >= 22.12).
-          node-version: 22
+          # .nvmrc is the single source of truth, shared with the deploy
+          # workflow so the gate validates the same major that ships; the
+          # package.json "engines" field enforces the >= 22.12 floor.
+          node-version-file: .nvmrc
           # npm cache keyed on package-lock.json; restores ~/.npm only and
           # never mutates the lockfile.
           cache: npm
