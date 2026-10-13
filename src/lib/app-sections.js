@@ -4,7 +4,7 @@ export const APP_SECTIONS = [
   { key: "overview", icon: "home", label: "Overview", path: "/beta" },
   { key: "reports", icon: "file", label: "Reports", path: "/beta/reports" },
   { key: "sites", icon: "browser", label: "Sites", path: "/beta/sites" },
-  { key: "developers", icon: "code", label: "Developers", path: "/beta/developers" },
+  { key: "developers", icon: "code", label: "Alerts & API", path: "/beta/developers" },
   { key: "billing", icon: "card", label: "Billing", path: "/beta/billing" }
 ];
 

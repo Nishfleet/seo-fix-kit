@@ -40,7 +40,7 @@ const SECTION_TITLES = {
   overview: "Overview",
   reports: "Reports",
   sites: "Sites & monitoring",
-  developers: "Developers",
+  developers: "Alerts & API",
   billing: "Billing",
   admin: "Ops"
 };
@@ -393,7 +393,7 @@ export function BetaApp({ mountKey }) {
       setWebhookUrl("");
       setWebhookSecret(payload.signingSecret || "");
       setDeveloperStatus("success");
-      setDeveloperMessage("Endpoint added.");
+      setDeveloperMessage(payload.webhook?.kind === "slack" ? payload.message : "Endpoint added.");
       await refreshDeveloper();
     } catch (error) {
       setDeveloperStatus("error");
@@ -613,8 +613,8 @@ export function BetaApp({ mountKey }) {
     return shell(
       <div className="app-page">
         <PageHeader
-          title="Developers"
-          description="Use an API key to run audits and read reports from your own code. Add a webhook to hear when audits finish."
+          title="Alerts & API"
+          description="Get Slack alerts when audits finish and when fixed problems come back. Use an API key to run audits from your own code."
         />
         <DeveloperApiPanel
           apiTokenSecret={apiTokenSecret}

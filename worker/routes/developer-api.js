@@ -46,11 +46,14 @@ import {
   updateRepairActionRecord
 } from "../lib/repair-agent-actions.js";
 import {
+  SLACK_ALERT_EVENTS,
+  deliverApiWebhook,
   deliverApiWebhooks,
   apiWebhookSigningSecret,
   cleanWebhookEvents,
   publicWebhookUrlStatus
 } from "../lib/webhooks.js";
+import { isSlackWebhookUrl, slackConnectedMessage } from "../lib/slack.js";
 import {
   activeAuditJobCount,
   activeAuditJobForTarget,
@@ -278,12 +281,34 @@ async function createDeveloperWebhook(request, env) {
     return jsonNoStore({ error: "You already have 5 active webhooks. Revoke one before adding another." }, 429);
   }
 
+  const slack = isSlackWebhookUrl(urlCheck.url);
+  const events = !body.events?.length && slack ? SLACK_ALERT_EVENTS : cleanWebhookEvents(body.events);
+  const id = crypto.randomUUID();
+  if (slack) {
+    // Post a hello first, so a mistyped or revoked Slack URL is caught now.
+    const hello = await deliverApiWebhook(
+      env,
+      { id, url: urlCheck.url },
+      "webhook.connected",
+      JSON.stringify(slackConnectedMessage(env.SEOFIXKIT_APP_ORIGIN || "https://seofixkit.com")),
+      { unsigned: true, maxAttempts: 1 }
+    );
+    if (hello.status !== "delivered") {
+      return jsonNoStore(
+        {
+          error: `Slack didn’t accept this URL${hello.httpStatus ? ` (HTTP ${hello.httpStatus})` : ""}. Copy the webhook URL again from your Slack app’s Incoming Webhooks page.`
+        },
+        400
+      );
+    }
+  }
+
   const now = new Date().toISOString();
   const row = {
-    id: crypto.randomUUID(),
+    id,
     owner_email: access.ownerEmail,
     url: urlCheck.url,
-    events_json: JSON.stringify(cleanWebhookEvents(body.events)),
+    events_json: JSON.stringify(events),
     status: "active",
     created_at: now,
     updated_at: now,
@@ -312,6 +337,13 @@ async function createDeveloperWebhook(request, env) {
     )
     .run();
 
+  if (slack) {
+    return jsonNoStore({
+      ok: true,
+      webhook: apiWebhookResponse(row),
+      message: "Slack connected. A test message is in the channel."
+    });
+  }
   return jsonNoStore({
     ok: true,
     webhook: apiWebhookResponse(row),
@@ -858,6 +890,7 @@ function apiWebhookResponse(row = {}) {
   return {
     id: row.id || "",
     url: row.url || "",
+    kind: isSlackWebhookUrl(row.url) ? "slack" : "webhook",
     events: parseJson(row.events_json, []),
     status: row.status || "active",
     createdAt: row.created_at || "",

@@ -1,6 +1,7 @@
 import { isPrivateHostname, resolvesToPrivateAddress } from "../../shared/url-safety.js";
 import { hmacSha256Hex } from "./security.js";
 import { cleanText, parseJson } from "./text.js";
+import { isSlackWebhookUrl, slackMessage } from "./slack.js";
 
 const WEBHOOK_DELIVERY_TIMEOUT_MS = 5000;
 const WEBHOOK_DELIVERY_MAX_ATTEMPTS = 2;
@@ -23,6 +24,10 @@ function cleanWebhookEvents(events = []) {
   const cleaned = values.filter((event) => allowed.has(String(event)));
   return cleaned.length ? [...new Set(cleaned)] : ["audit.completed", "audit.failed"];
 }
+
+// What a Slack channel hears about when no events are chosen: finished and
+// failed audits, plus fixes confirmed and problems that come back.
+const SLACK_ALERT_EVENTS = ["audit.completed", "audit.failed", "repair_action.fixed", "repair_action.regressed"];
 
 async function apiWebhookSigningSecret(env, webhookId) {
   // Fail closed: without a dedicated secret, webhook signatures would be
@@ -85,7 +90,13 @@ async function deliverApiWebhooks(env, ownerEmail, eventType, data = {}, options
       )
       .run();
     try {
-      const delivery = await deliverApiWebhook(env, webhook, eventType, body, {
+      // Slack incoming webhooks get a readable message; everything else gets the signed JSON event.
+      const slack = isSlackWebhookUrl(webhook.url);
+      const deliveryBody = slack
+        ? JSON.stringify(slackMessage(eventType, data, env.SEOFIXKIT_APP_ORIGIN || "https://seofixkit.com"))
+        : body;
+      const delivery = await deliverApiWebhook(env, webhook, eventType, deliveryBody, {
+        unsigned: slack,
         fetcher: options.fetcher || fetch,
         resolvesToPrivateAddress: options.resolvesToPrivateAddress || resolvesToPrivateAddress,
         sleep: options.sleep || sleep,
@@ -167,7 +178,12 @@ async function deliverApiWebhook(env, webhook, eventType, body, options = {}) {
             "content-type": "application/json",
             "user-agent": "SEO Fix Kit Webhooks",
             "x-seofixkit-event": eventType,
-            "x-seofixkit-signature": `t=${timestamp},v1=${await apiWebhookSignature(env, webhook.id, timestamp, body)}`
+            // Slack ignores custom headers, so its messages go unsigned.
+            ...(options.unsigned
+              ? {}
+              : {
+                  "x-seofixkit-signature": `t=${timestamp},v1=${await apiWebhookSignature(env, webhook.id, timestamp, body)}`
+                })
           },
           body,
           redirect: "manual"
@@ -265,6 +281,7 @@ function publicWebhookUrlStatus(value) {
 }
 
 export {
+  SLACK_ALERT_EVENTS,
   apiWebhookSignature,
   apiWebhookSigningSecret,
   cleanWebhookEvents,
