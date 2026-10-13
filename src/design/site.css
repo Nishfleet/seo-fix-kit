@@ -748,6 +748,9 @@
    ancestor; the light sits behind content and never takes pointer events. */
 .hero-light {
   isolation: isolate;
+  /* The light is wider than a phone screen. Clip it here: body's clip
+     propagates to the viewport, which phones ignore when sizing the page. */
+  overflow-x: clip;
   position: relative;
 }
 

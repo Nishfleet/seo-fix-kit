@@ -1532,3 +1532,26 @@ test("settled slow pages still get a slow-load finding with truthful evidence", 
   assert.match(slowLoad[0].evidence, /reached network idle/);
   assert.ok(!(report.repairBrief || "").includes("network idle never reached"));
 });
+
+test("a suggested meta description starts from the page's own first paragraph, not its menu", async () => {
+  const lead =
+    "Acme Widgets builds hand-finished widgets that last for years in busy workshops. Every widget ships with a lifetime repair promise and free spare parts. Order online today.";
+  const engine = createAuditEngine({
+    launchBrowser: async () =>
+      fakeBrowser("https://public.example/", {
+        description: "",
+        bodySample: "Home Pricing About Durable widgets for small workshops Acme Widgets builds hand-finished",
+        leadText: lead
+      }),
+    fetchImpl: async () => new Response("", { status: 404, headers: { "content-type": "text/plain" } }),
+    pagespeedDisabled: true
+  });
+
+  const report = await engine.auditUrl("https://public.example/", { maxPages: 1, pageSpeed: false });
+  const missing = report.findings.find((finding) => /Missing meta description/.test(finding.title));
+  assert.ok(missing, "a page without a description must be reported");
+  assert.equal(
+    missing.snippet,
+    '<meta name="description" content="Acme Widgets builds hand-finished widgets that last for years in busy workshops. Every widget ships with a lifetime repair promise and free spare parts." />'
+  );
+});

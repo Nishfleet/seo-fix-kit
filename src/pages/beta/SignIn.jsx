@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { inboxFor } from "../../lib/inbox.js";
 
-// Sign-in screen. The one-use email link is the main way in; an invite code
-// is the secondary path for people who were given one.
+const RESEND_WAIT_SECONDS = 30;
+
 export function SignIn({
   email,
   inviteCode,
@@ -15,7 +16,26 @@ export function SignIn({
 }) {
   const [useCode, setUseCode] = useState(() => Boolean(inviteCode));
   const [linkSent, setLinkSent] = useState(false);
+  const [resendAt, setResendAt] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
+  const [resent, setResent] = useState(false);
   const busy = status === "submitting";
+  const inbox = inboxFor(email);
+
+  const resendIn = Math.max(0, Math.ceil((resendAt - now) / 1000));
+
+  const waiting = resendIn > 0;
+
+  useEffect(() => {
+    if (!waiting) return undefined;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [waiting]);
+
+  function startResendWait() {
+    setNow(Date.now());
+    setResendAt(Date.now() + RESEND_WAIT_SECONDS * 1000);
+  }
 
   async function submit(event) {
     if (useCode) {
@@ -24,7 +44,18 @@ export function SignIn({
     }
     event.preventDefault();
     const sent = await onLinkRequest();
-    if (sent) setLinkSent(true);
+    if (sent) {
+      setLinkSent(true);
+      startResendWait();
+    }
+  }
+
+  async function resend() {
+    const sent = await onLinkRequest();
+    if (sent) {
+      setResent(true);
+      startResendWait();
+    }
   }
 
   return (
@@ -45,9 +76,29 @@ export function SignIn({
                 {message}
               </p>
             )}
-            <button className="text-button accent-text" onClick={() => setLinkSent(false)} type="button">
-              Use a different email
-            </button>
+            {inbox && (
+              <a className="signin-submit signin-inbox" href={inbox.href} rel="noopener noreferrer" target="_blank">
+                {inbox.label}
+              </a>
+            )}
+            <p className="signin-hint" role="status">
+              {resent ? "We sent a new link." : "Not there? Check spam, or send it again."}
+            </p>
+            <div className="signin-sent-actions">
+              <button className="text-button accent-text" disabled={busy || waiting} onClick={resend} type="button">
+                {busy ? "Sending…" : waiting ? `Resend link in ${resendIn}s` : "Resend link"}
+              </button>
+              <button
+                className="text-button"
+                onClick={() => {
+                  setLinkSent(false);
+                  setResent(false);
+                }}
+                type="button"
+              >
+                Use a different email
+              </button>
+            </div>
           </div>
         ) : (
           <>

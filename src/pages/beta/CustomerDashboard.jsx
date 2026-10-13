@@ -10,13 +10,7 @@ import { Metric } from "../../components/Metric.jsx";
 import { hostKey, formatDate, safeHostnameLabel } from "../../lib/format.js";
 import { queryKeys } from "../../lib/queries.js";
 import { fetchReportsPage } from "../../lib/requests.js";
-import {
-  repairStatusLabel,
-  repairActionModeLabel,
-  statusLabel,
-  auditJobDetail,
-  auditScheduleDetail
-} from "../../lib/labels.js";
+import { repairStatusLabel, statusLabel, auditJobDetail, auditScheduleDetail } from "../../lib/labels.js";
 
 // Overview: first-run checklist until the account is set up, the new-audit
 // form, and (once there are reports) headline numbers and the repair feed.
@@ -534,13 +528,18 @@ export function RepairAgentFeed({ items = [], nextAction = null, reports = [] })
           >
             <div className="repair-agent-card-head">
               <span className={`status-pill ${item.severity || "notice"}`}>{item.severity || "notice"}</span>
-              <span className="status-pill">{repairStatusLabel(item.status)}</span>
+              {item.status && item.status !== "open" && (
+                <span className="status-pill">{repairStatusLabel(item.status)}</span>
+              )}
             </div>
-            <h4>{item.nextActionLabel || item.title}</h4>
-            <p>{item.nextActionDetail || item.proof || item.acceptance}</p>
+            <h4>{item.title || item.nextActionLabel}</h4>
+            <p>{item.nextActionId === "start-proof-repair" ? item.proof || item.acceptance : item.nextActionDetail}</p>
             <div className="repair-agent-meta">
               <span>{item.targetHost || "Saved report"}</span>
-              <span>{repairActionModeLabel(item.actionMode)}</span>
+              <span className="repair-agent-cta">
+                {item.nextActionLabel || "Open"}
+                <span aria-hidden="true">→</span>
+              </span>
             </div>
           </a>
         ))}

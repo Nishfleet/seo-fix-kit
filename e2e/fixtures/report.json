@@ -98,7 +98,7 @@
       "evidence": "No meta description found in the rendered page.",
       "fix": "Add a concise page-specific meta description.",
       "source": "https://developers.google.com/search/docs/appearance/snippet",
-      "snippet": "<meta name=\"description\" content=\"Home Pricing About Durable widgets for small workshops Acme Widgets builds hand-finished widgets that last for years in busy workshops. Acme Widgets...\" />"
+      "snippet": "<meta name=\"description\" content=\"Acme Widgets builds hand-finished widgets that last for years in busy workshops.\" />"
     },
     {
       "id": "issue-7",
@@ -142,7 +142,7 @@
       "why": "This affects how the page looks when shared. It is not a direct ranking claim.",
       "evidence": "og:image: missing; twitter:image: missing",
       "fix": "Add 1200x630 Open Graph and Twitter images.",
-      "snippet": "<!-- The audited page had no working og:image. Create https://acme-widgets.example/og-image.png (1200x630) or replace it with your real share image. -->\n<meta property=\"og:title\" content=\"Acme Widgets | Durable widgets for small workshops\" />\n<meta property=\"og:description\" content=\"Home Pricing About Durable widgets for small workshops Acme Widgets builds hand-finished widgets that last for years in busy workshops. Acme Widgets...\" />\n<meta property=\"og:image\" content=\"https://acme-widgets.example/og-image.png\" />\n<meta name=\"twitter:card\" content=\"summary_large_image\" />\n<meta name=\"twitter:title\" content=\"Acme Widgets | Durable widgets for small workshops\" />\n<meta name=\"twitter:description\" content=\"Home Pricing About Durable widgets for small workshops Acme Widgets builds hand-finished widgets that last for years in busy workshops. Acme Widgets...\" />\n<meta name=\"twitter:image\" content=\"https://acme-widgets.example/og-image.png\" />"
+      "snippet": "<!-- The audited page had no working og:image. Create https://acme-widgets.example/og-image.png (1200x630) or replace it with your real share image. -->\n<meta property=\"og:title\" content=\"Acme Widgets | Durable widgets for small workshops\" />\n<meta property=\"og:description\" content=\"Acme Widgets builds hand-finished widgets that last for years in busy workshops.\" />\n<meta property=\"og:image\" content=\"https://acme-widgets.example/og-image.png\" />\n<meta name=\"twitter:card\" content=\"summary_large_image\" />\n<meta name=\"twitter:title\" content=\"Acme Widgets | Durable widgets for small workshops\" />\n<meta name=\"twitter:description\" content=\"Acme Widgets builds hand-finished widgets that last for years in busy workshops.\" />\n<meta name=\"twitter:image\" content=\"https://acme-widgets.example/og-image.png\" />"
     },
     {
       "id": "issue-4",
@@ -183,7 +183,7 @@
       "fix": "Add a concise page-specific meta description.",
       "confidence": "verified",
       "source": "https://developers.google.com/search/docs/appearance/snippet",
-      "snippet": "<meta name=\"description\" content=\"Home Pricing About Durable widgets for small workshops Acme Widgets builds hand-finished widgets that last for years in busy workshops. Acme Widgets...\" />",
+      "snippet": "<meta name=\"description\" content=\"Acme Widgets builds hand-finished widgets that last for years in busy workshops.\" />",
       "estimatedEffort": "5-15 min",
       "workType": "content",
       "acceptance": "The rendered page has one useful meta description, roughly 70-165 characters."
@@ -219,5 +219,5 @@
       "acceptance": "The rendered page has one useful meta description, roughly 70-165 characters."
     }
   ],
-  "repairBrief": "# SEO Fix Kit repair brief\n\nSite: https://acme-widgets.example/\nScanned pages: 3\nScore: 20/100\nIssues: 3 critical, 12 warnings, 9 notices\nFalse positives avoided: 0\n\n## Fix order\n\n1. [critical] Missing meta description on home\n   Proof: No meta description found in the rendered page.\n   Fix: Add a concise page-specific meta description.\n   Acceptance check: The rendered page has one useful meta description, roughly 70-165 characters.\n\n```html\n<meta name=\"description\" content=\"Home Pricing About Durable widgets for small workshops Acme Widgets builds hand-finished widgets that last for years in busy workshops. Acme Widgets...\" />\n```\n\n2. [critical] Missing H1 on /pricing\n   Proof: No rendered H1 found.\n   Fix: Add one visible H1 that matches the page purpose.\n   Acceptance check: The rendered page has one visible H1 that matches the main page purpose.\n\n```html\n<h1>127.0.0.1 page</h1>\n```\n\n3. [critical] Missing meta description on /about\n   Proof: No meta description found in the rendered page.\n   Fix: Add a concise page-specific meta description.\n   Acceptance check: The rendered page has one useful meta description, roughly 70-165 characters.\n\n```html\n<meta name=\"description\" content=\"About Acme Small team, big widgets. Home Pricing\" />\n```\n\n4. [warning] Social share image incomplete on home\n   Proof: og:image: missing; twitter:image: missing\n   Fix: Add 1200x630 Open Graph and Twitter images.\n   Acceptance check: The rendered head includes og:image and twitter:image using a "
+  "repairBrief": "# SEO Fix Kit repair brief\n\nSite: https://acme-widgets.example/\nScanned pages: 3\nScore: 20/100\nIssues: 3 critical, 12 warnings, 9 notices\nFalse positives avoided: 0\n\n## Fix order\n\n1. [critical] Missing meta description on home\n   Proof: No meta description found in the rendered page.\n   Fix: Add a concise page-specific meta description.\n   Acceptance check: The rendered page has one useful meta description, roughly 70-165 characters.\n\n```html\n<meta name=\"description\" content=\"Acme Widgets builds hand-finished widgets that last for years in busy workshops.\" />\n```\n\n2. [critical] Missing H1 on /pricing\n   Proof: No rendered H1 found.\n   Fix: Add one visible H1 that matches the page purpose.\n   Acceptance check: The rendered page has one visible H1 that matches the main page purpose.\n\n```html\n<h1>127.0.0.1 page</h1>\n```\n\n3. [critical] Missing meta description on /about\n   Proof: No meta description found in the rendered page.\n   Fix: Add a concise page-specific meta description.\n   Acceptance check: The rendered page has one useful meta description, roughly 70-165 characters.\n\n```html\n<meta name=\"description\" content=\"About Acme Small team, big widgets. Home Pricing\" />\n```\n\n4. [warning] Social share image incomplete on home\n   Proof: og:image: missing; twitter:image: missing\n   Fix: Add 1200x630 Open Graph and Twitter images.\n   Acceptance check: The rendered head includes og:image and twitter:image using a "
 }

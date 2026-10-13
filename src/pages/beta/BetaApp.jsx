@@ -530,7 +530,11 @@ export function BetaApp({ mountKey }) {
   // No stored hint yet: wait for the server before offering sign-in, so a
   // valid session is never shown the sign-in screen.
   if (!isAuthed && session === undefined && sessionQuery.isFetching) {
-    return <div className="app-loading" aria-busy="true" />;
+    return (
+      <div className="app-loading" aria-busy="true">
+        <span className="app-brand app-loading-brand">SEO Fix Kit</span>
+      </div>
+    );
   }
 
   if (!isAuthed) {
