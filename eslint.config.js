@@ -111,6 +111,13 @@ export default [
     }
   },
   {
+    // The free tools' browser entry, bundled by Vite to /tools.js.
+    files: ["shared/free-tools/client.js"],
+    languageOptions: {
+      globals: { ...globals.browser }
+    }
+  },
+  {
     files: [
       "shared/audit-engine.js",
       "server/**/*.js",

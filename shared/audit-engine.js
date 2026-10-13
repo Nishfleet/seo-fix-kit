@@ -1,4 +1,5 @@
 import { escapeHtml } from "./html.js";
+import { TOOL_PATHS } from "./free-tools/catalog.js";
 // Shared audit engine extracted verbatim from worker/index.js (the production
 // audit pipeline). Runtime specifics are injected through createAuditEngine():
 // - launchBrowser(): @cloudflare/puppeteer in the Worker, Playwright (via
@@ -3188,7 +3189,8 @@ export const ROOT_PUBLIC_PATHS = [
   "/privacy",
   "/proof",
   "/support",
-  "/terms"
+  "/terms",
+  ...TOOL_PATHS
 ];
 
 // Truthful per-page last modification times (W3C datetime, Z-suffixed): the
@@ -3204,18 +3206,34 @@ export const ROOT_PUBLIC_PATHS = [
 // worker/routes/pages.test.mjs refuses a stale lastmod so the update
 // cannot silently ship.
 export const ROOT_PUBLIC_LASTMODS = {
-  "/": "2026-10-12T18:16:15Z",
-  "/demo": "2026-10-12T18:16:15Z",
-  "/check": "2026-10-12T18:16:15Z",
-  "/methodology": "2026-10-12T18:16:15Z",
-  "/pricing": "2026-10-12T18:16:15Z",
-  "/small-business-seo-audit": "2026-10-12T18:16:15Z",
-  "/rendered-vs-static-seo-audit": "2026-10-12T18:16:15Z",
-  "/ai-answer-readiness": "2026-10-12T18:16:15Z",
-  "/privacy": "2026-10-12T18:16:15Z",
-  "/proof": "2026-10-12T18:16:15Z",
-  "/support": "2026-10-12T18:16:15Z",
-  "/terms": "2026-10-12T18:16:15Z"
+  "/": "2026-10-13T04:31:53Z",
+  "/demo": "2026-10-13T04:31:53Z",
+  "/check": "2026-10-13T04:31:53Z",
+  "/methodology": "2026-10-13T04:31:53Z",
+  "/pricing": "2026-10-13T04:31:53Z",
+  "/small-business-seo-audit": "2026-10-13T04:31:53Z",
+  "/rendered-vs-static-seo-audit": "2026-10-13T04:31:53Z",
+  "/ai-answer-readiness": "2026-10-13T04:31:53Z",
+  "/privacy": "2026-10-13T04:31:53Z",
+  "/proof": "2026-10-13T04:31:53Z",
+  "/support": "2026-10-13T04:31:53Z",
+  "/terms": "2026-10-13T04:31:53Z",
+  "/tools": "2026-10-13T04:38:46Z",
+  "/tools/meta-tags": "2026-10-13T04:38:46Z",
+  "/tools/serp-preview": "2026-10-13T04:38:46Z",
+  "/tools/open-graph": "2026-10-13T04:38:46Z",
+  "/tools/schema": "2026-10-13T04:38:46Z",
+  "/tools/robots-txt": "2026-10-13T04:38:46Z",
+  "/tools/robots-txt-tester": "2026-10-13T04:38:46Z",
+  "/tools/llms-txt": "2026-10-13T04:38:46Z",
+  "/tools/hreflang": "2026-10-13T04:38:46Z",
+  "/tools/redirects": "2026-10-13T04:38:46Z",
+  "/tools/sitemap-generator": "2026-10-13T04:38:46Z",
+  "/tools/utm-builder": "2026-10-13T04:38:46Z",
+  "/tools/word-counter": "2026-10-13T04:38:46Z",
+  "/tools/keyword-density": "2026-10-13T04:38:46Z",
+  "/tools/disavow": "2026-10-13T04:38:46Z",
+  "/tools/seo-checklist": "2026-10-13T04:38:46Z"
 };
 
 export function rootSitemap(origin) {

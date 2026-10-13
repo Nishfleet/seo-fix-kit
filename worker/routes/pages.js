@@ -1,5 +1,6 @@
 import { SITE_FOOTER, SITE_NAV, SITE_TAGLINE } from "../../shared/site-nav.js";
 import { escapeHtml } from "../../shared/audit-engine.js";
+import { FREE_TOOLS } from "../../shared/free-tools/catalog.js";
 import { DEMO_PROOF, DEMO_FIXTURE_PATH, demoProofSnippet } from "./demo-proof.js";
 
 const FIX_PACK_PUBLIC_PRICE = "$99.00 one-time";
@@ -41,6 +42,11 @@ SEO Fix Kit is a private-beta, self-serve SEO audit and paid Fix Pack workflow.
 - [${origin}/support](https://seofixkit.com/support): Support and contact page.
 - [${origin}/privacy](https://seofixkit.com/privacy): Privacy note for access requests, private beta audits, payments, and fulfillment.
 - [${origin}/terms](https://seofixkit.com/terms): Terms of service.
+
+## Free tools
+No account. Each tool runs in the browser and sends nothing to SEO Fix Kit.
+- [${origin}/tools](https://seofixkit.com/tools): Index of the free SEO tools.
+${FREE_TOOLS.map((tool) => `- [${origin}/tools/${tool.slug}](https://seofixkit.com/tools/${tool.slug}): ${tool.description}`).join("\n")}
 
 Live product claims:
 - Visitors can request a secure email access link.
@@ -125,6 +131,7 @@ Useful routes:
 - ${origin}/small-business-seo-audit
 - ${origin}/rendered-vs-static-seo-audit
 - ${origin}/ai-answer-readiness
+- ${origin}/tools
 `;
 }
 
@@ -935,9 +942,11 @@ function publicProductPageHtml({
   body,
   faq = [],
   softwareDescription = null,
-  extraStyle = ""
+  extraStyle = "",
+  structuredData = [],
+  scripts = ""
 }) {
-  const extraLd = [];
+  const extraLd = structuredData.map(ldBlock);
   if (softwareDescription) {
     extraLd.push(
       ldBlock({
@@ -1034,7 +1043,7 @@ ${extraLd.join("\n")}
       ${faqSection}
       ${siteCtaBand(origin)}
     </main>
-    ${siteFooter(origin)}
+    ${siteFooter(origin)}${scripts}
   </body>
 </html>`;
 }
@@ -1482,6 +1491,7 @@ export {
   proofCaseHtml,
   proofCaseMarkdown,
   publicAssetHead,
+  publicProductPageHtml,
   renderedVsStaticAuditHtml,
   siteFooter,
   siteHeader,
