@@ -118,6 +118,23 @@ test("weekly email celebrates fixes, flags new problems and names the next fix",
   assert.match(email.text, /Score: 81 \(\+9 since last check\)/);
 });
 
+test("crossing 90 or reaching 100 gets its own subject line", () => {
+  const crossed = buildAuditEmail({ report: { ...weeklyReport, score: 93 }, job: { schedule_id: "s1" } });
+  assert.equal(crossed.subject, "example.com crossed 90: score 93");
+  assert.match(crossed.html, /example\.com crossed 90\./);
+  const perfect = buildAuditEmail({ report: { ...weeklyReport, score: 100 }, job: { schedule_id: "s1" } });
+  assert.equal(perfect.subject, "example.com scored a perfect 100");
+  const stillAbove = buildAuditEmail({
+    report: {
+      ...weeklyReport,
+      score: 99,
+      reportDelta: { ...weeklyReport.reportDelta, summary: { ...weeklyReport.reportDelta.summary, scoreDelta: 3 } }
+    },
+    job: { schedule_id: "s1" }
+  });
+  assert.equal(stillAbove.subject, "example.com: 2 problems fixed, score 99");
+});
+
 test("a weekly check with no change still reports in, without alarm", () => {
   const steady = {
     ...weeklyReport,

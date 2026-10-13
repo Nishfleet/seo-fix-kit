@@ -24,6 +24,7 @@ import { getDeepHealth } from "./routes/health.js";
 import { isSafeUuid } from "./lib/text.js";
 import { createAdminSession, revokeAdminSession } from "./lib/auth.js";
 import { cleanupExpiredRows } from "./lib/db.js";
+import { sendFirstAuditNudges } from "./lib/activation-emails.js";
 import {
   aboutHtml,
   aiAnswerReadinessHtml,
@@ -539,6 +540,7 @@ export default {
       if (String(env.SEOFIXKIT_LARGE_CRAWL_WORKERS_ENABLED || "").toLowerCase() === "true") {
         ctx.waitUntil(runDueLargeRenderedCrawlWorkers(env));
       }
+      ctx.waitUntil(sendFirstAuditNudges(env));
       ctx.waitUntil(sendDailyOpsDigest(env));
       ctx.waitUntil(sendUrgentOpsAlerts(env));
     }

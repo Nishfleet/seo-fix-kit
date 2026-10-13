@@ -154,6 +154,8 @@ export function BetaApp({ mountKey }) {
   const [localCitations, setLocalCitations] = useState("");
   const [auditStatus, setAuditStatus] = useState("idle");
   const [auditMessage, setAuditMessage] = useState("");
+  const [rerunStatus, setRerunStatus] = useState("idle");
+  const [rerunMessage, setRerunMessage] = useState("");
   const [siteHost, setSiteHost] = useState("");
   const [siteStatus, setSiteStatus] = useState("idle");
   const [siteMessage, setSiteMessage] = useState("");
@@ -489,6 +491,41 @@ export function BetaApp({ mountKey }) {
     }
   }
 
+  // "Check again" on a report: same address and page count, so the new
+  // report's "since your last check" comparison lines up with this one.
+  async function rerunReport(source) {
+    setRerunStatus("loading");
+    setRerunMessage("Starting a fresh check…");
+    auditPollRef.current?.abort();
+    const auditPoll = new AbortController();
+    auditPollRef.current = auditPoll;
+    try {
+      const payload = await apiFetch("/api/audit", {
+        method: "POST",
+        body: { url: source.url, maxPages: Number(source.summary?.maxPages || DEFAULT_CRAWL_PAGES) },
+        requireOkFlag: false,
+        fallbackError: "The check didn’t start. Try again."
+      });
+      let nextPath = payload.reportPath;
+      if (payload.mode === "queued" && (payload.jobId || payload.job?.id)) {
+        const job = await pollAuditJob(payload.jobId || payload.job.id, setRerunMessage, { signal: auditPoll.signal });
+        if (!job.reportId) throw new Error("The check finished but the report didn’t save. Try again.");
+        nextPath = job.reportPath || `/beta/reports/${encodeURIComponent(job.reportId)}`;
+      } else if (payload.id) {
+        queryClient.setQueryData(queryKeys.report(payload.id), payload);
+      }
+      setRerunStatus("idle");
+      setRerunMessage("");
+      refreshAccount();
+      if (nextPath) navigate(nextPath, { state: { betaMountKey: mountKey, rerunOf: source.id } });
+      window.requestAnimationFrame(() => window.scrollTo(0, 0));
+    } catch (error) {
+      if (isAbortError(error) || auditPoll.signal.aborted) return;
+      setRerunStatus("error");
+      setRerunMessage(error.message || "The check didn’t finish. Try again.");
+    }
+  }
+
   function signOut() {
     pendingSignOut = fetch("/api/beta/logout", { method: "POST", credentials: "same-origin" }).catch(() => {});
     queryClient.clear();
@@ -580,7 +617,14 @@ export function BetaApp({ mountKey }) {
               </Link>
             </ErrorAuditState>
           )}
-          {report && <ReportView report={report} />}
+          {report && (
+            <ReportView
+              onRerun={() => rerunReport(report)}
+              report={report}
+              rerunMessage={rerunMessage}
+              rerunStatus={rerunStatus}
+            />
+          )}
         </section>
       </div>
     );
