@@ -447,6 +447,15 @@ export function SitesPage({
   const monitoring = accountData?.monitoring || {};
   const isFounder = accountData?.owner?.accessMode === "founder-override";
   const loaded = Boolean(accountData);
+  // Weekly checks on a site that isn't verified here (the automatic one-page
+  // check after a first audit) still need a place to be paused.
+  const otherChecks = schedules.filter(
+    (schedule) =>
+      !sites.some(
+        (site) =>
+          site.status === "verified" && hostKey(site.host) === hostKey(schedule.targetHost || schedule.targetUrl)
+      )
+  );
   return (
     <div className="app-page">
       <PageHeader
@@ -459,7 +468,7 @@ export function SitesPage({
           <h2 id="add-site-title">Add a site</h2>
         </div>
         <p className="app-card-text">
-          Enter your domain. We’ll give you a DNS record or a small file that shows you own it.
+          Enter your domain. We’ll give you a tag to paste into your homepage (or a DNS record) that shows you own it.
           {isFounder ? " Founder accounts can audit any site without verifying." : ""}
         </p>
         <form className="site-claim-form" onSubmit={onSiteClaim}>
@@ -519,7 +528,7 @@ export function SitesPage({
                         ? monitor
                           ? `Checked ${monitor.cadenceLabel?.toLowerCase() || "weekly"}. ${auditScheduleDetail(monitor)}`
                           : "Weekly checks are off."
-                        : "Add one of these to your site, then click Verify. DNS changes can take a few minutes to show up."}
+                        : "Add one of these to your site, then click Verify. Most people use the homepage tag."}
                     </p>
                   </div>
                   <div className="site-row-actions">
@@ -563,15 +572,22 @@ export function SitesPage({
                   </div>
                   {!verified && (
                     <dl className="verification-records">
+                      {site.metaTag && (
+                        <VerificationRecord
+                          title="Easiest: paste a tag into your homepage"
+                          note="In Wix, Squarespace, Shopify or WordPress, open your site’s header or SEO settings, paste this tag, and publish."
+                          fields={[["Tag", site.metaTag]]}
+                        />
+                      )}
                       <VerificationRecord
-                        title="Option 1: DNS TXT record"
+                        title="Or: DNS TXT record"
                         fields={[
                           ["Name", site.dnsName],
                           ["Value", site.dnsValue]
                         ]}
                       />
                       <VerificationRecord
-                        title="Option 2: File on your site"
+                        title="Or: file on your site"
                         fields={[
                           ["Path", site.filePath || site.fileUrl],
                           ["Contents", site.fileContents]
@@ -583,8 +599,42 @@ export function SitesPage({
               );
             })}
           </ul>
-        ) : (
+        ) : otherChecks.length ? null : (
           <EmptyState icon="browser">No sites yet. Add your first one above.</EmptyState>
+        )}
+        {loaded && otherChecks.length > 0 && (
+          <ul className="site-list" aria-label="Other weekly checks">
+            {otherChecks.map((schedule) => (
+              <li className="site-row" key={schedule.id}>
+                <div className="site-row-main">
+                  <div className="site-row-title">
+                    <h3>{schedule.targetHost || safeHostnameLabel(schedule.targetUrl)}</h3>
+                    <Badge tone="good">Weekly check on</Badge>
+                  </div>
+                  <p>
+                    {schedule.maxPages > 1
+                      ? auditScheduleDetail(schedule)
+                      : `Checks ${schedule.targetUrl} every week. Add and verify the site above to check every page.`}
+                  </p>
+                </div>
+                <div className="site-row-actions">
+                  {schedule.lastReportPath && (
+                    <Link discover="none" className="app-button-secondary" to={schedule.lastReportPath}>
+                      Latest report
+                    </Link>
+                  )}
+                  <button
+                    className="app-button-secondary"
+                    disabled={scheduleStatus === "loading"}
+                    onClick={() => onScheduleDelete(schedule.id)}
+                    type="button"
+                  >
+                    Pause weekly checks
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
         )}
         <p className="app-footnote">
           {monitoring.message || "Weekly checks are free for verified sites during the beta."}
@@ -594,10 +644,11 @@ export function SitesPage({
   );
 }
 
-function VerificationRecord({ title, fields }) {
+function VerificationRecord({ title, note = "", fields }) {
   return (
     <div className="verification-record">
       <dt>{title}</dt>
+      {note && <dd className="verification-note">{note}</dd>}
       {fields.map(([label, value]) => (
         <dd key={label}>
           <span className="verification-field-label">{label}</span>

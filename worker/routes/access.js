@@ -634,13 +634,14 @@ async function verifySiteClaim(request, env) {
       404
     );
 
-  const [dnsVerified, fileVerified] = await Promise.all([
+  const [metaVerified, dnsVerified, fileVerified] = await Promise.all([
+    verifySiteClaimMetaTag(row.host, row.verification_token),
     verifySiteClaimDns(row.host, row.verification_token),
     verifySiteClaimHttpsFile(row.host, row.verification_token)
   ]);
   const now = new Date().toISOString();
-  if (dnsVerified.ok || fileVerified.ok) {
-    const method = dnsVerified.ok ? "dns-txt" : "https-file";
+  if (metaVerified.ok || dnsVerified.ok || fileVerified.ok) {
+    const method = metaVerified.ok ? "meta-tag" : dnsVerified.ok ? "dns-txt" : "https-file";
     await env.WAITLIST_DB.prepare(
       `UPDATE site_claims
        SET status = 'verified',
@@ -671,8 +672,30 @@ async function verifySiteClaim(request, env) {
     ok: true,
     verified: false,
     site: siteClaimResponse(updated),
-    message: dnsVerified.error || fileVerified.error || "Verification record was not found yet."
+    message:
+      "We couldn’t find the tag, DNS record or file yet. Check it’s saved and published, then click Verify again. DNS changes can take a few minutes."
   });
+}
+
+// Easiest for site builders (Wix, Squarespace, Shopify, WordPress): a meta
+// tag in the homepage head, the same way Google Search Console verifies.
+async function verifySiteClaimMetaTag(host, token) {
+  try {
+    const response = await fetch(`https://${host}/`, {
+      headers: { accept: "text/html", "user-agent": "SEOFixKit-Verify/1.0 (+https://seofixkit.com)" }
+    });
+    if (!response.ok) return { ok: false };
+    const html = await readSmallText(response, 512 * 1024);
+    const tags = html.match(/<meta\b[^>]*>/gi) || [];
+    const matched = tags.some(
+      (tag) =>
+        /name\s*=\s*["']?seofixkit-site-verification["']?/i.test(tag) &&
+        new RegExp(`content\\s*=\\s*["']?${token.replace(/[^A-Za-z0-9_-]/g, "")}["'\\s/>]`).test(tag)
+    );
+    return { ok: matched };
+  } catch {
+    return { ok: false };
+  }
 }
 
 async function verifySiteClaimDns(host, token) {
@@ -961,6 +984,7 @@ export {
   verifyAccessLink,
   verifySiteClaim,
   verifySiteClaimDns,
+  verifySiteClaimMetaTag,
   verifySiteClaimHttpsFile,
   waitlistQuotaStatus
 };

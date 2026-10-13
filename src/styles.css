@@ -4588,6 +4588,13 @@ a.app-table-row:hover {
   margin: 0;
 }
 
+.verification-record dd.verification-note {
+  color: var(--ink-muted);
+  display: block;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .verification-field-label {
   color: var(--ink-muted);
   font-size: 12px;

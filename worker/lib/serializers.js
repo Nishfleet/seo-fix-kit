@@ -187,7 +187,8 @@ function siteClaimInstructions(row = {}) {
     dnsValue: proof,
     filePath: "/.well-known/seofixkit.txt",
     fileUrl: host ? `https://${host}/.well-known/seofixkit.txt` : "",
-    fileContents: proof
+    fileContents: proof,
+    metaTag: token ? `<meta name="seofixkit-site-verification" content="${token}" />` : ""
   };
 }
 
