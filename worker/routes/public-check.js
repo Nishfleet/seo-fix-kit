@@ -353,22 +353,55 @@ export function checkHtml(origin) {
       .result { display: none; margin: 32px 0 0; }
       .result.show { display: block; }
       .error-box { background: var(--error-surface); border: 1px solid var(--error-line); border-radius: var(--radius-lg); color: var(--error); padding: 14px 16px; }
-      .measure-grid { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .measure { background: var(--surface-sunken); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 12px 14px; }
-      .measure .label { color: var(--ink-muted); font-size: 12px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; }
-      .measure .value { font-size: 16px; margin-top: 4px; overflow-wrap: anywhere; }
-      .finding { border-left: 3px solid var(--gold); margin: 12px 0; padding-left: 12px; }
-      .finding.critical { border-left-color: var(--error); }
-      .finding.warning { border-left-color: var(--warning); }
-      .finding.notice { border-left-color: var(--info); }
-      .finding h3 { font-size: 17px; margin: 0 0 6px; }
-      .finding p { font-size: 15px; margin: 0 0 6px; }
-      .snippet { background: var(--surface-field); border: 1px solid var(--line); border-radius: var(--radius-lg); color: var(--ink); display: block; font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size: 13px; margin: 8px 0 0; overflow-x: auto; padding: 12px; white-space: pre-wrap; }
-      .finding .snippet-label { color: var(--ink-muted); font-size: 12px; font-weight: 600; letter-spacing: .04em; margin: 10px 0 0; text-transform: uppercase; }
+      .result-card { background: var(--card-bg); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow-md); overflow: hidden; }
+      .result-head { align-items: flex-start; border-bottom: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; padding: 22px 24px; }
+      .result-head h2 { font-size: clamp(22px, 3vw, 28px); margin: 0; overflow-wrap: anywhere; }
+      .result-meta { color: var(--ink-muted); font-size: 14px; margin: 4px 0 0; overflow-wrap: anywhere; }
+      .result-tally { display: flex; flex-wrap: wrap; gap: 8px; }
+      .tally { border: 1px solid var(--line); border-radius: 999px; font-size: 13px; font-weight: 600; padding: 6px 12px; white-space: nowrap; }
+      .tally.bad { background: var(--error-surface); border-color: var(--error-line); color: var(--error); }
+      .tally.good { background: var(--success-surface); border-color: var(--line-accent); color: var(--success); }
+      .result-body { display: grid; gap: 28px; grid-template-columns: minmax(0, 1fr); padding: 24px; }
+      .result-body > section, .finding, .snippet-wrap { min-width: 0; }
+      .result-body h3 { color: var(--ink-muted); font-size: 12px; font-weight: 600; letter-spacing: .08em; margin: 0 0 12px; text-transform: uppercase; }
+      .measure-grid { display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--radius-lg); grid-template-columns: repeat(4, minmax(0, 1fr)); overflow: hidden; }
+      .measure { background: var(--card-bg); min-width: 0; padding: 14px 16px; }
+      .measure .label { color: var(--ink-muted); font-size: 13px; }
+      .measure .value { font-size: 16px; font-weight: 600; margin-top: 4px; overflow-wrap: anywhere; }
+      .measure .value.big { font-size: 22px; font-variant-numeric: tabular-nums; }
+      .measure .value .from { color: var(--ink-muted); font-weight: 500; }
+      .finding { border: 1px solid var(--line); border-radius: var(--radius-lg); display: grid; gap: 8px; margin: 0 0 10px; padding: 16px; }
+      .finding-top { align-items: center; display: flex; flex-wrap: wrap; gap: 10px; }
+      .finding h4 { font-size: 16px; line-height: 1.35; margin: 0; }
+      .finding p { font-size: 15px; margin: 0; }
+      .finding .fix { color: var(--ink); }
+      .sev { border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: .04em; padding: 4px 9px; text-transform: uppercase; }
+      .sev.critical { background: var(--error-surface); color: var(--error); }
+      .sev.warning { background: var(--warning-surface); color: var(--warning); }
+      .sev.notice { background: var(--info-surface); color: var(--info); }
+      .sev.guard { background: var(--success-surface); color: var(--success); }
+      .finding.guard { background: var(--success-surface); border-color: var(--line-accent); }
+      .snippet-wrap { position: relative; }
+      .snippet { background: var(--surface-sunken); border: 1px solid var(--line); border-radius: var(--radius-lg); color: var(--ink); display: block; font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size: 13px; margin: 6px 0 0; overflow-x: auto; padding: 12px 84px 12px 12px; white-space: pre-wrap; }
+      .copy { background: var(--card-bg); border: 1px solid var(--line-strong); border-radius: 8px; color: var(--ink); font-size: 12px; font-weight: 600; padding: 5px 10px; position: absolute; right: 8px; top: 8px; }
+      .copy:hover { background: var(--surface-hover); }
+      .finding .snippet-label { color: var(--ink-muted); font-size: 12px; font-weight: 600; letter-spacing: .04em; margin: 6px 0 0; text-transform: uppercase; }
+      .empty-note { background: var(--success-surface); border: 1px solid var(--line-accent); border-radius: var(--radius-lg); color: var(--success); font-size: 15px; margin: 0; padding: 14px 16px; }
+      .result-foot { align-items: center; background: var(--accent-surface); border-top: 1px solid var(--line-accent); display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; padding: 20px 24px; }
+      .result-foot p { margin: 0; }
+      .result-foot strong { color: var(--ink); display: block; font-size: 17px; }
+      .result-foot span { color: var(--ink-muted); font-size: 14px; }
+      .loading-card { align-items: center; background: var(--card-bg); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow-sm); display: flex; gap: 16px; padding: 22px 24px; }
+      .loading-card p { margin: 0; }
+      .loading-card .step { color: var(--ink); font-weight: 600; }
+      .loading-card .sub { color: var(--ink-muted); font-size: 14px; }
+      .spinner { animation: check-spin 0.9s linear infinite; border: 2px solid var(--line); border-radius: 50%; border-top-color: var(--accent); flex: none; height: 22px; width: 22px; }
+      @keyframes check-spin { to { transform: rotate(360deg); } }
+      @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.4s; } }
       .next-step { background: var(--accent-surface); border: 1px solid var(--line-accent); border-radius: 12px; margin: 40px 0 32px; padding: 20px 22px; }
       .next-step p:last-child { margin-bottom: 0; }
       .box-min { min-width: 0; }
-      @media (max-width: 760px) { .grid, .measure-grid { grid-template-columns: 1fr; } .check-form .row { flex-direction: column; } main { padding-top: 32px; } }
+      @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } .measure-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .result-head, .result-body, .result-foot { padding-left: 16px; padding-right: 16px; } .check-form .row { flex-direction: column; } main { padding-top: 32px; } }
     </style>
   </head>
   <body>
@@ -467,31 +500,145 @@ export function checkHtml(origin) {
           return "";
         }
 
-        function measure(label, value) {
+        function hostOf(value) {
+          try {
+            return new URL(value).hostname.replace(/^www\\./, "");
+          } catch {
+            return value;
+          }
+        }
+
+        function count(value) {
+          return typeof value === "number" ? value.toLocaleString("en-US") : value;
+        }
+
+        function plural(n, word) {
+          return n + " " + word + (n === 1 ? "" : "s");
+        }
+
+        function measure(label, value, big) {
           const box = el("div", "", "measure");
           box.appendChild(el("div", label, "label"));
-          box.appendChild(el("div", value === null || value === undefined ? "not measured" : value, "value"));
+          const shown = value === null || value === undefined || value === "" ? "Not found" : value;
+          box.appendChild(el("div", shown, "value" + (big ? " big" : "")));
           return box;
         }
 
-        function resultSection(title, className) {
-          const section = el("section");
-          if (className) section.className = className;
-          section.appendChild(el("h2", title));
-          return section;
+        function copyButton(text) {
+          const button = el("button", "Copy", "copy");
+          button.type = "button";
+          button.setAttribute("aria-label", "Copy markup");
+          button.addEventListener("click", async () => {
+            try {
+              await navigator.clipboard.writeText(text);
+              button.textContent = "Copied";
+            } catch {
+              button.textContent = "Select and copy";
+            }
+            setTimeout(() => (button.textContent = "Copy"), 1600);
+          });
+          return button;
         }
 
         function findingNode(finding) {
-          const box = el("div", "", "finding " + finding.severity);
-          box.appendChild(el("h3", finding.title));
+          const box = el("article", "", "finding " + finding.severity);
+          const top = el("div", "", "finding-top");
+          top.appendChild(el("span", finding.severity === "guard" ? "Ruled out" : finding.severity, "sev " + finding.severity));
+          top.appendChild(el("h4", finding.title));
+          box.appendChild(top);
           if (finding.evidence) box.appendChild(el("p", "Evidence: " + finding.evidence));
           if (finding.why) box.appendChild(el("p", finding.why));
-          if (finding.fix) box.appendChild(el("p", "Fix: " + finding.fix));
+          if (finding.fix) box.appendChild(el("p", "Fix: " + finding.fix, "fix"));
           if (finding.proposedMarkup) {
             box.appendChild(el("p", "Suggested markup. Generated for this page, not copied from it", "snippet-label"));
-            box.appendChild(el("code", finding.proposedMarkup, "snippet box-min"));
+            const wrap = el("div", "", "snippet-wrap");
+            wrap.appendChild(el("code", finding.proposedMarkup, "snippet box-min"));
+            wrap.appendChild(copyButton(finding.proposedMarkup));
+            box.appendChild(wrap);
           }
           return box;
+        }
+
+        function block(title) {
+          const section = el("section");
+          section.appendChild(el("h3", title));
+          return section;
+        }
+
+        function renderResult(payload) {
+          const measured = payload.measured || {};
+          const findings = payload.findings || [];
+          const guards = payload.guards || [];
+          const card = el("div", "", "result-card");
+
+          const head = el("div", "", "result-head");
+          const titleBox = el("div", "", "box-min");
+          titleBox.appendChild(el("h2", hostOf(payload.finalUrl || payload.checkedUrl)));
+          const rendered = payload.finalUrl && payload.finalUrl !== payload.checkedUrl ? " (rendered at " + payload.finalUrl + ")" : "";
+          titleBox.appendChild(el("p", "Checked: " + payload.checkedUrl + rendered, "result-meta"));
+          head.appendChild(titleBox);
+          const tally = el("div", "", "result-tally");
+          tally.appendChild(el("span", findings.length ? plural(findings.length, "problem") + " to fix" : "No problems found", "tally " + (findings.length ? "bad" : "good")));
+          tally.appendChild(el("span", plural(guards.length, "false alarm") + " ruled out", "tally good"));
+          head.appendChild(tally);
+          card.appendChild(head);
+
+          const body = el("div", "", "result-body");
+
+          const problems = block("Problems to fix");
+          if (findings.length === 0) problems.appendChild(el("p", "No problems found on this page in this check.", "empty-note"));
+          for (const finding of findings) problems.appendChild(findingNode(finding));
+          body.appendChild(problems);
+
+          const proof = block("Rendered proof");
+          const grid = el("div", "", "measure-grid");
+          const words = el("div", "", "measure");
+          words.appendChild(el("div", "Words (raw HTML → browser)", "label"));
+          const wordValue = el("div", "", "value big");
+          if (typeof measured.staticWordCount === "number") wordValue.appendChild(el("span", count(measured.staticWordCount) + " → ", "from"));
+          wordValue.appendChild(document.createTextNode(typeof measured.renderedWordCount === "number" ? count(measured.renderedWordCount) : "Not found"));
+          words.appendChild(wordValue);
+          grid.appendChild(words);
+          grid.appendChild(measure("Internal links", count(measured.renderedInternalLinkCount), true));
+          grid.appendChild(measure("Main heading (H1)", measured.renderedH1));
+          grid.appendChild(measure("Title", measured.renderedTitle));
+          proof.appendChild(grid);
+          body.appendChild(proof);
+
+          const ruledOut = block("False alarms ruled out");
+          if (guards.length === 0) ruledOut.appendChild(el("p", "No false alarms to rule out on this page."));
+          for (const guard of guards) ruledOut.appendChild(findingNode({ ...guard, severity: "guard" }));
+          body.appendChild(ruledOut);
+          card.appendChild(body);
+
+          const foot = el("div", "", "result-foot");
+          const text = el("p");
+          text.appendChild(el("strong", payload.nextStep || "Create a free account to audit the whole site."));
+          if (payload.boundary) text.appendChild(el("span", payload.boundary));
+          foot.appendChild(text);
+          const cta = el("a", "Create a free account", "cta");
+          cta.href = "${origin}/beta";
+          foot.appendChild(cta);
+          card.appendChild(foot);
+          return card;
+        }
+
+        function loadingCard(url) {
+          const card = el("div", "", "loading-card");
+          card.setAttribute("role", "status");
+          card.appendChild(el("span", "", "spinner"));
+          const text = el("div");
+          const step = el("p", "Opening " + url + " in a real browser…", "step");
+          text.appendChild(step);
+          text.appendChild(el("p", "We compare it with the raw HTML. This can take up to a minute.", "sub"));
+          card.appendChild(text);
+          const steps = ["Waiting for the page to finish loading…", "Comparing the rendered page with the raw HTML…", "Checking each problem against the real page…"];
+          let index = 0;
+          const timer = setInterval(() => {
+            if (!card.isConnected || index >= steps.length) return clearInterval(timer);
+            step.textContent = steps[index++];
+          }, 4000);
+          return card;
         }
 
         form.addEventListener("submit", async (event) => {
@@ -507,10 +654,8 @@ export function checkHtml(origin) {
             return;
           }
           button.disabled = true;
-          button.textContent = "Checking...";
-          result.classList.remove("show");
-          result.replaceChildren();
-          result.appendChild(el("p", "Opening " + url + " in a real browser and measuring the rendered page. This can take up to a minute."));
+          button.textContent = "Checking…";
+          result.replaceChildren(loadingCard(url));
           result.classList.add("show");
           try {
             const response = await fetch("${origin}/api/public-check", {
@@ -523,48 +668,7 @@ export function checkHtml(origin) {
               result.replaceChildren(el("div", payload.error || "The check failed. Try another public URL.", "error-box"));
               return;
             }
-            result.replaceChildren();
-
-            const checked = el("p", "Checked: " + payload.checkedUrl + (payload.finalUrl && payload.finalUrl !== payload.checkedUrl ? " (rendered at " + payload.finalUrl + ")" : ""));
-            result.appendChild(checked);
-            if (payload.engineVersion) result.appendChild(el("p", "Engine version " + payload.engineVersion + " · scanned " + payload.scannedAt + " · one page"));
-
-            const section = resultSection("Rendered proof");
-            const grid = el("div", "", "measure-grid");
-            grid.appendChild(measure("Static HTML words", payload.measured.staticWordCount));
-            grid.appendChild(measure("Rendered words", payload.measured.renderedWordCount));
-            grid.appendChild(measure("Rendered H1", payload.measured.renderedH1));
-            grid.appendChild(measure("Rendered title", payload.measured.renderedTitle));
-            grid.appendChild(measure("Rendered internal links", payload.measured.renderedInternalLinkCount));
-            section.appendChild(grid);
-            result.appendChild(section);
-
-            const guardSection = resultSection("False alarms ruled out");
-            if (payload.guards.length === 0) {
-              guardSection.appendChild(el("p", "No false alarms to rule out on this page."));
-            } else {
-              for (const guard of payload.guards) {
-                guardSection.appendChild(findingNode(guard));
-              }
-            }
-            result.appendChild(guardSection);
-
-            const findingSection = resultSection("Problems to fix");
-            if (payload.findings.length === 0) {
-              findingSection.appendChild(el("p", "No problems found on this page in this check."));
-            } else {
-              for (const finding of payload.findings) {
-                findingSection.appendChild(findingNode(finding));
-              }
-            }
-            result.appendChild(findingSection);
-
-            result.appendChild(el("p", payload.nextStep));
-            result.appendChild(el("p", payload.boundary));
-            result.appendChild(el("p", ""));
-            const cta = el("a", "Create a free account", "cta");
-            cta.href = "${origin}/beta";
-            result.appendChild(cta);
+            result.replaceChildren(renderResult(payload));
           } catch (error) {
             result.replaceChildren(el("div", "Could not reach the check service. Check your connection and try again.", "error-box"));
           } finally {

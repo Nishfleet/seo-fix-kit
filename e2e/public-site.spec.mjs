@@ -226,8 +226,11 @@ test.describe("free page check", () => {
     await page.getByLabel("Public page URL").fill("example.com");
     await page.getByRole("button", { name: "Check this page" }).click();
     await expect(page.getByRole("heading", { name: "Rendered proof" })).toBeVisible();
-    await expect(page.getByText("1284")).toBeVisible();
+    await expect(page.locator("#result").getByText("1 problem to fix")).toBeVisible();
+    await expect(page.locator("#result").getByText("1 false alarm ruled out")).toBeVisible();
+    await expect(page.getByText("41 → 1,284")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Social preview image missing" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "“Missing H1” is a false alarm" })).toBeVisible();
     await expect(page.locator("#result").getByRole("link", { name: "Create a free account" })).toHaveAttribute(
       "href",
       /\/beta$/
