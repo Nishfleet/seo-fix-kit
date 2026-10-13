@@ -107,10 +107,17 @@ const server = http.createServer(async (request, response) => {
     }
 
     if (url.pathname === "/__e2e/reports" && request.method === "POST") {
-      const { ownerEmail } = JSON.parse((await readBody(request)).toString());
-      const id = `acme-widgets-example-${createHash("sha256").update(ownerEmail).digest("hex").slice(0, 12)}`;
-      const report = { ...REPORT_FIXTURE, id, reportPath: `/beta/reports/${id}` };
-      const now = new Date().toISOString();
+      // Optional `score` and `daysAgo` save an older check of the same page,
+      // so a test can build a score history.
+      const { ownerEmail, score, daysAgo = 0 } = JSON.parse((await readBody(request)).toString());
+      const id = `acme-widgets-example-${createHash("sha256").update(`${ownerEmail}:${daysAgo}`).digest("hex").slice(0, 12)}`;
+      const report = {
+        ...REPORT_FIXTURE,
+        id,
+        reportPath: `/beta/reports/${id}`,
+        ...(score === undefined ? {} : { score })
+      };
+      const now = new Date(Date.now() - daysAgo * 86_400_000).toISOString();
       env.WAITLIST_DB.insert("audit_reports", {
         id,
         url: report.url,
