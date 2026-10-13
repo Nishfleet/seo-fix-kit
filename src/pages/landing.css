@@ -1111,12 +1111,15 @@
   margin: 16px 0 0;
 }
 
-.landing-final-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  justify-content: center;
+.landing-final-form .landing-form {
   margin-top: 32px;
+  scroll-margin-top: calc(var(--header-height) + 96px);
+  text-align: left;
+}
+
+.landing-final .landing-form p {
+  font-size: var(--text-13);
+  margin-top: 12px;
 }
 
 /* -------------------------------------------------------- Responsive */
@@ -1222,10 +1225,6 @@
 
   .landing-diff {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .landing-final-actions .btn {
-    width: 100%;
   }
 }
 

@@ -572,6 +572,14 @@ export function checkHtml(origin) {
             button.textContent = "Check this page";
           }
         });
+
+        // Arriving from the homepage (or a shared link) as /check?url=...:
+        // fill the field and run the check straight away.
+        const requested = new URLSearchParams(location.search).get("url");
+        if (requested) {
+          urlInput.value = requested.trim();
+          form.requestSubmit();
+        }
       })();
     </script>
   </body>

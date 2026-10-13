@@ -273,7 +273,7 @@ async function signIn(page) {
 
 // --- Homepage ---------------------------------------------------------------
 
-test("homepage renders the React app with the email access form beside a primary /check CTA", async (t) => {
+test("homepage leads with a URL check form and keeps the email access form", async (t) => {
   assert.match(
     README,
     /request a secure one-use email link or check one public page anonymously/i,
@@ -297,11 +297,14 @@ test("homepage renders the React app with the email access form beside a primary
   const cta = await visible(page.getByRole("banner").getByRole("link", { name: "Check a page" }));
   assert.equal(await cta.getAttribute("href"), "/check", "primary header CTA goes to the anonymous check");
 
-  // Beside: the email form carries its own link to the anonymous check.
-  const form = page.locator("form").filter({ has: emailInput });
-  const formCta = form.getByRole("link", { name: /check one page without an account/ });
-  assert.equal(await formCta.count(), 1, "the anonymous check link sits beside the form");
-  assert.equal(await formCta.getAttribute("href"), "/check");
+  // The hero form is a plain GET to /check, so a pasted URL runs the free
+  // check even before (or without) JavaScript.
+  const heroForm = page.getByRole("search", { name: "Check a page" });
+  assert.equal(await heroForm.getAttribute("action"), "/check");
+  assert.equal(await heroForm.getAttribute("method"), "get");
+  assert.equal(await heroForm.getByLabel("Page to check").getAttribute("name"), "url");
+  const accountLink = heroForm.getByRole("link", { name: /create a free account/ });
+  assert.equal(await accountLink.getAttribute("href"), "#get-started", "the hero points at the email form");
 
   await emailInput.fill("founder@example.com");
   await page.getByRole("button", { name: "Start free" }).click();

@@ -72,8 +72,10 @@ export const SITE_FOOTER = [
   {
     title: "Company",
     links: [
+      { href: "/about", label: "About" },
       { href: "/methodology", label: "How it works" },
       { href: "/support", label: "Support" },
+      { href: "/status", label: "Status" },
       { href: "/terms", label: "Terms" },
       { href: "/privacy", label: "Privacy" },
       { href: "mailto:support@seofixkit.com", label: "support@seofixkit.com" }
