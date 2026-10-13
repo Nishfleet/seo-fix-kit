@@ -187,3 +187,63 @@ test("the overview shows each site's progress and the Alerts page switches audit
   await page.reload();
   await expect(page.getByRole("switch", { name: "Email updates" })).toHaveAttribute("aria-checked", "false");
 });
+
+test("Check again reruns a report and leads with what changed", async ({ page, request }, testInfo) => {
+  const email = uniqueEmail(testInfo, "rerun");
+  await page.goto("/beta");
+  await page.getByLabel("Email").fill(email);
+  await typeLikeAPerson(page);
+  await page.getByRole("button", { name: "Email me a sign-in link" }).click();
+  const link = await signInLinkFor(request, email);
+  const older = await (
+    await request.post("/__e2e/reports", { data: { ownerEmail: email, score: 12, daysAgo: 7 } })
+  ).json();
+  const newer = await (
+    await request.post("/__e2e/reports", {
+      data: {
+        ownerEmail: email,
+        reportDelta: {
+          status: "ready",
+          summary: { scoreDelta: 8, issuesDelta: -1, fixedIssuesCount: 1, newIssuesCount: 0, persistentIssuesCount: 6 },
+          fixedIssues: [{ title: "Missing meta description on /about", severity: "warning" }],
+          newIssues: []
+        }
+      }
+    })
+  ).json();
+  await page.goto(link);
+  await expect(page.getByRole("heading", { level: 1, name: "Overview" })).toBeVisible();
+
+  await page.route("**/api/pricing-preview", (route) =>
+    route.fulfill({ json: { pricing: { displayPrice: "$49", currency: "USD" } } })
+  );
+  // The real audit loads the site in a browser, which the test server cannot
+  // do; the queue answers with the newer report instead.
+  let sent;
+  await page.route("**/api/audit", (route) => {
+    sent = route.request().postDataJSON();
+    return route.fulfill({ json: { ok: true, mode: "queued", jobId: "e2e-rerun" } });
+  });
+  await page.route("**/api/audit/jobs/e2e-rerun", (route) =>
+    route.fulfill({
+      json: { ok: true, job: { status: "completed", reportId: newer.id, reportPath: `/beta/reports/${newer.id}` } }
+    })
+  );
+
+  await page.goto(`/beta/reports/${older.id}`);
+  await expect(page.getByRole("region", { name: "Change since your last check" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Check again" }).click();
+  await expect(page).toHaveURL(new RegExp(`/beta/reports/${newer.id}$`));
+  expect(sent.url).toContain("acme-widgets.example");
+
+  const change = page.getByRole("region", { name: "Change since your last check" });
+  await expect(change).toContainText("Score up 8 since your last check");
+  await expect(change).toContainText("1 fixed · 0 new");
+  await change.getByRole("button", { name: "See what changed" }).click();
+  await expect(page.getByRole("tab", { name: "Insights" })).toHaveAttribute("aria-selected", "true");
+  await expect(
+    page.getByLabel("Insights").getByText("Missing meta description on /about", { exact: true })
+  ).toBeVisible();
+  const width = await page.evaluate(() => document.documentElement.scrollWidth);
+  expect(width).toBeLessThanOrEqual(page.viewportSize().width);
+});

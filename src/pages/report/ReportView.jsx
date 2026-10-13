@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { DEFAULT_CRAWL_PAGES } from "../../../shared/crawl-depth.js";
 import { CopyButton } from "../../components/CopyButton.jsx";
@@ -22,7 +22,7 @@ import { PerformancePanel, ResourceWaterfallPanel } from "./PerformancePanels.js
 import { FixRequestStatusPanel, RepairProposalPanel, FixQuotePanel } from "./RepairOfferPanels.jsx";
 import { TeamRepairBoard } from "./TeamRepairBoard.jsx";
 
-export function ReportView({ report }) {
+export function ReportView({ report, onRerun, rerunStatus = "idle", rerunMessage = "" }) {
   const issues = useMemo(() => (report.findings || []).filter((finding) => finding.severity !== "good"), [report]);
   const guarded = useMemo(() => (report.findings || []).filter((finding) => finding.severity === "good"), [report]);
   const topFixes = report.repairPlan || [];
@@ -72,6 +72,7 @@ export function ReportView({ report }) {
       }).format(new Date(report.retention.expiresAt))
     : "";
   const hasPriorityFixes = topFixes.length > 0;
+  const tabsRef = useRef(null);
   const insightPanels = [
     ["ready", "first_run"].includes(reportDelta?.status) && <ReportDeltaPanel key="delta" delta={reportDelta} />,
     competitorBenchmark?.status === "ready" && (
@@ -118,6 +119,16 @@ export function ReportView({ report }) {
             {report.storageNote && <span>{report.storageNote}</span>}
           </p>
           <div className="report-header-actions">
+            {onRerun && (
+              <button
+                className="app-button"
+                disabled={rerunStatus === "loading"}
+                onClick={onRerun}
+                type="button"
+              >
+                {rerunStatus === "loading" ? "Checking…" : "Check again"}
+              </button>
+            )}
             <CopyButton className="app-button-secondary" label="Copy link" value={shareUrl} />
             <a className="app-button-secondary" href={`/api/reports/${report.id}/client.pdf`}>
               Download PDF
@@ -133,6 +144,11 @@ export function ReportView({ report }) {
               Download brief
             </a>
           </div>
+          {onRerun && rerunMessage && (
+            <p className={`report-rerun-status ${rerunStatus}`} role="status">
+              {rerunMessage}
+            </p>
+          )}
         </div>
         <div
           className={`score-ring ${scoreTone}`}
@@ -145,6 +161,10 @@ export function ReportView({ report }) {
         </div>
       </header>
 
+      {reportDelta?.status === "ready" && (
+        <ChangeSinceLastCheck delta={reportDelta} onDetails={() => tabsRef.current?.("insights")} />
+      )}
+
       {(checkoutReturned || report.fixRequest) && (
         <FixRequestStatusPanel fixRequest={report.fixRequest} checkoutReturned={checkoutReturned} />
       )}
@@ -156,7 +176,7 @@ export function ReportView({ report }) {
         <Metric label="False alarms filtered" tone="good" value={report.summary?.guardedFalsePositives || 0} />
       </section>
 
-      <ReportTabs tabs={tabs}>
+      <ReportTabs selectRef={tabsRef} tabs={tabs}>
         {(active) => (
           <>
             <div className="report-tab-panel" hidden={active !== "problems"} {...tabPanelProps("problems")}>
@@ -347,7 +367,34 @@ function tabPanelProps(key) {
 // Tabs for the report sections. Every panel stays mounted (hidden when not
 // selected) so switching keeps scroll, filters, and drafts. The chosen tab is
 // kept in the address bar hash so a reload or shared link opens it again.
-function ReportTabs({ tabs, children }) {
+// One line under the header after a rerun: did the score move, and how many
+// problems went away or showed up. The full lists live on the Insights tab.
+function ChangeSinceLastCheck({ delta, onDetails }) {
+  const summary = delta.summary || {};
+  const scoreDelta = Number(summary.scoreDelta || 0);
+  const fixed = Number(summary.fixedIssuesCount || 0);
+  const added = Number(summary.newIssuesCount || 0);
+  const tone = scoreDelta > 0 || (fixed > 0 && added === 0) ? "up" : scoreDelta < 0 || added > fixed ? "down" : "flat";
+  const headline =
+    scoreDelta > 0
+      ? `Score up ${scoreDelta} since your last check`
+      : scoreDelta < 0
+        ? `Score down ${Math.abs(scoreDelta)} since your last check`
+        : "Score unchanged since your last check";
+  return (
+    <section className={`report-change ${tone}`} aria-label="Change since your last check">
+      <strong>{headline}</strong>
+      <span>
+        {fixed} fixed · {added} new
+      </span>
+      <button className="report-change-link" onClick={onDetails} type="button">
+        See what changed
+      </button>
+    </section>
+  );
+}
+
+function ReportTabs({ tabs, children, selectRef }) {
   const keys = tabs.map((tab) => tab.key);
   const [active, setActive] = useState(() => {
     const fromHash = window.location.hash.replace("#", "");
@@ -364,6 +411,15 @@ function ReportTabs({ tabs, children }) {
     window.history.replaceState(window.history.state, "", `${pathname}${search}${key === keys[0] ? "" : `#${key}`}`);
     if (focus) listRef.current?.querySelector(`#report-tab-${key}`)?.focus();
   }
+
+  useEffect(() => {
+    if (!selectRef) return;
+    selectRef.current = (key) => {
+      if (!keys.includes(key)) return;
+      select(key);
+      listRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+  });
 
   function onKeyDown(event) {
     const index = keys.indexOf(active);

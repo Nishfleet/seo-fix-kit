@@ -4830,6 +4830,52 @@ a.app-table-row:hover {
   margin-top: 10px;
 }
 
+.report-rerun-status {
+  color: var(--ink-muted);
+  font-size: 13px;
+  margin: 8px 0 0;
+}
+
+.report-rerun-status.error {
+  color: var(--error, #b42318);
+}
+
+.report-change {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-left: 3px solid var(--line-strong);
+  border-radius: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 14px;
+  gap: 4px 14px;
+  margin: 0 0 16px;
+  padding: 10px 14px;
+}
+
+.report-change.up {
+  border-left-color: var(--accent-strong);
+}
+
+.report-change.down {
+  border-left-color: var(--error, #b42318);
+}
+
+.report-change span {
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.report-change-link {
+  background: transparent;
+  color: var(--accent-strong);
+  font-size: 14px;
+  font-weight: 600;
+  margin-left: auto;
+  padding: 0;
+}
+
 .report-header .score-ring {
   flex: 0 0 auto;
   height: 112px;
