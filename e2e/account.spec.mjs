@@ -110,3 +110,31 @@ test("a report lists every problem and jumps from the top fixes to the proof", a
   await expect(target).toHaveAttribute("open", "");
   await expect(target.getByText("Evidence", { exact: true })).toBeInViewport();
 });
+
+test("the check-your-inbox screen opens the right webmail and resends the link after a short wait", async ({
+  page,
+  request
+}, testInfo) => {
+  const email = uniqueEmail(testInfo, "inbox").replace("@example.com", "@gmail.com");
+  await page.goto("/beta");
+  await page.getByLabel("Email").fill(email);
+  await typeLikeAPerson(page);
+  await page.getByRole("button", { name: "Email me a sign-in link" }).click();
+  await expect(page.getByRole("heading", { name: "Check your inbox" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open Gmail" })).toHaveAttribute(
+    "href",
+    /^https:\/\/mail\.google\.com\//
+  );
+  await signInLinkFor(request, email);
+
+  const resend = page.getByRole("button", { name: /^Resend link/ });
+  await expect(resend).toBeDisabled();
+  await expect(resend).toHaveText(/in \d+s$/);
+  await page.clock.fastForward(31_000);
+  await expect(resend).toHaveText("Resend link");
+  await resend.click();
+  await expect(page.getByText("We sent a new link.")).toBeVisible();
+  await expect
+    .poll(async () => (await (await request.get(`/__e2e/emails?to=${encodeURIComponent(email)}`)).json()).length)
+    .toBe(2);
+});

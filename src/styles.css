@@ -3943,8 +3943,35 @@ a.app-table-row:hover {
   text-align: center;
 }
 
-.signin-sent .text-button {
-  margin-top: 16px;
+.signin-inbox {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+  text-decoration: none;
+}
+
+.signin-sent .signin-hint {
+  color: var(--ink-muted);
+  font-size: 13px;
+}
+
+.signin-sent-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  justify-content: space-between;
+  margin-top: 12px;
+}
+
+.signin-sent-actions .text-button {
+  padding: 6px 0;
+}
+
+.signin-sent-actions .text-button:disabled {
+  color: var(--ink-muted);
+  cursor: default;
 }
 
 .signin-legal {
@@ -4105,7 +4132,35 @@ a.app-table-row:hover {
 }
 
 .app-loading {
+  align-items: center;
+  display: flex;
+  justify-content: center;
   min-height: 100vh;
+}
+
+/* Fades in only if the session check is slow, so fast loads never flash. */
+.app-loading-brand {
+  animation: sfk-loading-in 240ms var(--ease-out) 400ms both;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .app-loading-brand {
+    animation:
+      sfk-loading-in 240ms var(--ease-out) 400ms both,
+      sfk-loading-pulse 1.6s ease-in-out 640ms infinite;
+  }
+}
+
+@keyframes sfk-loading-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes sfk-loading-pulse {
+  50% {
+    opacity: 0.55;
+  }
 }
 
 .signin-alt .text-button {
