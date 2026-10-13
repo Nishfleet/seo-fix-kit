@@ -3249,7 +3249,7 @@ export const ROOT_PUBLIC_LASTMODS = {
   "/small-business-seo-audit": "2026-10-13T04:43:48Z",
   "/rendered-vs-static-seo-audit": "2026-10-13T04:43:48Z",
   "/ai-answer-readiness": "2026-10-13T04:43:48Z",
-  "/privacy": "2026-10-13T04:43:48Z",
+  "/privacy": "2026-10-13T18:26:15Z",
   "/proof": "2026-10-13T04:43:48Z",
   "/support": "2026-10-13T04:43:48Z",
   "/terms": "2026-10-13T04:43:48Z",

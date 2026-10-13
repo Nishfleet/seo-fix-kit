@@ -86,7 +86,8 @@ export function buildSiteProgress(reports = [], schedules = [], { limit = 4 } = 
         issuesChange: last.issues - first.issues,
         since: first.createdAt,
         latestAt: latestByHost.get(host) || "",
-        reportPath: last.reportPath,
+        // Points older than 30 days have no full report left to open.
+        reportPath: [...points].reverse().find((point) => point.reportPath)?.reportPath || "",
         nextCheckAt: nextCheckByHost.get(host) || ""
       };
     })

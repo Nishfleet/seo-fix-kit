@@ -132,6 +132,15 @@ const server = http.createServer(async (request, response) => {
         target_host: new URL(report.url).hostname,
         expires_at: new Date(Date.now() + 30 * 86_400_000).toISOString()
       });
+      env.WAITLIST_DB.insert("score_history", {
+        owner_email: ownerEmail,
+        report_id: id,
+        url: report.url,
+        target_host: new URL(report.url).hostname,
+        score: report.score,
+        total_findings: report.summary?.totalFindings || 0,
+        created_at: now
+      });
       response.writeHead(200, { "content-type": "application/json" });
       response.end(JSON.stringify({ id }));
       return;

@@ -71,18 +71,22 @@ async function getAccountSummary(request, env) {
     )
       .bind(access.ownerEmail)
       .all(),
-    // Score history for the progress card: light columns only, every saved
-    // report still inside retention.
+    // Score history for the progress card: kept 12 months, longer than
+    // the reports themselves. report_exists says whether a point can link.
     env.WAITLIST_DB.prepare(
-      `SELECT url, score, summary_json, created_at, id
-       FROM audit_reports
-       WHERE owner_email = ?
-         AND (expires_at IS NULL OR expires_at > ?)
-       ORDER BY created_at DESC
-       LIMIT 200`
+      `SELECT h.url, h.score, h.total_findings, h.created_at, h.report_id,
+        EXISTS (
+          SELECT 1 FROM audit_reports r
+          WHERE r.id = h.report_id AND (r.expires_at IS NULL OR r.expires_at > ?)
+        ) AS report_exists
+       FROM score_history h
+       WHERE h.owner_email = ?
+       ORDER BY h.created_at DESC
+       LIMIT 400`
     )
-      .bind(access.ownerEmail, new Date().toISOString())
+      .bind(new Date().toISOString(), access.ownerEmail)
       .all()
+      .catch(() => ({ results: [] }))
   ]);
   const reportRows = reports.results || [];
   const [repairQueueRows, repairActionRows] = await Promise.all([
@@ -163,9 +167,9 @@ async function getAccountSummary(request, env) {
       (progressReports.results || []).map((row) => ({
         url: row.url,
         score: row.score,
-        totalFindings: parseJson(row.summary_json, {}).totalFindings || 0,
+        totalFindings: row.total_findings,
         createdAt: row.created_at,
-        reportPath: `/beta/reports/${row.id}`
+        reportPath: row.report_exists ? `/beta/reports/${row.report_id}` : ""
       })),
       schedules
     ),

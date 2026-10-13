@@ -1,4 +1,4 @@
-import { deleteReportRowsWithBlobs } from "./report-data.js";
+import { SCORE_HISTORY_DAYS, deleteReportRowsWithBlobs } from "./report-data.js";
 import { isoSecondsFromNow } from "./text.js";
 
 async function runD1BatchChunks(env, statements = [], chunkSize = 100) {
@@ -55,7 +55,10 @@ async function cleanupExpiredRows(env) {
     env.WAITLIST_DB.prepare(
       `DELETE FROM admin_sessions WHERE expires_at < ? OR (revoked_at IS NOT NULL AND revoked_at < ?)`
     ).bind(now, isoSecondsFromNow(-24 * 60 * 60)),
-    env.WAITLIST_DB.prepare(`DELETE FROM audit_usage WHERE updated_at < ?`).bind(isoSecondsFromNow(-7 * 24 * 60 * 60))
+    env.WAITLIST_DB.prepare(`DELETE FROM audit_usage WHERE updated_at < ?`).bind(isoSecondsFromNow(-7 * 24 * 60 * 60)),
+    env.WAITLIST_DB.prepare(`DELETE FROM score_history WHERE created_at < ?`).bind(
+      isoSecondsFromNow(-SCORE_HISTORY_DAYS * 24 * 60 * 60)
+    )
   ]);
 }
 

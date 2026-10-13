@@ -189,6 +189,17 @@ function Change({ value, goodWhen, unit = "" }) {
   );
 }
 
+// A row opens the site's newest report while one is still kept.
+function ProgressRowLink({ to, children }) {
+  return to ? (
+    <Link discover="none" className="progress-row" to={to}>
+      {children}
+    </Link>
+  ) : (
+    <div className="progress-row">{children}</div>
+  );
+}
+
 function ProgressCard({ sites }) {
   if (!sites.length) return null;
   return (
@@ -196,13 +207,13 @@ function ProgressCard({ sites }) {
       <div className="app-card-head">
         <div>
           <h2 id="progress-title">Your progress</h2>
-          <p className="app-card-subtle">Each site’s score across its saved checks. Higher is better.</p>
+          <p className="app-card-subtle">Each site’s score over the last 12 months of checks. Higher is better.</p>
         </div>
       </div>
       <ul className="progress-list">
         {sites.map((site) => (
           <li key={site.host}>
-            <Link discover="none" className="progress-row" to={site.reportPath}>
+            <ProgressRowLink to={site.reportPath}>
               <span className="progress-site">
                 <strong>{site.host}</strong>
                 <span>
@@ -234,7 +245,7 @@ function ProgressCard({ sites }) {
                 </strong>
                 <span>problems</span>
               </span>
-            </Link>
+            </ProgressRowLink>
           </li>
         ))}
       </ul>
