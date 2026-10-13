@@ -19,8 +19,11 @@ for (const path of ROOT_PUBLIC_PATHS) {
     );
     await expect(page.getByRole("contentinfo")).toBeVisible();
 
-    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-    expect(overflow, "page scrolls sideways").toBeLessThanOrEqual(0);
+    // Compare with the screen, not window.innerWidth: a phone widens its
+    // layout viewport to fit wide content, so innerWidth hides the overflow.
+    const screenWidth = page.viewportSize().width;
+    const pageWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+    expect(pageWidth, "page scrolls sideways").toBeLessThanOrEqual(screenWidth);
   });
 }
 

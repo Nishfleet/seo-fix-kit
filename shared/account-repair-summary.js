@@ -130,7 +130,7 @@ function repairNextAction(item = {}) {
   return {
     rank: item.status === "in_progress" ? 4 : 5,
     nextActionId: "start-proof-repair",
-    nextActionLabel: "Start top repair",
+    nextActionLabel: "Start repair",
     nextActionDetail: `${item.title || "A repair"} is the next problem to fix.`
   };
 }

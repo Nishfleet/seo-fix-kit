@@ -921,6 +921,13 @@ async function extractRenderedFacts(browser, url, options = {}) {
         }
       });
       const bodyText = text(document.body);
+      // First real paragraph of the page's own content, skipping navigation
+      // and chrome, so a suggested description reads like the page.
+      const leadText =
+        [...(document.querySelector("main, article, [role=main]") || document.body).querySelectorAll("p")]
+          .filter((node) => !node.closest("nav, header, footer, aside, [role=navigation]"))
+          .map(text)
+          .find((value) => value.split(" ").length >= 8) || "";
       const origin = location.origin;
       const number = (value) => {
         const parsed = Number(value);
@@ -1009,7 +1016,8 @@ async function extractRenderedFacts(browser, url, options = {}) {
         resourceTimingsTotal: allResourceTimings.length,
         wordCount: bodyText ? bodyText.split(/\s+/).filter(Boolean).length : 0,
         bodyText: bodyText.slice(0, 6000),
-        bodySample: bodyText.slice(0, 280)
+        bodySample: bodyText.slice(0, 280),
+        leadText: leadText.slice(0, 600)
       };
     });
 
@@ -1100,6 +1108,14 @@ function extractStaticFacts(html, url, fetchResult = {}) {
     .replace(/<noscript[\s\S]*?<\/noscript>/gi, "");
   const body = withoutScripts.match(/<body[\s\S]*?<\/body>/i)?.[0] || withoutScripts;
   const bodyText = decodeEntities(stripTags(body)).replace(/\s+/g, " ").trim();
+  const contentMarkup = (body.match(/<main\b[\s\S]*?<\/main>/i)?.[0] || body).replace(
+    /<(nav|header|footer|aside)\b[\s\S]*?<\/\1>/gi,
+    ""
+  );
+  const leadText =
+    [...contentMarkup.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi)]
+      .map((match) => decodeEntities(stripTags(match[1])).replace(/\s+/g, " ").trim())
+      .find((value) => value.split(" ").length >= 8) || "";
   const links = [...staticMarkup.matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)]
     .map((match) => ({
       href: absolute(match[1], base.href),
@@ -1238,7 +1254,8 @@ function extractStaticFacts(html, url, fetchResult = {}) {
       .map((item) => item.error || `JSON-LD block ${item.index} is missing @context.`),
     wordCount: bodyText ? bodyText.split(/\s+/).filter(Boolean).length : 0,
     bodyText: bodyText.slice(0, 6000),
-    bodySample: bodyText.slice(0, 280)
+    bodySample: bodyText.slice(0, 280),
+    leadText: leadText.slice(0, 600)
   };
 }
 
@@ -3156,10 +3173,27 @@ function suggestTitle(url, facts) {
   return trimSentence(firstH1 || `${host} page`, 58);
 }
 
+// A starting point for a missing meta description: the page's first real
+// paragraph, cut at a sentence end where one fits (Google shows ~155 chars).
 function suggestDescription(facts = {}) {
   const base =
-    facts.bodySample || facts.title || "Clear page summary that explains the offer, audience, and next action.";
-  return trimSentence(base.replace(/\s+/g, " "), 150);
+    facts.leadText ||
+    facts.bodySample ||
+    facts.title ||
+    "Clear page summary that explains the offer, audience, and next action.";
+  const cleaned = base.replace(/\s+/g, " ").trim();
+  const max = 155;
+  if (cleaned.length <= max) return cleaned;
+  const sentences = cleaned.match(/[^.!?]+[.!?]+(?=\s|$)/g) || [];
+  let fitted = "";
+  for (const sentence of sentences) {
+    const next = `${fitted} ${sentence.trim()}`.trim();
+    if (next.length > max) break;
+    fitted = next;
+  }
+  if (fitted.length >= 70) return fitted;
+  const cut = cleaned.slice(0, max - 1);
+  return `${cut.slice(0, cut.lastIndexOf(" ") > 0 ? cut.lastIndexOf(" ") : cut.length).replace(/[,;:\s]+$/, "")}…`;
 }
 
 function trimSentence(value, max) {
@@ -3207,7 +3241,7 @@ export const ROOT_PUBLIC_PATHS = [
 // worker/routes/pages.test.mjs refuses a stale lastmod so the update
 // cannot silently ship.
 export const ROOT_PUBLIC_LASTMODS = {
-  "/": "2026-10-13T04:43:48Z",
+  "/": "2026-10-13T16:38:22Z",
   "/demo": "2026-10-13T04:43:48Z",
   "/check": "2026-10-13T04:43:48Z",
   "/methodology": "2026-10-13T04:43:48Z",
