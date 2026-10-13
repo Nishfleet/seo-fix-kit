@@ -207,8 +207,44 @@ async function saveAuditReportWithContext(report, env, access, origin) {
       access.inviteId || null
     )
     .run();
+  await recordScoreHistory(env, {
+    ownerEmail: access.ownerEmail,
+    reportId: id,
+    url: saved.url,
+    targetHost,
+    score: saved.score,
+    totalFindings: saved.summary?.totalFindings,
+    createdAt: now
+  });
 
   return storageReport;
+}
+
+// The long-lived score line behind the progress card: a few numbers per
+// report, kept for 12 months after the full report expires. Never fails the
+// save.
+const SCORE_HISTORY_DAYS = 366;
+
+async function recordScoreHistory(env, row) {
+  if (!row.ownerEmail) return;
+  try {
+    await env.WAITLIST_DB.prepare(
+      `INSERT OR IGNORE INTO score_history (owner_email, report_id, url, target_host, score, total_findings, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    )
+      .bind(
+        row.ownerEmail,
+        row.reportId,
+        row.url,
+        row.targetHost || "",
+        Math.round(Number(row.score) || 0),
+        Math.round(Number(row.totalFindings) || 0),
+        row.createdAt
+      )
+      .run();
+  } catch (error) {
+    console.error("Score history was not recorded", error);
+  }
 }
 
 // Report bodies live in R2; the D1 column keeps a marker pointing at the
@@ -547,6 +583,7 @@ export {
   PRESERVED_REPAIR_PROPOSAL_DELIVERY_STATUSES,
   R2_REPORT_MARKER,
   REPORT_RETENTION_DAYS,
+  SCORE_HISTORY_DAYS,
   REPORT_STORAGE_MAX_BYTES,
   compactAuditPageForStorage,
   compactAuditReportForStorage,
