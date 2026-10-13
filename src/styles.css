@@ -4293,6 +4293,25 @@ a.app-table-row:hover {
   font-size: 12.5px;
 }
 
+.app-table-row-reports {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 0.8fr) minmax(0, 0.8fr) minmax(0, 0.8fr) minmax(0, 1.2fr);
+}
+
+.app-table-num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* On phones: page, score and problems; pages scanned and date drop out. */
+@media (max-width: 560px) {
+  .app-table-row-reports {
+    grid-template-columns: minmax(0, 1.6fr) auto minmax(56px, auto);
+  }
+
+  .app-table-row-reports > :nth-child(3) {
+    display: none;
+  }
+}
+
 .app-table-row-job {
   grid-template-columns: minmax(0, 1.2fr) minmax(0, 2fr) auto;
 }

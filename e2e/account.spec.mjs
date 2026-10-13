@@ -22,6 +22,13 @@ test("a new visitor signs up from the homepage and lands in their workspace", as
   await page.goto(await signInLinkFor(request, email));
   await expect(page.getByRole("heading", { level: 1, name: "Overview" })).toBeVisible();
   await expect(page).toHaveURL(/\/beta$/);
+
+  // A new account starts with its first audit: the setup list's button
+  // lands in the URL field.
+  const setup = page.getByRole("region", { name: "Set up your account" });
+  await expect(setup.getByRole("listitem").first()).toContainText("Run your first audit");
+  await setup.getByRole("link", { name: "Run audit" }).click();
+  await expect(page.getByLabel("Page or site URL")).toBeFocused();
 });
 
 test("a returning user signs in, visits every section and signs out", async ({ page, request, isMobile }, testInfo) => {
@@ -67,7 +74,11 @@ test("a used sign-in link cannot sign anyone in again", async ({ page, request, 
   await stranger.close();
 });
 
-test("a report lists every problem and jumps from the top fixes to the proof", async ({ page, request }, testInfo) => {
+test("a report lists every problem and jumps from the top fixes to the proof", async ({
+  page,
+  request,
+  isMobile
+}, testInfo) => {
   const email = uniqueEmail(testInfo, "report");
   await page.goto("/beta");
   await page.getByLabel("Email").fill(email);
@@ -81,6 +92,13 @@ test("a report lists every problem and jumps from the top fixes to the proof", a
     route.fulfill({ json: { pricing: { displayPrice: "$49", currency: "USD" } } })
   );
   const { id } = await (await request.post("/__e2e/reports", { data: { ownerEmail: email } })).json();
+
+  // The reports list shows how big each audit was and what it found.
+  await page.goto("/beta/reports");
+  const row = page.getByRole("table", { name: "Reports" }).getByRole("row", { name: /acme-widgets\.example/ });
+  await expect(row.locator(".app-table-num").nth(1)).toHaveText("6");
+  if (!isMobile) await expect(row.locator(".app-table-num").nth(0)).toHaveText("3");
+
   await page.goto(`/beta/reports/${id}`);
   await expect(page.getByRole("heading", { level: 1, name: "acme-widgets.example" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "All problems (6)" })).toBeVisible();
