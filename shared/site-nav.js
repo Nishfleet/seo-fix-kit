@@ -33,6 +33,7 @@ export const SITE_NAV = [
       }
     ]
   },
+  { href: "/tools", label: "Free tools" },
   { href: "/methodology", label: "How it works" },
   { href: "/pricing", label: "Pricing" },
   { href: "/beta", label: "Sign in", kind: "sign-in" }
@@ -56,6 +57,16 @@ export const SITE_FOOTER = [
       { href: "/small-business-seo-audit", label: "Small business SEO audit" },
       { href: "/rendered-vs-static-seo-audit", label: "JavaScript SEO audit" },
       { href: "/ai-answer-readiness", label: "AI answer readiness" }
+    ]
+  },
+  {
+    title: "Free tools",
+    links: [
+      { href: "/tools/meta-tags", label: "Meta tag generator" },
+      { href: "/tools/schema", label: "Schema generator" },
+      { href: "/tools/robots-txt", label: "Robots.txt generator" },
+      { href: "/tools/serp-preview", label: "SERP preview" },
+      { href: "/tools", label: "All free tools" }
     ]
   },
   {

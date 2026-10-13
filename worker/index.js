@@ -34,6 +34,8 @@ import {
   termsHtml
 } from "./routes/pages.js";
 import { checkHtml, runPublicCheck } from "./routes/public-check.js";
+import { toolPageHtml, toolsIndexHtml } from "./routes/tools.js";
+import { FREE_TOOLS } from "../shared/free-tools/catalog.js";
 import {
   betaLogin,
   betaLogout,
@@ -408,6 +410,13 @@ app.get("/pricing", htmlPage(pricingHtml));
 app.get("/small-business-seo-audit", htmlPage(smallBusinessSeoAuditHtml));
 app.get("/rendered-vs-static-seo-audit", htmlPage(renderedVsStaticAuditHtml));
 app.get("/ai-answer-readiness", htmlPage(aiAnswerReadinessHtml));
+app.get("/tools", htmlPage(toolsIndexHtml));
+for (const tool of FREE_TOOLS) {
+  app.get(
+    `/tools/${tool.slug}`,
+    htmlPage((origin) => toolPageHtml(origin, tool))
+  );
+}
 
 function proofPage(c) {
   const acceptsMarkdown =

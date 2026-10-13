@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { fileURLToPath } from "node:url";
 import { defineConfig, transformWithEsbuild } from "vite";
 import react from "@vitejs/plugin-react";
 import { notFoundHtml } from "./worker/routes/pages.js";
@@ -31,8 +32,25 @@ function siteStylesheet() {
   };
 }
 
+// The free tools at /tools/* are Worker-rendered pages that load one script,
+// /tools.js, built from shared/free-tools/client.js under a fixed name so the
+// Worker can link it without reading a build manifest.
+function freeToolsScript() {
+  return {
+    name: "seofixkit-free-tools-script",
+    apply: "build",
+    buildStart() {
+      this.emitFile({
+        type: "chunk",
+        id: fileURLToPath(new URL("shared/free-tools/client.js", import.meta.url)),
+        fileName: "tools.js"
+      });
+    }
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), siteStylesheet()],
+  plugins: [react(), siteStylesheet(), freeToolsScript()],
   server: {
     proxy: {
       "/api": "http://127.0.0.1:8787",
