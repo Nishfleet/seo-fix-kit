@@ -148,7 +148,13 @@ function uniqueTitles(issues = [], limit = 3) {
 }
 
 // Pure builder, so tests can check the words without sending anything.
-function buildAuditEmail({ report = {}, job = {}, appOrigin = "https://seofixkit.com", unsubscribeUrl = "" }) {
+function buildAuditEmail({
+  report = {},
+  job = {},
+  autoSchedule = null,
+  appOrigin = "https://seofixkit.com",
+  unsubscribeUrl = ""
+}) {
   const host = reportHost(report, job);
   const scheduled = Boolean(job.schedule_id);
   const delta = report.reportDelta?.status === "ready" ? report.reportDelta : null;
@@ -236,6 +242,18 @@ function buildAuditEmail({ report = {}, job = {}, appOrigin = "https://seofixkit
         .join("")
     : "";
 
+  const nextCheck = autoSchedule?.next_run_at
+    ? new Date(autoSchedule.next_run_at).toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+        timeZone: "UTC"
+      })
+    : "";
+  const autoNote = nextCheck
+    ? `Weekly checks are now on. We’ll check ${host} again on ${nextCheck} and email you what you fixed and what’s new.`
+    : "";
+
   const why = scheduled
     ? `You get this because weekly checks are on for ${host}.`
     : "You get this when an audit you started finishes.";
@@ -251,6 +269,9 @@ function buildAuditEmail({ report = {}, job = {}, appOrigin = "https://seofixkit
     listBlock("New since last check", newTitles, BAD, "!"),
     fixBlock,
     emailButton(reportUrl, "Open report"),
+    autoNote
+      ? `<p style="background:#eef7f2;border-radius:10px;color:${INK};font-size:14px;line-height:20px;margin:16px 0 0;padding:12px 14px">${escapeHtml(autoNote)} <a href="${escapeHtml(`${appOrigin}/beta/sites`)}" style="color:${GOOD}">Change this</a>.</p>`
+      : "",
     `<p style="color:${MUTED};font-size:12px;line-height:18px;margin:16px 0 0">${escapeHtml(why)}${unsubscribeHtml}</p>`
   ].join("");
 
@@ -271,6 +292,7 @@ function buildAuditEmail({ report = {}, job = {}, appOrigin = "https://seofixkit
     "",
     `Open the report: ${reportUrl}`,
     "",
+    ...(autoNote ? [autoNote, `Change this: ${appOrigin}/beta/sites`, ""] : []),
     why,
     ...(unsubscribeUrl ? [`Stop audit emails: ${unsubscribeUrl}`] : [])
   ].join("\n");
@@ -286,7 +308,10 @@ function buildAuditEmail({ report = {}, job = {}, appOrigin = "https://seofixkit
 
 // Called after a queued audit saves its report. Never throws: a failed email
 // must not fail the audit.
-async function sendAuditCompletedEmail(env, { job = {}, report = {}, appOrigin = "https://seofixkit.com" }) {
+async function sendAuditCompletedEmail(
+  env,
+  { job = {}, report = {}, autoSchedule = null, appOrigin = "https://seofixkit.com" }
+) {
   try {
     if (!env.EMAIL || !emailSender(env) || !env.WAITLIST_DB) return { sent: false, reason: "email-not-configured" };
     if (!shouldEmailAudit(job, report)) return { sent: false, reason: "not-needed" };
@@ -294,7 +319,7 @@ async function sendAuditCompletedEmail(env, { job = {}, report = {}, appOrigin =
     if (!preferences) return { sent: false, reason: "no-preferences" };
     if (!preferences.auditEmails) return { sent: false, reason: "unsubscribed" };
     const unsubscribeUrl = `${appOrigin}/email/unsubscribe/${preferences.unsubscribeToken}`;
-    const message = buildAuditEmail({ report, job, appOrigin, unsubscribeUrl });
+    const message = buildAuditEmail({ report, job, autoSchedule, appOrigin, unsubscribeUrl });
     await sendWorkerEmail(env, { to: preferences.ownerEmail, ...message });
     return { sent: true, tag: message.tag };
   } catch (error) {

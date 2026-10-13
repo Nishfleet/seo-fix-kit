@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import { createHash, randomBytes } from "node:crypto";
 import test from "node:test";
 import { app } from "../worker/index.js";
+import { autoEnableWeeklyCheck } from "../worker/routes/audits.js";
 import { buildAuditEmail, sendAuditCompletedEmail, shouldEmailAudit, topFixes } from "../worker/lib/audit-emails.js";
 import { createTestD1 } from "./support/d1.mjs";
 
@@ -227,4 +228,106 @@ test("a broken email binding never fails the audit", async () => {
   } finally {
     console.error = realError;
   }
+});
+
+const DONE_AT = "2026-10-13T10:00:00.000Z";
+const manualJob = (overrides = {}) => ({
+  owner_email: OWNER,
+  owner_session_hash: "",
+  owner_invite_id: "",
+  access_mode: "self-serve",
+  target_url: "https://www.example.com/",
+  target_host: "www.example.com",
+  max_pages: 10,
+  schedule_id: "",
+  ...overrides
+});
+
+function schedules(db) {
+  return db.sqlite
+    .prepare("SELECT target_url, max_pages, interval_days, status, next_run_at FROM audit_schedules")
+    .all();
+}
+
+test("a first audit of a verified site turns weekly checks on at the same depth", async () => {
+  const db = createTestD1();
+  db.insert("site_claims", {
+    id: "c1",
+    owner_email: OWNER,
+    host: "example.com",
+    verification_token: "t",
+    status: "verified",
+    created_at: DONE_AT,
+    updated_at: DONE_AT,
+    verified_at: DONE_AT
+  });
+  const schedule = await autoEnableWeeklyCheck({ WAITLIST_DB: db }, manualJob(), DONE_AT);
+  assert.equal(schedule.next_run_at, "2026-10-20T10:00:00.000Z");
+  assert.deepEqual(
+    schedules(db).map((row) => ({ ...row })),
+    [
+      {
+        target_url: "https://www.example.com/",
+        max_pages: 10,
+        interval_days: 7,
+        status: "active",
+        next_run_at: "2026-10-20T10:00:00.000Z"
+      }
+    ]
+  );
+
+  // A second audit (another page, or a rerun) leaves the schedule alone.
+  assert.equal(
+    await autoEnableWeeklyCheck(
+      { WAITLIST_DB: db },
+      manualJob({ target_url: "https://www.example.com/pricing" }),
+      DONE_AT
+    ),
+    null
+  );
+  assert.equal(schedules(db).length, 1);
+});
+
+test("an unverified site gets the one-page weekly check it could already run", async () => {
+  const db = createTestD1();
+  const schedule = await autoEnableWeeklyCheck({ WAITLIST_DB: db }, manualJob({ max_pages: 1 }), DONE_AT);
+  assert.equal(schedule.max_pages, 1);
+  assert.equal(schedules(db)[0].max_pages, 1);
+});
+
+test("weekly checks never come back after the owner paused them, and API audits never start them", async () => {
+  const db = createTestD1();
+  db.insert("audit_schedules", {
+    id: "s-old",
+    owner_email: OWNER,
+    access_mode: "self-serve",
+    target_url: "https://www.example.com/",
+    target_host: "www.example.com",
+    status: "paused",
+    next_run_at: DONE_AT,
+    created_at: DONE_AT,
+    updated_at: DONE_AT,
+    paused_at: DONE_AT
+  });
+  assert.equal(await autoEnableWeeklyCheck({ WAITLIST_DB: db }, manualJob(), DONE_AT), null);
+  assert.equal(
+    await autoEnableWeeklyCheck({ WAITLIST_DB: createTestD1() }, manualJob({ access_mode: "api" }), DONE_AT),
+    null
+  );
+  assert.equal(
+    await autoEnableWeeklyCheck({ WAITLIST_DB: createTestD1() }, manualJob({ schedule_id: "s1" }), DONE_AT),
+    null
+  );
+});
+
+test("the report-ready email says weekly checks are now on and when the next one runs", () => {
+  const email = buildAuditEmail({
+    report: firstReport,
+    job: { max_pages: 10 },
+    autoSchedule: { next_run_at: "2026-10-20T10:00:00.000Z" }
+  });
+  assert.match(email.html, /Weekly checks are now on\. We’ll check example\.com again on Tuesday, October 20/);
+  assert.match(email.html, /\/beta\/sites/);
+  assert.match(email.text, /Change this: https:\/\/seofixkit\.com\/beta\/sites/);
+  assert.doesNotMatch(buildAuditEmail({ report: firstReport, job: {} }).html, /Weekly checks are now on/);
 });
