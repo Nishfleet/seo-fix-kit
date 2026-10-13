@@ -18,6 +18,7 @@ export const queryKeys = {
   account: ["account-summary"],
   reports: ["reports"],
   developer: ["developer"],
+  emailPreferences: ["email-preferences"],
   billing: ["billing-summary"],
   pricing: ["pricing-preview"],
   report: (id) => ["report", id],

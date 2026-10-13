@@ -36,6 +36,7 @@ import {
 } from "../lib/text.js";
 import { body, number, parseJsonBody, text, z } from "../lib/validation.js";
 import { deliverApiWebhooks } from "../lib/webhooks.js";
+import { sendAuditCompletedEmail } from "../lib/audit-emails.js";
 
 const scalarInput = z.union([z.string(), z.number()]).nullish();
 // Imports accept either pasted text (CSV, one per line) or an array of rows.
@@ -881,6 +882,11 @@ async function processAuditJob(env, jobId, context = {}) {
         )
         .run();
     }
+    await sendAuditCompletedEmail(env, {
+      job: row,
+      report: saved,
+      appOrigin: context.appOrigin || "https://seofixkit.com"
+    });
     await deliverApiWebhooks(env, row.owner_email, "audit.completed", {
       audit: apiAuditResponse({
         ...row,

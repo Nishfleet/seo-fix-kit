@@ -1,4 +1,4 @@
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link } from "react-router";
 import StatusMessage from "../../StatusMessage.jsx";
@@ -9,7 +9,7 @@ import { CopyButton } from "../../components/CopyButton.jsx";
 import { Metric } from "../../components/Metric.jsx";
 import { hostKey, formatDate, safeHostnameLabel } from "../../lib/format.js";
 import { queryKeys } from "../../lib/queries.js";
-import { fetchReportsPage } from "../../lib/requests.js";
+import { fetchEmailPreferences, fetchReportsPage, saveEmailPreferences } from "../../lib/requests.js";
 import { repairStatusLabel, statusLabel, auditJobDetail, auditScheduleDetail } from "../../lib/labels.js";
 
 // Overview: first-run checklist until the account is set up, the new-audit
@@ -623,6 +623,47 @@ function SecretBox({ title, value }) {
 
 const API_KEY_LIMIT = 5;
 
+// Audit emails: "report ready" and each weekly check result. On by default;
+// every email also carries a one-click unsubscribe link.
+function EmailUpdatesCard() {
+  const queryClient = useQueryClient();
+  const preferences = useQuery({ queryKey: queryKeys.emailPreferences, queryFn: fetchEmailPreferences });
+  const save = useMutation({
+    mutationFn: saveEmailPreferences,
+    onSuccess: (data) => queryClient.setQueryData(queryKeys.emailPreferences, data)
+  });
+  const enabled = save.isPending ? save.variables : Boolean(preferences.data?.auditEmails);
+  return (
+    <section className="app-card email-updates" aria-labelledby="email-updates-title">
+      <div className="app-card-head">
+        <div>
+          <h2 id="email-updates-title">Email updates</h2>
+          <p className="app-card-subtle">
+            Get an email when an audit finishes, and after each weekly check with what you fixed, what’s new and what to
+            fix next.
+          </p>
+        </div>
+        {preferences.isSuccess && (
+          <button
+            aria-checked={enabled}
+            aria-labelledby="email-updates-title"
+            className={`app-switch${enabled ? " on" : ""}`}
+            disabled={save.isPending}
+            onClick={() => save.mutate(!enabled)}
+            role="switch"
+            type="button"
+          >
+            <span aria-hidden="true" />
+          </button>
+        )}
+      </div>
+      {preferences.isPending && <SkeletonRows rows={1} label="Loading email settings" />}
+      {preferences.isError && <LoadError message={preferences.error.message} onRetry={() => preferences.refetch()} />}
+      {save.isError && <StatusMessage tone="error">{save.error.message}</StatusMessage>}
+    </section>
+  );
+}
+
 export function DeveloperApiPanel({
   apiTokenSecret,
   developerData,
@@ -658,6 +699,7 @@ export function DeveloperApiPanel({
     <>
       {loadError && <LoadError message={loadError} onRetry={onRetry} />}
       <StatusMessage tone={developerStatus}>{developerMessage}</StatusMessage>
+      <EmailUpdatesCard />
       <section className="app-card" aria-labelledby="api-keys-title">
         <div className="app-card-head">
           <div>

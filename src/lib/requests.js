@@ -428,3 +428,15 @@ export function adminRequestHeaders(token, json = false) {
   if (json) headers["content-type"] = "application/json";
   return headers;
 }
+
+export async function fetchEmailPreferences() {
+  return apiFetch("/api/account/email-preferences", { fallbackError: "Your email settings didn’t load." });
+}
+
+export async function saveEmailPreferences(auditEmails) {
+  return apiFetch("/api/account/email-preferences", {
+    method: "POST",
+    body: { auditEmails },
+    fallbackError: "That setting didn’t save. Try again."
+  });
+}

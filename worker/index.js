@@ -13,6 +13,12 @@ import {
   updateFixRequestAdmin
 } from "./routes/admin.js";
 import { getAccountSummary, listReports } from "./routes/account.js";
+import {
+  confirmUnsubscribe,
+  getEmailPreferences,
+  saveEmailPreferences,
+  showUnsubscribe
+} from "./routes/email-preferences.js";
 import { json, secureHeaders, withPrivateHeaders, withSecurityHeaders } from "./lib/http.js";
 import { getDeepHealth } from "./routes/health.js";
 import { isSafeUuid } from "./lib/text.js";
@@ -291,6 +297,12 @@ app.get("/api/report-domains", route(listReportDomains));
 app.post("/api/report-domains", route(createReportDomain));
 app.post("/api/report-domains/:id/verify", route(verifyReportDomain));
 app.delete("/api/report-domains/:id", route(revokeReportDomain));
+
+// --- Audit email preferences -------------------------------------------------
+app.get("/api/account/email-preferences", route(getEmailPreferences));
+app.post("/api/account/email-preferences", route(saveEmailPreferences));
+app.get("/email/unsubscribe/:token", route(showUnsubscribe));
+app.post("/email/unsubscribe/:token", route(confirmUnsubscribe));
 
 // --- Audits and schedules ----------------------------------------------------
 app.post("/api/audit", route(runPrivateAudit));
