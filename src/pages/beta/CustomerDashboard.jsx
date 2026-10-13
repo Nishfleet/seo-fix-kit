@@ -574,6 +574,7 @@ export function SitesPage({
                     <dl className="verification-records">
                       {site.metaTag && (
                         <VerificationRecord
+                          recommended
                           title="Easiest: paste a tag into your homepage"
                           note="In Wix, Squarespace, Shopify or WordPress, open your site’s header or SEO settings, paste this tag, and publish."
                           fields={[["Tag", site.metaTag]]}
@@ -644,9 +645,9 @@ export function SitesPage({
   );
 }
 
-function VerificationRecord({ title, note = "", fields }) {
+function VerificationRecord({ title, note = "", fields, recommended = false }) {
   return (
-    <div className="verification-record">
+    <div className={`verification-record${recommended ? " recommended" : ""}`}>
       <dt>{title}</dt>
       {note && <dd className="verification-note">{note}</dd>}
       {fields.map(([label, value]) => (
