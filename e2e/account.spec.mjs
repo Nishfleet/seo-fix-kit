@@ -156,3 +156,34 @@ test("the check-your-inbox screen opens the right webmail and resends the link a
     .poll(async () => (await (await request.get(`/__e2e/emails?to=${encodeURIComponent(email)}`)).json()).length)
     .toBe(2);
 });
+
+test("the overview shows each site's progress and the Alerts page switches audit emails", async ({
+  page,
+  request
+}, testInfo) => {
+  const email = uniqueEmail(testInfo, "progress");
+  await page.goto("/beta");
+  await page.getByLabel("Email").fill(email);
+  await typeLikeAPerson(page);
+  await page.getByRole("button", { name: "Email me a sign-in link" }).click();
+  const link = await signInLinkFor(request, email);
+  await request.post("/__e2e/reports", { data: { ownerEmail: email, score: 12, daysAgo: 7 } });
+  await request.post("/__e2e/reports", { data: { ownerEmail: email } });
+  await page.goto(link);
+
+  const progress = page.getByRole("region", { name: "Your progress" });
+  const site = progress.getByRole("link", { name: /acme-widgets\.example/ });
+  await expect(site).toContainText("2 checks since");
+  await expect(site.locator(".progress-change.good")).toHaveText("▲ 8");
+  await expect(site.locator(".progress-spark")).toBeVisible({ visible: !testInfo.project.name.includes("mobile") });
+  const width = await page.evaluate(() => document.documentElement.scrollWidth);
+  expect(width).toBeLessThanOrEqual(page.viewportSize().width);
+
+  await page.goto("/beta/developers");
+  const toggle = page.getByRole("switch", { name: "Email updates" });
+  await expect(toggle).toHaveAttribute("aria-checked", "true");
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-checked", "false");
+  await page.reload();
+  await expect(page.getByRole("switch", { name: "Email updates" })).toHaveAttribute("aria-checked", "false");
+});

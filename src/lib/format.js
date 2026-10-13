@@ -129,3 +129,9 @@ export function findingAnchor(finding) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")}`;
 }
+
+// "Oct 20": for dates close enough that the year and time add nothing.
+export function formatShortDate(value) {
+  if (!value) return "";
+  return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(new Date(value));
+}

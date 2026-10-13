@@ -12,6 +12,7 @@ import {
 import { reportJsonForRow } from "../lib/report-data.js";
 import { deriveRepairQueueItems } from "../../shared/repair-queue.js";
 import { repairAccountSummaryFromItems } from "../../shared/account-repair-summary.js";
+import { buildSiteProgress } from "../../shared/site-progress.js";
 
 async function getAccountSummary(request, env) {
   const access = await betaAccessStatus(request, env);
@@ -19,7 +20,7 @@ async function getAccountSummary(request, env) {
   if (!env.WAITLIST_DB)
     return json({ error: "Account storage is not set up on this server. Email support@seofixkit.com for help." }, 503);
 
-  const [reports, fixRequests, auditJobs, siteClaims, auditSchedules] = await Promise.all([
+  const [reports, fixRequests, auditJobs, siteClaims, auditSchedules, progressReports] = await Promise.all([
     env.WAITLIST_DB.prepare(
       `SELECT id, url, target_host, score, summary_json, created_at, expires_at
        FROM audit_reports
@@ -69,6 +70,18 @@ async function getAccountSummary(request, env) {
        LIMIT 20`
     )
       .bind(access.ownerEmail)
+      .all(),
+    // Score history for the progress card: light columns only, every saved
+    // report still inside retention.
+    env.WAITLIST_DB.prepare(
+      `SELECT url, score, summary_json, created_at, id
+       FROM audit_reports
+       WHERE owner_email = ?
+         AND (expires_at IS NULL OR expires_at > ?)
+       ORDER BY created_at DESC
+       LIMIT 200`
+    )
+      .bind(access.ownerEmail, new Date().toISOString())
       .all()
   ]);
   const reportRows = reports.results || [];
@@ -146,6 +159,16 @@ async function getAccountSummary(request, env) {
       regressedRepairs: repairAgent.counts.regressed + repairAgent.counts.monitorRegressions
     },
     recentReports,
+    progress: buildSiteProgress(
+      (progressReports.results || []).map((row) => ({
+        url: row.url,
+        score: row.score,
+        totalFindings: parseJson(row.summary_json, {}).totalFindings || 0,
+        createdAt: row.created_at,
+        reportPath: `/beta/reports/${row.id}`
+      })),
+      schedules
+    ),
     recentAuditJobs,
     sites,
     schedules,

@@ -36,6 +36,7 @@ import {
 } from "../lib/text.js";
 import { body, number, parseJsonBody, text, z } from "../lib/validation.js";
 import { deliverApiWebhooks } from "../lib/webhooks.js";
+import { sendAuditCompletedEmail } from "../lib/audit-emails.js";
 
 const scalarInput = z.union([z.string(), z.number()]).nullish();
 // Imports accept either pasted text (CSV, one per line) or an array of rows.
@@ -290,6 +291,82 @@ async function listAuditSchedules(request, env) {
   });
 }
 
+async function insertAuditSchedule(env, schedule) {
+  await env.WAITLIST_DB.prepare(
+    `INSERT INTO audit_schedules
+    (id, owner_email, owner_session_hash, owner_invite_id, access_mode, target_url, target_host, max_pages, interval_days, status, next_run_at, last_run_at, last_job_id, last_report_id, last_error, created_at, updated_at, paused_at)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  )
+    .bind(
+      schedule.id,
+      schedule.owner_email,
+      schedule.owner_session_hash,
+      schedule.owner_invite_id || null,
+      schedule.access_mode,
+      schedule.target_url,
+      schedule.target_host,
+      schedule.max_pages,
+      schedule.interval_days,
+      schedule.status,
+      schedule.next_run_at,
+      null,
+      null,
+      null,
+      null,
+      schedule.created_at,
+      schedule.updated_at,
+      null
+    )
+    .run();
+}
+
+// Turns weekly checks on by itself after someone's first finished audit, so
+// the habit loop (weekly email: fixed, new, next fix) starts without a setup
+// step. Only for an owner who has never had a schedule: a paused or removed
+// one means they chose not to. Verified sites keep the page depth they just
+// ran; unverified sites get the one-page check they could run anyway.
+async function autoEnableWeeklyCheck(env, job, completedAt) {
+  if (job.schedule_id || job.access_mode === "api" || !job.owner_email) return null;
+  try {
+    const existing = await env.WAITLIST_DB.prepare(`SELECT id FROM audit_schedules WHERE owner_email = ? LIMIT 1`)
+      .bind(job.owner_email)
+      .first();
+    if (existing?.id) return null;
+    const access = {
+      ownerEmail: job.owner_email,
+      sessionHash: job.owner_session_hash || "",
+      inviteId: job.owner_invite_id || "",
+      accessMode: job.access_mode || "invite"
+    };
+    const authorization = await auditAuthorizationStatus(env, access, job.target_url, { allowLite: true });
+    if (!authorization.ok) return null;
+    const monitoring = await monitoringAccessForOwner(env, job.owner_email, 0);
+    if (Number(monitoring.limit || 0) < 1) return null;
+    const schedule = {
+      id: crypto.randomUUID(),
+      owner_email: job.owner_email,
+      owner_session_hash: access.sessionHash,
+      owner_invite_id: access.inviteId,
+      access_mode: access.accessMode,
+      target_url: job.target_url,
+      target_host: job.target_host || safeHostname(job.target_url),
+      max_pages: authorization.lite ? 1 : clampPageLimit(job.max_pages || 10),
+      interval_days: 7,
+      status: "active",
+      next_run_at: isoDaysFromDate(completedAt, 7),
+      created_at: completedAt,
+      updated_at: completedAt
+    };
+    await insertAuditSchedule(env, schedule);
+    return schedule;
+  } catch (error) {
+    // The unique active-schedule index can race a manual add; either way the
+    // audit itself already succeeded.
+    console.error("Automatic weekly check was not turned on", error);
+    return null;
+  }
+}
+
 async function createAuditSchedule(request, env) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
@@ -390,32 +467,7 @@ async function createAuditSchedule(request, env) {
     paused_at: ""
   };
 
-  await env.WAITLIST_DB.prepare(
-    `INSERT INTO audit_schedules
-      (id, owner_email, owner_session_hash, owner_invite_id, access_mode, target_url, target_host, max_pages, interval_days, status, next_run_at, last_run_at, last_job_id, last_report_id, last_error, created_at, updated_at, paused_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  )
-    .bind(
-      schedule.id,
-      schedule.owner_email,
-      schedule.owner_session_hash,
-      schedule.owner_invite_id || null,
-      schedule.access_mode,
-      schedule.target_url,
-      schedule.target_host,
-      schedule.max_pages,
-      schedule.interval_days,
-      schedule.status,
-      schedule.next_run_at,
-      null,
-      null,
-      null,
-      null,
-      schedule.created_at,
-      schedule.updated_at,
-      null
-    )
-    .run();
+  await insertAuditSchedule(env, schedule);
 
   return jsonNoStore({
     ok: true,
@@ -881,6 +933,13 @@ async function processAuditJob(env, jobId, context = {}) {
         )
         .run();
     }
+    const autoSchedule = await autoEnableWeeklyCheck(env, row, completedAt);
+    await sendAuditCompletedEmail(env, {
+      job: row,
+      autoSchedule,
+      report: saved,
+      appOrigin: context.appOrigin || "https://seofixkit.com"
+    });
     await deliverApiWebhooks(env, row.owner_email, "audit.completed", {
       audit: apiAuditResponse({
         ...row,
@@ -1121,6 +1180,7 @@ export {
   renderedFixture,
   resumeStaleQueuedAuditJobs,
   runAuditSchedule,
+  autoEnableWeeklyCheck,
   runDueAuditSchedules,
   runPrivateAudit,
   runPrivateDemoAudit

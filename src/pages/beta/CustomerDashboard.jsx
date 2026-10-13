@@ -1,4 +1,4 @@
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link } from "react-router";
 import StatusMessage from "../../StatusMessage.jsx";
@@ -7,9 +7,9 @@ import { Badge, EmptyState, LoadError, SkeletonRows } from "../../components/App
 import { CodeBlock } from "../../components/CodeBlock.jsx";
 import { CopyButton } from "../../components/CopyButton.jsx";
 import { Metric } from "../../components/Metric.jsx";
-import { hostKey, formatDate, safeHostnameLabel } from "../../lib/format.js";
+import { hostKey, formatDate, formatShortDate, safeHostnameLabel } from "../../lib/format.js";
 import { queryKeys } from "../../lib/queries.js";
-import { fetchReportsPage } from "../../lib/requests.js";
+import { fetchEmailPreferences, fetchReportsPage, saveEmailPreferences } from "../../lib/requests.js";
 import { repairStatusLabel, statusLabel, auditJobDetail, auditScheduleDetail } from "../../lib/labels.js";
 
 // Overview: first-run checklist until the account is set up, the new-audit
@@ -138,6 +138,7 @@ export function Overview({ accountData, auditPanel, message, status, onRetry }) 
               value={`${monitorCount}/${metrics.monitorLimit || accountData?.monitoring?.limit || 5}`}
             />
           </section>
+          <ProgressCard sites={accountData?.progress || []} />
           <RepairAgentFeed items={repairItems} nextAction={primaryAction} reports={reports} />
           <section className="app-card" aria-labelledby="recent-reports-title">
             <div className="app-card-head">
@@ -151,6 +152,93 @@ export function Overview({ accountData, auditPanel, message, status, onRetry }) 
         </>
       )}
     </div>
+  );
+}
+
+// Score over a site's saved checks: a small line, the latest score and how
+// far it and the problem count moved since the first check. With one check
+// so far it says when the next weekly check will add the second point.
+function Sparkline({ points }) {
+  const width = 120;
+  const height = 32;
+  const scores = points.map((point) => point.score);
+  const low = Math.max(0, Math.min(...scores) - 5);
+  const high = Math.min(100, Math.max(...scores) + 5);
+  const span = Math.max(1, high - low);
+  const xy = points.map((point, index) => [
+    points.length === 1 ? width / 2 : 3 + (index * (width - 6)) / (points.length - 1),
+    3 + (height - 6) * (1 - (point.score - low) / span)
+  ]);
+  const [lastX, lastY] = xy[xy.length - 1];
+  return (
+    <svg aria-hidden="true" className="progress-spark" height={height} viewBox={`0 0 ${width} ${height}`} width={width}>
+      <polyline fill="none" points={xy.map(([x, y]) => `${x},${y}`).join(" ")} />
+      <circle cx={lastX} cy={lastY} r="3" />
+    </svg>
+  );
+}
+
+function Change({ value, goodWhen, unit = "" }) {
+  if (!value) return <span className="progress-change">±0</span>;
+  const good = goodWhen === "up" ? value > 0 : value < 0;
+  return (
+    <span className={`progress-change ${good ? "good" : "bad"}`}>
+      {value > 0 ? "▲" : "▼"} {Math.abs(value)}
+      {unit}
+    </span>
+  );
+}
+
+function ProgressCard({ sites }) {
+  if (!sites.length) return null;
+  return (
+    <section className="app-card" aria-labelledby="progress-title">
+      <div className="app-card-head">
+        <div>
+          <h2 id="progress-title">Your progress</h2>
+          <p className="app-card-subtle">Each site’s score across its saved checks. Higher is better.</p>
+        </div>
+      </div>
+      <ul className="progress-list">
+        {sites.map((site) => (
+          <li key={site.host}>
+            <Link discover="none" className="progress-row" to={site.reportPath}>
+              <span className="progress-site">
+                <strong>{site.host}</strong>
+                <span>
+                  {site.checks > 1
+                    ? `${site.checks} checks since ${formatShortDate(site.since)}`
+                    : site.nextCheckAt
+                      ? `Next check ${formatShortDate(site.nextCheckAt)}`
+                      : `Checked ${formatShortDate(site.since)}`}
+                </span>
+              </span>
+              {site.checks > 1 ? (
+                <Sparkline points={site.points} />
+              ) : (
+                <span className="progress-first">
+                  {site.nextCheckAt ? "Your trend starts after the next weekly check." : "Rerun to start your trend."}
+                </span>
+              )}
+              <span className="progress-stat">
+                <strong>
+                  {site.scoreNow}
+                  {site.checks > 1 && <Change goodWhen="up" value={site.scoreChange} />}
+                </strong>
+                <span>score</span>
+              </span>
+              <span className="progress-stat">
+                <strong>
+                  {site.issuesNow}
+                  {site.checks > 1 && <Change goodWhen="down" value={site.issuesChange} />}
+                </strong>
+                <span>problems</span>
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
@@ -623,6 +711,47 @@ function SecretBox({ title, value }) {
 
 const API_KEY_LIMIT = 5;
 
+// Audit emails: "report ready" and each weekly check result. On by default;
+// every email also carries a one-click unsubscribe link.
+function EmailUpdatesCard() {
+  const queryClient = useQueryClient();
+  const preferences = useQuery({ queryKey: queryKeys.emailPreferences, queryFn: fetchEmailPreferences });
+  const save = useMutation({
+    mutationFn: saveEmailPreferences,
+    onSuccess: (data) => queryClient.setQueryData(queryKeys.emailPreferences, data)
+  });
+  const enabled = save.isPending ? save.variables : Boolean(preferences.data?.auditEmails);
+  return (
+    <section className="app-card email-updates" aria-labelledby="email-updates-title">
+      <div className="app-card-head">
+        <div>
+          <h2 id="email-updates-title">Email updates</h2>
+          <p className="app-card-subtle">
+            Get an email when an audit finishes, and after each weekly check with what you fixed, what’s new and what to
+            fix next.
+          </p>
+        </div>
+        {preferences.isSuccess && (
+          <button
+            aria-checked={enabled}
+            aria-labelledby="email-updates-title"
+            className={`app-switch${enabled ? " on" : ""}`}
+            disabled={save.isPending}
+            onClick={() => save.mutate(!enabled)}
+            role="switch"
+            type="button"
+          >
+            <span aria-hidden="true" />
+          </button>
+        )}
+      </div>
+      {preferences.isPending && <SkeletonRows rows={1} label="Loading email settings" />}
+      {preferences.isError && <LoadError message={preferences.error.message} onRetry={() => preferences.refetch()} />}
+      {save.isError && <StatusMessage tone="error">{save.error.message}</StatusMessage>}
+    </section>
+  );
+}
+
 export function DeveloperApiPanel({
   apiTokenSecret,
   developerData,
@@ -658,6 +787,7 @@ export function DeveloperApiPanel({
     <>
       {loadError && <LoadError message={loadError} onRetry={onRetry} />}
       <StatusMessage tone={developerStatus}>{developerMessage}</StatusMessage>
+      <EmailUpdatesCard />
       <section className="app-card" aria-labelledby="api-keys-title">
         <div className="app-card-head">
           <div>
