@@ -4858,6 +4858,17 @@ a.app-table-row:hover {
   border-left-color: var(--accent-strong);
 }
 
+.report-change.win {
+  background: linear-gradient(90deg, rgba(152, 240, 204, 0.14), var(--surface) 60%);
+  border-color: var(--accent);
+  border-left-color: var(--accent);
+}
+
+.report-change .report-change-mark {
+  color: var(--accent);
+  margin-right: 8px;
+}
+
 .report-change.down {
   border-left-color: var(--error, #b42318);
 }

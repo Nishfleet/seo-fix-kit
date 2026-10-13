@@ -202,6 +202,7 @@ test("Check again reruns a report and leads with what changed", async ({ page, r
     await request.post("/__e2e/reports", {
       data: {
         ownerEmail: email,
+        score: 92,
         reportDelta: {
           status: "ready",
           summary: { scoreDelta: 8, issuesDelta: -1, fixedIssuesCount: 1, newIssuesCount: 0, persistentIssuesCount: 6 },
@@ -237,7 +238,8 @@ test("Check again reruns a report and leads with what changed", async ({ page, r
   expect(sent.url).toContain("acme-widgets.example");
 
   const change = page.getByRole("region", { name: "Change since your last check" });
-  await expect(change).toContainText("Score up 8 since your last check");
+  // 84 to 92 crosses 90, which the strip celebrates.
+  await expect(change).toContainText("You crossed 90. Up 8 since your last check");
   await expect(change).toContainText("1 fixed · 0 new");
   await change.getByRole("button", { name: "See what changed" }).click();
   await expect(page.getByRole("tab", { name: "Insights" })).toHaveAttribute("aria-selected", "true");

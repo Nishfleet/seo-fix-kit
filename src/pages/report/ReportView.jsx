@@ -157,7 +157,11 @@ export function ReportView({ report, onRerun, rerunStatus = "idle", rerunMessage
       </header>
 
       {reportDelta?.status === "ready" && (
-        <ChangeSinceLastCheck delta={reportDelta} onDetails={() => tabsRef.current?.("insights")} />
+        <ChangeSinceLastCheck
+          delta={reportDelta}
+          score={Number(report.score)}
+          onDetails={() => tabsRef.current?.("insights")}
+        />
       )}
 
       {(checkoutReturned || report.fixRequest) && (
@@ -364,21 +368,40 @@ function tabPanelProps(key) {
 // kept in the address bar hash so a reload or shared link opens it again.
 // One line under the header after a rerun: did the score move, and how many
 // problems went away or showed up. The full lists live on the Insights tab.
-function ChangeSinceLastCheck({ delta, onDetails }) {
+function ChangeSinceLastCheck({ delta, score, onDetails }) {
   const summary = delta.summary || {};
   const scoreDelta = Number(summary.scoreDelta || 0);
   const fixed = Number(summary.fixedIssuesCount || 0);
   const added = Number(summary.newIssuesCount || 0);
-  const tone = scoreDelta > 0 || (fixed > 0 && added === 0) ? "up" : scoreDelta < 0 || added > fixed ? "down" : "flat";
+  // Crossing 90, or reaching 100, is worth a moment of its own.
+  const milestone = scoreDelta > 0 ? [100, 90].find((mark) => score >= mark && score - scoreDelta < mark) : undefined;
+  const tone = milestone
+    ? "win"
+    : scoreDelta > 0 || (fixed > 0 && added === 0)
+      ? "up"
+      : scoreDelta < 0 || added > fixed
+        ? "down"
+        : "flat";
   const headline =
-    scoreDelta > 0
-      ? `Score up ${scoreDelta} since your last check`
-      : scoreDelta < 0
-        ? `Score down ${Math.abs(scoreDelta)} since your last check`
-        : "Score unchanged since your last check";
+    milestone === 100
+      ? `A perfect 100. Up ${scoreDelta} since your last check`
+      : milestone
+        ? `You crossed 90. Up ${scoreDelta} since your last check`
+        : scoreDelta > 0
+          ? `Score up ${scoreDelta} since your last check`
+          : scoreDelta < 0
+            ? `Score down ${Math.abs(scoreDelta)} since your last check`
+            : "Score unchanged since your last check";
   return (
     <section className={`report-change ${tone}`} aria-label="Change since your last check">
-      <strong>{headline}</strong>
+      <strong>
+        {milestone && (
+          <span aria-hidden="true" className="report-change-mark">
+            ★
+          </span>
+        )}
+        {headline}
+      </strong>
       <span>
         {fixed} fixed · {added} new
       </span>

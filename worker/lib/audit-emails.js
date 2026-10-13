@@ -170,9 +170,17 @@ function buildAuditEmail({
   const fixedTitles = uniqueTitles(delta?.fixedIssues);
   const newTitles = uniqueTitles(delta?.newIssues);
 
+  const milestone = delta && scoreDelta > 0 ? [100, 90].find((mark) => score >= mark && score - scoreDelta < mark) : 0;
+
   let subject;
   let headline;
-  if (delta && fixedCount > 0) {
+  if (milestone) {
+    subject = milestone === 100 ? `${host} scored a perfect 100` : `${host} crossed 90: score ${score}`;
+    headline =
+      milestone === 100
+        ? `A perfect 100 on ${host}. Every check passes.`
+        : `${host} crossed 90. That puts it in top shape.`;
+  } else if (delta && fixedCount > 0) {
     subject = `${host}: ${plural(fixedCount, "problem")} fixed, score ${score}`;
     headline = `Nice work. You fixed ${plural(fixedCount, "problem")} on ${host}.`;
   } else if (delta && newCount > 0) {
