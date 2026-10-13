@@ -232,6 +232,40 @@ test.describe("free page check", () => {
   });
 });
 
+test("the homepage starts from a pasted URL and runs the check straight away", async ({ page }) => {
+  let requested = null;
+  await page.route("**/api/public-check", (route) => {
+    requested = route.request().postDataJSON().url;
+    return route.fulfill({
+      json: {
+        ok: true,
+        checkedUrl: "https://example.com/",
+        finalUrl: "https://example.com/",
+        measured: {},
+        guards: [],
+        findings: [],
+        nextStep: "Create a free account to audit the whole site.",
+        boundary: "One public page at one moment."
+      }
+    });
+  });
+  await page.goto("/");
+  await page.getByLabel("Page to check").fill("example.com");
+  await page.getByRole("button", { name: "Check it free" }).click();
+  await expect(page).toHaveURL(/\/check\?url=example\.com$/);
+  await expect(page.getByLabel("Public page URL")).toHaveValue("example.com");
+  await expect(page.getByText("Checked: https://example.com/")).toBeVisible();
+  expect(requested).toBe("example.com");
+});
+
+test("the status page shows each part of the service", async ({ page }) => {
+  await page.goto("/status");
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  for (const name of ["Website and API", "Page checks and site audits", "Sign-in emails", "Fix Pack checkout"]) {
+    await expect(page.getByText(name, { exact: true })).toBeVisible();
+  }
+});
+
 test.describe("404", () => {
   test("an unknown address answers 404 with a way back", async ({ page }) => {
     const response = await page.goto("/this-page-does-not-exist");

@@ -114,7 +114,7 @@ export function WaitlistPage() {
               </span>
             </h1>
             <div className="enter" style={{ "--enter-delay": "140ms" }}>
-              <AccessForm />
+              <HeroCheckForm />
             </div>
           </div>
         </section>
@@ -295,16 +295,11 @@ export function WaitlistPage() {
 
         <section className="landing-final hero-light reveal" aria-labelledby="final-title">
           <h2 className="ink-gradient" id="final-title">
-            See what’s wrong with your site.
+            Audit the whole site, free.
           </h2>
-          <p>Check one page free. No account, no card.</p>
-          <div className="landing-final-actions">
-            <a className="btn btn-primary btn-lg" href="/check">
-              Check a page <span className="arrow">→</span>
-            </a>
-            <a className="btn btn-secondary btn-lg" href="#get-started">
-              Create an account
-            </a>
+          <p>Create a free account to audit up to 1,000 pages, keep every report and track each fix.</p>
+          <div className="landing-final-form">
+            <AccessForm />
           </div>
         </section>
       </main>
@@ -416,6 +411,39 @@ function ProofTicker() {
   );
 }
 
+// The hero's first step: paste a page and see its real problems at /check,
+// which runs the check straight away. A plain GET form, so it works before
+// (and without) JavaScript.
+function HeroCheckForm() {
+  return (
+    <form className="landing-form" action="/check" method="get" role="search" aria-label="Check a page">
+      <label className="sr-only" htmlFor="hero-url">
+        Page to check
+      </label>
+      <div className="landing-form-row">
+        <input
+          autoCapitalize="off"
+          autoComplete="url"
+          id="hero-url"
+          inputMode="url"
+          name="url"
+          placeholder="yoursite.com"
+          required
+          spellCheck="false"
+          type="text"
+        />
+        <button className="btn btn-primary" type="submit">
+          Check it free
+        </button>
+      </div>
+      <p className="form-message">Free for any public page. No account, no card.</p>
+      <p className="landing-form-alt">
+        Or <a href="#get-started">create a free account to audit the whole site →</a>
+      </p>
+    </form>
+  );
+}
+
 function AccessForm() {
   const [email, setEmail] = useState("");
   const [company, setCompany] = useState("");
@@ -514,9 +542,6 @@ function AccessForm() {
             </a>
           </>
         )}
-      </p>
-      <p className="landing-form-alt">
-        Or <a href="/check">check one page without an account →</a>
       </p>
     </form>
   );

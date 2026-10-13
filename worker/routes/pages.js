@@ -931,6 +931,39 @@ function aiAnswerReadinessHtml(origin) {
 // rendered as a visible section AND emitted as FAQPage JSON-LD, so machine
 // schema can never drift from the visible copy. `softwareDescription`, when
 // provided, adds a truthful SoftwareApplication block for the tool itself.
+function aboutHtml(origin) {
+  return publicProductPageHtml({
+    origin,
+    path: "/about",
+    title: "About",
+    description:
+      "Why SEO Fix Kit exists, how it works, and the limits it keeps: real-browser evidence, only problems that are really there, and a rerun that proves each fix.",
+    eyebrow: "About",
+    heading: "We built the SEO audit we wanted to trust.",
+    lead: "Most audit tools read raw HTML, flag hundreds of warnings and leave you to work out which are real. SEO Fix Kit loads each page in a real browser, reports only what it can prove, and reruns after you ship to show each fix worked.",
+    body: `
+      <section class="grid two" aria-label="How we work">
+        <article class="panel"><strong>Evidence over scores</strong><h3>Every problem shows its proof.</h3><p>Each finding comes with what the browser saw on your page, so you can check it yourself before you spend time on it.</p></article>
+        <article class="panel"><strong>Fewer, real problems</strong><h3>False alarms are ruled out, in the open.</h3><p>When a simple crawler would flag something the rendered page gets right, the report says so instead of padding the list.</p></article>
+        <article class="panel"><strong>Proof after the fix</strong><h3>Done means the rerun passed.</h3><p>A fix counts when a fresh audit of the live page confirms it, not when someone ticks a box. <a href="${origin}/proof">See a real before and after</a>.</p></article>
+        <article class="panel"><strong>Honest limits</strong><h3>We say what we don’t do.</h3><p>No ranking guarantees, no traffic estimates, and no claims about AI answers we can’t measure. <a href="${origin}/methodology">Read the full method</a>.</p></article>
+      </section>
+      <section class="band">
+        <h2>The company</h2>
+        <ul class="check-list">
+          <li>SEO Fix Kit is in beta. Page checks, site audits of up to 1,000 pages and the ${FIX_PACK_PUBLIC_PRICE.replace(" one-time", "")} Fix Pack are live today.</li>
+          <li>It runs on Cloudflare: pages are rendered with Cloudflare’s browser service and reports are stored in Cloudflare’s data centres.</li>
+          <li>Payments are handled by Dodo Payments as merchant of record. We never see your card details.</li>
+          <li>Full site audits run only on sites whose owners have verified them. The free page check stores nothing.</li>
+        </ul>
+      </section>
+      <section class="band">
+        <h2>Get in touch</h2>
+        <p>Questions, feedback or a problem with a report: <a href="mailto:support@seofixkit.com">support@seofixkit.com</a>. Security reports: see <a href="${origin}/.well-known/security.txt">security.txt</a>. Live service health: <a href="${origin}/status">status page</a>.</p>
+      </section>`
+  });
+}
+
 function publicProductPageHtml({
   origin,
   path,
@@ -1477,6 +1510,7 @@ function notFoundHtml(origin = "") {
 
 export {
   SOCIAL_IMAGE_HEIGHT,
+  aboutHtml,
   SOCIAL_IMAGE_PATH,
   SOCIAL_IMAGE_WIDTH,
   aiAnswerReadinessHtml,
