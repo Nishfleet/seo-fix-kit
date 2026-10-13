@@ -3,7 +3,7 @@
 // read back from the test server and its link opened in the browser.
 import { expect, signInLinkFor, test, typeLikeAPerson, uniqueEmail } from "./fixtures.mjs";
 
-const SECTIONS = ["Overview", "Reports", "Sites", "Developers", "Billing"];
+const SECTIONS = ["Overview", "Reports", "Sites", "Alerts & API", "Billing"];
 
 async function openAppNav(page, isMobile) {
   const nav = page.getByRole("navigation", { name: "App" });

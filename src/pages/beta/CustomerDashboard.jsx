@@ -703,14 +703,15 @@ export function DeveloperApiPanel({
       <section className="app-card" aria-labelledby="webhooks-title">
         <div className="app-card-head">
           <div>
-            <h2 id="webhooks-title">Webhooks</h2>
+            <h2 id="webhooks-title">Alerts and webhooks</h2>
             <p className="app-card-subtle">
-              We send a signed POST request to your URL when an audit finishes or fails, and when a fix changes status.
+              Paste a Slack incoming webhook URL to get a message in a channel when an audit finishes, a rerun confirms
+              a fix, or a fixed problem comes back. Any other HTTPS URL gets a signed JSON request instead.
             </p>
           </div>
         </div>
         <form className="developer-webhook-form" onSubmit={onWebhookCreate}>
-          <label htmlFor="webhook-url">Endpoint URL</label>
+          <label htmlFor="webhook-url">Slack webhook or endpoint URL</label>
           <div className="audit-row">
             <input
               autoCapitalize="none"
@@ -718,14 +719,14 @@ export function DeveloperApiPanel({
               id="webhook-url"
               inputMode="url"
               onChange={(event) => onWebhookUrlChange(event.target.value)}
-              placeholder="https://example.com/seofixkit-webhook"
+              placeholder="https://hooks.slack.com/services/…"
               required
               spellCheck={false}
               type="url"
               value={webhookUrl}
             />
             <button disabled={busy || loading} type="submit">
-              Add endpoint
+              Add
             </button>
           </div>
         </form>
@@ -739,7 +740,7 @@ export function DeveloperApiPanel({
             {webhooks.map((webhook) => (
               <div className="app-table-row app-table-row-hooks" role="row" key={webhook.id}>
                 <span role="cell" className="app-table-primary">
-                  {webhook.url}
+                  {webhook.kind === "slack" ? "Slack channel" : webhook.url}
                 </span>
                 <span role="cell" className="app-table-muted">
                   {(webhook.events || []).join(", ")}
@@ -757,9 +758,7 @@ export function DeveloperApiPanel({
             ))}
           </div>
         ) : (
-          <EmptyState icon="plug">
-            No endpoints yet. Add a URL above to get a request when an audit finishes.
-          </EmptyState>
+          <EmptyState icon="plug">No alerts yet. Add a Slack webhook URL above to get alerts in a channel.</EmptyState>
         )}
       </section>
 
