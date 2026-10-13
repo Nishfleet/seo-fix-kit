@@ -36,6 +36,8 @@ import {
 } from "../lib/text.js";
 import { body, number, parseJsonBody, text, z } from "../lib/validation.js";
 import { deliverApiWebhooks } from "../lib/webhooks.js";
+import { sendWorkerEmail } from "../lib/email.js";
+import { buildProgressEmail } from "../../shared/progress-email.js";
 
 const scalarInput = z.union([z.string(), z.number()]).nullish();
 // Imports accept either pasted text (CSV, one per line) or an array of rows.
@@ -816,6 +818,24 @@ async function enqueueAuditJob(env, ctx, jobId, appOrigin) {
   else await processing;
 }
 
+// Weekly monitor reruns used to finish silently. Tell the owner what got
+// fixed or broke; never let an email problem fail the audit itself.
+async function sendMonitorProgressEmail(env, row, saved) {
+  try {
+    if (!env.EMAIL) return;
+    const mail = buildProgressEmail({
+      report: saved,
+      delta: saved.reportDelta,
+      reportUrl: saved.reportUrl,
+      host: safeHostname(row.target_url)
+    });
+    if (!mail) return;
+    await sendWorkerEmail(env, { to: row.owner_email, ...mail, tag: "monitor-progress" });
+  } catch (error) {
+    console.error("Monitor progress email failed", error);
+  }
+}
+
 async function processAuditJob(env, jobId, context = {}) {
   if (!env.WAITLIST_DB || !isSafeUuid(jobId)) return;
 
@@ -880,6 +900,9 @@ async function processAuditJob(env, jobId, context = {}) {
           row.schedule_id
         )
         .run();
+    }
+    if (row.schedule_id) {
+      await sendMonitorProgressEmail(env, row, saved);
     }
     await deliverApiWebhooks(env, row.owner_email, "audit.completed", {
       audit: apiAuditResponse({
