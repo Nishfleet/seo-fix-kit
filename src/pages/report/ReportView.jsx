@@ -120,12 +120,7 @@ export function ReportView({ report, onRerun, rerunStatus = "idle", rerunMessage
           </p>
           <div className="report-header-actions">
             {onRerun && (
-              <button
-                className="app-button"
-                disabled={rerunStatus === "loading"}
-                onClick={onRerun}
-                type="button"
-              >
+              <button className="app-button" disabled={rerunStatus === "loading"} onClick={onRerun} type="button">
                 {rerunStatus === "loading" ? "Checking…" : "Check again"}
               </button>
             )}
