@@ -28,13 +28,6 @@ export function Overview({ accountData, auditPanel, message, status, onRetry }) 
   const monitorCount = metrics.monitors || schedules.length;
   const steps = [
     {
-      done: verifiedCount > 0,
-      title: "Add and verify your site",
-      detail: "Add a DNS record or a small file to show you own it. Until then you can audit your homepage.",
-      to: "/beta/sites",
-      cta: "Add site"
-    },
-    {
       done: reports.length > 0,
       title: "Run your first audit",
       detail: "Start with your homepage, pricing page or best-selling product page.",
@@ -47,6 +40,13 @@ export function Overview({ accountData, auditPanel, message, status, onRetry }) 
       detail: "Open a report to see each problem, its evidence and the fix.",
       to: reports[0]?.reportPath || "/beta/reports",
       cta: "Open report"
+    },
+    {
+      done: verifiedCount > 0,
+      title: "Add and verify your site",
+      detail: "Add a DNS record or a small file to show you own it. Until then you can audit your homepage.",
+      to: "/beta/sites",
+      cta: "Add site"
     },
     {
       done: monitorCount > 0,
@@ -98,7 +98,17 @@ export function Overview({ accountData, auditPanel, message, status, onRetry }) 
                 ) : step !== currentStep ? (
                   <span />
                 ) : step.to.startsWith("#") ? (
-                  <a className="app-button" href={step.to}>
+                  <a
+                    className="app-button"
+                    href={step.to}
+                    onClick={(event) => {
+                      const input = document.getElementById("audit-url");
+                      if (!input) return;
+                      event.preventDefault();
+                      document.querySelector(step.to)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                      input.focus({ preventScroll: true });
+                    }}
+                  >
                     {step.cta}
                   </a>
                 ) : (
@@ -155,25 +165,38 @@ function reportLabel(item) {
   }
 }
 
-function ReportRows({ reports }) {
+function ReportRows({ reports, detailed = false }) {
   if (!reports.length) {
     return <EmptyState icon="file">No reports yet. Run your first audit to see problems here.</EmptyState>;
   }
+  const rowClass = detailed ? "app-table-row app-table-row-reports" : "app-table-row";
   return (
     <div className="app-table" role="table" aria-label="Reports">
-      <div className="app-table-row app-table-headrow" role="row">
+      <div className={`${rowClass} app-table-headrow`} role="row">
         <span role="columnheader">Page</span>
         <span role="columnheader">Score</span>
+        {detailed && <span role="columnheader">Pages</span>}
+        {detailed && <span role="columnheader">Problems</span>}
         <span role="columnheader">Date</span>
       </div>
       {reports.map((item) => (
-        <Link discover="none" className="app-table-row" role="row" to={item.reportPath} key={item.id}>
+        <Link discover="none" className={rowClass} role="row" to={item.reportPath} key={item.id}>
           <span role="cell" className="app-table-primary">
             {reportLabel(item)}
           </span>
           <span role="cell">
             <ScoreBadge score={item.score} />
           </span>
+          {detailed && (
+            <span role="cell" className="app-table-num">
+              {Number(item.pagesScanned || 0).toLocaleString("en-US")}
+            </span>
+          )}
+          {detailed && (
+            <span role="cell" className="app-table-num">
+              {Number(item.totalFindings || 0).toLocaleString("en-US")}
+            </span>
+          )}
           <span role="cell" className="app-table-muted">
             {formatDate(item.createdAt || item.savedAt || item.generatedAt)}
           </span>
@@ -256,7 +279,7 @@ export function ReportsPage({ accountData, message, status, onRetry }) {
               onRetry={() => reportPages.refetch()}
             />
           )}
-          {loaded ? <ReportRows reports={reports} /> : <SkeletonRows label="Loading reports" />}
+          {loaded ? <ReportRows detailed reports={reports} /> : <SkeletonRows label="Loading reports" />}
           {reportPages.hasNextPage && (
             <button
               className="app-button-secondary app-load-more"
