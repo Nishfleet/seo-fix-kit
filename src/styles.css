@@ -5451,3 +5451,25 @@ a.app-table-row:hover {
   gap: 8px;
   margin: 12px 0;
 }
+
+.score-gain {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border-radius: 999px;
+  color: var(--accent);
+  flex: none;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  margin-left: 8px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+.verdict-projection {
+  color: var(--ink-soft);
+  margin: 16px 0 0;
+}
+
+.verdict-projection strong {
+  color: var(--accent);
+}

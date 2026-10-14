@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import worker from "../worker/index.js";
 import { createTestD1 } from "../test/support/d1.mjs";
+import { projectedScore, withScoreGains } from "../shared/audit-engine.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DIST = path.join(ROOT, "dist");
@@ -56,6 +57,7 @@ const ASSETS = {
 };
 
 const REPORT_FIXTURE = JSON.parse(fs.readFileSync(path.join(ROOT, "e2e/fixtures/report.json"), "utf8"));
+const FIXTURE_PLAN = withScoreGains(REPORT_FIXTURE.repairPlan, REPORT_FIXTURE.findings);
 
 const sentEmails = [];
 const env = {
@@ -98,6 +100,8 @@ const server = http.createServer(async (request, response) => {
       const id = `acme-widgets-example-${createHash("sha256").update(`${ownerEmail}:${daysAgo}`).digest("hex").slice(0, 12)}`;
       const report = {
         ...REPORT_FIXTURE,
+        repairPlan: FIXTURE_PLAN,
+        projectedScore: projectedScore(FIXTURE_PLAN, REPORT_FIXTURE.findings),
         id,
         reportPath: `/beta/reports/${id}`,
         ...(score === undefined ? {} : { score }),

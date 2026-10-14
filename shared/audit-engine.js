@@ -285,6 +285,9 @@ export function createAuditEngine({
       report.repairPlan = repairPlan;
     }
 
+    report.repairPlan = withScoreGains(report.repairPlan, findings, score);
+    report.projectedScore = projectedScore(report.repairPlan, findings, score);
+
     report.repairBrief = buildRepairBrief({
       startUrl,
       score,
@@ -2886,6 +2889,29 @@ function severityPenalty(count, severity) {
   const repeat = { critical: 4, warning: 1.5, notice: 0.25 }[severity] || 0;
   const cap = { critical: 28, warning: 10, notice: 3 }[severity] || first;
   return Math.min(cap, first + Math.max(0, count - 1) * repeat);
+}
+
+export function withScoreGains(plan = [], findings = [], score = scoreFindings(findings)) {
+  const gains = new Map();
+  return plan.map((item) => {
+    const key = issuePatternKey(item.title);
+    if (!gains.has(key)) {
+      const group = findings.filter((finding) => finding.severity !== "good" && scoreFindingKey(finding) === key);
+      gains.set(key, {
+        count: group.length,
+        gain: group.length ? scoreFindings(findings.filter((finding) => !group.includes(finding))) - score : 0
+      });
+    }
+    const { count, gain } = gains.get(key);
+    return count ? { ...item, scoreGain: gain, sameIssueCount: count } : item;
+  });
+}
+
+export function projectedScore(plan = [], findings = [], score = scoreFindings(findings), limit = 3) {
+  const top = plan.slice(0, limit);
+  const keys = new Set(top.map((item) => issuePatternKey(item.title)));
+  const after = scoreFindings(findings.filter((finding) => !keys.has(scoreFindingKey(finding))));
+  return after > score ? { fixes: top.length, from: score, to: after } : null;
 }
 
 function scoreFindingKey(finding) {

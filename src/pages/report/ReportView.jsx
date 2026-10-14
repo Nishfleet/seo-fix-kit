@@ -22,6 +22,7 @@ import {
 import { PerformancePanel, ResourceWaterfallPanel } from "./PerformancePanels.jsx";
 import { FixRequestStatusPanel, RepairProposalPanel, FixQuotePanel } from "./RepairOfferPanels.jsx";
 import { ScoreBadgePanel } from "./ScoreBadgePanel.jsx";
+import { ScoreGain } from "./ScoreGain.jsx";
 import { TeamRepairBoard } from "./TeamRepairBoard.jsx";
 
 export function ReportView({ report, onRerun, rerunStatus = "idle", rerunMessage = "" }) {
@@ -204,13 +205,22 @@ export function ReportView({ report, onRerun, rerunStatus = "idle", rerunMessage
                           ) : (
                             <strong>{fix.title}</strong>
                           )}
-                          <span>{[fix.estimatedEffort, fix.workType].filter(Boolean).join(" · ")}</span>
+                          <span>
+                            {[fix.estimatedEffort, fix.workType].filter(Boolean).join(" · ")}
+                            {fix.scoreGain > 0 && <ScoreGain fix={fix} />}
+                          </span>
                         </li>
                       );
                     })}
                   </ol>
                 ) : (
                   <p className="app-card-text">Nothing to fix. Rerun after you change content or templates.</p>
+                )}
+                {report.projectedScore?.to > report.projectedScore?.from && (
+                  <p className="verdict-projection">
+                    Fix these and your score could rise by about{" "}
+                    <strong>{report.projectedScore.to - report.projectedScore.from} points</strong>.
+                  </p>
                 )}
                 {topThree.length > 0 && (
                   <div className="verdict-actions">

@@ -5,7 +5,9 @@ import {
   isSameOriginInfraFailure,
   isThrottledResource,
   normalizeUrl,
-  publicAuditUrlStatus
+  projectedScore,
+  publicAuditUrlStatus,
+  withScoreGains
 } from "./audit-engine.js";
 import { buildBacklinkAudit } from "./backlink-audit.js";
 import { buildCrawlInventory } from "./crawl-inventory.js";
@@ -1601,4 +1603,28 @@ test("missing basic security headers are reported once with copy-paste headers",
     clean.findings.some((item) => /security headers missing/.test(item.title)),
     false
   );
+});
+
+test("each fix shows the points it is worth, grouped across pages, and the top fixes project a score", () => {
+  const findings = [
+    { title: "Missing meta description on home", severity: "warning" },
+    { title: "Missing meta description on /about", severity: "warning" },
+    { title: "Noindex found on /pricing", severity: "critical" },
+    { title: "False positive guarded on home: x", severity: "good" }
+  ];
+  const plan = withScoreGains(
+    [
+      { title: "Noindex found on /pricing" },
+      { title: "Missing meta description on home" },
+      { title: "Rendered crawl scale plan" }
+    ],
+    findings
+  );
+  assert.equal(plan[0].scoreGain, 12);
+  assert.equal(plan[0].sameIssueCount, 1);
+  assert.equal(plan[1].scoreGain, 6);
+  assert.equal(plan[1].sameIssueCount, 2);
+  assert.equal("scoreGain" in plan[2], false);
+  assert.deepEqual(projectedScore(plan, findings), { fixes: 3, from: 82, to: 100 });
+  assert.equal(projectedScore([], findings), null);
 });

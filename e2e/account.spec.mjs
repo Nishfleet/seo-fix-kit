@@ -119,7 +119,10 @@ test("a report lists every problem and jumps from the top fixes to the proof", a
   await expect(target.getByText("Evidence", { exact: true })).toBeInViewport();
 });
 
-test("a report hands over ready-to-paste AI fix prompts", async ({ page, request }, testInfo) => {
+test("a report shows what each fix is worth and hands over ready-to-paste AI fix prompts", async ({
+  page,
+  request
+}, testInfo) => {
   const email = uniqueEmail(testInfo, "prompt");
   await page.addInitScript(() => {
     window.__copied = [];
@@ -140,6 +143,10 @@ test("a report hands over ready-to-paste AI fix prompts", async ({ page, request
   const { id } = await (await request.post("/__e2e/reports", { data: { ownerEmail: email } })).json();
 
   await page.goto(`/beta/reports/${id}`);
+  const verdict = page.locator(".verdict-card");
+  await expect(verdict.getByText("+12 pts", { exact: true })).toBeVisible();
+  await expect(verdict.getByText("+16 pts · 2 pages").first()).toBeVisible();
+  await expect(verdict.getByText(/score could rise by about 28 points/)).toBeVisible();
   await page.getByRole("button", { name: "Copy AI prompt for the top fixes" }).click();
   await expect(page.getByRole("button", { name: "Copied" })).toBeVisible();
   const [all] = await page.evaluate(() => window.__copied);

@@ -1,6 +1,7 @@
 import { findingFixPrompt } from "../../../shared/ai-fix-prompt.js";
 import { CodeBlock } from "../../components/CodeBlock.jsx";
 import { CopyButton } from "../../components/CopyButton.jsx";
+import { ScoreGain } from "./ScoreGain.jsx";
 import { findingAnchor, formatLoadMs } from "../../lib/format.js";
 
 function FindingDetails({ finding, plan, compact, report }) {
@@ -64,6 +65,7 @@ export function FindingItem({ finding, plan, report, compact = false, collapsibl
         <summary>
           <span>{finding.severity}</span>
           <h3>{finding.title}</h3>
+          {plan?.scoreGain > 0 && <ScoreGain fix={plan} />}
           {finding.snippet && <small className="finding-row-tag">Snippet ready</small>}
         </summary>
         <div className="finding-row-body">
@@ -94,6 +96,7 @@ export function FixItem({ fix }) {
         <small>{fix.estimatedEffort || "15-30 min"}</small>
         <small>{fix.workType || "review"}</small>
         <small>{fix.confidence || "verified"}</small>
+        {fix.scoreGain > 0 && <ScoreGain fix={fix} />}
       </div>
       <p>{fix.fix}</p>
       {fix.pageLabel && <p className="proof-line">Page: {fix.pageLabel}</p>}
