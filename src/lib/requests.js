@@ -458,3 +458,23 @@ export async function revokeScoreBadge(badgeId) {
     fallbackError: "The badge wasn’t turned off. Try again."
   });
 }
+
+export async function fetchAuditWidget() {
+  return apiFetch("/api/widget", { fallbackError: "Your audit widget didn’t load. Try again." });
+}
+
+export async function enableAuditWidget() {
+  return apiFetch("/api/widget", {
+    method: "POST",
+    body: {},
+    fallbackError: "The widget wasn’t turned on. Try again."
+  });
+}
+
+export async function disableAuditWidget() {
+  return apiFetch("/api/widget", {
+    method: "DELETE",
+    body: {},
+    fallbackError: "The widget wasn’t turned off. Try again."
+  });
+}

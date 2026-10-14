@@ -187,6 +187,46 @@ test("an owner turns on a live score badge and its public score page", async ({ 
   await expect(page.getByRole("link", { name: "Check your site free" })).toBeVisible();
 });
 
+test("an owner embeds the audit widget and a visitor gets a score", async ({ page, request }, testInfo) => {
+  const email = uniqueEmail(testInfo, "widget");
+  await page.goto("/beta");
+  await page.getByLabel("Email").fill(email);
+  await typeLikeAPerson(page);
+  await page.getByRole("button", { name: "Email me a sign-in link" }).click();
+  await page.goto(await signInLinkFor(request, email));
+  await expect(page.getByRole("heading", { level: 1, name: "Overview" })).toBeVisible();
+
+  await page.goto("/beta/developers");
+  const card = page.locator(".audit-widget-card");
+  await card.getByRole("button", { name: "Get the widget" }).click();
+  await expect(card.getByRole("button", { name: "Copy embed code" })).toBeVisible();
+  await expect(card.getByText("No leads yet.")).toBeVisible();
+  const widgetUrl = await card.getByRole("link", { name: "Preview" }).getAttribute("href");
+
+  await page.route("**/api/embed/*/check", (route) =>
+    route.fulfill({
+      json: {
+        ok: true,
+        url: "https://visitor.example/",
+        score: 64,
+        issues: { critical: 1, warnings: 2, notices: 0 },
+        problems: [{ severity: "critical", title: "Noindex found on home", scoreGain: 12 }]
+      }
+    })
+  );
+  await page.setContent(
+    `<h1>Agency site</h1><iframe src="${widgetUrl}" title="Free SEO check" width="600" height="560"></iframe>`
+  );
+  const widget = page.frameLocator('iframe[title="Free SEO check"]');
+  await widget.getByLabel("Website").fill("visitor.example");
+  await widget.getByLabel("Email").fill("visitor@example.com");
+  await widget.getByRole("button", { name: "Check my site" }).click();
+  await expect(widget.getByRole("heading", { name: "visitor.example" })).toBeVisible();
+  await expect(widget.getByText("64", { exact: true })).toBeVisible();
+  await expect(widget.getByText("Noindex found on home")).toBeVisible();
+  await expect(widget.getByRole("link", { name: "SEO Fix Kit" })).toHaveAttribute("href", /\?ref=widget$/);
+});
+
 test("the check-your-inbox screen opens the right webmail and resends the link after a short wait", async ({
   page,
   request

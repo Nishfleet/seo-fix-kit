@@ -10,6 +10,7 @@ import { Metric } from "../../components/Metric.jsx";
 import { hostKey, formatDate, formatShortDate, safeHostnameLabel } from "../../lib/format.js";
 import { queryKeys } from "../../lib/queries.js";
 import { fetchEmailPreferences, fetchReportsPage, saveEmailPreferences } from "../../lib/requests.js";
+import { AuditWidgetCard } from "./AuditWidgetCard.jsx";
 import { repairStatusLabel, statusLabel, auditJobDetail, auditScheduleDetail } from "../../lib/labels.js";
 
 export function Overview({ accountData, auditPanel, message, status, onRetry }) {
@@ -833,6 +834,7 @@ export function DeveloperApiPanel({
       {loadError && <LoadError message={loadError} onRetry={onRetry} />}
       <StatusMessage tone={developerStatus}>{developerMessage}</StatusMessage>
       <EmailUpdatesCard />
+      <AuditWidgetCard />
       <section className="app-card" aria-labelledby="api-keys-title">
         <div className="app-card-head">
           <div>

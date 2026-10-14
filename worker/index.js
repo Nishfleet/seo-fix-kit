@@ -26,6 +26,13 @@ import {
   serveBadgeSvg,
   showScorePage
 } from "./routes/badges.js";
+import {
+  createAuditWidget,
+  getAuditWidget,
+  revokeAuditWidget,
+  runWidgetCheck,
+  showWidgetPage
+} from "./routes/audit-widget.js";
 import { json, secureHeaders, withPrivateHeaders, withSecurityHeaders } from "./lib/http.js";
 import { getDeepHealth } from "./routes/health.js";
 import { isSafeUuid } from "./lib/text.js";
@@ -358,12 +365,17 @@ app.post("/r/:id/unlock", route(unlockClientReport));
 app.get("/r/:file{.+\\.pdf}", route(getClientReportPdf));
 app.get("/r/:id", route(getClientReport));
 
-const badgeRoute = (handler) => (c) => handler(c.req.raw, c.env, c.req.param(), originOf(c));
+const badgeRoute = (handler) => (c) => handler(c.req.raw, c.env, c.req.param(), originOf(c), executionContext(c));
 app.get("/api/reports/:id/badge", badgeRoute(getScoreBadgeForReport));
 app.post("/api/reports/:id/badge", badgeRoute(createScoreBadge));
 app.delete("/api/badges/:id", badgeRoute(revokeScoreBadge));
 app.get("/badge/:file{[a-f0-9]+\\.svg}", badgeRoute(serveBadgeSvg));
 app.get("/score/:id", badgeRoute(showScorePage));
+app.get("/api/widget", badgeRoute(getAuditWidget));
+app.post("/api/widget", badgeRoute(createAuditWidget));
+app.delete("/api/widget", badgeRoute(revokeAuditWidget));
+app.get("/embed/:id", badgeRoute(showWidgetPage));
+app.post("/api/embed/:id/check", badgeRoute(runWidgetCheck));
 
 app.get("/fixture/rendered-page", (c) =>
   textResponse(renderedFixture(originOf(c)), "text/html; charset=utf-8", {
