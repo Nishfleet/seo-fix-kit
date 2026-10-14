@@ -3107,7 +3107,7 @@ export const ROOT_PUBLIC_PATHS = [
 ];
 
 export const ROOT_PUBLIC_LASTMODS = {
-  "/": "2026-10-13T16:38:22Z",
+  "/": "2026-10-14T05:35:17Z",
   "/demo": "2026-10-13T04:43:48Z",
   "/check": "2026-10-13T17:01:10Z",
   "/methodology": "2026-10-13T04:43:48Z",
