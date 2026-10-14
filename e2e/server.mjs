@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, createHmac, randomBytes } from "node:crypto";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
@@ -59,8 +59,49 @@ const ASSETS = {
 const REPORT_FIXTURE = JSON.parse(fs.readFileSync(path.join(ROOT, "e2e/fixtures/report.json"), "utf8"));
 const FIXTURE_PLAN = withScoreGains(REPORT_FIXTURE.repairPlan, REPORT_FIXTURE.findings);
 
+const DODO_API = "https://test.dodopayments.com";
+const DODO_WEBHOOK_SECRET = `whsec_${randomBytes(24).toString("base64")}`;
+let dodoSessions = 0;
+const realFetch = globalThis.fetch;
+globalThis.fetch = async (input, options = {}) => {
+  const url = String(input instanceof Request ? input.url : input);
+  if (url === `${DODO_API}/checkouts/preview`) {
+    return Response.json({ display_price: "$99.00", currency: "USD", total_amount: 9900 });
+  }
+  if (url === `${DODO_API}/checkouts`) {
+    dodoSessions += 1;
+    return Response.json({
+      checkout_url: `${DODO_API}/session/cs_e2e_${dodoSessions}`,
+      session_id: `cs_e2e_${dodoSessions}`
+    });
+  }
+  return realFetch(input, options);
+};
+
+function signedDodoWebhook(payload, webhookId) {
+  const body = JSON.stringify(payload);
+  const timestamp = String(Math.floor(Date.now() / 1000));
+  const key = Buffer.from(DODO_WEBHOOK_SECRET.replace(/^whsec_/, ""), "base64");
+  const signature = `v1,${createHmac("sha256", key).update(`${webhookId}.${timestamp}.${body}`).digest("base64")}`;
+  return new Request(`${ORIGIN}/api/webhooks/dodo`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "webhook-id": webhookId,
+      "webhook-timestamp": timestamp,
+      "webhook-signature": signature
+    },
+    body
+  });
+}
+
 const sentEmails = [];
 const env = {
+  DODO_SEOFIXKIT_API_KEY: "dodo-e2e-key",
+  DODO_SEOFIXKIT_PRODUCT_FIX_PACK_ID: "pdt_fix_pack",
+  DODO_SEOFIXKIT_BRAND_ID: "brand-e2e",
+  DODO_SEOFIXKIT_ENVIRONMENT: "test",
+  DODO_SEOFIXKIT_WEBHOOK_SECRET: DODO_WEBHOOK_SECRET,
   WAITLIST_DB: createTestD1(),
   ASSETS,
   SEOFIXKIT_EMAIL_FROM: "SEO Fix Kit <support@seofixkit.com>",
@@ -92,6 +133,46 @@ const server = http.createServer(async (request, response) => {
       const to = url.searchParams.get("to");
       response.writeHead(200, { "content-type": "application/json" });
       response.end(JSON.stringify(sentEmails.filter((email) => !to || email.to === to)));
+      return;
+    }
+
+    if (url.pathname === "/__e2e/dodo/pay" && request.method === "POST") {
+      const { ownerEmail } = JSON.parse((await readBody(request)).toString());
+      const [fixRequest] = env.WAITLIST_DB.rows(
+        "SELECT * FROM fix_requests WHERE owner_email = ? ORDER BY created_at DESC LIMIT 1",
+        ownerEmail
+      );
+      const [item] = env.WAITLIST_DB.rows(
+        "SELECT * FROM repair_queue_items WHERE report_id = ? ORDER BY created_at LIMIT 1",
+        fixRequest.report_id
+      );
+      const payload = {
+        type: "payment.succeeded",
+        data: {
+          payment_id: `pay_${fixRequest.id}`,
+          checkout_session_id: fixRequest.checkout_session_id,
+          status: "succeeded",
+          total_amount: 9900,
+          currency: "USD",
+          brand_id: "brand-e2e",
+          customer: { email: ownerEmail },
+          product_cart: [{ product_id: "pdt_fix_pack", quantity: 1 }],
+          metadata: {
+            product_key: "seofixkit_fix_pack",
+            fix_request_id: fixRequest.id,
+            report_id: fixRequest.report_id,
+            repair_issue_id: item?.issue_id || "",
+            repair_queue_item_id: item?.id || "",
+            repair_title: item?.title || ""
+          }
+        }
+      };
+      const result = await worker.fetch(signedDodoWebhook(payload, `wh_${fixRequest.id}`), env, {
+        waitUntil() {},
+        passThroughOnException() {}
+      });
+      response.writeHead(result.status, { "content-type": "application/json" });
+      response.end(await result.text());
       return;
     }
 
