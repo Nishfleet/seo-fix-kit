@@ -19,6 +19,13 @@ import {
   saveEmailPreferences,
   showUnsubscribe
 } from "./routes/email-preferences.js";
+import {
+  createScoreBadge,
+  getScoreBadgeForReport,
+  revokeScoreBadge,
+  serveBadgeSvg,
+  showScorePage
+} from "./routes/badges.js";
 import { json, secureHeaders, withPrivateHeaders, withSecurityHeaders } from "./lib/http.js";
 import { getDeepHealth } from "./routes/health.js";
 import { isSafeUuid } from "./lib/text.js";
@@ -350,6 +357,13 @@ app.get("/.well-known/seofixkit-report-domain.txt", route(getReportDomainChallen
 app.post("/r/:id/unlock", route(unlockClientReport));
 app.get("/r/:file{.+\\.pdf}", route(getClientReportPdf));
 app.get("/r/:id", route(getClientReport));
+
+const badgeRoute = (handler) => (c) => handler(c.req.raw, c.env, c.req.param(), originOf(c));
+app.get("/api/reports/:id/badge", badgeRoute(getScoreBadgeForReport));
+app.post("/api/reports/:id/badge", badgeRoute(createScoreBadge));
+app.delete("/api/badges/:id", badgeRoute(revokeScoreBadge));
+app.get("/badge/:file{[a-f0-9]+\\.svg}", badgeRoute(serveBadgeSvg));
+app.get("/score/:id", badgeRoute(showScorePage));
 
 app.get("/fixture/rendered-page", (c) =>
   textResponse(renderedFixture(originOf(c)), "text/html; charset=utf-8", {

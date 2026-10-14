@@ -5438,3 +5438,16 @@ a.app-table-row:hover {
   color: var(--ink-muted);
   font-size: 13px;
 }
+
+.score-badge-preview {
+  display: inline-flex;
+  margin: 4px 0 16px;
+}
+
+.score-badge-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
