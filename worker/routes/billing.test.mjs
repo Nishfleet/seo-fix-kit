@@ -2138,8 +2138,6 @@ test("signed payment webhook records an unattributable product mismatch as a web
     null
   );
 
-  // Dodo still gets a 200 so it stops retrying, but the ledger row carries the
-  // error status the admin webhook-error alert counts.
   assert.equal(response.status, 200);
   const body = await response.json();
   assert.equal(body.received, true);
@@ -2472,10 +2470,6 @@ test("Dodo webhook signature gate rejects missing, wrong-secret, and stale reque
     const body = await response.json();
     assert.equal(body.error, "Invalid signature.", scenario.label);
 
-    // The gate must reject before any mutation: webhook ledger rows, entitlements,
-    // entitlement events, fix requests, fix request events, and repair proposals
-    // all have to stay untouched so a spoofed or replayed webhook cannot pay,
-    // revoke, or activate anything.
     assert.equal(env.dodoWebhookEvents.length, 0, `${scenario.label}: webhook ledger mutated`);
     assert.equal(env.entitlements.length, 0, `${scenario.label}: entitlement mutated`);
     assert.equal(env.entitlementEvents.length, 0, `${scenario.label}: entitlement event mutated`);
@@ -3118,8 +3112,6 @@ test("signed refund.succeeded closes a paid Fix Pack to refunded exactly once", 
   assert.equal(refundEvent.to_status, "refunded");
   assert.equal(refundEvent.reason, "refund-1");
 
-  // A repeated refund with a fresh webhook id must not reopen or re-stamp the
-  // refund: status stays refunded and refunded_at is preserved (COALESCE).
   const second = await handleDodoWebhook(
     signedDodoWebhookRequest({ type: "refund.succeeded", data: refundData }, "wh_refund_2", env),
     env,
@@ -3883,9 +3875,6 @@ function first(sql, values, env) {
   }
   if (sql.includes("FROM offer_entitlements") && sql.includes("owner_email = ?")) {
     if (env.missingEntitlementSchema) throw new Error("no such table: offer_entitlements");
-    // Mirror the SQL text: the active-entitlement lookup excludes revoked rows
-    // only while the statement actually carries `AND revoked_at IS NULL`, so a
-    // mutation dropping that predicate changes mock behavior verbatim.
     const excludesRevoked = sql.includes("AND revoked_at IS NULL");
     const [ownerEmail, offerKey] = values;
     return (
@@ -3995,8 +3984,6 @@ function all(sql, values, env) {
   }
   if (sql.includes("FROM repair_proposals")) {
     if (env.repairProposalsMissing) throw new Error("no such table: repair_proposals");
-    // Mirror the payment-validation window: it scopes to the fix request, its
-    // report and owner, and reads the same ordered 50 rows checkout selected.
     const [fixRequestId, reportId, ownerEmail] = values;
     return {
       results: env.repairProposals
@@ -4201,8 +4188,6 @@ function run(sql, values, env) {
     return { meta: { changes: 1 } };
   }
   if (sql.includes("INSERT OR IGNORE INTO repair_proposals")) {
-    // Mirror migration 0026: the unique index skips rows without a
-    // fix_request_id, so unattached rows are never deduped by storage itself.
     const conflicts =
       Boolean(values[1]) &&
       env.repairProposals.some((row) => row.fix_request_id === values[1] && row.issue_id === values[4]);
@@ -4354,10 +4339,6 @@ function run(sql, values, env) {
     }
     return { meta: { changes: row ? 1 : 0 } };
   }
-  // The failure/refund/dispute arms below mirror the CASE and COALESCE
-  // expressions in the statement text, so a mutation to billing.js that
-  // changes the SQL semantics changes mock behavior verbatim instead of
-  // being masked by the harness.
   if (sql.includes("UPDATE fix_requests") && sql.includes("WHEN paid_at")) {
     const row = env.fixRequests.find((item) => item.id === values[3]);
     if (row) {

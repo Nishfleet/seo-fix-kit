@@ -1,7 +1,3 @@
-// Shared fixtures for the e2e suite.
-//   - Every page gets its own fake client IP (see e2e/server.mjs) so per-IP
-//     rate limits behave as they do for separate real visitors.
-//   - Console errors and uncaught page errors fail the test that caused them.
 import { test as base, expect } from "@playwright/test";
 
 export const test = base.extend({
@@ -10,7 +6,6 @@ export const test = base.extend({
     await use(context);
   },
   page: async ({ page }, use) => {
-    // A controllable clock that still runs in real time (see typeLikeAPerson).
     await page.clock.install();
     const problems = [];
     page.on("pageerror", (error) => problems.push(`pageerror: ${error.message}`));
@@ -18,7 +13,6 @@ export const test = base.extend({
       if (message.type() !== "error") return;
       const text = message.text();
       // A signed-out session check answers 401 by design, and a 404 page's
-      // own document is a 404; the browser logs both as resource errors.
       if (/status of 401/.test(text)) return;
       if (/status of 404/.test(text) && message.location().url === page.url()) return;
       problems.push(`console: ${text}`);
@@ -37,14 +31,10 @@ export function uniqueEmail(testInfo, label = "owner") {
   return `${label}-${slug}-${emailCounter}@example.com`.toLowerCase();
 }
 
-// The sign-up forms drop submissions made faster than a person can type
-// (worker/routes/access.js bot trap). Install a controllable clock before the
-// page loads, then call this before submitting to let "human" time pass.
 export async function typeLikeAPerson(page) {
   await page.clock.fastForward(3_000);
 }
 
-// The sign-in link the Worker emailed to `email`, as a path on this server.
 export async function signInLinkFor(request, email) {
   let link = "";
   await expect

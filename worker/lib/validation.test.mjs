@@ -71,7 +71,6 @@ test("parseJsonBody treats malformed, empty, and non-object bodies as {}", async
 test("text.js identity helpers share the Zod schemas", () => {
   assert.equal(normalizeEmail(" Founder@Example.com "), "founder@example.com");
   assert.equal(normalizeEmail("founder@localhost"), "");
-  // Addresses accepted before Zod (stored invites and leads) stay valid.
   assert.equal(normalizeEmail("用户@example.com"), "用户@example.com");
   assert.equal(normalizeEmail("a@b.c"), "a@b.c");
   assert.equal(normalizeEmail(`${"a".repeat(250)}@example.com`), "");

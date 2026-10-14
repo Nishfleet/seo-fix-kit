@@ -11,9 +11,6 @@ import {
 
 const origin = "https://seofixkit.com";
 
-// A minimal report in the exact shape the shared engine produces, reused to
-// build the walk payload through buildPublicCheckResponse - the same mapping
-// the deployed Worker uses - so the walk test cannot drift from the API.
 function makeEngineShapedReport() {
   return {
     url: `${origin}/fixture/rendered-page`,

@@ -12,8 +12,6 @@ const unprotectedStatuses = ["new", "checkout_created", "payment_failed"];
 const protectedProposalApprovals = ["approved"];
 const protectedProposalDeliveries = ["in_progress", "delivered"];
 
-// Schema behaviour on the real migrations: deleting a report cascades to its
-// repair queue and agent actions, and the retention lookups are indexed.
 {
   const db = createTestD1();
   const insertRow = (table, values) => {

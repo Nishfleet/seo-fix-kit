@@ -1,8 +1,3 @@
-// First-audit nudge: someone who signed in but never ran an audit gets one
-// email about a day later, linking to the audit box. Never twice, never once
-// they have a report or a job, never after they stopped audit emails, and
-// never to test addresses. Runs against an in-memory SQLite database built
-// from the real migrations; only the email binding is faked.
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
 import test from "node:test";
@@ -53,7 +48,6 @@ test("a day after signing in without an audit, the owner gets one nudge", async 
   assert.match(sent[0].text, /Run my first audit: https:\/\/seofixkit\.com\/beta#new-audit/);
   assert.match(sent[0].text, /Stop these emails: https:\/\/seofixkit\.com\/email\/unsubscribe\/[a-f0-9]{48}/);
 
-  // The next cron run sends nothing more.
   assert.deepEqual(await sendFirstAuditNudges(env, { now: new Date(NOW.getTime() + 900_000) }), []);
   assert.equal(sent.length, 1);
 });

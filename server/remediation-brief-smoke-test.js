@@ -115,9 +115,4 @@ assert.equal(duplicateTitleBrief.priorityQueue[0].id, "missing-meta-home");
 assert.equal(duplicateTitleBrief.priorityQueue[1].id, "missing-meta-pricing");
 assert.equal(duplicateTitleBrief.priorityQueue[1].pageUrl, "https://example.com/pricing");
 
-// The report and remediation-brief routes are covered end to end in
-// test/core-api-flow.test.mjs.
-
-// The report UI's remediation brief panel and JSON download are checked in a browser by test/spa.test.mjs.
-
 console.log(JSON.stringify({ ok: true, checked: "remediation brief" }, null, 2));

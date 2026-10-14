@@ -1,19 +1,3 @@
-// Regression tests for the shielded Wrangler dry-run guard
-// (scripts/wrangler-dry-run.mjs).
-//
-// The bug class: a malformed (typically zero-byte scaffold) package.json on
-// the ancestor chain of the repo makes wrangler's esbuild bundle step fail
-// with "Unexpected end of file in JSON" before bundling starts, so the
-// `cf:dry-run` deployment canary goes red even though the Worker is fine.
-// These tests pin both halves of the fix:
-//   1. detection loudly names malformed ancestor manifests, and
-//   2. the shielded scratch copy isolates the dry-run from any malformed
-//      ancestor, using the REAL esbuild binary against a REAL zero-byte
-//      manifest — if the shield ever stops isolating the entry/cwd from
-//      poisoned ancestors, the bundle test fails.
-// The last test runs the actual guard against the real repo with the real
-// wrangler, which is the canary itself.
-
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -35,17 +19,11 @@ const REPO_ROOT = path.resolve(SCRIPT_DIR, "..");
 const ESBUILD_BIN = path.join(REPO_ROOT, "node_modules", "esbuild", "bin", "esbuild");
 const WRAPPER = path.join(SCRIPT_DIR, "wrangler-dry-run.mjs");
 
-// A fake wrangler CLI that records its working directory and exits 0, so
-// the shield mechanics can be tested without touching the real wrangler.
 const FAKE_WRANGLER_SOURCE = `const fs = require("node:fs");
 fs.writeFileSync(process.env.FIXTURE_CWD_OUT || "/tmp/fixture-cwd-out", process.cwd());
 `;
 
 function makeFixture({ poisoned }) {
-  // Fixtures must live under a verified clean chain: if os.tmpdir() itself
-  // had a package.json on its ancestor chain, the fixture base would be in
-  // a poisoned chain and the "clean" control assertions would fail for the
-  // wrong reason. pickCleanScratchRoot() guarantees a manifest-free chain.
   const base = pickCleanScratchRoot();
   const projectRoot = path.join(base, poisoned ? "poisoned-parent" : "clean-parent", "project");
   if (poisoned) {
@@ -87,8 +65,6 @@ function chainHasPackageJson(dir) {
   return false;
 }
 
-// Ancestors strictly above `dir` (the scratch root itself legitimately
-// holds the project's own valid package.json copy) must be manifest-free.
 function ancestorsAreManifestFree(dir) {
   let current = path.resolve(dir);
   for (;;) {
@@ -142,18 +118,13 @@ test("a real zero-byte ancestor breaks esbuild in place but not from the shielde
   const fixture = makeFixture({ poisoned: true });
   let scratch;
   try {
-    // Control: esbuild in the poisoned location must fail with the exact
-    // bug signature.
     const inPlace = esbuildBundle(fixture.projectRoot);
     assert.notEqual(inPlace.status, 0, "esbuild should fail in the poisoned location");
     assert.match(inPlace.stderr, /Unexpected end of file in JSON/);
 
-    // Fix: the shielded scratch must bundle the same entry cleanly.
     scratch = buildShieldedScratch(fixture.projectRoot).scratch;
     assert.ok(ancestorsAreManifestFree(scratch), `scratch ancestors must be manifest-free: ${scratch}`);
 
-    // The scratch must hold real copies, not symlinks (symlinks leak the
-    // real path back into the poisoned chain).
     const scratchEntry = path.join(scratch, "worker", "index.js");
     assert.ok(fs.existsSync(scratchEntry));
     assert.ok(!fs.lstatSync(scratchEntry).isSymbolicLink(), "worker entry must be a real copy");
@@ -197,8 +168,6 @@ test("runGuardedDryRun shields a poisoned chain and runs in place on a clean one
       console.error = originalError;
     }
     assert.equal(status, 0);
-    // Shielded: the fake wrangler must have run from the scratch, not the
-    // poisoned project, and the malformed ancestor must be named loudly.
     const ranFrom = fs.readFileSync(out, "utf8");
     assert.notEqual(ranFrom, fixture.projectRoot);
     assert.ok(ancestorsAreManifestFree(ranFrom), `shielded run must live under manifest-free ancestors: ${ranFrom}`);
@@ -216,7 +185,6 @@ test("runGuardedDryRun shields a poisoned chain and runs in place on a clean one
     const out = path.join(clean.base, "clean-cwd-out.txt");
     const status = runGuardedDryRun(clean.projectRoot, { FIXTURE_CWD_OUT: out });
     assert.equal(status, 0);
-    // In-place: the fake wrangler must have run from the project itself.
     assert.equal(fs.readFileSync(out, "utf8"), clean.projectRoot);
   } finally {
     cleanupFixture(clean);
@@ -224,12 +192,6 @@ test("runGuardedDryRun shields a poisoned chain and runs in place on a clean one
 });
 
 test("the real canary guard exits 0 against the real repo and wrangler", () => {
-  // wrangler.jsonc declares ./dist as the assets directory, so a fresh
-  // checkout (CI) has no dist/ and wrangler aborts before bundling. The
-  // canary script (`npm run cf:dry-run`) builds first; reproduce that here
-  // so the test is self-sufficient on a clean checkout. `npm run check`
-  // also builds at the end of its chain, so a repo with dist already
-  // present (local dev) skips the duplicate build.
   if (!fs.existsSync(path.join(REPO_ROOT, "dist"))) {
     const built = spawnSync("npm", ["run", "build"], {
       cwd: REPO_ROOT,
@@ -256,7 +218,6 @@ test("the real canary guard exits 0 against the real repo and wrangler", () => {
     /--dry-run: exiting now\./,
     "wrangler must complete the dry-run successfully"
   );
-  // When this host is contaminated, the guard must have named the offender.
   const malformed = malformedAncestorManifests(REPO_ROOT);
   for (const finding of malformed) {
     assert.ok(result.stderr.includes(finding.path), `guard must name ${finding.path} loudly on a contaminated host`);

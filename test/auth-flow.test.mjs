@@ -1,9 +1,3 @@
-// End-to-end behaviour tests for the login and access flows.
-//
-// Every request goes through the Worker's real fetch entry point against an
-// in-memory D1 with every migration applied. Assertions only look at what a
-// client or operator can observe: HTTP status, JSON body, Set-Cookie headers,
-// emails handed to the EMAIL binding, and rows in the database.
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import test from "node:test";
@@ -69,7 +63,6 @@ function setCookies(response) {
   return response.headers.getSetCookie();
 }
 
-// Returns the "name=value" pair of the beta session cookie, or null.
 function sessionCookieFrom(response) {
   const raw = setCookies(response).find((cookie) => cookie.startsWith("sfk_beta_session="));
   if (!raw) return null;
@@ -104,8 +97,6 @@ async function founderLogin(env, email = "founder@example.com") {
   assert.equal(response.status, 200, response.text);
   return sessionCookieFrom(response);
 }
-
-// --- Waitlist ------------------------------------------------------------------
 
 test("waitlist signup stores a lead and a duplicate signup updates it instead of failing", async () => {
   const { env, db } = makeEnv();
@@ -148,8 +139,6 @@ test("waitlist signup rejects an invalid email and silently drops honeypot submi
   assert.deepEqual(db.rows("SELECT email FROM waitlist_leads"), []);
 });
 
-// --- Email access link -----------------------------------------------------------
-
 test("access link request emails a one-use link that unlocks a self-serve session", async () => {
   const { env, db, sent } = makeEnv();
 
@@ -168,14 +157,12 @@ test("access link request emails a one-use link that unlocks a self-serve sessio
   assert.match(sent[0].text, new RegExp(`^${ORIGIN}/beta\\?access=`, "m"));
   const token = accessTokenFromEmail(sent[0]);
 
-  // The raw token is never stored; only an unused, future-dated row exists.
   const tokens = db.rows("SELECT token_hash, owner_email, used_at, expires_at FROM access_tokens");
   assert.equal(tokens.length, 1);
   assert.notEqual(tokens[0].token_hash, token);
   assert.equal(tokens[0].owner_email, "owner@example.com");
   assert.equal(tokens[0].used_at, null);
 
-  // The request is also captured as a lead.
   assert.deepEqual(db.rows("SELECT email FROM waitlist_leads"), [{ email: "owner@example.com" }]);
 
   const verified = await call(env, "/api/access/verify", { method: "POST", body: { token } });
@@ -268,8 +255,6 @@ test("a failed email send does not leave a live access token behind", async () =
   assert.deepEqual(db.rows("SELECT * FROM access_tokens"), []);
 });
 
-// --- Invite code / founder login ---------------------------------------------------
-
 test("an admin-created invite code logs its owner in with an invite session, once", async () => {
   const { env, db } = makeEnv();
   const invite = await adminCreateInvite(env, { email: "guest@example.com", code: "guest-invite-001" });
@@ -300,7 +285,6 @@ test("an admin-created invite code logs its owner in with an invite session, onc
   const used = db.rows("SELECT status, used_count FROM beta_invites")[0];
   assert.deepEqual(used, { status: "used", used_count: 1 });
 
-  // A single-use invite cannot be redeemed again.
   const reuse = await call(env, "/api/beta/login", {
     method: "POST",
     body: { email: "guest@example.com", inviteCode: "guest-invite-001" }
@@ -409,8 +393,6 @@ test("the founder password does nothing when it is not configured", async () => 
   assert.deepEqual(db.rows("SELECT * FROM beta_sessions"), []);
 });
 
-// --- Session lifecycle -------------------------------------------------------------
-
 test("logout revokes the session and clears the cookie", async () => {
   const { env, db } = makeEnv();
   const cookie = await founderLogin(env);
@@ -428,7 +410,6 @@ test("logout revokes the session and clears the cookie", async () => {
 
   assert.notEqual(db.rows("SELECT revoked_at FROM beta_sessions")[0].revoked_at, null);
 
-  // Replaying the old cookie no longer works anywhere.
   const session = await call(env, "/api/beta/session", { cookie });
   assert.equal(session.status, 401);
   const summary = await call(env, "/api/account/summary", { cookie });
@@ -493,8 +474,6 @@ test("/api/beta/session without any session is a 401", async () => {
   assert.match(session.json.error, /no active session/i);
 });
 
-// --- Protected routes --------------------------------------------------------------
-
 test("private routes reject requests without a valid session", async () => {
   const { env } = makeEnv();
   const privateRoutes = [
@@ -527,8 +506,6 @@ test("a valid session can read its account summary", async () => {
   assert.equal(summary.json.ok, true);
 });
 
-// --- Rate limiting -----------------------------------------------------------------
-
 test("access link requests are limited to 3 per email per hour", async () => {
   const { env, db, sent } = makeEnv();
 
@@ -552,7 +529,6 @@ test("access link requests are limited to 3 per email per hour", async () => {
   assert.equal(sent.length, 3, "no email is sent once the limit is hit");
   assert.equal(db.rows("SELECT * FROM access_tokens").length, 3);
 
-  // A different email is unaffected.
   const other = await call(env, "/api/access/request", {
     method: "POST",
     body: { email: "other@example.com" },
@@ -638,8 +614,6 @@ test("login attempts are limited to 20 per network per hour", async () => {
   });
   assert.equal(elsewhere.status, 200);
 });
-
-// --- Site claims ---------------------------------------------------------------------
 
 function verifiedClaim(ownerEmail, host) {
   const now = new Date().toISOString();

@@ -1,8 +1,3 @@
-// Audit emails: a finished audit emails its owner a summary (report ready, or
-// the weekly check's fixed/new/next), every email carries a one-click
-// unsubscribe link, and the Alerts page toggle and that link both switch the
-// same preference. Requests go through the Worker's real Hono app against an
-// in-memory SQLite database; only the email binding is faked.
 import assert from "node:assert/strict";
 import { createHash, randomBytes } from "node:crypto";
 import test from "node:test";
@@ -170,7 +165,6 @@ test("a finished audit sends one email, and the unsubscribe link stops the next"
   const link = sent[0].text.match(/Stop audit emails: (\S+)/)[1];
   assert.match(link, /^https:\/\/seofixkit\.com\/email\/unsubscribe\/[a-f0-9]{48}$/);
 
-  // Opening the link only asks; a mail scanner's GET must not unsubscribe.
   const page = await app.fetch(new Request(link), env, CTX);
   assert.equal(page.status, 200);
   assert.equal(page.headers.get("x-robots-tag"), "noindex, nofollow");
@@ -293,7 +287,6 @@ test("a first audit of a verified site turns weekly checks on at the same depth"
     ]
   );
 
-  // A second audit (another page, or a rerun) leaves the schedule alone.
   assert.equal(
     await autoEnableWeeklyCheck(
       { WAITLIST_DB: db },

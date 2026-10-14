@@ -66,7 +66,6 @@ test("SERP preview cuts by width at a word boundary", () => {
   assert.ok(long.startsWith(cut.text.replace(/ \.\.\.$/, "")));
   const result = serpPreview({ title: long, description: "A description.", url: "https://example.com/a" });
   assert.ok(levels(result, "warn").some((text) => text.includes("title is about")));
-  // A custom measure (the browser's canvas) is used when given.
   const measured = serpPreview({ title: "Hi", description: "", url: "" }, () => 9999);
   assert.ok(levels(measured, "warn").some((text) => text.includes("9999px")));
 });

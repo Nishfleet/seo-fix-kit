@@ -268,10 +268,6 @@ test("resource validation blocks private-DNS resources and redirect targets befo
   assert.equal(fetched.includes("https://private.example/canonical"), false);
 });
 
-// Regression: a site can declare og:image/twitter:image while pointing them at a
-// file that does not load as an image. Presence alone was previously treated as
-// a working social preview, and the suggested snippet hard-coded
-// ${origin}/og-image.png even when that file did not exist on the audited site.
 test("social images that are declared but not loadable produce a broken-preview finding", async () => {
   const engine = createAuditEngine({
     launchBrowser: async () =>
@@ -300,8 +296,6 @@ test("social images that are declared but not loadable produce a broken-preview 
   const report = await engine.auditUrl("https://public.example/", { maxPages: 1, pageSpeed: false });
   const broken = report.findings.find((finding) => /Social share image is not loadable/.test(finding.title));
   assert.ok(broken, "a declared-but-not-image social tag must be reported");
-  // og:image and twitter:image point at the same URL, so the check is deduped:
-  // the evidence names the single shared image URL and its broken response.
   assert.match(
     broken.evidence,
     /og:image \(https:\/\/public\.example\/social\/og\.png\): returned 200 with content-type text\/html/
@@ -404,7 +398,6 @@ test("social snippet uses the verified live og:image URL when one exists", async
 
   const report = await engine.auditUrl("https://public.example/", { maxPages: 1, pageSpeed: false });
   const social = report.findings.find((finding) => /Social share image incomplete/.test(finding.title));
-  // og and twitter both present and live: no incomplete finding, no broken finding.
   assert.equal(social, undefined);
   const socialPreview = report.fixPack.find((fix) => fix.title === "Social preview tags");
   assert.ok(socialPreview, "the fix pack must still carry a social preview snippet");
@@ -412,10 +405,6 @@ test("social snippet uses the verified live og:image URL when one exists", async
   assert.doesNotMatch(socialPreview.snippet, /og-image\.png/);
 });
 
-// Regression: the apple-touch-icon check was presence-only and its published
-// snippet hard-coded ${origin}/apple-touch-icon.png. A site could declare an
-// icon that 404s and be reported clean, and a site with no icon was handed a
-// tag pointing at a file it does not serve.
 test("a declared apple-touch-icon that does not load as an image is reported", async () => {
   const engine = createAuditEngine({
     launchBrowser: async () =>
@@ -818,15 +807,10 @@ function fakeBrowser(finalUrl, overrides = {}, hooks = {}) {
           hooks.gotoUrls?.push(url);
           const gotoCall = (hooks.gotoCalls || 0) + 1;
           hooks.gotoCalls = gotoCall;
-          // hooks.gotoTimeoutMs: the first navigation burns the timeout budget
-          // (simulating a page that never reaches network idle), then throws a
-          // timeout so the engine falls back to domcontentloaded.
           if (hooks.gotoTimeoutMs && gotoCall === 1) {
             await new Promise((resolve) => setTimeout(resolve, hooks.gotoTimeoutMs));
             throw new Error(`Navigation timeout of ${hooks.gotoTimeoutMs} ms exceeded`);
           }
-          // hooks.gotoSettleMs: the first navigation takes that long but DOES
-          // settle (network idle reached), for the slow-but-settled control.
           if (hooks.gotoSettleMs && gotoCall === 1) {
             await new Promise((resolve) => setTimeout(resolve, hooks.gotoSettleMs));
           }
@@ -897,10 +881,6 @@ function fakeBrowser(finalUrl, overrides = {}, hooks = {}) {
   };
 }
 
-// Regression: auditing 0509.io produced 8 critical "broken internal links"
-// findings stamped confidence=verified. Every one was this crawler tripping that
-// site's rate limiter; the same URLs returned 200 and 302 when requested politely.
-// A product that sells proof cannot report its own footprint as the customer's bug.
 test("throttle statuses are not treated as broken resources", () => {
   for (const status of [408, 425, 429, 503]) {
     assert.equal(isThrottledResource({ status, ok: false }), true, `${status} should count as throttled, not broken`);
@@ -919,13 +899,6 @@ test("genuine failures are still not mistaken for throttling", () => {
   assert.equal(isThrottledResource({ ok: false }), false);
 });
 
-// Regression: a Cloudflare-hosted site whose origin briefly fails returns
-// 522 (connection timed out) / 523 (origin unreachable) / 524 (origin did not
-// answer in time) for every same-origin link at once. Those are Cloudflare-edge
-// errors for the checked site's own origin — transient infrastructure, not
-// per-link breakage — and Google backs off and retries 5xx instead of dropping
-// the URLs. The public /check must not turn a scan-time origin hiccup into
-// verified critical "broken internal links" findings the page does not have.
 test("same-origin Cloudflare origin errors are not treated as broken internal links", () => {
   for (const status of [520, 521, 522, 523, 524, 525, 526]) {
     assert.equal(
@@ -1022,13 +995,6 @@ test("same-origin 522/523/524 link failures never become critical broken-link fi
   assert.match(brokenExternal[0].evidence, /other\.example\/ref returned 523/, "external 523 stays evidenced");
 });
 
-// Regression: the free /check engine was reporting "Canonical URL is not
-// reachable" when a same-origin canonical (e.g. self-referential, apex↔www,
-// or www→apex) hit the same transient Cloudflare origin error that already
-// guards same-origin internal links. Treating one transient origin hiccup as
-// both "broken internal links" and "broken canonical" duplicates the same
-// false positive at warning tier and turns the customer's own infrastructure
-// blip into a critical-and-warning storm on a clean page.
 test("same-origin 522/523/524 canonical failures never become 'Canonical URL is not reachable' findings", async () => {
   for (const status of [522, 523, 524]) {
     const engine = createAuditEngine({
@@ -1071,11 +1037,6 @@ test("same-origin 522/523/524 canonical failures never become 'Canonical URL is 
   }
 });
 
-// Regression: a cross-origin canonical (declared on the page but pointing to a
-// different host) must still surface 522/523/524 as a real reachability finding
-// at warning tier. The infra-failure guard only applies to same-origin
-// resources where the failure is the customer's own origin, not the third
-// party they pointed their canonical at.
 test("cross-origin canonical 522/523/524 is still reported as unreachable", async () => {
   for (const status of [522, 523, 524]) {
     const engine = createAuditEngine({
@@ -1119,11 +1080,6 @@ test("cross-origin canonical 522/523/524 is still reported as unreachable", asyn
   }
 });
 
-// Regression: a www↔apex canonical lives on the customer's own infrastructure
-// even though the hostname differs from the audited page. The strict origin
-// comparison marked it kind "canonical", which bypassed the same-origin infra
-// guard entirely and let one transient Cloudflare origin error become a false
-// "Canonical URL is not reachable" warning on an otherwise clean page.
 test("same-site www and apex canonical transient origin errors are guarded like same-origin", async () => {
   for (const status of [520, 521, 522, 523, 524, 525, 526]) {
     for (const [pageUrl, canonical] of [
@@ -1175,12 +1131,6 @@ test("same-site www and apex canonical transient origin errors are guarded like 
   }
 });
 
-// Regression: the canonical probe is a second network request to the customer's
-// own site seconds after the page itself rendered fine. When that probe dies at
-// the transport layer (timeout, connection reset, DNS hiccup) it carries no
-// HTTP status at all — proof of nothing about the canonical URL. Reporting it
-// as "Canonical URL is not reachable" turned our own probe timeout into the
-// customer's warning-tier defect. A real HTTP answer (404, 410, 500) still is.
 test("same-origin canonical probe transport failures are not reported as unreachable", async () => {
   const engine = createAuditEngine({
     launchBrowser: async () =>
@@ -1218,9 +1168,6 @@ test("same-origin canonical probe transport failures are not reported as unreach
   assert.deepEqual(canonicalNotice, [], "a timed-out same-origin canonical probe is not a redirect observation either");
 });
 
-// Guard rail for the transport-failure suppression above: when the same-origin
-// canonical probe gets a REAL HTTP answer, the finding must keep firing so the
-// guard cannot hide genuine breakage.
 test("same-origin canonical returning a real error status stays reported as unreachable", async () => {
   const engine = createAuditEngine({
     launchBrowser: async () =>
@@ -1250,14 +1197,9 @@ test("same-origin canonical returning a real error status stays reported as unre
   assert.equal(canonicalFindings.length, 1, "a same-origin canonical answering 404 is a real defect");
 });
 
-// Regression: 0509.io serves HSTS on every route, but /search took 7.6s to
-// settle so no headers were captured, and the audit reported the header as
-// missing. Verified with curl that the header is present for both a browser
-// and the audit's own user-agent.
 test("HSTS is not reported missing when no headers were captured", async () => {
   const engine = createAuditEngine({
     launchBrowser: async () => fakeBrowser("https://public.example/"),
-    // A fetch that never yields headers is exactly the slow-page case.
     fetchImpl: async () => {
       throw new Error("fetch timed out");
     },
@@ -1285,9 +1227,6 @@ test("HSTS is still reported when headers were captured without it", async () =>
   assert.equal(hsts.length, 1, "a real header capture with no HSTS must still be reported");
 });
 
-// Regression: markup that only exists inside <script> or <style> element bodies
-// (JS template strings, CSS content) must not be counted as static headings,
-// links, or images — no static crawler can see it.
 test("static facts exclude headings, links, and images embedded in script and style bodies", async () => {
   const fixture = `<!doctype html>
 <html lang="en">
@@ -1327,9 +1266,6 @@ test("static facts exclude headings, links, and images embedded in script and st
   );
 });
 
-// Regression: <noscript> fallback markup is real crawlable content for
-// crawlers that do not run JavaScript, so static headings, links, and images
-// must keep it while still excluding script-body decoys.
 test("static facts preserve noscript fallback markup", async () => {
   const fixture = `<!doctype html>
 <html lang="en">
@@ -1369,14 +1305,9 @@ test("static facts preserve noscript fallback markup", async () => {
     page.static.images.map((image) => image.src),
     ["https://public.example/fallback-image.png"]
   );
-  // Word-count behavior is intentionally unchanged: noscript fallback text is
-  // still excluded from the static word count, only element facts preserve it.
   assert.equal(page.static.wordCount, 8);
 });
 
-// Regression: the live fixture shape ships real headings/links/images inside a
-// <script> template string. Static facts must not count them, and the
-// rendered-vs-static guards must truthfully fire when the rendered DOM has them.
 test("rendered-vs-static guards stay truthful for the live script-rendered fixture shape", async () => {
   const fixture = `<!doctype html>
 <html lang="en">
@@ -1461,26 +1392,16 @@ test("normalizeUrl rejects non-http schemes and embedded credentials instead of 
 });
 
 test("publicAuditUrlStatus keeps every audit target a public, dotted host", () => {
-  // Single-label hostnames (typos, intranet names, local aliases) are never
-  // public websites; every public audit surface shares this guard, so a
-  // dotless target must fail here rather than reach a browser and return a
-  // raw net:: navigation error.
   for (const input of ["https://notaurl/", "https://intranet/", "https://example", "http://printer/"]) {
     const result = publicAuditUrlStatus(input);
     assert.equal(result.ok, false, `dotless hostname must be rejected: ${input}`);
     assert.equal(result.error, "Enter a valid public website URL.", `friendly message for: ${input}`);
   }
-  // Dotted public hosts, including public IP literals, still pass.
   assert.equal(publicAuditUrlStatus("https://example.com/").ok, true);
   assert.equal(publicAuditUrlStatus("https://8.8.8.8/").ok, true);
   assert.equal(publicAuditUrlStatus("https://example.com:8443/path").ok, true);
 });
 
-// Regression: aiconverter.app never reaches network idle (analytics beacons,
-// polling), so the audit falls back to domcontentloaded. The elapsed time is
-// then dominated by OUR navigation timeout — reporting "reached network idle in
-// 26.9s" as a Slow rendered load finding sells our measurement policy as the
-// customer's defect (same family as the throttled-link and empty-header bugs).
 test("never-idle fallback does not become a slow-load repair finding", async () => {
   const hooks = { gotoTimeoutMs: 2600 };
   const engine = createAuditEngine({
@@ -1496,9 +1417,6 @@ test("never-idle fallback does not become a slow-load repair finding", async () 
   const report = await engine.auditUrl("https://public.example/", { maxPages: 1, pageSpeed: false });
   const rendered = report.pages?.[0]?.rendered || {};
 
-  // The fallback measurement is genuinely long (over the slow-render
-  // threshold), so this test would fail before the fix: the finding fired
-  // purely from our own timeout budget.
   assert.equal(rendered.loadSettled, false, "fallback render must record that idle was never reached");
   assert.ok(rendered.loadDurationMs > 4000, "test setup must exceed the slow-render threshold");
 

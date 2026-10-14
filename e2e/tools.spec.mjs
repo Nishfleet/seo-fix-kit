@@ -1,5 +1,3 @@
-// The free tools at /tools/*: they work as you type, copy and download their
-// output, show only the fields that apply, and keep checklist ticks.
 import { FREE_TOOLS } from "../shared/free-tools/catalog.js";
 import { expect, test } from "./fixtures.mjs";
 

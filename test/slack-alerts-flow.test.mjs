@@ -1,7 +1,3 @@
-// Slack alerts: adding a Slack incoming webhook posts a hello to the channel
-// and saves it with alert events; later events reach Slack as readable
-// messages, not raw JSON. Requests go through the Worker's real Hono app
-// against an in-memory SQLite database; only Slack itself (fetch) is faked.
 import assert from "node:assert/strict";
 import { createHash, randomBytes } from "node:crypto";
 import test from "node:test";
@@ -28,7 +24,6 @@ function signIn(db) {
   return token;
 }
 
-// Fake Slack: answers DNS lookups as public and records every post.
 function fakeSlack(t, { status = 200 } = {}) {
   const posts = [];
   const realFetch = globalThis.fetch;

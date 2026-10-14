@@ -1,16 +1,3 @@
-// Behaviour tests for the React SPA.
-//
-// The SPA is built once with Vite, served from a temp dir by a tiny static
-// server (unknown paths fall back to index.html like the Worker does for
-// "/" and "/beta/*"), and driven in headless Chromium. The backend is mocked
-// with `page.route("**/api/**")`, using response shapes taken from the real
-// Worker serializers where they are importable. Assertions stick to what a
-// user sees (roles, labels, visible text, link targets) and what the page
-// sends over the network, never to source text, so rewording internals or
-// moving components between files cannot break them.
-//
-// These tests back README "What is live" claims; each test re-reads the claim
-// it backs so the README promise and the behaviour fail together.
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs";
@@ -76,10 +63,6 @@ after(async () => {
   if (outDir) fs.rmSync(outDir, { recursive: true, force: true });
 });
 
-// Opens a fresh browser context with every /api/* request answered by
-// `handlers` ({ "METHOD /api/path": (request) => body | { status, body } },
-// where the path may contain ":param" segments). Returns the page and the
-// list of API requests the UI sent, in order.
 async function openApp(t, handlers = {}) {
   const context = await browser.newContext();
   t.after(() => context.close());
@@ -141,8 +124,6 @@ function isoFromNow(ms) {
   return new Date(Date.now() + ms).toISOString();
 }
 
-// --- Realistic fixtures -----------------------------------------------------
-
 function reportFixture(id = randomUUID()) {
   const url = "https://example.com/";
   const finding = (findingId, severity, title, fix) => ({
@@ -179,9 +160,6 @@ function reportFixture(id = randomUUID()) {
   return report;
 }
 
-// Queue items built by the same code the Worker uses, with one item per
-// status the board filter offers to tell apart. Items with no agent action
-// keep the Worker's real `latestAction: null` shape.
 function repairQueueFixture(report) {
   const now = new Date().toISOString();
   const items = deriveRepairQueueItems(
@@ -242,7 +220,6 @@ function accountSummary({ sites = [], schedules = [], jobs = [], reports = [] } 
   };
 }
 
-// A browser with no session until the invite-code login sets one.
 function dashboardHandlers() {
   let signedIn = false;
   return {
@@ -271,8 +248,6 @@ async function signIn(page) {
   await visible(page.getByLabel("Page or site URL"));
 }
 
-// --- Homepage ---------------------------------------------------------------
-
 test("homepage leads with a URL check form and keeps the email access form", async (t) => {
   assert.match(
     README,
@@ -288,8 +263,6 @@ test("homepage leads with a URL check form and keeps the email access form", asy
   });
   await page.goto(baseUrl);
 
-  // The served index.html has an empty #root; this heading only exists once
-  // the client bundle has mounted the app into it.
   await visible(page.getByRole("heading", { level: 1, name: "An SEO audit that checks its own work." }));
   assert.ok(await page.locator("#root").getByRole("heading", { level: 1 }).count(), "app renders into #root");
 
@@ -297,8 +270,6 @@ test("homepage leads with a URL check form and keeps the email access form", asy
   const cta = await visible(page.getByRole("banner").getByRole("link", { name: "Check a page" }));
   assert.equal(await cta.getAttribute("href"), "/check", "primary header CTA goes to the anonymous check");
 
-  // The hero form is a plain GET to /check, so a pasted URL runs the free
-  // check even before (or without) JavaScript.
   const heroForm = page.getByRole("search", { name: "Check a page" });
   assert.equal(await heroForm.getAttribute("action"), "/check");
   assert.equal(await heroForm.getAttribute("method"), "get");
@@ -339,8 +310,6 @@ test("homepage FAQ shows the buyer questions, the anonymous /check path, and no-
   assert.match(answer, /never changes your site or publishes content/);
   assert.match(answer, /guarantee rankings, traffic, indexing, AI citations or revenue/);
 });
-
-// --- Beta workspace ---------------------------------------------------------
 
 test("a valid session opens the workspace even when the browser lost its stored sign-in hint", async (t) => {
   const { page } = await openApp(t, {
@@ -516,8 +485,6 @@ test("the dashboard adds a weekly monitor for a verified host and pauses it", as
   await visible(page.getByRole("button", { name: "Turn on weekly checks" }));
 });
 
-// --- Saved report -----------------------------------------------------------
-
 test("a loaded report shows the remediation brief panel with a JSON download", async (t) => {
   const report = reportFixture();
   const { page } = await openApp(t, reportHandlers(report));
@@ -558,7 +525,6 @@ test("the repair board status filter shows only items in the chosen status", asy
 
   const board = repairBoard(page);
   const filter = await visible(board.getByLabel("View"));
-  // Waits for the visible card titles to settle on `expected` after a change.
   const shows = async (expected, message) => {
     let seen = [];
     const deadline = Date.now() + TIMEOUT;

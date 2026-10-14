@@ -225,11 +225,6 @@ test("Worker dispatch 301-redirects www.seofixkit.com onto the apex host", async
   assert.equal(sitemap.status, 301);
   assert.equal(sitemap.headers.get("location"), "https://seofixkit.com/sitemap.xml");
 
-  // Static-asset and SPA-fallback paths must 301 too: with wrangler.jsonc
-  // "run_worker_first": true every www request reaches this Worker. The old
-  // array form let asset paths bypass the Worker and be served 200 straight
-  // from the asset CDN, and SPA-fallback paths never reached it at all, both
-  // of which leak a second host into canonicals/sitemap indexing.
   for (const assetPath of [
     "/favicon.svg",
     "/security.txt",
@@ -461,9 +456,6 @@ test("Worker deep health claims the route for HEAD and unsupported methods", asy
 test("Worker dispatch passes through the asset layer 404 for unknown URLs instead of rewriting to the homepage", async () => {
   const env = await fakeWorkerEnv();
 
-  // The ASSETS binding (wrangler.jsonc not_found_handling "404-page") owns the
-  // 404 response for unknown URLs. The worker must pass it through unchanged
-  // (status, body) with security headers, never a 200 homepage shell.
   const unknown = await worker.fetch(
     new Request("https://seofixkit.test/definitely-not-a-real-page-xyz"),
     env,
@@ -474,8 +466,6 @@ test("Worker dispatch passes through the asset layer 404 for unknown URLs instea
   assert.match(unknown.headers.get("x-content-type-options") || "", /nosniff/);
   assert.match(unknown.headers.get("x-frame-options") || "", /DENY/);
 
-  // Unknown /api/*, /v1/* and /admin/* paths answer with a JSON 404 from the
-  // Worker itself, never the SPA shell or the HTML 404 page.
   for (const path of ["/api/nonexistent-route", "/v1/nonexistent-route", "/admin/nonexistent-route"]) {
     const response = await worker.fetch(new Request(`https://seofixkit.test${path}`), env, fakeCtx());
     assert.equal(response.status, 404, path);
@@ -483,7 +473,6 @@ test("Worker dispatch passes through the asset layer 404 for unknown URLs instea
     assert.deepEqual(await response.json(), { error: "Not found." }, path);
   }
 
-  // A known API path with the wrong method is also a JSON 404, not HTML.
   const wrongMethod = await worker.fetch(new Request("https://seofixkit.test/api/waitlist"), env, fakeCtx());
   assert.equal(wrongMethod.status, 404);
   assert.match(wrongMethod.headers.get("content-type") || "", /application\/json/);

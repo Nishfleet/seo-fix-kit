@@ -202,9 +202,6 @@ test("repairProofReceiptFilename returns a bounded markdown filename", () => {
 });
 
 test("real before/after receipt: Tiny Studio render-blocking repair (PR #4) generates from real report data", () => {
-  // This pins the same report UUIDs, score, and PR ref the public /proof
-  // page publishes (worker/routes/pages.js PROOF_CASE), so a future drift in
-  // either side fails this regression lock.
   const receipt = buildRepairProofReceipt(tinyStudioRenderBlockingFixture());
 
   assert.equal(receipt.ok, true);
@@ -221,12 +218,10 @@ test("real before/after receipt: Tiny Studio render-blocking repair (PR #4) gene
   assert.equal(receipt.metadata.sourceCapturedAt, "2026-06-15T10:00:00.000Z");
   assert.equal(receipt.metadata.rerunCapturedAt, "2026-06-20T10:30:00.000Z");
 
-  // Same numbers as the public /proof page (PROOF_CASE.before/after): 85 -> 100, 7 -> 0.
   assert.match(receipt.markdown, /- Score: 85 -> 100 \(\+15\)/);
   assert.match(receipt.markdown, /- Issues \(excluding confirmed false positives\): 7 -> 0 \(-7\)/);
   assert.match(receipt.markdown, /- Fixed issues recorded by the rerun report: 7/);
 
-  // Real report UUIDs, real PR ref, real source proof wording.
   assert.match(receipt.markdown, /tinystudio-in-96b716c9-22f3-4ffb-bb92-b912a421a44b/);
   assert.match(receipt.markdown, /tinystudio-in-0a45637f-1354-4d26-ace3-d3b594162961/);
   assert.match(receipt.markdown, /Render-blocking external resources/);
@@ -235,17 +230,12 @@ test("real before/after receipt: Tiny Studio render-blocking repair (PR #4) gene
   assert.match(receipt.markdown, /Action mode: GitHub PR draft/);
   assert.match(receipt.markdown, /Rerun host: tinystudio\.in/);
 
-  // Boundary language: no ranking or traffic guarantee.
   assert.match(receipt.markdown, /SEOFixKit did not publish to a CMS, open or merge a GitHub pull request/);
   assert.match(receipt.markdown, /No guarantee of rankings, traffic, indexing, AI citations or revenue/);
   assert.doesNotMatch(receipt.markdown, /guaranteed rankings|guarantees traffic|guarantees revenue/i);
 });
 
 test("real before/after receipt: intermediate rerun (99/2) is the same measurement path on the same host", () => {
-  // PR #4 was the render-blocking fix; the intermediate 99/2 report proves
-  // PR #4 already cleared the render-blocking + 4 other issues, and only
-  // the HSTS notice + TLS-version advisory remained before PR #5 was merged.
-  // This pins the SAME measurement path before -> intermediate on the same host.
   const receipt = buildRepairProofReceipt(tinyStudioIntermediateFixture());
 
   assert.equal(receipt.ok, true);
@@ -253,7 +243,6 @@ test("real before/after receipt: intermediate rerun (99/2) is the same measureme
   assert.equal(receipt.metadata.rerunReportId, "tinystudio-in-75ffee26-02ae-41d3-b2ef-5beb40722e50");
   assert.equal(receipt.metadata.rerunCapturedAt, "2026-06-18T14:00:00.000Z");
 
-  // 85 -> 99 score lift, 7 -> 2 issue drop, 5 fixed at intermediate.
   assert.match(receipt.markdown, /- Score: 85 -> 99 \(\+14\)/);
   assert.match(receipt.markdown, /- Issues \(excluding confirmed false positives\): 7 -> 2 \(-5\)/);
   assert.match(receipt.markdown, /- Fixed issues recorded by the rerun report: 5/);
@@ -353,9 +342,6 @@ function markdownOutsideFencedBlocks(markdown = "") {
 }
 
 function tinyStudioRenderBlockingFixture() {
-  // Same measurement path used by the public /proof page (PROOF_CASE.before -> PROOF_CASE.after).
-  // This is the founder-owned Tiny Studio portfolio repair, render-blocking external resources issue,
-  // fixed by owner-approved PR #4 (https://github.com/nish3451/tinystudio-in/pull/4).
   const report = {
     id: "tinystudio-in-96b716c9-22f3-4ffb-bb92-b912a421a44b",
     url: "https://tinystudio.in/",
@@ -479,11 +465,6 @@ function tinyStudioRenderBlockingFixture() {
 }
 
 function tinyStudioIntermediateFixture() {
-  // Intermediate rerun (99/2): after PR #4 was merged, the render-blocking
-  // + 4 other issues were already fixed by the same owner-approved change.
-  // This proves PR #4 was effective on the same measurement path on the
-  // same host (only HSTS notice + TLS-version advisory remained, and were
-  // closed by PR #5 in the final rerun).
   const report = {
     id: "tinystudio-in-96b716c9-22f3-4ffb-bb92-b912a421a44b",
     url: "https://tinystudio.in/",

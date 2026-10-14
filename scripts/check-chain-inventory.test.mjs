@@ -1,30 +1,3 @@
-// Inventory regression: every committed Node test file must be covered by
-// the canonical `npm run check` chain (package.json "scripts.check").
-//
-// The bug class this guards: a committed hermetic `node --test` suite that
-// is silently absent from the protected CI check. The PR workflow only runs
-// `npm run check`, and main-branch protection only requires that one
-// "check" context, so a test file that is committed but not wired into the
-// chain can fail (or rot) with a green merge gate.
-//
-// The property is fail-closed and explicit:
-//   1. Every committed `*.test.mjs` / `*.test.js` file must either be
-//      invoked by a `node --test <file>` script that the check chain runs,
-//      or be listed in TEST_FILES_EXEMPT_FROM_CHECK with a justification.
-//   2. Every `node --test` file referenced by the check chain must actually
-//      be a committed file (no dangling references to deleted or uncommitted
-//      tests).
-//
-// Only coverage via an explicit `node --test <file>` invocation inside the
-// chain counts; a bare `node --test` discovery script does not count, so the
-// inventory stays explicit and reviewable.
-//
-// TEST_FILES_EXEMPT_FROM_CHECK exists only for genuinely live/manual test
-// suites that cannot run inside the protected CI check. It is intentionally
-// EMPTY: the current repo has no such committed test file. Adding an entry
-// here requires a named justification in this comment block; this exemption
-// must never be used to bless an omission that a hermetic suite could close.
-
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
@@ -32,12 +5,7 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-const TEST_FILES_EXEMPT_FROM_CHECK = new Map(
-  // Example of a justified entry (do not add entries without one):
-  // [
-  //   ["scripts/manual-e2e.test.mjs", "requires a live deployed staging site and is run manually"]
-  // ]
-);
+const TEST_FILES_EXEMPT_FROM_CHECK = new Map();
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -53,8 +21,6 @@ function chainCoveredTestFiles(packageJson) {
   const checkChain = packageJson.scripts?.check;
   assert.equal(typeof checkChain, "string", "package.json scripts.check must be a string");
 
-  // The chain invokes suites as `npm run test:<name>`; resolve each name to
-  // its script and extract the explicit `node --test <file>` target.
   const chainNames = [...checkChain.matchAll(/npm run (test:[A-Za-z0-9_.-]+)/g)].map((match) => match[1]);
   const covered = new Set();
   for (const name of chainNames) {
@@ -102,10 +68,6 @@ test("the check chain only references committed node --test files", () => {
     if (!name.startsWith("test:")) {
       continue;
     }
-    // The guard's own script is committed in the same commit that wires it
-    // into the chain, so it can never be tracked before the chain references
-    // it; skip the self-reference (it is still subject to the first test's
-    // coverage property once committed).
     if (name === "test:check-inventory") {
       continue;
     }
