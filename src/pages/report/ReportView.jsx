@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
+import { reportFixPrompt } from "../../../shared/ai-fix-prompt.js";
 import { DEFAULT_CRAWL_PAGES } from "../../../shared/crawl-depth.js";
 import { CopyButton } from "../../components/CopyButton.jsx";
 import { Metric } from "../../components/Metric.jsx";
@@ -209,6 +210,16 @@ export function ReportView({ report, onRerun, rerunStatus = "idle", rerunMessage
                 ) : (
                   <p className="app-card-text">Nothing to fix. Rerun after you change content or templates.</p>
                 )}
+                {topThree.length > 0 && (
+                  <div className="verdict-actions">
+                    <CopyButton
+                      className="app-button"
+                      label="Copy AI prompt for the top fixes"
+                      value={reportFixPrompt(report)}
+                    />
+                    <small>One prompt with the top 5 fixes, ready for ChatGPT, Claude, Cursor or Lovable.</small>
+                  </div>
+                )}
                 <p className="app-footnote">
                   We load each page in Chromium and compare it with the raw HTML. Problems that go away once the page
                   loads are filtered out as false alarms.
@@ -245,6 +256,7 @@ export function ReportView({ report, onRerun, rerunStatus = "idle", rerunMessage
                       key={finding.id}
                       finding={finding}
                       plan={topFixes.find((fix) => fix.title === finding.title)}
+                      report={report}
                     />
                   ))}
                   {!issues.length && (

@@ -5423,3 +5423,18 @@ a.app-table-row:hover {
   border-color: var(--line-strong);
   color: var(--ink-soft);
 }
+
+.finding-actions,
+.verdict-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-top: 16px;
+}
+
+.finding-actions small,
+.verdict-actions small {
+  color: var(--ink-muted);
+  font-size: 13px;
+}

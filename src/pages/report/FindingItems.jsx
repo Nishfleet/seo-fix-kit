@@ -1,7 +1,9 @@
+import { findingFixPrompt } from "../../../shared/ai-fix-prompt.js";
 import { CodeBlock } from "../../components/CodeBlock.jsx";
+import { CopyButton } from "../../components/CopyButton.jsx";
 import { findingAnchor, formatLoadMs } from "../../lib/format.js";
 
-function FindingDetails({ finding, plan, compact }) {
+function FindingDetails({ finding, plan, compact, report }) {
   return (
     <>
       {!compact && <p>{finding.why}</p>}
@@ -37,11 +39,21 @@ function FindingDetails({ finding, plan, compact }) {
         </a>
       )}
       {finding.snippet && <CodeBlock code={finding.snippet} />}
+      {report && (
+        <div className="finding-actions">
+          <CopyButton
+            className="app-button-secondary"
+            label="Copy AI fix prompt"
+            value={findingFixPrompt(finding, report, plan)}
+          />
+          <small>Paste into ChatGPT, Claude, Cursor or Lovable.</small>
+        </div>
+      )}
     </>
   );
 }
 
-export function FindingItem({ finding, plan, compact = false, collapsible = false, defaultOpen = false }) {
+export function FindingItem({ finding, plan, report, compact = false, collapsible = false, defaultOpen = false }) {
   if (collapsible) {
     return (
       <details
@@ -55,7 +67,7 @@ export function FindingItem({ finding, plan, compact = false, collapsible = fals
           {finding.snippet && <small className="finding-row-tag">Snippet ready</small>}
         </summary>
         <div className="finding-row-body">
-          <FindingDetails finding={finding} plan={plan} compact={compact} />
+          <FindingDetails finding={finding} plan={plan} compact={compact} report={report} />
         </div>
       </details>
     );
@@ -66,7 +78,7 @@ export function FindingItem({ finding, plan, compact = false, collapsible = fals
         <span>{finding.severity}</span>
         <h3>{finding.title}</h3>
       </div>
-      <FindingDetails finding={finding} plan={plan} compact={compact} />
+      <FindingDetails finding={finding} plan={plan} compact={compact} report={report} />
     </article>
   );
 }
