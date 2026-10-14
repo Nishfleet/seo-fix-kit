@@ -49,7 +49,6 @@ function jsonBody(value, status = 200) {
   });
 }
 
-// Shipped machine-surface copy, mirroring worker/index.js route handlers.
 const surfaces = {
   "/llms.txt": () => textResponse(llmsText(origin), "text/plain; charset=utf-8"),
   "/sitemap.xml": () => textResponse(rootSitemap(origin), "application/xml; charset=utf-8"),

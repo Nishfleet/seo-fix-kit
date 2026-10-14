@@ -4,19 +4,8 @@ import { appendReportDeltaBrief, buildReportDelta } from "../../shared/report-de
 import { buildGeoReadinessAudit } from "../../shared/geo-readiness.js";
 import { buildRepairProposalsFromReport } from "../../shared/repair-execution.js";
 
-// The first audit below runs against a small local fixture site by default so
-// the gate is hermetic (no dependency on production being up or on outbound
-// network). Set TEST_URL to opt in to a live run instead, e.g.
-//   TEST_URL=https://seofixkit.com/ npm run test:audit
-// The production engine has no static fallback when rendering fails, so a
-// live target must reach network idle. aiconverter.app keeps analytics/ad
-// connections open and never idles; the product site renders clean.
 const liveTarget = process.env.TEST_URL || "";
 
-// A realistic three-page marketing site with robots.txt and sitemap.xml and
-// deliberate SEO defects (missing meta description, missing H1, image without
-// alt text, duplicate title, thin page) so the generic report assertions
-// exercise real findings rather than an empty report.
 const siteFixturePages = {
   "/": `<!doctype html>
 <html lang="en">
@@ -203,8 +192,6 @@ if (!report.repairBrief.includes("# SEO Fix Kit repair brief")) {
 }
 
 if (!liveTarget) {
-  // The local fixture site's defects are known, so pin them: the crawl must
-  // follow the home page's internal link and surface the planted issues.
   const siteFindingTitles = report.findings.map((finding) => finding.title);
   const expectSiteFinding = (pattern, label) => {
     if (!siteFindingTitles.some((title) => pattern.test(title))) {
@@ -719,10 +706,6 @@ if (guarded.length < 2) {
 }
 
 const guardTitles = guarded.map((finding) => finding.title);
-// The rendered fixture ships markup only inside a <script> string, so a script-less
-// crawler sees no H1, no internal links, and thin text. Each of those must become a
-// guard finding; otherwise the static-vs-rendered proof loop the product claims is
-// silently missing for JS-rendered pages.
 for (const expected of ["H1 exists after render", "internal links exist after render"]) {
   if (!guardTitles.some((title) => title.includes(expected))) {
     throw new Error(`False-positive guard missing for rendered fixture: ${expected}`);

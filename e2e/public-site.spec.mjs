@@ -1,6 +1,3 @@
-// The public site, end to end: every page in the sitemap, the shared header
-// and footer, the homepage without JavaScript, pricing, the free check and
-// the 404 page, on desktop and phone.
 import { ROOT_PUBLIC_PATHS } from "../shared/audit-engine.js";
 import { expect, test } from "./fixtures.mjs";
 
@@ -20,7 +17,6 @@ for (const path of ROOT_PUBLIC_PATHS) {
     await expect(page.getByRole("contentinfo")).toBeVisible();
 
     // Compare with the screen, not window.innerWidth: a phone widens its
-    // layout viewport to fit wide content, so innerWidth hides the overflow.
     const screenWidth = page.viewportSize().width;
     const pageWidth = await page.evaluate(() => document.documentElement.scrollWidth);
     expect(pageWidth, "page scrolls sideways").toBeLessThanOrEqual(screenWidth);
@@ -185,7 +181,6 @@ test.describe("free page check", () => {
 
   test("shows the rendered proof, false alarms and fixes for a checked page", async ({ page }) => {
     // Rendering a third-party page needs Cloudflare Browser Rendering, which
-    // only exists on Cloudflare; this answer has the shape the Worker returns.
     await page.route("**/api/public-check", (route) =>
       route.fulfill({
         json: {

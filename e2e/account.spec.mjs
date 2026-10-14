@@ -1,6 +1,3 @@
-// Signing up, signing in and moving around the signed-in app, end to end
-// against the real Worker and database: the email a user would receive is
-// read back from the test server and its link opened in the browser.
 import { expect, signInLinkFor, test, typeLikeAPerson, uniqueEmail } from "./fixtures.mjs";
 
 const SECTIONS = ["Overview", "Reports", "Sites", "Alerts & API", "Billing"];
@@ -23,8 +20,6 @@ test("a new visitor signs up from the homepage and lands in their workspace", as
   await expect(page.getByRole("heading", { level: 1, name: "Overview" })).toBeVisible();
   await expect(page).toHaveURL(/\/beta$/);
 
-  // A new account starts with its first audit: the setup list's button
-  // lands in the URL field.
   const setup = page.getByRole("region", { name: "Set up your account" });
   await expect(setup.getByRole("listitem").first()).toContainText("Run your first audit");
   await setup.getByRole("link", { name: "Run audit" }).click();
@@ -87,13 +82,11 @@ test("a report lists every problem and jumps from the top fixes to the proof", a
   await page.goto(await signInLinkFor(request, email));
   await expect(page.getByRole("heading", { level: 1, name: "Overview" })).toBeVisible();
 
-  // The Fix Pack price comes live from Dodo, which the test server cannot reach.
   await page.route("**/api/pricing-preview", (route) =>
     route.fulfill({ json: { pricing: { displayPrice: "$49", currency: "USD" } } })
   );
   const { id } = await (await request.post("/__e2e/reports", { data: { ownerEmail: email } })).json();
 
-  // The reports list shows how big each audit was and what it found.
   await page.goto("/beta/reports");
   const row = page.getByRole("table", { name: "Reports" }).getByRole("row", { name: /acme-widgets\.example/ });
   await expect(row.locator(".app-table-num").nth(1)).toHaveText("6");
@@ -108,10 +101,7 @@ test("a report lists every problem and jumps from the top fixes to the proof", a
   await expect(rows.first()).toHaveAttribute("open", "");
   await expect(rows.nth(1).getByText("Evidence", { exact: true })).toBeHidden();
 
-  // The severity filter narrows the list; a top fix still jumps to its proof
-  // when the filter hides it.
   const filters = page.getByRole("group", { name: "Filter problems by severity" });
-  // Every filter stays on screen, even on a narrow phone.
   await page.setViewportSize({ width: 320, height: 700 });
   const notices = await filters.getByRole("button", { name: /^Notices/ }).boundingBox();
   expect(notices.x + notices.width).toBeLessThanOrEqual(320);
@@ -218,8 +208,6 @@ test("Check again reruns a report and leads with what changed", async ({ page, r
   await page.route("**/api/pricing-preview", (route) =>
     route.fulfill({ json: { pricing: { displayPrice: "$49", currency: "USD" } } })
   );
-  // The real audit loads the site in a browser, which the test server cannot
-  // do; the queue answers with the newer report instead.
   let sent;
   await page.route("**/api/audit", (route) => {
     sent = route.request().postDataJSON();
@@ -238,7 +226,6 @@ test("Check again reruns a report and leads with what changed", async ({ page, r
   expect(sent.url).toContain("acme-widgets.example");
 
   const change = page.getByRole("region", { name: "Change since your last check" });
-  // 84 to 92 crosses 90, which the strip celebrates.
   await expect(change).toContainText("You crossed 90. Up 8 since your last check");
   await expect(change).toContainText("1 fixed · 0 new");
   await change.getByRole("button", { name: "See what changed" }).click();

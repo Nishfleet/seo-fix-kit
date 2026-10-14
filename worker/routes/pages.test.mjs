@@ -32,13 +32,6 @@ import {
 
 const origin = "https://seofixkit.com";
 
-// Every worker-rendered public page must ship the PNG share image as
-// og:image/twitter:image (social platforms ignore SVG share images, so the
-// SVG source is rendered to public/og-image.png). The root page is the SPA
-// app shell served from index.html (not worker-rendered) and intentionally
-// keeps its jpg waitlist share image. The image URL is absolute and points
-// at the shipped public/og-image.png asset, so a share of /demo, /pricing,
-// /check, or any other public page never renders without a preview image.
 const allWorkerRenderedPublicPages = [
   { name: "/demo", html: demoHtml(origin) },
   { name: "/check", html: checkHtml(origin) },
@@ -94,7 +87,6 @@ test("every worker-rendered public page ships the PNG share image as og:image an
   }
 });
 
-// Reads width/height from a PNG's IHDR chunk (bytes 16-23, big-endian).
 function pngDimensions(path) {
   const bytes = readFileSync(path);
   assert.deepEqual(
@@ -120,7 +112,6 @@ test("the PNG share image and touch icon exist at their declared sizes", () => {
     { width: 180, height: 180 },
     "apple-touch-icon.png must be a real 180x180 PNG"
   );
-  // The SVG stays as the editable source the PNG is rendered from.
   const svg = readFileSync(new URL("../../public/og-image.svg", import.meta.url), "utf8");
   assert.match(svg, /viewBox="0 0 1200 630"/, "og-image.svg source must keep the 1200x630 viewBox");
 });
@@ -147,9 +138,6 @@ test("public proof pages expose methodology and pricing without overclaims", () 
     new RegExp(`<a class="cta" href="${origin}/check">Check a page</a>`),
     "methodology must carry a clickable CTA into the anonymous one-page check"
   );
-  // Scout regression guard: every mention of the anonymous check URL on the
-  // methodology page must be clickable (a link href or a link's anchor text),
-  // never printed as plain text.
   {
     const checkUrl = `${origin}/check`;
     const totalMentions = methodology.split(checkUrl).length - 1;
@@ -162,8 +150,6 @@ test("public proof pages expose methodology and pricing without overclaims", () 
       `every /check mention on the methodology page must be a clickable link (${totalMentions} mentions, ${hrefMentions} link hrefs, ${linkTextMentions} link texts)`
     );
   }
-  // The comparisons share one stated boundary, and none of them may drift
-  // into an AI-visibility or ranking overclaim.
   const section = (heading) => (methodology.match(new RegExp(`<h2>${heading}</h2>[\\s\\S]*?</section>`)) || [])[0];
   const intro = section("Compared with other tools");
   assert.ok(intro, "methodology must introduce the competitor comparisons");
@@ -189,8 +175,6 @@ test("public proof pages expose methodology and pricing without overclaims", () 
     assert.match(body, /repair queue|repair-queue/, `${heading} must name the repair queue as the difference`);
     assert.match(body, /rerun|proof receipt/, `${heading} must name rerun proof as the difference`);
   }
-  // SEOmator is named on its own terms (39 free tools, 251-check
-  // JS-rendering audit, dedicated GEO audit).
   {
     const seomator = section("Compared with SEOmator");
     assert.match(seomator, /39 free SEO tools/);
@@ -202,8 +186,6 @@ test("public proof pages expose methodology and pricing without overclaims", () 
     assert.match(seomator, /<a href="https:\/\/seomator\.com\/free-seo-audit-tool"/);
     assert.match(seomator, /<a href="https:\/\/seomator\.com\/geo-audit-tool"/);
   }
-  // Volume Nine GEO Grader: agency tool, six categories, 60+ signals,
-  // robots.txt AI-crawler access check, free, launched January 2026.
   {
     const volnine = section("Compared with Volume Nine's GEO Grader");
     assert.match(volnine, /Denver-based digital marketing agency/);
@@ -223,8 +205,6 @@ test("public proof pages expose methodology and pricing without overclaims", () 
     assert.match(volnine, /<a href="https:\/\/geo\.v9digital\.com\/grader\/" rel="nofollow noopener" target="_blank">/);
     assert.match(volnine, /emails a detailed report with actionable to-dos/);
   }
-  // Juma.ai GEO Audit: free, no signup, open methodology of ten weighted
-  // dimensions, impact × effort matrix, MCP run_geo_audit tool.
   {
     const juma = section("Compared with Juma\\.ai's GEO Audit");
     assert.match(juma, /no signup/);
@@ -237,8 +217,6 @@ test("public proof pages expose methodology and pricing without overclaims", () 
     assert.match(juma, /<a href="https:\/\/juma\.ai\/mcp" rel="nofollow noopener" target="_blank">/);
     assert.match(juma, /rather than sampling ChatGPT, Claude, Gemini, or Perplexity live/);
   }
-  // AEO Engine: free GEO audit plus a shipped-fix service; we stay
-  // approval-first and never write to the site.
   {
     const aeo = section("Compared with AEO Engine");
     assert.match(aeo, /free GEO audit/i);
@@ -257,8 +235,6 @@ test("public proof pages expose methodology and pricing without overclaims", () 
     assert.match(aeo, /publish CMS changes, open pull requests, merge code, or call provider admin APIs/);
     assert.doesNotMatch(aeo, /autonomous.*CMS|autonomous.*repo|autonomously/i);
   }
-  // Funded AI-visibility trackers (Otterly.ai + Peec.ai), quoted from their
-  // own pages.
   {
     const tracker = section("Compared with Otterly\\.ai and Peec\\.ai");
     assert.match(tracker, /Otterly\.ai/);
@@ -286,7 +262,6 @@ test("public proof pages expose methodology and pricing without overclaims", () 
       /<a href="https:\/\/peec\.ai\/blog\/we-raised-21m-series-a-to-help-brands-win-in-ai-search" rel="nofollow noopener" target="_blank">/
     );
   }
-  // Agentic SEO auditor that files GitHub issues (SEO Automation Club).
   {
     const agentic = section("Compared with agents that file GitHub issues");
     assert.match(agentic, /SEO Automation Club/);
@@ -302,7 +277,6 @@ test("public proof pages expose methodology and pricing without overclaims", () 
       /73 issues|41 closed|6 days|guaranteed rankings|live AI-engine sampling is live|we apply your fixes/i
     );
   }
-  // Free AI SEO agent skills: fair to open source, links pricing and the check.
   {
     const skills = section("Compared with free AI SEO agent skills");
     assert.match(
@@ -326,13 +300,10 @@ test("public proof pages expose methodology and pricing without overclaims", () 
   assert.match(packages, /final price including any local tax is shown at checkout before you pay/);
   assert.match(packages, /No ranking or traffic guarantee is made/);
   assert.match(packages, /Dodo Payments handles checkout as merchant of record/);
-  // Proof Monitoring is not on sale: it must be marked coming soon, never priced.
   assert.match(packages, /Coming soon[\s\S]*?Proof Monitoring/);
   assert.match(packages, /a paid plan is not on sale yet/);
   assert.doesNotMatch(packages, /\$49-\$99\/mo/);
-  // No popularity claim without usage data to back it.
   assert.doesNotMatch(packages, /Most popular/);
-  // Every plan card leads somewhere: no dead-end tiles.
   for (const plan of ["Page check", "Site audit", "Fix Pack"]) {
     const card = (packages.match(
       new RegExp(`<article class="plan[^"]*">[\\s\\S]*?<h2>${plan}</h2>[\\s\\S]*?</article>`)
@@ -346,10 +317,6 @@ test("public proof pages expose methodology and pricing without overclaims", () 
   }
   assert.doesNotMatch(combined, /completed 50K rendered validation/i);
   assert.doesNotMatch(combined, /guaranteed rankings/i);
-  // Promise-audit 2026-08-15: the demo and packages pages must not drift back
-  // into overclaiming. The engine only emits an exact snippet when it can
-  // generate one (demo-proof.js repairPlan entries carry empty snippets), so
-  // "each with an exact snippet" would overclaim.
   assert.doesNotMatch(
     demoHtml(origin),
     /each with an exact snippet/,
@@ -364,12 +331,8 @@ test("public proof pages expose methodology and pricing without overclaims", () 
 
 test("pricing page answers the GEO Auditor agent-fix trade-off without overclaims", () => {
   const packages = pricingHtml(origin);
-  // The competitor and its price/delivery mode are named plainly (verified on
-  // geoauditor.app, 2026-08-21): $29 one-time report, Agent Fix Mode.
   assert.match(packages, /GEO Auditor’s \$29 Agent Fix Mode/);
   assert.match(packages, /Agent Fix Mode/);
-  // The answer carries the load-bearing halves: real-browser evidence,
-  // per-fix approval, rerun proof; and it stays fair to the competitor.
   assert.match(packages, /evidence from a real browser/);
   assert.match(packages, /you approve each one before anything changes/);
   assert.match(packages, /a rerun shows what actually got fixed/);
@@ -426,8 +389,6 @@ test("machine-readable public surfaces list proof pages and limits", () => {
   assert.match(llms, new RegExp(`${origin}/api/deep-health`));
   assert.doesNotMatch(sitemap, /\/llms\.txt/);
 
-  // Every sitemap URL must carry a truthful, parseable UTC W3C <lastmod>
-  // (the re-crawl freshness hint), matching the shared ROOT_PUBLIC_LASTMODS.
   for (const path of ROOT_PUBLIC_PATHS) {
     assert.match(
       sitemap,
@@ -473,10 +434,6 @@ test("machine-readable public surfaces list proof pages and limits", () => {
   assert.match(markdown, new RegExp(`Anonymous one-page check: ${origin}/check`));
 });
 
-// Sitemap freshness discipline: a page's <lastmod> is the re-crawl hint
-// search engines use, so it must move whenever what the page serves changes.
-// The fingerprints hash each page's served HTML (and the SPA landing files for
-// "/"); `npm run sitemap:refresh` bumps lastmods and records new hashes.
 test("sitemap lastmod is refreshed whenever a public page's content changes", async () => {
   const current = await currentPublicPageFingerprints();
   const recorded = recordedPublicPageFingerprints();
@@ -510,19 +467,15 @@ test("intent-matching landing pages carry unique, truthful, machine-readable pro
   ];
 
   for (const { name, path, html } of pages) {
-    // Unique per-page title, meta description, and canonical.
     assert.match(html, new RegExp(`<title>[^<]+ - SEO Fix Kit</title>`), `${name} must carry a page title`);
     assert.match(html, /<meta name="description" content="[^"]+" \/>/, `${name} must carry a meta description`);
     assert.match(html, new RegExp(`rel="canonical" href="${origin}${path}"`), `${name} must carry its own canonical`);
-    // Machine-readable proof: WebPage + SoftwareApplication + FAQPage JSON-LD.
     const ldBlocks = html.match(/<script type="application\/ld\+json">/g) || [];
     assert.equal(ldBlocks.length, 3, `${name} must emit WebPage, SoftwareApplication, and FAQPage JSON-LD`);
     assert.match(html, /"@type"\s*:\s*"SoftwareApplication"/, `${name} must describe the tool truthfully as software`);
     assert.match(html, /"@type"\s*:\s*"FAQPage"/, `${name} must emit FAQPage JSON-LD`);
-    // Visible FAQ must render from the same source as the JSON-LD FAQ.
     assert.match(html, /Frequently asked questions/, `${name} must render the FAQ section visibly`);
     assert.match(html, /class="faq-item"/, `${name} must render visible FAQ items`);
-    // Landing pages stay boundary-honest.
     assert.match(html, /What this page does not claim/, `${name} must carry an explicit no-overclaim section`);
     assert.match(html, new RegExp(`href="${origin}/check"`), `${name} must link the anonymous one-page check`);
     assert.match(html, new RegExp(`href="${origin}/demo"`), `${name} must link the proof sample`);
@@ -534,13 +487,11 @@ test("intent-matching landing pages carry unique, truthful, machine-readable pro
     assert.ok(visibleWordCount(html) >= 250, `${name} must not look thin to rendered audits`);
   }
 
-  // Each landing page must be intent-specific, not a duplicate shell.
   const titles = pages.map(({ html }) => (html.match(/<title>([^<]+) - SEO Fix Kit<\/title>/) || [])[1]);
   assert.equal(new Set(titles).size, 3, "each landing page must have a unique title");
   assert.match(pages[0].html, /Small Business SEO Audit/);
   assert.match(pages[1].html, /Rendered vs Static SEO Audit/);
   assert.match(pages[2].html, /AI Answer Readiness Check/);
-  // AI readiness boundary: no live answer-engine sampling, llms.txt optional.
   assert.match(pages[2].html, /No live answer-engine sampling/);
   assert.match(pages[2].html, /No AI citation monitoring/);
   assert.match(pages[2].html, /llms\.txt stays optional/);
@@ -556,8 +507,6 @@ test("intent-matching landing pages carry unique, truthful, machine-readable pro
   assert.match(pages[2].html, /Answer Visibility Lab/);
   assert.match(pages[2].html, /Website AEO GEO Checker/);
   assert.match(pages[2].html, /Veuno/);
-  // Direct challenge to the getaisearchscore.com r=0.009 headline stays truth-safe:
-  // the null is real, but it does not refute proof-derived readiness.
   assert.match(pages[2].html, /On "technical readiness predicts nothing \(r=0\.009\)"/);
   assert.match(pages[2].html, /441 domains, Perplexity-only citations, cross-sectional/);
   assert.match(pages[2].html, /not on individual technical faults/);
@@ -671,8 +620,6 @@ test("demo brief is verbatim real engine output for the public test page", async
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   try {
     const fixtureOrigin = `http://127.0.0.1:${server.address().port}`;
-    // Same options the Worker's private demo audit uses: appOrigin synthesis
-    // for robots/sitemap, one page, no PageSpeed pass.
     const report = await auditUrl(`${fixtureOrigin}${DEMO_FIXTURE_PATH}`, {
       maxPages: 1,
       pageSpeed: false,
@@ -903,10 +850,6 @@ test("Cloudflare asset routing sends public proof pages through the Worker", () 
   const wrangler = JSON.parse(jsonc.replace(/^\s*\/\/.*$/gm, ""));
   const runWorkerFirst = wrangler.assets?.run_worker_first;
 
-  // Boolean true runs the Worker before asset serving for every request, which
-  // is what keeps www.seofixkit.com asset paths 301-ing onto the apex host. An
-  // array must at least cover every public proof page; a missing or false
-  // value would let assets bypass the Worker and be served from the www host.
   assert.equal(
     runWorkerFirst === true || Array.isArray(runWorkerFirst),
     true,

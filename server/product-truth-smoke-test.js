@@ -58,7 +58,6 @@ assert.equal(support.includes("No ranking, traffic, or revenue promise is made."
 assert.equal(terms.includes("No ranking, indexing, traffic, revenue, or search-engine outcome is promised"), true);
 assert.equal(/\$199-\$399\/mo/.test(llms), false);
 assert.equal(/\$299-\$799\/mo/.test(llms), false);
-// The homepage FAQ questions and no-auto-publish / no-guarantee answers are checked in a browser by test/spa.test.mjs.
 for (const type of ["Organization", "WebSite", "SoftwareApplication", "FAQPage"]) {
   assert.equal(schemaTypes.has(type), true, `homepage schema should include ${type}`);
 }

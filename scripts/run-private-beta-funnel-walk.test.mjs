@@ -13,21 +13,13 @@ import {
 
 const origin = "https://seofixkit.com";
 
-// Builds a passing per-stop evidence record for the given stop in the exact
-// shape scripts/run-private-beta-funnel-walk.mjs records from the rendered
-// DOM. Mutations in each test prove the corresponding assertion fires, so
-// the offline lock cannot drift from the live walk's verdict logic.
 function passingStopEvidence(stop, viewport = "desktop") {
   const copyChecks = (stop.copyChecks || []).map((check) => ({
     match: check.match,
     present: true
   }));
-  // Worker-rendered pages emit absolute same-origin hrefs (href="${origin}/..."),
-  // so fixtures use the absolute form except on the SPA home page.
   const anchorFor = (href) => (stop.path === "/" ? href : `${origin}${href}`);
   const anchors = (stop.expectedLinks || []).map((href) => anchorFor(href));
-  // Mirrors the live walker: expected-link presence is derived from the
-  // collected anchors through samePathname, so a matcher regression fails here.
   const expectedLinks = (stop.expectedLinks || []).map((href) => ({
     href,
     present: anchors.some((anchor) => samePathname(anchor, href, origin))
@@ -64,7 +56,6 @@ function passingStopEvidence(stop, viewport = "desktop") {
     },
     accessForm,
     walkerError: null,
-    // anchors as collected from the DOM, absolute on Worker pages
     anchors
   };
 }
@@ -99,9 +90,6 @@ test("context options builder maps the mobile descriptor to a true 390x844 mobil
 
 test("context options never leak descriptor label or bare size keys Playwright would silently ignore", () => {
   // Regression lock: passing the descriptor straight to newContext() used to
-  // drop width/height (Playwright ignores unknown top-level keys) and run the
-  // "mobile" half at the 1280px desktop default. The options object must only
-  // carry keys Playwright understands, and the size must live under `viewport`.
   for (const descriptor of WALK_VIEWPORTS) {
     const options = buildContextOptions(descriptor);
     assert.equal("name" in options, false, "descriptor label must not leak into context options");
@@ -229,9 +217,6 @@ test("walk fails on mobile when the page scrolls horizontally", () => {
 
 test("walk flags horizontal overflow even when innerWidth inflates to the overflowing width", () => {
   // Regression lock for the funnel-walk false negative the scout caught on
-  // /demo: mobile browsers inflate window.innerWidth to the overflowing
-  // width (451 == scrollWidth), so the verdict must compare scrollWidth
-  // against the layout viewport clientWidth, never innerWidth.
   const evidence = passingStopEvidence(FUNNEL_STOPS[1], "mobile");
   evidence.horizontalOverflow = { scrollWidth: 451, clientWidth: 390, innerWidth: 451, overflow: true };
   const failures = evaluateStopEvidence(evidence);
@@ -310,10 +295,6 @@ test("walk-level result fails on console/page errors", () => {
   );
 });
 
-// Same walk-level assertion the live runner applies after all stops: console
-// errors and non-benign request failures fail the walk even when every stop
-// itself is clean. Kept here so the offline lock and the live walk share the
-// rule; the live runner inlines the identical check.
 export function evaluateWalkLevelFailures(record) {
   const failures = [];
   if (record.consoleErrors?.length > 0) {

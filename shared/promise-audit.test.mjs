@@ -56,16 +56,11 @@ import { buildPublicCheckResponse } from "../worker/routes/public-check.js";
 
 const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
 const liveSection = readme.split("## What is live in this repo")[1]?.split("## Run locally")[0] || "";
-// Wrangler's own config reader, so deploy claims are checked against the
-// values Wrangler deploys, not against the file's formatting.
 const wranglerConfig = unstable_readConfig({ config: fileURLToPath(new URL("../wrangler.jsonc", import.meta.url)) });
 
 const ORIGIN = "https://seofixkit.com";
 const OWNER = "owner@example.com";
 
-// True when the Worker's router has a real route for `path` (any method, or
-// the given one); a trailing slash means "some route under this prefix".
-// Checks registered routes, not source text.
 function workerRoutes(path, method = "") {
   return workerApp.routes.some(
     (route) =>
@@ -73,11 +68,6 @@ function workerRoutes(path, method = "") {
       (!method || route.method === method || route.method === "ALL")
   );
 }
-
-// --- Behaviour harness -------------------------------------------------------
-// Every check below exercises real code: the Worker router with an in-memory
-// D1 that has every migration applied, the shared audit engine with a fake
-// browser, or the shared builders with small fixtures.
 
 function isoFromNow(ms) {
   return new Date(Date.now() + ms).toISOString();
@@ -150,7 +140,6 @@ async function withStubbedFetch(handler, run) {
   }
 }
 
-// A Browser Run binding that records the call and refuses to start a browser.
 function recordingBrowserBinding() {
   const calls = [];
   return {
@@ -162,8 +151,6 @@ function recordingBrowserBinding() {
   };
 }
 
-// A private-beta workspace: in-memory D1 plus one live beta session whose
-// token is sent the same way the SPA sends it.
 async function privateBeta({ accessMode = "invite", inviteId = "invite-1", env: extraEnv = {} } = {}) {
   const db = createTestD1();
   const now = new Date().toISOString();
@@ -255,9 +242,6 @@ function savedReportFixture(url = "https://example.com/") {
   };
 }
 
-// One offline run of the production audit engine against a small fixture
-// site, with a fake browser standing in for Browser Run / Playwright. Shared
-// by every engine-output claim below.
 const SHOP = "https://shop.example";
 const RIVAL = "https://rival.example";
 const fixtureResources = {
@@ -411,8 +395,6 @@ function findingTitled(report, pattern) {
   return report.findings.find((finding) => pattern.test(finding.title));
 }
 
-// --- Claims ------------------------------------------------------------------
-
 test("README 'What is live in this repo' section exists and documents the self-serve crawl promise", () => {
   assert.ok(liveSection.length > 500, "README must keep a 'What is live in this repo' section");
   assert.match(liveSection, /1,000 pages per queued audit/i);
@@ -507,14 +489,11 @@ test("README public page promise matches Worker routing and copy", async () => {
 
 test("README intent-landing-page promise matches routes, sitemap, and schema boundaries", async () => {
   const landingPaths = ["/small-business-seo-audit", "/rendered-vs-static-seo-audit", "/ai-answer-readiness"];
-  // run_worker_first: true sends every path (including these) through the
-  // Worker before the SPA assets.
   assert.equal(wranglerConfig.assets.run_worker_first, true, "the Worker must run before SPA assets for every path");
   for (const path of landingPaths) {
     assert.ok(workerRoutes(path, "GET"), `Worker must route ${path}`);
     assert.match(liveSection, new RegExp(`\`${path}\``, "i"), `README must name ${path}`);
   }
-  // With run_worker_first, /sitemap.xml is the Worker-served sitemap.
   const sitemap = await publicPage("/sitemap.xml");
   for (const path of landingPaths) {
     assert.ok(sitemap.includes(`<loc>${ORIGIN}${path}</loc>`), `served sitemap must list ${path}`);
@@ -597,8 +576,6 @@ test("README Cloudflare path routes are actually registered in the Worker", () =
   }
 });
 
-// Drives every abuse-controlled surface once through the Worker against one
-// D1 and returns the quota rows it left behind.
 async function exerciseAbuseControlledSurfaces() {
   const browser = recordingBrowserBinding();
   const emails = [];
@@ -718,13 +695,7 @@ test("README homepage anonymous-check claim matches the CTA beside the email for
     /request a secure one-use email link or check one public page anonymously/i,
     "README promises both homepage entry paths"
   );
-  // The rendered homepage form, /check CTA, and FAQ are checked in a browser by test/spa.test.mjs.
 });
-
-// State-truthfulness pins. The numeric caps and routes above are locked to
-// code; these claims describe what is NOT live or how limits are computed, so
-// they were spot-checked once (PR #60) and are locked here so the README
-// cannot silently drift into overclaiming.
 
 test("README large-crawl daily rate matches the scheduled worker defaults", async () => {
   assert.match(liveSection, /roughly 1,000 pages\/day/i);
@@ -742,7 +713,6 @@ test("README large-crawl daily rate matches the scheduled worker defaults", asyn
       updated_at: now
     });
   }
-  // No SEOFIXKIT_LARGE_CRAWL_WORKER_* vars: the defaults apply.
   await runDueLargeRenderedCrawlWorkers({ WAITLIST_DB: db, BROWSER: recordingBrowserBinding() });
   const heartbeats = db.rows("SELECT crawl_job_id, concurrency FROM large_crawl_worker_heartbeats");
   assert.equal(heartbeats.length, 1, "default is one batch per tick");
@@ -776,10 +746,6 @@ test("README offer-catalog claim matches config-gated monitoring and paused chec
     /Server-owned offer catalog and entitlement scaffolding for Proof Monitoring, Repair Sprint, SEO\/GEO Repair Agent, and Agency Workspace/i
   );
   assert.match(liveSection, /Proof Monitoring has a config-gated Dodo subscription checkout path/i);
-  // Repair Sprint moved from "not live yet" to a config-gated one-time checkout
-  // that only opens from a report with an owner-approved executable proposal.
-  // Repair Agent and paid Agency Workspace checkout are still not live, and the
-  // README must keep saying so.
   assert.match(
     liveSection,
     /Repair Sprint has a config-gated Dodo one-time checkout path for approved proposal queues/i
@@ -795,8 +761,6 @@ test("README offer-catalog claim matches config-gated monitoring and paused chec
   for (const name of ["Proof Monitoring", "Repair Sprint", "SEO/GEO Repair Agent", "Agency Workspace"]) {
     assert.ok(unconfigured[name], `offer catalog names ${name}`);
   }
-  // Both config-gated offers carry the label, so neither renders as
-  // unconditionally purchasable.
   assert.equal(unconfigured["Proof Monitoring"].statusLabel, "Config gated");
   assert.equal(unconfigured["Repair Sprint"].statusLabel, "Config gated");
   assert.equal(unconfigured["Proof Monitoring"].checkoutLive, false);
@@ -810,14 +774,11 @@ test("README offer-catalog claim matches config-gated monitoring and paused chec
     true,
     "Repair Sprint checkout is gated behind a configured Dodo product"
   );
-  // Repair Sprint eligibility only reports a live checkout once a proposal is
-  // approved AND checkout is configured.
   const approved = [{ executionMode: "self_serve", approvalStatus: "approved" }];
   const pending = [{ executionMode: "self_serve", approvalStatus: "pending" }];
   assert.equal(repairSprintEligibilityFromProposals(approved, null, { checkoutReady: true }).checkoutLive, true);
   assert.equal(repairSprintEligibilityFromProposals(approved, null, { checkoutReady: false }).checkoutLive, false);
   assert.equal(repairSprintEligibilityFromProposals(pending, null, { checkoutReady: true }).checkoutLive, false);
-  // Repair Agent and Agency Workspace stay paused even with every product configured.
   for (const name of ["SEO/GEO Repair Agent", "Agency Workspace"]) {
     assert.equal(configured[name].checkoutState, "paused", `${name} checkout stays paused`);
     assert.equal(configured[name].checkoutLive, false, `${name} checkout is not live`);
@@ -840,10 +801,6 @@ test("README AI Answer Readiness claim ranks faults by imported Search Console t
     liveSection,
     /when Search Console or rank-tracker rows are imported, readiness faults are ranked by the clicks and impressions on the affected pages/i
   );
-  // Ranking order by traffic is proven in shared/ai-answer-readiness.test.mjs
-  // ("imported Search Console rows rank readiness faults by traffic on
-  // affected pages"); here the imported rows must switch the prioritization
-  // mode and the brief must say so.
   const report = await fixtureAudit();
   const ranked = buildAiAnswerReadiness(report, {
     keywordRows: [{ query: "shop example", pageUrl: `${SHOP}/about`, clicks: 50, impressions: 900 }]
@@ -1033,12 +990,6 @@ test("README repair-proof-receipt claim keeps publishing and ranking disclaimers
   assert.match(receipt.markdown, /No guarantee of rankings, traffic, indexing, AI citations or revenue/);
 });
 
-// Functional claim pins. The numeric caps, routes, and state-truthfulness
-// claims above are locked; these pins tie the remaining "What is live in this
-// repo" bullets (rendered audit, evidence, intelligence, deltas, validation
-// pack, PSI, waterfall, imports, platform, briefs, queue/board/packs, feed,
-// proposals, D1 tables, and dashboard surfaces) to the behaviour that backs them.
-
 test("README rendered-audit claims match the Worker browser runtime and local Playwright adapter", async () => {
   assert.match(
     liveSection,
@@ -1058,10 +1009,6 @@ test("README rendered-audit claims match the Worker browser runtime and local Pl
     "deployed Worker launches Browser Run through the BROWSER binding"
   );
   assert.equal(wranglerConfig.browser.binding, "BROWSER", "wrangler binds Browser Run as BROWSER");
-  // The offline engine (server/audit/engine.js, Playwright) renders a real
-  // page in worker/routes/public-check.test.mjs ("public check output is
-  // verbatim engine output for the public test page") and
-  // worker/routes/pages.test.mjs ("demo brief is verbatim real engine output").
   assert.match(liveSection, /Static HTML vs rendered DOM comparison/i);
   const report = await fixtureAudit();
   const guard = findingTitled(report, /False positive guarded on home: H1 exists after render/);
@@ -1188,7 +1135,6 @@ test("README audit-history delta claim matches fixed, new, and still-open issues
     "still-open issues reported"
   );
 
-  // The previous run is the latest saved report for the same owner and host.
   const db = createTestD1();
   const sameHost = insertSavedReport(db, { url: "https://example.com/", findings: [] });
   insertSavedReport(db, { url: "https://other.example/", findings: [] });
@@ -1230,9 +1176,6 @@ test("README technical validation pack covers every listed check", async () => {
   );
   assert.ok(findingTitled(report, /^HSTS security header missing on home/), "HSTS checked");
   assert.match(findingTitled(report, /^Large image files on home/).evidence, /huge\.jpg/, "large assets checked");
-  // Slow rendered loads: shared/audit-engine.test.mjs ("settled slow pages
-  // still get a slow-load finding with truthful evidence") renders a page that
-  // settles after 4s and asserts the "Slow rendered load" finding.
 });
 
 test("README PageSpeed claim matches mobile score, lab metrics, and opportunities", async () => {
@@ -1600,7 +1543,6 @@ test("README repair agent board claim matches assignment, notes, drafts, and app
     queue.items.every((item) => typeof item.status === "string"),
     "queue items carry the status the board filters on"
   );
-  // The board's status filter UI is checked in a browser by test/spa.test.mjs.
 });
 
 function implementationPackInput(actionOverrides = {}) {
@@ -1699,9 +1641,6 @@ test("README account repair feed claim matches ranked open, drafted, applied, an
 });
 
 test("README repair proposal claim matches report-seeded, pre-purchase approvable records", async () => {
-  // Proposals are no longer tied to a Fix Pack request at creation: a saved
-  // report seeds them unattached, the owner can approve before paying, and
-  // checkout is what attaches them to a fix request.
   assert.match(
     liveSection,
     /Repair proposal records seeded when a saved report is viewed, owner-approvable before purchase, and attached to a fix request when checkout starts/i
@@ -1729,9 +1668,6 @@ test("README repair proposal claim matches report-seeded, pre-purchase approvabl
     beta.db.rows("SELECT approval_status FROM repair_proposals WHERE id = ?", proposals[0].id)[0].approval_status,
     "approved"
   );
-  // Checkout attaching the approved queue to a fix request: worker/routes/
-  // billing.test.mjs ("Repair Sprint checkout can use a report-level
-  // owner-approved proposal") asserts the proposal's fix_request_id is set.
   assert.match(liveSection, /final rerun proof references/i);
   assert.match(liveSection, /protected retention for paid proof/i);
   const db = createTestD1();
@@ -1774,8 +1710,6 @@ test("README Dodo var list does not claim an unwired product id is already in wr
     undefined,
     "the Repair Sprint product id is not wired yet, so the README may not list it as present"
   );
-  // Deployed vars alone (no Repair Sprint product id) keep Repair Sprint
-  // checkout closed.
   assert.equal(
     dodoRepairSprintCheckoutConfigStatus({ ...wranglerConfig.vars, DODO_SEOFIXKIT_API_KEY: "test-key" }).checkoutReady,
     false,
@@ -1785,7 +1719,6 @@ test("README Dodo var list does not claim an unwired product id is already in wr
 
 test("README React interface and Cloudflare Worker target claims match the build", () => {
   assert.match(liveSection, /Founder-friendly React interface/i);
-  // The React app mounting into #root is checked in a browser by test/spa.test.mjs.
   assert.match(liveSection, /Cloudflare Worker target using Workers Static Assets and Browser Run/i);
   assert.equal(wranglerConfig.browser.binding, "BROWSER", "Browser Run binding configured");
   assert.equal(wranglerConfig.assets.binding, "ASSETS", "Workers Static Assets configured");
@@ -1899,8 +1832,6 @@ test("README beta workbench and session claims match D1-backed records", async (
 test("README account summary, developer API, admin ops, and Fix Pack CTA claims match code", async () => {
   assert.match(liveSection, /Customer workspace summary API and dashboard at `\/api\/account\/summary`/i);
   assert.ok(workerRoutes("/api/account/summary", "GET"), "account summary route registered");
-  // Built from repair items: worker/routes/account.test.mjs ("account summary
-  // derives open repairs from recent reports before queue rows exist").
   assert.match(
     liveSection,
     /Self-serve Developer API keys, `\/v1\/audits` JSON endpoints, project-style verified sites, safe `repair_queue` issue status, separate approved-action implementation-pack and fixed-proof receipt markdown endpoints, and audit\/repair-action lifecycle webhooks/i
@@ -1917,9 +1848,6 @@ test("README account summary, developer API, admin ops, and Fix Pack CTA claims 
   const developer = await (await beta.call("/api/developer")).json();
   assert.match(developer.docs.webhookEvents, /audit\.completed[\s\S]*repair_action\.fixed/, "lifecycle webhooks exist");
   assert.equal(developer.docs.projects, "GET /v1/projects", "project-style verified sites endpoint exists");
-  // Webhook delivery: worker/lib/webhooks.test.mjs and worker/routes/
-  // developer-api.test.mjs ("Developer API repair action webhooks deliver
-  // lifecycle transitions without private draft payload").
 
   assert.match(
     liveSection,
@@ -2030,7 +1958,6 @@ test("README queued-job claim matches status polling before the private report l
     liveSection,
     /Queued audit jobs backed by D1 `audit_jobs`, with status polling before the private report loads/i
   );
-  // The UI polling /api/audit/jobs/:id before loading the report is checked in a browser by test/spa.test.mjs.
 });
 
 test("README saved-report claim matches owner email and invite-bound ownership", async () => {
@@ -2086,19 +2013,12 @@ test("README public support, terms, and privacy pages keep no-ranking-guarantee 
     /No ranking or traffic guarantee/,
     "the Fix Pack card carries no ranking guarantee"
   );
-  // /privacy renders but carries no explicit no-guarantee line of its own; the
-  // claim holds only in the sense that it makes no ranking promise.
   assert.doesNotMatch(
     visibleText(await publicPage("/privacy")),
     /guarantee[sd]? (?:higher |better )?rankings?/i,
     "privacy page makes no ranking promise"
   );
 });
-
-// Lane-1 audit refinement. A fresh spot-check of every 'What is live in this
-// repo' bullet found eleven sub-claims inside already-pinned bullets that had
-// no regression pin of their own. Each pin below ties the README wording to
-// the behaviour that must keep backing it.
 
 test("README inventory claim keeps robots.txt and sitemap discovery", async () => {
   assert.match(liveSection, /High-scale crawl inventory from robots\.txt and sitemaps/i);
@@ -2174,7 +2094,6 @@ test("README repair queue claim keeps acceptance checks, status, and action mode
 
 test("README repair board claim keeps no external publishing side effects", () => {
   assert.match(liveSection, /and no external publishing side effects/i);
-  // The board's draft-only, publish-nothing behaviour is checked in a browser by test/spa.test.mjs.
 });
 
 test("README implementation pack claim keeps approved change text", () => {
@@ -2229,7 +2148,6 @@ test("README schedule claim keeps dashboard add and pause controls", () => {
     liveSection,
     /Weekly self-serve audit monitors backed by D1 `audit_schedules`, with dashboard controls to add or pause monitors for verified hosts/i
   );
-  // The dashboard add/pause monitor controls are checked in a browser by test/spa.test.mjs.
 });
 
 test("README developer API claim keeps safe repair_queue issue status", async () => {
@@ -2246,9 +2164,6 @@ test("README developer API claim keeps safe repair_queue issue status", async ()
     /Draft text is only returned/,
     "draft change text stays owner-scoped"
   );
-  // The issues endpoint really omits draft text: worker/routes/
-  // developer-api.test.mjs ("Developer API overlays safe repair queue and
-  // action status on issues") asserts the private draft copy is absent.
 });
 
 test("README retention claim keeps cleanup for expired reports, sessions, and quota buckets", async () => {
@@ -2304,13 +2219,6 @@ test("README retention claim keeps cleanup for expired reports, sessions, and qu
   );
   assert.ok(wranglerConfig.triggers.crons.length > 0, "a scheduled trigger runs the cleanup");
 });
-
-// Lane-1 promise audit, current pass (2026-08-10). A fresh audit of every
-// "What is live in this repo" bullet against the code, plus a live spot-check
-// of /demo, /methodology, and /packages (now /pricing) on https://seofixkit.com (all 15
-// spot-check surfaces passed), confirmed the sub-claims below are backed by
-// code today, but the sub-claims had no regression pin of their own. Each pin
-// ties the README wording to the behaviour that must keep backing it.
 
 test("README AI readiness claim keeps the proof-derived signal list", async () => {
   assert.match(
@@ -2371,9 +2279,6 @@ test("README anonymous one-page check claim keeps browser proof, guards, rate wi
   assert.match(liveSection, /per-network and per-site rate limits/i);
   assert.match(liveSection, /no stored report/i);
   assert.match(liveSection, /handoff into a free account/i);
-  // Browser proof, static/rendered word counts, and guarded false positives
-  // come from a real engine run in worker/routes/public-check.test.mjs ("public
-  // check output is verbatim engine output for the public test page").
   const db = createTestD1();
   const browser = recordingBrowserBinding();
   const response = await withStubbedFetch(
@@ -2535,10 +2440,6 @@ test("README admin ops dashboard claim keeps waitlist, invites, audits, and admi
     "dashboard lists recent invites"
   );
 });
-// Lane-1 2026-08-15 promise-audit pass. The offline lock above and the live
-// spot-check in scripts/live-promise-spot-check.mjs were both green on this
-// date; these pins lock the remaining sub-claims that had no regression pin of
-// their own, so the README cannot silently drift into overclaiming them.
 
 test("README deep-health claim stays runtime/config/schema scoped and public-safe", async () => {
   assert.match(readme, /\/api\/deep-health/);

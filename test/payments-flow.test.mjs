@@ -1,7 +1,3 @@
-// End-to-end payment flows through the Worker's real HTTP routes against a
-// real (in-memory SQLite) D1 with every migration applied. Dodo is the only
-// thing faked: outgoing fetch calls are captured, and webhooks are signed the
-// way Dodo signs them (Standard Webhooks, HMAC-SHA256 over id.timestamp.body).
 import assert from "node:assert/strict";
 import { createHmac, randomBytes } from "node:crypto";
 import test from "node:test";
@@ -24,8 +20,6 @@ const BASE_ENV = {
   DODO_SEOFIXKIT_WEBHOOK_SECRET: WEBHOOK_SECRET
 };
 
-// --- Harness ------------------------------------------------------------------
-
 function createWorld(envOverrides = {}) {
   const db = createTestD1();
   const env = { ...BASE_ENV, WAITLIST_DB: db };
@@ -36,8 +30,6 @@ function createWorld(envOverrides = {}) {
   return { db, env };
 }
 
-// Stubs globalThis.fetch for the duration of `callback`, recording every call.
-// Dodo endpoints get realistic answers; anything else is a test failure.
 async function withDodo(callback, { checkoutUrl = DODO_CHECKOUT_URL, sessionId = "cs_test_1" } = {}) {
   const calls = [];
   const originalFetch = globalThis.fetch;
@@ -127,8 +119,6 @@ function webhookRequest(payload, webhookId, options = {}) {
   return new Request(`${ORIGIN}/api/webhooks/dodo`, { method: "POST", headers, body });
 }
 
-// --- Arrange ------------------------------------------------------------------
-
 async function arrangeOwnerSession(db, email = OWNER) {
   const token = `session-${randomBytes(16).toString("hex")}`;
   const now = new Date().toISOString();
@@ -194,7 +184,6 @@ function arrangeVerifiedSite(db, email = OWNER, host = "example.com") {
   });
 }
 
-// Runs the real checkout route and returns the fix request it created.
 async function startFixPackCheckout(world, token) {
   const { body } = await withDodo(() =>
     send(world.env, apiRequest("/api/beta/fix-request", { method: "POST", token, body: { reportId: REPORT_ID } }))
@@ -256,7 +245,6 @@ function subscriptionData(overrides = {}) {
   };
 }
 
-// Every row of every table, for "nothing changed" assertions.
 function databaseSnapshot(db) {
   const tables = db
     .rows("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
@@ -264,7 +252,6 @@ function databaseSnapshot(db) {
   return Object.fromEntries(tables.map((table) => [table, db.rows(`SELECT * FROM "${table}" ORDER BY rowid`)]));
 }
 
-// Paid-flow state that must never move on a rejected or duplicate webhook.
 function paymentState(db) {
   return {
     fixRequests: db.rows("SELECT * FROM fix_requests ORDER BY id"),
@@ -274,8 +261,6 @@ function paymentState(db) {
     entitlementEvents: db.rows("SELECT * FROM offer_entitlement_events ORDER BY created_at, id")
   };
 }
-
-// --- Fix Pack checkout ----------------------------------------------------------
 
 test("logged-in owner starts Fix Pack checkout from a saved report", async () => {
   const world = createWorld();
@@ -403,14 +388,11 @@ test("Fix Pack checkout fails closed without a Dodo call when the product id is 
   assert.match(response.body.message, /Checkout is not open yet/);
   assert.equal(calls.length, 0, "no outgoing Dodo call");
 
-  // The request is kept so the owner is not lost, but no checkout was opened.
   const fixRequest = fixRequestRow(world.db);
   assert.equal(fixRequest.status, "new");
   assert.equal(fixRequest.checkout_session_id, null);
   assert.equal(fixRequest.checkout_url, null);
 });
-
-// --- Fix Pack webhooks ------------------------------------------------------------
 
 test("signed payment.succeeded marks the fix request paid, and a replay is deduped", async () => {
   const world = createWorld();
@@ -456,7 +438,6 @@ test("signed payment.succeeded marks the fix request paid, and a replay is dedup
   assert.equal(replay.body.duplicate, true);
   assert.deepEqual(paymentState(world.db), before, "replay changed nothing");
 
-  // The paid request is now the owner's Fix Pack; checkout does not reopen.
   const { response, calls } = await withDodo(async (calls) => ({
     response: await send(
       world.env,
@@ -495,7 +476,6 @@ test("unsigned, wrong-secret and stale webhooks are rejected with zero database 
   }
   assert.equal(fixRequestRow(world.db).status, "checkout_created");
 
-  // A tampered body under a valid signature for the original body is rejected too.
   const signed = webhookRequest(payload, "wh_tampered");
   const tampered = new Request(signed.url, {
     method: "POST",
@@ -567,7 +547,6 @@ test("refund.succeeded moves a paid fix request to refunded and closes checkout"
     send(world.env, webhookRequest({ type: "payment.succeeded", data: paymentData(fixRequest, item) }, "wh_paid"))
   );
 
-  // A refund for some other payment is not applied to this request.
   const foreign = {
     type: "refund.succeeded",
     data: {
@@ -670,14 +649,11 @@ test("billing summary lists the owner's paid Fix Pack", async () => {
   assert.equal(anonymous.status, 401);
 });
 
-// --- Proof Monitoring subscription ---------------------------------------------------
-
 test("Proof Monitoring: checkout, activation once, cancellation, and billing summary", async () => {
   const world = createWorld();
   const token = await arrangeOwnerSession(world.db);
   arrangeVerifiedSite(world.db);
 
-  // Checkout for the verified site.
   const { response: checkout, calls } = await withDodo(
     async (calls) => ({
       response: await send(world.env, apiRequest("/api/beta/monitoring-checkout", { method: "POST", token, body: {} })),
@@ -702,15 +678,12 @@ test("Proof Monitoring: checkout, activation once, cancellation, and billing sum
   });
   assert.equal(world.db.rows("SELECT id FROM offer_entitlements").length, 0, "no access before the webhook");
 
-  // Before activation the summary shows no subscription.
   const beforeSummary = await withDodo(() => send(world.env, apiRequest("/api/billing/summary", { token })));
   assert.equal(beforeSummary.status, 200);
   assert.notEqual(beforeSummary.body.monitoring.status, "active");
   assert.deepEqual(beforeSummary.body.subscriptions, []);
   assert.equal(beforeSummary.body.subscriptionState.status, "available");
 
-  // subscription.active grants exactly one entitlement, even when delivered twice
-  // and followed by a renewal for the same subscription.
   const active = { type: "subscription.active", data: subscriptionData() };
   const activated = await withDodo(() => send(world.env, webhookRequest(active, "wh_sub_active")));
   assert.equal(activated.status, 200, JSON.stringify(activated.body));
@@ -741,7 +714,6 @@ test("Proof Monitoring: checkout, activation once, cancellation, and billing sum
   assert.equal(activeSummary.body.subscriptions[0].offerKey, "proof_monitoring");
   assert.equal(activeSummary.body.subscriptions[0].currentPeriodEnd, "2026-11-01T00:00:00.000Z");
 
-  // An active subscriber is not sent to checkout again.
   const { response: again, calls: againCalls } = await withDodo(async (calls) => ({
     response: await send(world.env, apiRequest("/api/beta/monitoring-checkout", { method: "POST", token, body: {} })),
     calls
@@ -751,7 +723,6 @@ test("Proof Monitoring: checkout, activation once, cancellation, and billing sum
   assert.equal(again.body.checkoutAvailable, false);
   assert.equal(dodoCheckoutCalls(againCalls).length, 0);
 
-  // Cancellation revokes the entitlement.
   const cancelled = { type: "subscription.cancelled", data: subscriptionData({ status: "cancelled" }) };
   const revoked = await withDodo(() => send(world.env, webhookRequest(cancelled, "wh_sub_cancelled")));
   assert.equal(revoked.status, 200, JSON.stringify(revoked.body));
@@ -765,7 +736,6 @@ test("Proof Monitoring: checkout, activation once, cancellation, and billing sum
   assert.notEqual(cancelledSummary.body.monitoring.status, "active");
   assert.deepEqual(cancelledSummary.body.subscriptions, []);
 
-  // A late retry of the old activation cannot resurrect a cancelled subscription.
   const stale = await withDodo(() =>
     send(world.env, webhookRequest({ type: "subscription.active", data: subscriptionData() }, "wh_sub_active_late"))
   );
@@ -821,7 +791,6 @@ test("Proof Monitoring checkout fails closed without a Dodo call when the produc
   assert.deepEqual(response.body.missing, ["productId"]);
   assert.equal(response.body.checkoutUrl, undefined);
   assert.equal(calls.length, 0, "no outgoing Dodo call");
-  // Only the session's last-seen timestamp may move.
   const after = databaseSnapshot(world.db);
   delete before.beta_sessions;
   delete after.beta_sessions;

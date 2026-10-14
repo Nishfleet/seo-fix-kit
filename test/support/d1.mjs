@@ -1,10 +1,3 @@
-// In-memory Cloudflare D1 for tests.
-//
-// Runs every SQL file in migrations/ against a real SQLite database
-// (node:sqlite), then exposes the subset of the D1 binding API the Worker
-// uses: prepare().bind().first/all/run/raw, batch, and exec. Tests that use
-// it exercise the real schema and the real SQL, so they fail when a query is
-// wrong rather than when its wording changes.
 import { readdirSync, readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 
@@ -112,7 +105,6 @@ export class TestD1 {
     return { count: 1, duration: 0 };
   }
 
-  // Test-only helpers for arranging and inspecting state.
   rows(sql, ...values) {
     return this.sqlite
       .prepare(sql)

@@ -1,6 +1,3 @@
-// Site verification by homepage meta tag: the easiest proof for people on
-// site builders. Requests go through the Worker's real Hono app against an
-// in-memory SQLite database; only the customer's website (fetch) is faked.
 import assert from "node:assert/strict";
 import { createHash, randomBytes } from "node:crypto";
 import test from "node:test";
@@ -25,7 +22,6 @@ function signIn(db) {
   return token;
 }
 
-// The customer's site: its homepage HTML, no DNS record, no file.
 function fakeSite(t, homepage) {
   const realFetch = globalThis.fetch;
   globalThis.fetch = async (url) => {

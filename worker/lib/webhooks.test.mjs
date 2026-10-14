@@ -126,7 +126,6 @@ test("deliverApiWebhooks refuses a host whose DNS resolves privately and records
   env.webhooks[0].url = "https://dns-private-webhook.example.com/seofixkit";
   let deliveries = 0;
   const originalFetch = globalThis.fetch;
-  // Exercise the real DNS-over-HTTPS resolver, not an injected stub.
   globalThis.fetch = async (input) => {
     const url = new URL(String(input));
     if (url.origin === "https://cloudflare-dns.com" && url.pathname === "/dns-query") {

@@ -1,11 +1,3 @@
-// End-to-end behaviour tests for the core product API.
-//
-// Every request goes through the Worker's real Hono app (`app.fetch`) like
-// production traffic, against an in-memory SQLite database with every
-// migration applied. Only the external bindings are faked: the audit queue
-// (captures sent messages), the R2 report bucket (a Map), and the email
-// binding. Assertions stick to observable behaviour: HTTP status, JSON
-// bodies, headers, database rows, and queued messages.
 import assert from "node:assert/strict";
 import { createHash, randomBytes } from "node:crypto";
 import test from "node:test";
@@ -105,8 +97,6 @@ async function call(world, path, { method = "GET", body, session, bearer, header
   return response;
 }
 
-// Arrange a signed-in beta session for an owner (what /api/access/verify
-// leaves behind) and return the raw cookie token.
 function signIn(world, ownerEmail, { accessMode = "self-serve" } = {}) {
   const token = randomBytes(32).toString("hex");
   const now = new Date().toISOString();
@@ -165,8 +155,6 @@ function reportBody(id, url) {
   };
 }
 
-// Store a saved report the way the audit pipeline does: blob in R2 with a
-// marker in D1 (inR2), or inline JSON in D1 for older rows.
 function seedReport(
   world,
   { id, ownerEmail, url = "https://shop.example.com/", expiresAt = isoFromNow(30 * DAY), inR2 = true }
@@ -220,8 +208,6 @@ async function createApiKey(world, session, label = "CI key") {
   return response.json();
 }
 
-// --- Health -----------------------------------------------------------------
-
 test("GET /api/health reports liveness and which bindings are present", async () => {
   const world = createWorld();
   const response = await call(world, "/api/health");
@@ -243,8 +229,6 @@ test("GET /api/deep-health checks the real schema without exposing table content
   const { tokenSecret } = await createApiKey(world, session);
 
   const response = await call(world, "/api/deep-health");
-  // No Browser Run binding or billing config here, so the service is
-  // honestly degraded, but every schema check passes on the migrated DB.
   assert.equal(response.status, 503);
   assert.match(response.headers.get("cache-control") || "", /no-store/);
   const raw = await response.text();
@@ -261,8 +245,6 @@ test("GET /api/deep-health checks the real schema without exposing table content
   assert.ok(body.schema.checks.length > 0);
   assert.equal(body.capabilities.developerApi, true);
 
-  // Nothing from the seeded rows leaks: no emails, hosts, report ids,
-  // API key material, or claim verification tokens.
   for (const secret of [
     OWNER,
     "shop.example.com",
@@ -281,8 +263,6 @@ test("GET /api/deep-health checks the real schema without exposing table content
   const post = await call(world, "/api/deep-health", { method: "POST" });
   assert.equal(post.status, 405);
 });
-
-// --- Queueing audits ----------------------------------------------------------
 
 test("a verified owner queues an audit, it is persisted and enqueued, and the owner can poll it", async () => {
   const world = createWorld();
@@ -315,7 +295,6 @@ test("a verified owner queues an audit, it is persisted and enqueued, and the ow
 
   assert.deepEqual(world.queue.messages, [{ kind: "audit-job", jobId: body.jobId, appOrigin: ORIGIN }]);
 
-  // Polling reflects the job's current state as the queue consumer moves it.
   const poll = await call(world, body.statusUrl, { session });
   assert.equal(poll.status, 200);
   const polled = await poll.json();
@@ -330,8 +309,6 @@ test("a verified owner queues an audit, it is persisted and enqueued, and the ow
   const running = await (await call(world, body.statusUrl, { session })).json();
   assert.equal(running.job.status, "running");
 
-  // Submitting the same audit again returns the in-flight job instead of
-  // queueing a duplicate.
   const again = await call(world, "/api/audit", {
     method: "POST",
     session,
@@ -376,7 +353,6 @@ test("queueing an audit requires a signed-in session", async () => {
 test("a non-Lite audit of an unverified host is refused with verification instructions", async () => {
   const world = createWorld();
   const session = signIn(world, OWNER);
-  // A pending claim and another owner's verified claim do not count.
   claimSite(world, OWNER, "pending.example.com", { status: "pending" });
   claimSite(world, OTHER, "theirs.example.com");
 
@@ -389,7 +365,6 @@ test("a non-Lite audit of an unverified host is refused with verification instru
     assert.equal(body.site.filePath, "/.well-known/seofixkit.txt");
   }
 
-  // A 1-page check that adds extras (competitors) is not Lite either.
   const withExtras = await call(world, "/api/audit", {
     method: "POST",
     session,
@@ -434,7 +409,6 @@ test("a homepage-only 1-page Lite check runs without verification and is capped 
   assert.ok(jobs.every((job) => job.max_pages === 1 && job.status === "queued"));
   assert.equal(world.queue.messages.length, 3);
 
-  // The cap is per owner per day, not per session or per host.
   const secondSession = signIn(world, OWNER);
   const fourth = await call(world, "/api/audit", {
     method: "POST",
@@ -448,7 +422,6 @@ test("a homepage-only 1-page Lite check runs without verification and is capped 
   assert.equal(world.db.rows("SELECT id FROM audit_jobs").length, 3);
   assert.equal(world.queue.messages.length, 3);
 
-  // Another owner's Lite allowance is untouched.
   const rivalSession = signIn(world, OTHER);
   const rival = await call(world, "/api/audit", {
     method: "POST",
@@ -457,8 +430,6 @@ test("a homepage-only 1-page Lite check runs without verification and is capped 
   });
   assert.equal(rival.status, 202);
 });
-
-// --- Saved reports ------------------------------------------------------------
 
 test("GET /api/reports/:id returns the owner's saved report from R2 and inline storage", async () => {
   const world = createWorld();
@@ -551,8 +522,6 @@ test("GET /api/reports/:id/remediation-brief.json returns a brief built from the
   assert.match(await markdown.text(), /Add a title on home/);
 });
 
-// --- Developer API --------------------------------------------------------------
-
 test("an API key created from a session drives /v1/projects and /v1/audits", async () => {
   const world = createWorld();
   const session = signIn(world, OWNER);
@@ -563,7 +532,6 @@ test("an API key created from a session drives /v1/projects and /v1/audits", asy
   assert.match(created.tokenSecret, /\S{24,}/);
   assert.equal(created.token.label, "Deploy bot");
   assert.equal(created.token.status, "active");
-  // Only a hash of the key is stored; the secret is shown once.
   const stored = world.db.rows("SELECT * FROM api_tokens");
   assert.equal(stored.length, 1);
   assert.equal(stored[0].owner_email, OWNER);
@@ -610,7 +578,6 @@ test("an API key created from a session drives /v1/projects and /v1/audits", asy
   assert.deepEqual(jobRows, [{ id: auditBody.audit_id, owner_email: OWNER, access_mode: "api", status: "queued" }]);
   assert.deepEqual(world.queue.messages, [{ kind: "audit-job", jobId: auditBody.audit_id, appOrigin: ORIGIN }]);
 
-  // The pending (unverified) project cannot be audited through the API.
   const unverified = await call(world, "/v1/audits", {
     method: "POST",
     bearer,
@@ -629,11 +596,9 @@ test("an API key created from a session drives /v1/projects and /v1/audits", asy
   assert.equal(single.status, 200);
   assert.equal((await single.json()).audit.status, "queued");
 
-  // A queued audit has no report yet.
   const pendingReport = await call(world, `/v1/audits/${auditBody.audit_id}/report`, { bearer });
   assert.equal(pendingReport.status, 409);
 
-  // Using the key records when it was last used.
   assert.ok(world.db.rows("SELECT last_used_at FROM api_tokens")[0].last_used_at);
 });
 
@@ -683,12 +648,10 @@ test("requests without a valid, active API key are rejected", async () => {
     const wrong = await call(world, path, { method, bearer: `${created.tokenSecret}x` });
     assert.equal(wrong.status, 401, `${method} ${path} with wrong key`);
 
-    // A browser session cookie is not an API credential.
     const cookieOnly = await call(world, path, { method, session });
     assert.equal(cookieOnly.status, 401, `${method} ${path} with session cookie`);
   }
 
-  // Revoke the key from the session; it stops working immediately.
   const ok = await call(world, "/v1/projects", { bearer: created.tokenSecret });
   assert.equal(ok.status, 200);
   const revoke = await call(world, `/api/developer/tokens/${created.token.id}`, { method: "DELETE", session });
@@ -749,7 +712,6 @@ test("one owner's API key cannot read or change another owner's data", async () 
     assert.ok(!text.includes(OWNER), `${path} leaked owner email`);
   }
 
-  // The rival cannot audit the owner's verified site with their own key.
   const audit = await call(world, "/v1/audits", {
     method: "POST",
     bearer: rival,
@@ -757,13 +719,11 @@ test("one owner's API key cannot read or change another owner's data", async () 
   });
   assert.equal(audit.status, 403);
 
-  // Nor delete the owner's audit.
   const del = await call(world, `/v1/audits/${completedId}`, { method: "DELETE", bearer: rival });
   assert.ok([403, 404].includes(del.status), `DELETE -> ${del.status}`);
   assert.equal(world.db.rows("SELECT id FROM audit_jobs WHERE id = ?", completedId).length, 1);
   assert.equal(world.db.rows("SELECT id FROM audit_reports WHERE id = ?", reportId).length, 1);
 
-  // Nor revoke the owner's key from their session.
   const revoke = await call(world, `/api/developer/tokens/${ownerKey.token.id}`, {
     method: "DELETE",
     session: rivalSession
@@ -772,8 +732,6 @@ test("one owner's API key cannot read or change another owner's data", async () 
   assert.equal(world.db.rows("SELECT status FROM api_tokens WHERE id = ?", ownerKey.token.id)[0].status, "active");
   assert.equal((await call(world, "/v1/projects", { bearer: ownerKey.tokenSecret })).status, 200);
 });
-
-// --- Account summary ------------------------------------------------------------
 
 test("GET /api/reports pages through every unexpired report of the signed-in owner", async () => {
   const world = createWorld();

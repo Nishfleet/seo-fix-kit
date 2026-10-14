@@ -41,22 +41,16 @@ test("public check URL validation rejects malformed and private targets", () => 
 });
 
 test("public check URL validation rejects single-label hostnames before any render", () => {
-  // A dotless hostname is a typo, an intranet name, or a local alias — never
-  // a public website. It must fail here with the friendly validation message
-  // instead of sending the browser to `https://notaurl/` and returning a raw
-  // `net::ERR_*` navigation failure.
   for (const input of ["notaurl", "example", "intranet", "https://printer/", "http://nish-laptop"]) {
     const result = validatePublicCheckUrl(input);
     assert.equal(result.ok, false, `dotless hostname must be rejected: ${input}`);
     assert.equal(result.error, "Enter a valid public website URL.", `friendly message for: ${input}`);
   }
-  // Dotted public hosts and IP literals still pass through to the browser.
   assert.equal(validatePublicCheckUrl("example.com").ok, true);
   assert.equal(validatePublicCheckUrl("https://8.8.8.8/").ok, true);
 });
 
 test("engine failures map to visitor copy, never raw browser diagnostics", () => {
-  // Raw Playwright errors that used to reach the /check error box verbatim.
   assert.equal(
     friendlyCheckError("net::ERR_NAME_NOT_RESOLVED at https://not-a-url-at-all/"),
     "That address does not resolve to a website. Check the spelling and try again."
@@ -77,15 +71,12 @@ test("engine failures map to visitor copy, never raw browser diagnostics", () =>
     friendlyCheckError("net::ERR_ABORTED at https://example.com/"),
     "The page did not finish loading. Try again in a moment."
   );
-  // Any other net::ERR class still gets a human line instead of the protocol dump.
   assert.equal(
     friendlyCheckError("net::ERR_TOO_MANY_REDIRECTS at https://loopy.example.com/"),
     "The page could not be loaded from that address. Check the URL and try again."
   );
-  // Unmatched engine wording is preserved so no failure mode is hidden.
   const engineWording = "PageSpeed Insights returned HTTP 500.";
   assert.equal(friendlyCheckError(engineWording), engineWording);
-  // Unknown input keeps the generic fallback and stays bounded.
   const fallback = friendlyCheckError("");
   assert.equal(fallback, "The check failed. Try another public URL.");
 });
@@ -113,10 +104,6 @@ test("public check page validates the URL client-side before any network round t
 });
 
 test("the page's inline client-side validator actually executes with the server's rules", () => {
-  // The page is a template literal; a validator that only looks right in the
-  // source but breaks when served (e.g. a collapsed regex escape) must fail
-  // here. Execute the served function text in a fresh context and pin both
-  // the rejection and the acceptance sides.
   const html = checkHtml(origin);
   const served = html.match(/function publicUrlError[\s\S]*?return "";\n {8}}/);
   assert.ok(served, "the served page includes the full validator function");
@@ -178,13 +165,6 @@ test("public check quota buckets cover per-network and per-site windows without 
   );
 });
 
-// Regression: the anonymous /check quota must be ENFORCED by the route, not
-// just keyed. The bucket-key tests above pin publicCheckQuotaChecks output,
-// but a disabled guard used to keep every public-check test green. Drive the
-// real handler with an exhausted audit_usage bucket (D1 reports
-// meta.changes === 0 when `WHERE count < limit` matches nothing) and require
-// HTTP 429 with zero audit-engine work: any engine binding read means the
-// handler walked past the quota guard into the audit.
 test("public check route returns 429 from an exhausted audit_usage bucket with zero audit-engine work", async () => {
   const sqlSeen = [];
   const exhaustedDb = {
@@ -195,7 +175,6 @@ test("public check route returns 429 from an exhausted audit_usage bucket with z
           return {
             async run() {
               // Exactly what D1 returns when the ON CONFLICT ... WHERE
-              // count < ? guard matches no row: the bucket is at its cap.
               return { meta: { changes: 0 } };
             }
           };
@@ -298,10 +277,6 @@ test("public check page is searchable and hands off into a free account", () => 
   assert.doesNotMatch(html, /noindex/i, "the entry page must stay searchable");
 });
 
-// Dogfood 6344a32f91af: tighten the /check meta description into the
-// 70-165 char range so search snippets do not truncate the no-ranking
-// boundary. The WebPage JSON-LD description ships the same copy so the
-// structured-data surface stays aligned with the visible meta tag.
 test("public check meta description and WebPage JSON-LD stay within the 70-165 char range and share the no-ranking promise", () => {
   const html = checkHtml(origin);
   const metaMatch = html.match(/<meta name="description" content="([^"]*)" \/>/);
@@ -338,9 +313,6 @@ test("public check meta description and WebPage JSON-LD stay within the 70-165 c
   );
 });
 
-// Regression: the /check page must not impose a 320px minimum width on the
-// document. The old body { min-width: 320px } floor made every viewport
-// narrower than 320px overflow horizontally by exactly the missing amount.
 test("public check page has no 320px floor and reflows below 320px", async () => {
   const html = checkHtml(origin);
   assert.doesNotMatch(html, /body\s*\{\s*margin:\s*0;\s*min-width:\s*320px\s*\}/, "body must not force a 320px floor");
@@ -442,7 +414,6 @@ test("public check page carries WebPage and truthful FAQ JSON-LD", () => {
     "JSON-LD must not resurrect the pre-#88 overpromise"
   );
 
-  // Every schema answer is a claim a visitor can read in the rendered page.
   const html = checkHtml(origin);
   assert.doesNotMatch(
     html,
@@ -458,16 +429,10 @@ test("public check page carries WebPage and truthful FAQ JSON-LD", () => {
     );
   }
 
-  // The standalone builder must produce the same script the page embeds.
   assert.ok(checkJsonLd(origin).includes('"@type":"WebPage"'));
   assert.ok(checkJsonLd(origin).includes('"@type":"FAQPage"'));
 });
 
-// The fixture is the same public test page the private demo audit renders:
-// a thin static shell that the browser fills with real content. The real
-// engine must produce measured proof, a guarded false positive, and an
-// actionable finding, and buildPublicCheckResponse must surface exactly
-// those fields — nothing hand-written.
 test("public check output is verbatim engine output for the public test page", async () => {
   const server = http.createServer((req, res) => {
     const fixtureOrigin = `http://${req.headers.host}`;
@@ -525,12 +490,6 @@ test("public check output is verbatim engine output for the public test page", a
   }
 });
 
-// Regression: the public /check response is a direct mapping of the engine
-// report, so same-origin Cloudflare origin hiccups (522 connection timed out,
-// 523 origin unreachable, 524 origin did not answer in time) must never reach
-// the anonymous surface as critical "broken internal links" findings. The
-// report maps verbatim: if the engine emitted them, /check would show them —
-// this pins the surface, not just the classifier.
 test("public check never reports same-origin 522/523/524 link failures as critical broken links", async () => {
   const engine = createAuditEngine({
     launchBrowser: async () =>
@@ -613,8 +572,6 @@ test("public check never reports same-origin 522/523/524 link failures as critic
   assert.match(external.evidence, /other\.example\/ref returned 523/, "external 523 stays evidenced");
 });
 
-// A minimal report in the exact shape the shared engine produces, used to
-// pin the response mapping without a browser.
 function makeEngineShapedReport() {
   return {
     url: "https://example.com/",
@@ -669,9 +626,6 @@ function makeEngineShapedReport() {
   };
 }
 
-// Minimal browser double for the shared engine: only the render contract the
-// engine needs (newPage -> goto -> evaluate -> close), returning the supplied
-// rendered facts. No interception hooks are installed when route/on are absent.
 function miniFakeBrowser(renderedFacts) {
   return {
     async newPage() {

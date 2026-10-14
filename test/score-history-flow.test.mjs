@@ -1,6 +1,3 @@
-// Score history: every saved report adds a small row (page, score, problem
-// count, date) that outlives the 30-day report, so the Overview's progress
-// card can show months of change. Real Hono app, real SQLite D1.
 import assert from "node:assert/strict";
 import { createHash, randomBytes } from "node:crypto";
 import test from "node:test";

@@ -1,15 +1,3 @@
-// End-to-end test server: the real Worker (worker/index.js) on Node, backed by
-// a real SQLite D1 with every migration applied (test/support/d1.mjs) and the
-// built site in dist/ as the ASSETS binding. Playwright drives it like the
-// production site; only Cloudflare-specific bindings are stood in:
-//   - ASSETS serves dist/ with the production 404-page and HTML handling.
-//   - EMAIL records messages; GET /__e2e/emails?to=<address> returns them so a
-//     test can open the sign-in link a real user would click.
-//   - POST /__e2e/reports {ownerEmail} saves e2e/fixtures/report.json (real
-//     audit engine output, trimmed) as that owner's report, the way the audit
-//     pipeline stores inline reports, and returns its id.
-//   - Each browser context sends `x-e2e-client`; it becomes a stable fake
-//     client IP so per-IP rate limits stay per test, as they are per user.
 import { createHash } from "node:crypto";
 import fs from "node:fs";
 import http from "node:http";
@@ -51,7 +39,6 @@ function assetFile(pathname) {
   return null;
 }
 
-// Mirrors wrangler.jsonc "assets": unknown paths get dist/404.html with 404.
 const ASSETS = {
   async fetch(input) {
     const { pathname } = new URL(typeof input === "string" ? input : input.url);
@@ -107,9 +94,6 @@ const server = http.createServer(async (request, response) => {
     }
 
     if (url.pathname === "/__e2e/reports" && request.method === "POST") {
-      // Optional `score` and `daysAgo` save an older check of the same page,
-      // so a test can build a score history; `reportDelta` stands in for the
-      // comparison a real save works out against the previous report.
       const { ownerEmail, score, daysAgo = 0, reportDelta } = JSON.parse((await readBody(request)).toString());
       const id = `acme-widgets-example-${createHash("sha256").update(`${ownerEmail}:${daysAgo}`).digest("hex").slice(0, 12)}`;
       const report = {
@@ -177,8 +161,6 @@ const server = http.createServer(async (request, response) => {
 });
 
 // Keep idle sockets open for the whole run. With Node's 5s default the server
-// can close a pooled connection just as Playwright reuses it, and the request
-// fails with "socket hang up" through no fault of the page under test.
 server.keepAliveTimeout = 120_000;
 server.headersTimeout = 125_000;
 server.listen(PORT, "127.0.0.1", () => console.log(`e2e server on ${ORIGIN}`));
