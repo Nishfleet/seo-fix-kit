@@ -1,13 +1,3 @@
-/*
- * SEO Fix Kit design tokens: the single source of truth for colour, type,
- * spacing, radius, elevation and motion.
- *
- * Imported by the React app (src/main.jsx) and bundled into /tokens.css for
- * the worker-rendered public pages (see the `siteStylesheet` plugin in
- * vite.config.js). Only custom properties, @font-face and @keyframes live
- * here, so importing it never restyles an element by itself.
- */
-
 /* Inter variable (latin subset), self-hosted. SIL Open Font License 1.1 —
    see /fonts/Inter-OFL-LICENSE.txt. Copied from @fontsource-variable/inter. */
 @font-face {
@@ -27,7 +17,6 @@
 [data-theme="dark"] {
   color-scheme: dark;
 
-  /* Colour: neutrals */
   --bg: #070908;
   --bg-raised: #0b0f0d;
   --surface: rgba(251, 248, 239, 0.045);
@@ -40,10 +29,8 @@
   --ink: #fbf8ef;
   --ink-soft: rgba(251, 248, 239, 0.76);
   --ink-muted: rgba(251, 248, 239, 0.6);
-  /* >= .56 alpha keeps placeholder text at WCAG AA on --bg / --surface-field. */
   --ink-placeholder: rgba(251, 248, 239, 0.58);
 
-  /* Colour: brand */
   --accent: #98f0cc;
   --accent-hover: #b6f6dc;
   --accent-ink: #06100c;
@@ -54,7 +41,6 @@
   --gold-line: rgba(214, 177, 95, 0.32);
   --gold-surface: rgba(214, 177, 95, 0.08);
 
-  /* Colour: status. Text values meet WCAG AA on --bg. */
   --success: #98f0cc;
   --success-surface: rgba(152, 240, 204, 0.1);
   --warning: #f2cf7e;
@@ -65,7 +51,6 @@
   --info: #a9c7ff;
   --info-surface: rgba(169, 199, 255, 0.1);
 
-  /* Type */
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   --text-12: 12px;
@@ -91,7 +76,6 @@
   --leading-heading: 1.1;
   --leading-body: 1.6;
 
-  /* Spacing (4px grid) */
   --space-4: 4px;
   --space-8: 8px;
   --space-12: 12px;
@@ -104,27 +88,23 @@
   --space-96: 96px;
   --section-gap: clamp(72px, 10vw, 128px);
 
-  /* Layout */
   --container: 1120px;
   --container-narrow: 760px;
   --gutter: 22px;
   --header-height: 64px;
 
-  /* Radius */
   --radius-sm: 6px;
   --radius: 10px;
   --radius-lg: 14px;
   --radius-xl: 20px;
   --radius-full: 999px;
 
-  /* Elevation: a hairline highlight on top plus a soft drop shadow. */
   --shadow-sm: 0 1px 0 rgba(251, 248, 239, 0.04) inset, 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 1px 0 rgba(251, 248, 239, 0.05) inset, 0 8px 24px -8px rgba(0, 0, 0, 0.6);
   --shadow-lg: 0 1px 0 rgba(251, 248, 239, 0.06) inset, 0 24px 64px -16px rgba(0, 0, 0, 0.7);
   --shadow-accent: 0 0 0 1px rgba(152, 240, 204, 0.3), 0 12px 40px -12px rgba(152, 240, 204, 0.35);
   --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
 
-  /* Motion. Durations collapse to ~0 under prefers-reduced-motion below. */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
   --duration-fast: 120ms;
@@ -132,12 +112,10 @@
   --duration-slow: 400ms;
   --duration-enter: 700ms;
 
-  /* Ambient lighting used behind heroes. */
   --glow-accent: radial-gradient(60% 60% at 50% 0%, rgba(152, 240, 204, 0.16), transparent 70%);
   --glow-gold: radial-gradient(35% 45% at 22% 30%, rgba(214, 177, 95, 0.06), transparent 70%);
   --grid-line: rgba(251, 248, 239, 0.035);
 
-  /* Component surfaces that differ between themes. */
   --header-bg: rgba(7, 9, 8, 0.78);
   --header-bg-clear: rgba(7, 9, 8, 0);
   --sheet-bg: rgba(7, 9, 8, 0.96);
@@ -155,14 +133,6 @@
     0 10px 28px -8px rgba(152, 240, 204, 0.65);
 }
 
-/*
- * Light theme: the public marketing site (homepage and worker-rendered
- * pages set data-theme="light" on <html>). Warm paper, near-black ink and a
- * deep "proof green" accent; the signed-in app stays dark. Only colour and
- * elevation change, so every component keeps its shape. Put
- * data-theme="dark" on an element to render a dark island (product shots)
- * inside a light page. :root[...] outranks the app's own :root aliases.
- */
 :root[data-theme="light"],
 [data-theme="light"] {
   color-scheme: light;
@@ -191,7 +161,6 @@
   --gold-line: rgba(143, 98, 16, 0.3);
   --gold-surface: rgba(214, 177, 95, 0.14);
 
-  /* Text values meet WCAG AA on --bg and white. */
   --success: #0f7a56;
   --success-surface: rgba(15, 122, 86, 0.08);
   --warning: #8a5a00;

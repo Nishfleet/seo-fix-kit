@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { copyText } from "../lib/browser.js";
 
-// Copies `value` and says "Copied" (or "Copy failed") for a moment.
 export function CopyButton({ label = "Copy", value, className = "action-link" }) {
   const [result, setResult] = useState("");
   useEffect(() => {

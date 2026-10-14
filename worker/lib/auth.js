@@ -79,8 +79,6 @@ async function auditAuthorizationStatus(env, access, targetUrl, options = {}) {
   if (access.accessMode === "founder-override") return { ok: true };
   const host = safeHostname(targetUrl);
   if (!host) return { ok: false, status: 400, error: "Enter a valid public website URL." };
-  // A claim on the apex domain also covers www and vice versa — customers
-  // rightly treat them as one site.
   const siblingHost = host.startsWith("www.") ? host.slice(4) : `www.${host}`;
   const row = await env.WAITLIST_DB.prepare(
     `SELECT id, host, status, verified_at
@@ -306,9 +304,7 @@ async function logAdminAction(request, env, action, success, actorEmail = "", de
         new Date().toISOString()
       )
       .run();
-  } catch {
-    // Admin logging must not break the protected action itself.
-  }
+  } catch {}
 }
 
 async function createBetaSession(request, env, access) {

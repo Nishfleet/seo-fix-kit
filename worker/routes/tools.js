@@ -1,7 +1,3 @@
-// The free tools: /tools (the index) and /tools/:slug (one page per tool).
-// Tool definitions live in shared/free-tools/; this file only lays them out
-// in the shared public page shell. Each page ships its form and output
-// already rendered for the example values, then /tools.js takes over.
 import { FREE_TOOLS, TOOL_CATEGORIES, defaultValues, toolBySlug } from "../../shared/free-tools/catalog.js";
 import { esc, renderChecklist, renderFields, renderOutput } from "../../shared/free-tools/render.js";
 import { publicProductPageHtml } from "./pages.js";

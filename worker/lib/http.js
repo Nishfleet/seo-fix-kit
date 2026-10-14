@@ -1,8 +1,7 @@
 import { parse as parseCookie } from "cookie";
 
 function cookieValue(request, name) {
-  // `cookie.parse` tolerates malformed percent-encoding (it returns the raw
-  // value instead of throwing), so one bad cookie cannot 500 every route.
+  // `cookie.parse` returns the raw value for malformed percent-encoding instead of throwing.
   return parseCookie(request.headers.get("cookie") || "")[name] || "";
 }
 

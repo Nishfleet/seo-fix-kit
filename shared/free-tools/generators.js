@@ -1,18 +1,7 @@
-// Pure generators behind the free tools at /tools/*. Every function takes the
-// tool's form values (strings and booleans, exactly as the form holds them)
-// and returns { code, language, filename, notes, preview }:
-//   code      the text the visitor copies or downloads ("" when there is none)
-//   notes     problems found in the input: { level: "error" | "warn" | "info", text }
-//   preview   optional structured data the page draws (SERP card, table, ...)
-// No network, no DOM: the same code runs in the browser (bundled to /tools.js)
-// and in the Worker, which renders each page with its default values so the
-// tools read without JavaScript.
-
 const AVERAGE_WPM_READING = 238;
 const AVERAGE_WPM_SPEAKING = 150;
 
-// Google truncates by rendered width, not characters. These are the widely
-// measured desktop limits; the page says they are approximate.
+// Google truncates by rendered width, not characters; these are approximate desktop limits.
 export const SERP_LIMITS = {
   titlePx: 600,
   descriptionPxDesktop: 920,
@@ -21,8 +10,6 @@ export const SERP_LIMITS = {
   descriptionFont: "14px Arial"
 };
 
-// Arial advance widths at 1px (from the font's hmtx table, rounded). Used when
-// no canvas is available (tests, Worker render); the browser measures for real.
 const ARIAL_WIDTHS = {
   " ": 0.278,
   "!": 0.278,
@@ -118,7 +105,6 @@ export function estimateTextWidth(text, font = SERP_LIMITS.titleFont) {
   return Math.round(width);
 }
 
-// Cut text to fit maxPx the way Google does: at a word boundary, with an ellipsis.
 export function truncateToWidth(text, maxPx, font, measure = estimateTextWidth) {
   const value = String(text).trim();
   if (measure(value, font) <= maxPx) return { text: value, truncated: false };
@@ -131,8 +117,6 @@ export function truncateToWidth(text, maxPx, font, measure = estimateTextWidth) 
   }
   return { text: `${fitted || value.slice(0, 8)} ...`, truncated: true };
 }
-
-// --- small helpers -----------------------------------------------------------
 
 const clean = (value) => String(value ?? "").trim();
 
@@ -183,8 +167,6 @@ function urlNote(label, value) {
   return [];
 }
 
-// --- Meta tags ---------------------------------------------------------------
-
 export function metaTags(values) {
   const title = clean(values.title);
   const description = clean(values.description);
@@ -228,8 +210,6 @@ export function metaTags(values) {
     preview: { kind: "serp", title, description, url }
   });
 }
-
-// --- SERP preview ------------------------------------------------------------
 
 export function serpPreview(values, measure = estimateTextWidth) {
   const title = clean(values.title);
@@ -277,8 +257,6 @@ export function serpPreview(values, measure = estimateTextWidth) {
   });
 }
 
-// --- Open Graph --------------------------------------------------------------
-
 export function openGraph(values) {
   const title = clean(values.title);
   const description = clean(values.description);
@@ -319,8 +297,6 @@ export function openGraph(values) {
   });
 }
 
-// --- Schema (JSON-LD) ----------------------------------------------------------
-
 export const SCHEMA_TYPES = [
   { value: "Organization", label: "Organization" },
   { value: "LocalBusiness", label: "Local business" },
@@ -339,7 +315,6 @@ function splitPair(line) {
   return index === -1 ? [line.trim(), ""] : [line.slice(0, index).trim(), line.slice(index + 1).trim()];
 }
 
-// FAQ text: a question line ending in "?" starts an entry; the lines after it are the answer.
 export function parseFaq(text) {
   const entries = [];
   for (const line of String(text ?? "").split(/\r?\n/)) {
@@ -568,10 +543,6 @@ export function schemaMarkup(values) {
   });
 }
 
-// --- robots.txt --------------------------------------------------------------
-
-// Crawlers that fetch pages to answer a person's question or to build an AI
-// search index. Blocking them can keep your pages out of AI answers.
 export const AI_SEARCH_BOTS = [
   "OAI-SearchBot",
   "ChatGPT-User",
@@ -580,7 +551,6 @@ export const AI_SEARCH_BOTS = [
   "PerplexityBot",
   "Perplexity-User"
 ];
-// Crawlers (or opt-out tokens) that collect pages to train AI models.
 export const AI_TRAINING_BOTS = [
   "GPTBot",
   "ClaudeBot",
@@ -637,8 +607,6 @@ export function robotsTxt(values) {
   });
 }
 
-// --- robots.txt tester (Google's rules: RFC 9309) -----------------------------
-
 export function parseRobots(text) {
   const groups = [];
   let current = null;
@@ -685,13 +653,10 @@ export function robotsTest(values) {
       const url = new URL(path);
       path = `${url.pathname}${url.search}`;
     }
-  } catch {
-    // keep the raw path
-  }
+  } catch {}
   if (!path.startsWith("/")) path = `/${path}`;
   const token = agent.toLowerCase();
-  // The group whose user-agent is the longest one contained in the crawler's
-  // token wins; groups naming the same agent are merged; "*" is the fallback.
+  // RFC 9309 (https://www.rfc-editor.org/rfc/rfc9309): the longest matching user-agent group wins; "*" is the fallback.
   let best = 0;
   let rules = [];
   let matchedAgent = "";
@@ -738,8 +703,6 @@ export function robotsTest(values) {
   });
 }
 
-// --- llms.txt ----------------------------------------------------------------
-
 export function llmsTxt(values) {
   const name = clean(values.siteName);
   const summary = clean(values.summary).replace(/\s+/g, " ");
@@ -780,8 +743,6 @@ export function llmsTxt(values) {
   );
   return result({ code: `${out.join("\n").trim()}\n`, language: "markdown", filename: "llms.txt", notes });
 }
-
-// --- hreflang ----------------------------------------------------------------
 
 const HREFLANG_PATTERN = /^(x-default|[a-z]{2,3}(-[A-Z][a-z]{3})?(-([A-Z]{2}|\d{3}))?)$/;
 
@@ -850,8 +811,6 @@ export function hreflang(values) {
   });
 }
 
-// --- Redirects ---------------------------------------------------------------
-
 function redirectPath(value) {
   if (isAbsoluteUrl(value)) {
     const url = new URL(value);
@@ -882,7 +841,6 @@ export function redirects(values) {
     const target = redirectPath(rule.to);
     if (target === rule.from) notes.push(error(`${rule.from} redirects to itself.`));
     else if (sources.has(target)) {
-      // follow the chain to see whether it loops
       const hops = [rule.from];
       let next = target;
       while (sources.has(next) && !hops.includes(next) && hops.length < 20) {
@@ -944,8 +902,6 @@ export function redirects(values) {
   return result({ code, language, filename, notes });
 }
 
-// --- XML sitemap -------------------------------------------------------------
-
 export function sitemapXml(values) {
   const urls = lines(values.urls);
   const lastmod = clean(values.lastmod);
@@ -985,8 +941,6 @@ export function sitemapXml(values) {
   });
 }
 
-// --- UTM builder -------------------------------------------------------------
-
 export function utmLink(values) {
   const base = clean(values.url);
   const notes = [];
@@ -1020,8 +974,6 @@ export function utmLink(values) {
   );
   return result({ code: url.toString(), language: "text", filename: "", notes });
 }
-
-// --- Text statistics -----------------------------------------------------------
 
 const STOP_WORDS = new Set(
   "a about above after again against all am an and any are as at be because been before being below between both but by can could did do does doing down during each few for from further had has have having he her here hers herself him himself his how i if in into is it its itself just let me more most my myself no nor not now of off on once only or other our ours ourselves out over own same she should so some such than that the their theirs them themselves then there these they this those through to too under until up very was we were what when where which while who whom why will with would you your yours yourself yourselves also get got may might must shall us via per s t don't it's i'm you're we're they're isn't aren't wasn't can't won't".split(
@@ -1131,8 +1083,6 @@ export function keywordDensity(values) {
   );
   return result({ notes, preview: { kind: "tables", summary, tables, total } });
 }
-
-// --- Disavow -----------------------------------------------------------------
 
 export function disavow(values) {
   const notes = [];

@@ -54,8 +54,6 @@ export function formatDate(value) {
   }).format(new Date(value));
 }
 
-// One locale for every count in the UI, so numbers read the same regardless
-// of the viewer's browser locale (matches the en-US copy elsewhere).
 export const COUNT_FORMAT = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
 
 export function formatCount(value) {
@@ -123,14 +121,12 @@ export function pathLabel(url, startUrl) {
   }
 }
 
-// The anchor id a finding row answers to, so "Fix these first" can jump to it.
 export function findingAnchor(finding) {
   return `finding-${String(finding.id || finding.title || "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")}`;
 }
 
-// "Oct 20": for dates close enough that the year and time add nothing.
 export function formatShortDate(value) {
   if (!value) return "";
   return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(new Date(value));

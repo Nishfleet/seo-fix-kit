@@ -1,13 +1,4 @@
-// Shared HTML email shell for every SEO Fix Kit transactional email.
-//
-// sendWorkerEmail (worker/lib/email.js) wraps each message body in
-// emailLayout(), so builders only produce the inner body markup and use
-// emailButton() for their primary link. Email clients ignore <style> blocks
-// and external CSS unevenly, so everything here is table-based with inline
-// styles: a 560px white card with 32px padding on a warm off-white canvas,
-// the brand app icon and wordmark, and a footer with the support address.
-// The palette matches src/design/tokens.css: near-black ink for the button
-// (Linear/Vercel-style) and the deep brand green for links.
+// Email clients ignore <style> blocks and external CSS unevenly, so this layout is table-based with inline styles.
 import { escapeHtml } from "./html.js";
 
 const SUPPORT_EMAIL = "support@seofixkit.com";
@@ -16,8 +7,6 @@ const INK = "#0b0f0d";
 const LINK = "#0f7a56";
 const MUTED = "#6b6f6c";
 
-// Solid near-black call-to-action link. The raw URL is repeated underneath as a
-// plain-text fallback for clients that strip or block styled links.
 export function emailButton(href, label) {
   const url = escapeHtml(href);
   return [
@@ -32,8 +21,6 @@ export function emailButton(href, label) {
   ].join("");
 }
 
-// Full HTML document around a message body. `preheader` is the hidden inbox
-// preview line shown next to the subject; it is optional.
 export function emailLayout({ preheader = "", body = "" } = {}) {
   const preview = String(preheader || "").trim();
   return [

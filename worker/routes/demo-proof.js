@@ -1,15 +1,3 @@
-// Real engine-captured proof output for the public /demo page.
-//
-// Every field here is verbatim output from the shared audit engine running
-// against SEO Fix Kit's own public test page (/fixture/rendered-page), the
-// same page and the same options the private demo audit endpoint uses
-// (worker/routes/audits.js runPrivateDemoAudit). Nothing in this module is
-// hand-written marketing copy: pages.test.mjs runs the real engine against
-// the real fixture and fails when any stored field drifts from live output,
-// so the public sample stays truthful as the engine changes.
-//
-// Origin-dependent strings (canonical URLs, snippet URLs) use the {ORIGIN}
-// placeholder and are substituted at render time.
 import { VERSION } from "../../shared/audit-engine.js";
 
 export const DEMO_FIXTURE_PATH = "/fixture/rendered-page";

@@ -1,39 +1,5 @@
 #!/usr/bin/env node
-// Shielded Wrangler dry-run guard for `npm run cf:dry-run`.
-//
-// WHY THIS FILE EXISTS
-// --------------------
-// Wrangler's esbuild bundle step parses every package.json file on the
-// ancestor chain of its working directory, its entry points, and its own
-// installed package. A malformed manifest anywhere above the repo — most
-// commonly the recurring zero-byte scaffold `package.json` that some host
-// tooling periodically drops into /home/nish (also seen at
-// agent-state/package.json on 2026-08-09 and /home/nish/package.json on
-// 2026-08-02 and 2026-08-10) — makes `wrangler deploy --dry-run` fail with
-// "Unexpected end of file in JSON" before bundling even starts. The
-// deployment canary then goes red even though the Worker itself is fine,
-// and real product regressions get hidden behind a shared-filesystem
-// artifact.
-//
-// WHAT THIS GUARD DOES
-// --------------------
-// 1. Walks the ancestor chain from the repo root to "/" and names every
-//    malformed package.json manifest loudly on stderr (absolute path +
-//    reason), so the contamination is visible instead of a cryptic
-//    `../../../package.json:1:0` esbuild error.
-// 2. When the chain is clean it runs `wrangler deploy --dry-run` in place
-//    exactly as before — zero behavioral change on healthy hosts (CI).
-// 3. When a malformed ancestor manifest is found it runs the dry-run from a
-//    scratch copy of the deploy surface under the OS temp dir, whose
-//    ancestor chain cannot be poisoned. The scratch uses REAL file copies —
-//    symlinks leak the real path back into the poisoned chain — plus a
-//    hardlink copy of node_modules so the wrangler binary itself (which
-//    anchors esbuild's working directory at its own package location) also
-//    runs from the clean chain.
-//
-// The guard never writes to or repairs files outside the repo; it only
-// isolates the canary. Restoring a confirmed empty scaffold manifest to
-// valid JSON stays a separate host-side hygiene action.
+// Wrangler's esbuild step parses every package.json on the ancestor chain of its working directory; one malformed manifest fails the dry-run before bundling.
 
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -43,21 +9,9 @@ import { fileURLToPath } from "node:url";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-// Directories that make up the deploy surface. `worker` and `shared` are
-// the Worker module graph, `dist` is the assets directory, `migrations` is
-// the D1 migrations dir referenced by wrangler.jsonc. Each is copied when
-// present; missing entries are skipped (fixture/test setups may not have
-// them all).
 const DEPLOY_DIRS = ["worker", "shared", "dist", "migrations"];
 const DEPLOY_FILES = ["package.json", "package-lock.json", "wrangler.jsonc"];
 
-/**
- * Walk from `fromDir` up to the filesystem root and return every
- * package.json manifest that does not parse as JSON, with its absolute
- * path and the parse problem. These are exactly the files esbuild parses
- * when wrangler bundles, so this detection is a faithful stand-in for
- * "will the in-place dry-run survive".
- */
 export function malformedAncestorManifests(fromDir) {
   const findings = [];
   let dir = path.resolve(fromDir);
@@ -66,9 +20,7 @@ export function malformedAncestorManifests(fromDir) {
     let content;
     try {
       content = fs.readFileSync(manifest, "utf8");
-    } catch {
-      // No manifest at this level (or unreadable — treat as absent).
-    }
+    } catch {}
     if (content !== undefined) {
       try {
         JSON.parse(content);
@@ -86,11 +38,6 @@ export function malformedAncestorManifests(fromDir) {
   return findings;
 }
 
-/**
- * True when `dir` has no package.json on its own chain (itself included).
- * The scratch root must be in a chain with no manifests at all, so no
- * malformed file can ever be reached from it.
- */
 function chainIsFreeOfManifests(dir) {
   let current = path.resolve(dir);
   for (;;) {
@@ -102,11 +49,6 @@ function chainIsFreeOfManifests(dir) {
   return true;
 }
 
-/**
- * Pick a scratch root whose ancestor chain contains no package.json at
- * all. Tries an explicit override, then the OS temp dir, then /tmp.
- * Throws with a loud message when no clean root exists.
- */
 export function pickCleanScratchRoot() {
   const candidates = [];
   if (process.env.SEOFIXKIT_WRANGLER_SCRATCH_TMPDIR) {
@@ -134,12 +76,6 @@ export function pickCleanScratchRoot() {
   );
 }
 
-/**
- * Resolve the wrangler CLI entry inside `projectRoot/node_modules`,
- * following the package.json "bin" field so future wrangler versions that
- * relocate the entry keep working. Returns null when wrangler is not
- * installed in this project.
- */
 export function resolveWranglerBin(projectRoot) {
   const wranglerPackage = path.join(projectRoot, "node_modules", "wrangler");
   try {
@@ -152,14 +88,6 @@ export function resolveWranglerBin(projectRoot) {
   }
 }
 
-/**
- * Build the shielded deploy surface for `projectRoot`:
- *  - real copies of the small deploy files and dirs (symlinks would let
- *    esbuild resolve the real path back into the poisoned chain),
- *  - node_modules hardlink-copied with `cp -al` (instant on the same
- *    filesystem; falls back to a real copy on cross-device temp dirs),
- *  - returns `{ scratch }` where scratch is under a manifest-free chain.
- */
 export function buildShieldedScratch(projectRoot) {
   const scratch = pickCleanScratchRoot();
   try {
@@ -185,12 +113,6 @@ export function buildShieldedScratch(projectRoot) {
       encoding: "utf8"
     });
     if (hardlink.status !== 0) {
-      // Cross-device temp dir (e.g. CI tmpfs): hardlinks are impossible.
-      // Fall back to a real copy — slower but still correct. A failed `cp
-      // -al` may have left a partial destination behind; if it exists,
-      // `cp -r src dest` would nest the copy inside it (dest/src/...) and
-      // resolveWranglerBin(scratch) would find no wrangler. Remove the
-      // partial target first so the fallback lands at scratch/node_modules.
       fs.rmSync(nodeModulesDest, { recursive: true, force: true });
       const realCopy = spawnSync("cp", ["-r", nodeModulesSrc, nodeModulesDest], {
         encoding: "utf8"
@@ -209,14 +131,6 @@ export function buildShieldedScratch(projectRoot) {
   }
 }
 
-/**
- * Run `wrangler deploy --dry-run` with the given working directory,
- * inheriting stdio so the canary output looks exactly like a direct
- * wrangler invocation. Returns the exit code.
- *
- * `envOverride` is for tests that need to inject environment for a fake
- * wrangler; callers outside tests omit it.
- */
 export function runWranglerDryRun(cwd, wranglerBin, envOverride) {
   const result = spawnSync(process.execPath, [wranglerBin, "deploy", "--dry-run"], {
     cwd,
@@ -226,11 +140,6 @@ export function runWranglerDryRun(cwd, wranglerBin, envOverride) {
   return result.status === null ? 1 : result.status;
 }
 
-/**
- * The full guard: name malformed ancestors, then run the dry-run either in
- * place (clean chain) or from a shielded scratch (contaminated chain).
- * Returns the dry-run exit code. `envOverride` is for tests.
- */
 export function runGuardedDryRun(projectRoot, envOverride) {
   const malformed = malformedAncestorManifests(projectRoot);
   for (const finding of malformed) {
@@ -248,14 +157,11 @@ export function runGuardedDryRun(projectRoot, envOverride) {
     );
   }
   if (malformed.length === 0) {
-    // Healthy host: behave exactly like `wrangler deploy --dry-run`.
     return runWranglerDryRun(projectRoot, wranglerBin, envOverride);
   }
   const { scratch } = buildShieldedScratch(projectRoot);
   try {
-    // The wrangler binary must be invoked from inside the scratch: wrangler
-    // anchors its esbuild working directory at its own package location, so
-    // running the worktree copy would drag the poisoned chain back in.
+    // Wrangler anchors esbuild's working directory at its own package location, so it must run from the scratch copy.
     const scratchBin = resolveWranglerBin(scratch);
     if (!scratchBin) {
       throw new Error("wrangler-dry-run: shielded scratch lost its wrangler copy");

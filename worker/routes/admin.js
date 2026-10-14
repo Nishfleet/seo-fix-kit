@@ -39,7 +39,6 @@ import {
   validateFinalReportForFixRequest
 } from "./billing.js";
 
-// Blank form values mean "not sent".
 const blankToUndefined = (value) => (value === "" || value === null ? undefined : value);
 
 const AdminBetaSessionBody = body({ ownerEmail: optionalEmail() }, { email: "ownerEmail" });
@@ -56,7 +55,6 @@ const InviteBody = body(
   { ownerEmail: "email" }
 );
 
-// An absent status keeps the request's current status.
 const FixRequestAdminBody = body(
   {
     status: z.preprocess(
@@ -644,9 +642,7 @@ async function syncRepairProposalDeliveryState(env, { fixRequestId, status, deli
     )
       .bind(deliveryUrl || null, finalReportId || null, now, now, fixRequestId)
       .run();
-  } catch {
-    // Existing environments without proposal tables should keep fulfillment usable.
-  }
+  } catch {}
 }
 
 function fixRequestAdminResponse(
@@ -779,9 +775,6 @@ async function buildOpsSnapshot(env, options = {}) {
   };
 }
 
-// Same-day urgent alerts for conditions that should not wait for the daily
-// digest. Each condition alerts at most once per day via an INSERT OR IGNORE
-// marker row in ops_digest_runs.
 async function sendUrgentOpsAlerts(env) {
   if (!env.WAITLIST_DB) return;
   const adminEmail = adminNotificationEmail(env);

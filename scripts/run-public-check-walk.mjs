@@ -1,36 +1,5 @@
 import { pathToFileURL } from "node:url";
 
-// Repeatable production walk of the anonymous one-page check, the
-// proof-to-repair entry path (backlog item "Turn the public sample into a
-// truthful, searchable proof-to-repair entry path", verify half).
-//
-// The item's verify acceptance is: "fresh production walk on a known test URL
-// records proof fields, access conversion, and no unsupported result claims".
-// This script does exactly that against the deployed Worker:
-//
-//   1. POSTs a known test URL to POST /api/public-check. The default is the
-//      product's own deterministic fixture (/fixture/rendered-page), which the
-//      engine test proves renders substantial content and yields one guarded
-//      false positive plus one actionable finding - so a green walk exercises
-//      every accept field: rendered evidence, guarded false positive, findings
-//      when present, next step, and the no-ranking boundary.
-//   2. Records the proof fields verbatim (measured facts, issue counts, guard
-//      and finding titles, engine version, scan time).
-//   3. Verifies the access-conversion copy: nextStep hands off into a
-//      free account and boundary keeps the no-ranking promise.
-//   4. Verifies no unsupported result claims: the payload carries no
-//      affirmative ranking/traffic/indexing/revenue/AI-citation guarantee.
-//
-// The walk is opt-in and quota-aware: it consumes one anonymous check from the
-// running network's per-day budget, and a 429 is reported as `needs-quota`
-// (exit 3), not as a product failure - mirroring the fleet journal's
-// "skipped-needs-quota" state. The offline regression lock for the same
-// assertions lives in scripts/run-public-check-walk.test.mjs, which is part of
-// `npm run check` (CI stays offline-only):
-//
-//   npm run audit:public-check-walk
-//   SEOFIXKIT_WALK_URL=https://example.com/ npm run audit:public-check-walk
-
 const DEFAULT_BASE_URL = process.env.SEOFIXKIT_BASE_URL || "https://seofixkit.com";
 const DEFAULT_WALK_URL = `${DEFAULT_BASE_URL}/fixture/rendered-page`;
 const DEFAULT_TIMEOUT_MS = Number(process.env.SEOFIXKIT_WALK_TIMEOUT_MS || 120000);
@@ -41,14 +10,7 @@ export const WALK_STATUS = {
   FAIL: "fail"
 };
 
-// Exit codes: 0 pass, 1 walk failed (proof fields / conversion / claims broke),
-// 3 needs-quota (retry later), 2 unexpected error.
 export const WALK_EXIT_CODES = { pass: 0, fail: 1, error: 2, "needs-quota": 3 };
-
-// NOTE: the direct-run block lives at the END of this module, after every
-// const declaration. A top-level `await main()` before `const NEGATIONS` etc.
-// would hit the temporal dead zone because module evaluation suspends at the
-// await and the walked payload would be validated before those consts exist.
 
 async function main() {
   const baseUrl = DEFAULT_BASE_URL;
@@ -137,9 +99,6 @@ export async function runPublicCheckWalk({
   };
 }
 
-// The item's verify assertions, kept in one place so the live walk and the
-// offline regression lock cannot drift. Every field checked here is a field
-// buildPublicCheckResponse emits from real engine output.
 export function validateWalkPayload(payload) {
   const failures = [];
   if (!payload || typeof payload !== "object") return ["response is not a JSON object"];
@@ -191,10 +150,6 @@ export function validateWalkPayload(payload) {
   return failures;
 }
 
-// Affirmative result claims that must never appear: rankings, traffic,
-// indexing, revenue, AI citations, or live answer-engine visibility
-// guarantees/promises. The truthful boundary copy negates them ("does not
-// guarantee rankings"), so negated phrasings are stripped before scanning.
 const UNSUPPORTED_CLAIM =
   /\b(guarantees?|promises?|will\s+ensure)\s+(rankings?|traffic|indexing|revenue|AI citations?|answer[- ]engine visibility)/i;
 const NEGATIONS = [
@@ -215,9 +170,6 @@ export function findUnsupportedClaims(payload) {
   return [...new Set(matches.map((match) => match.trim()))];
 }
 
-// The recorded proof record: exactly the fields the page renders and the
-// verify acceptance names (rendered evidence, guarded false positives,
-// findings, next step, boundary).
 export function walkRecord(payload) {
   return {
     checkedUrl: payload.checkedUrl,
@@ -252,9 +204,6 @@ function isDirectRun() {
   return import.meta.url === pathToFileURL(process.argv[1] || "").href;
 }
 
-// Direct-run block at the end of the module: by the time this executes every
-// const above is initialized, so the walk can validate payloads without
-// hitting the temporal dead zone.
 if (isDirectRun()) {
   await main();
 }

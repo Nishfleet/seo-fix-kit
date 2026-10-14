@@ -1,7 +1,3 @@
-// HTML for the free tools' form, output panel and checklist. The Worker uses
-// it to render each page with the example filled in (so the tools read without
-// JavaScript), and shared/free-tools/client.js uses the same functions to
-// redraw the output as the visitor types. Every value is escaped here.
 import { SERP_LIMITS, estimateTextWidth, truncateToWidth } from "./generators.js";
 import { isFieldVisible } from "./catalog.js";
 

@@ -48,7 +48,6 @@ export function ClientReportPanel({ report }) {
     queryFn: () => fetchClientTools(report.id),
     enabled: Boolean(report.id)
   });
-  // The branding form starts from the saved branding and keeps local edits.
   const [brandingDraft, setBrandingDraft] = useState(null);
   const branding = brandingDraft || { ...DEFAULT_BRANDING, ...(tools.data?.branding || {}) };
   const shares = tools.data?.shares || NO_ITEMS;

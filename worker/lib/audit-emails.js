@@ -1,11 +1,3 @@
-// Customer audit emails: "your report is ready" after an audit someone ran,
-// and the weekly check result after a scheduled rerun. These are the
-// product's habit loop: each weekly email names what got fixed (a win), what
-// is new (a reason to look), and the one fix to do next, with a link back.
-//
-// Every email carries a one-click unsubscribe link backed by
-// email_preferences.unsubscribe_token, so a customer can stop them without
-// signing in; the app's Alerts page toggles the same preference.
 import { emailButton } from "../../shared/email-layout.js";
 import { escapeHtml } from "../../shared/html.js";
 import { emailSender, sendWorkerEmail } from "./email.js";
@@ -22,8 +14,6 @@ function isDeliverableEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(String(value || ""));
 }
 
-// The row is created on first use so every owner has a stable unsubscribe
-// token before their first audit email goes out.
 async function emailPreferencesFor(env, ownerEmail) {
   const email = normalizeEmail(ownerEmail);
   if (!env.WAITLIST_DB || !email) return null;
@@ -76,9 +66,6 @@ async function preferencesForToken(env, token) {
   return row ? preferenceResponse(row) : null;
 }
 
-// Developer API audits are programmatic and report through webhooks, and a
-// one-page homepage check that is not the site's first report finishes while
-// the person is still watching, so neither gets an email.
 function shouldEmailAudit(job = {}, report = {}) {
   if (!isDeliverableEmail(job.owner_email)) return false;
   if (job.access_mode === "api") return false;
@@ -95,8 +82,6 @@ function reportHost(report = {}, job = {}) {
   }
 }
 
-// Group open findings by title so one problem on twelve pages reads as one
-// fix, then order by severity and reach.
 function topFixes(report = {}, limit = 3) {
   const groups = new Map();
   for (const finding of report.findings || []) {
@@ -147,7 +132,6 @@ function uniqueTitles(issues = [], limit = 3) {
   return titles;
 }
 
-// Pure builder, so tests can check the words without sending anything.
 function buildAuditEmail({
   report = {},
   job = {},
@@ -314,8 +298,6 @@ function buildAuditEmail({
   return { subject, html, text, preheader, tag: scheduled ? "weekly-check" : "audit-ready" };
 }
 
-// Called after a queued audit saves its report. Never throws: a failed email
-// must not fail the audit.
 async function sendAuditCompletedEmail(
   env,
   { job = {}, report = {}, autoSchedule = null, appOrigin = "https://seofixkit.com" }

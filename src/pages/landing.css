@@ -1,16 +1,10 @@
-/* Landing page (src/pages/LandingPage.jsx). Shared chrome, buttons, cards,
-   eyebrows and motion come from src/design/site.css. */
 @import "../design/site.css";
 
-/* The homepage is light. :root[data-theme="light"] (tokens.css) outranks the
-   app's own :root aliases in src/styles.css. */
 :root[data-theme="light"] {
   background: var(--bg);
 }
 
 .landing {
-  /* Resolved here, on the light page, so dark islands can still fade into
-     the page around them. */
   --page-bg: var(--bg);
   background: var(--bg);
   color: var(--ink);
@@ -60,10 +54,6 @@
   width: 1px;
 }
 
-/* ------------------------------------------------------------------ Hero */
-
-/* Editorial, left-aligned hero over the signature graphic, which bleeds off
-   the right edge of the viewport. */
 .hero {
   isolation: isolate;
   min-height: clamp(560px, 74vh, 720px);
@@ -161,8 +151,6 @@
   margin: 40px 0 0;
 }
 
-/* ------------------------------------------------------------ Platforms */
-
 .platforms {
   align-items: center;
   border-bottom: 1px solid var(--line);
@@ -224,9 +212,6 @@
   }
 }
 
-/* --------------------------------------------------------------- Stage */
-
-/* A dark island: the product shot keeps the app's own dark theme. */
 .stage {
   background: transparent;
   margin-top: clamp(40px, 6vw, 72px);
@@ -311,8 +296,6 @@
   text-underline-offset: 3px;
 }
 
-/* ------------------------------------------------------- Product shot */
-
 .shot {
   background: linear-gradient(180deg, rgba(22, 29, 26, 0.92), rgba(11, 15, 13, 0.96));
   border: 1px solid var(--line-strong);
@@ -330,7 +313,6 @@
 }
 
 .shot::after {
-  /* Fade the bottom edge into the page, like a screenshot under glass. */
   background: linear-gradient(180deg, transparent, var(--page-bg, var(--bg)));
   bottom: 0;
   content: "";
@@ -577,7 +559,6 @@
   z-index: 1;
 }
 
-/* Score ring: animates from the "before" score to the "after" score. */
 .shot-ring {
   height: 120px;
   position: relative;
@@ -668,8 +649,6 @@
   color: #f2cf7e;
 }
 
-/* -------------------------------------------------------------- Tour */
-
 .tour-tabs {
   display: grid;
   gap: 12px;
@@ -742,8 +721,6 @@
   display: none;
 }
 
-/* ------------------------------------------------------------- Facts */
-
 .landing-facts {
   border-bottom: 1px solid var(--line);
   border-top: 1px solid var(--line);
@@ -772,8 +749,6 @@
   color: var(--ink-muted);
   font-size: var(--text-14);
 }
-
-/* ---------------------------------------------------------- Sections */
 
 .landing-section {
   padding-top: var(--section-gap);
@@ -849,7 +824,6 @@
   top: 28px;
 }
 
-/* Bento: two wide cards with live UI, then four compact ones. */
 .landing-bento {
   display: grid;
   gap: 16px;
@@ -904,8 +878,6 @@
 .landing .landing-diff-row.is-good {
   color: var(--success);
 }
-
-/* ------------------------------------------------------------- Proof */
 
 .landing-proof {
   align-items: center;
@@ -991,8 +963,6 @@
   font-size: 13px;
 }
 
-/* ----------------------------------------------------------- Pricing */
-
 .landing-plans {
   display: grid;
   gap: 16px;
@@ -1021,8 +991,6 @@
 .landing-more {
   margin-top: 24px;
 }
-
-/* ---------------------------------------------------------------- FAQ */
 
 .landing-faq-section {
   display: grid;
@@ -1086,15 +1054,11 @@
   animation: sfk-enter var(--duration-slow) var(--ease-out) both;
 }
 
-/* ---------------------------------------------------------- Final CTA */
-
 .landing-final {
   padding: var(--section-gap) 0;
   text-align: center;
 }
 
-/* Light the closing CTA from below its top edge so it does not wash over
-   the FAQ above it. */
 .landing-final.hero-light::before,
 .landing-final.hero-light::after {
   top: 0;
@@ -1121,8 +1085,6 @@
   font-size: var(--text-13);
   margin-top: 12px;
 }
-
-/* -------------------------------------------------------- Responsive */
 
 @media (max-width: 1060px) {
   .shot-body {
@@ -1241,7 +1203,6 @@
     min-height: 0;
   }
 
-  /* On small screens the graphic becomes a band under the headline. */
   .hero-art {
     height: 240px;
     left: auto;

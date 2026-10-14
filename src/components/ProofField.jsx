@@ -1,14 +1,5 @@
 import { useEffect, useRef } from "react";
 
-// The homepage's signature graphic. Every tile is a page of a site; a
-// ribbon of colour flows through them, and a scan line sweeps across:
-// problem pages light up coral ahead of the line and turn proof-green with a
-// check once it passes. Find, fix, prove, drawn as one loop.
-//
-// Plain canvas 2D (a few thousand rounded squares a frame), paused when off
-// screen or in a background tab, and drawn once, mid-sweep, for anyone who
-// prefers reduced motion.
-
 const CELL = 16;
 const TILE = 11;
 const SWEEP_SECONDS = 9;
@@ -33,7 +24,6 @@ function palette(p) {
   return mix(STOPS[i], STOPS[i + 1], x - i);
 }
 
-// Stable pseudo-random per tile and sweep, so issues move between sweeps.
 function hash(col, row, seed) {
   const n = Math.sin(col * 127.1 + row * 311.7 + seed * 74.7) * 43758.5453;
   return n - Math.floor(n);
@@ -101,7 +91,6 @@ function draw(ctx, width, height, seconds) {
     }
   }
 
-  // The scan line itself: a soft vertical light.
   const glow = ctx.createLinearGradient(beam - 48, 0, beam + 48, 0);
   glow.addColorStop(0, "rgba(255, 255, 255, 0)");
   glow.addColorStop(0.5, "rgba(255, 255, 255, 0.55)");

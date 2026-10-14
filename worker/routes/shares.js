@@ -29,14 +29,11 @@ import { reportIdFromSuffixPath } from "./reports.js";
 
 const REPORT_SHARE_PASSWORD_MIN_LENGTH = 10;
 
-// Passwords are compared byte for byte, so they are never cleaned.
 const passwordField = z
   .union([z.string(), z.number()])
   .nullish()
   .transform((value) => String(value || ""));
 
-// normalizeBrandingInput resolves camelCase over snake_case and falls back to
-// the saved branding for absent fields, so both spellings stay raw here.
 const brandingField = z.string().nullish();
 const ReportBrandingBody = body(
   Object.fromEntries(
@@ -1005,8 +1002,6 @@ function clientReportCookieName(share) {
 }
 
 async function clientReportCookieValue(env, share) {
-  // HMAC with a server secret so the unlock cookie cannot be minted offline
-  // from share id + stored password hash alone.
   const secret = String(env.SEOFIXKIT_COOKIE_SECRET || "");
   if (!secret) {
     throw new Error("Report cookie signing is not configured. Set the SEOFIXKIT_COOKIE_SECRET secret.");
@@ -1029,8 +1024,6 @@ async function clientReportUnlocked(request, env, share) {
   return Boolean(value) && constantTimeEqual(value, await clientReportCookieValue(env, share));
 }
 
-// The unlock form posts as a form; API clients may post JSON. Both go through
-// the same schema and resolve to `{ data }` or `{ error: { error, field } }`.
 async function passwordFromRequest(request) {
   const contentType = request.headers.get("content-type") || "";
   if (contentType.includes("application/json")) return parseJsonBody(request, ClientReportUnlockBody);

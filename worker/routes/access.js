@@ -25,7 +25,6 @@ import {
 import { recordAccessEvent, isFunnelStep } from "../lib/access-events.js";
 import { body, email, number, optionalEmail, parseJsonBody, text, z } from "../lib/validation.js";
 
-// Funnel attribution every access form may send alongside its own fields.
 const trackingFields = {
   funnelKey: text(64),
   landingPath: text(500),
@@ -33,14 +32,11 @@ const trackingFields = {
 };
 const trackingAliases = { funnel_key: "funnelKey", landing_path: "landingPath" };
 
-// Bot traps: `company` is a hidden honeypot input and `timeToSubmitMs` is how
-// long the visitor took to submit the form.
 const botTrapFields = {
   company: z.unknown().optional().transform(Boolean),
   timeToSubmitMs: number().transform((ms) => Math.round(ms || 0))
 };
 
-// Campaign tags arrive either nested (`utm.source`) or flat (`utm_source`).
 const utmTag = { source: text(120), medium: text(120), campaign: text(180), term: text(180), content: text(180) };
 const utmFields = {
   utm: z.object(utmTag).partial().nullish(),
@@ -358,8 +354,6 @@ async function verifyAccessLink(request, env) {
   return response;
 }
 
-// Only allow return paths inside the beta app so an emailed access link can
-// never bounce someone to an arbitrary location.
 function safeBetaReturnPath(value) {
   const path = String(value || "").trim();
   if (path.length > 200) return "/beta";
@@ -677,8 +671,6 @@ async function verifySiteClaim(request, env) {
   });
 }
 
-// Easiest for site builders (Wix, Squarespace, Shopify, WordPress): a meta
-// tag in the homepage head, the same way Google Search Console verifies.
 async function verifySiteClaimMetaTag(host, token) {
   try {
     const response = await fetch(`https://${host}/`, {
@@ -916,9 +908,6 @@ async function inviteAccessStatus(request, env, ownerEmail, inviteCode, inviteCo
   return { ok: true, inviteId: row.id, accessMode: "invite" };
 }
 
-// Record a client-side beacon (page-view or first-input) for the private-beta
-// funnel. Rate-limited per network so it cannot be abused as a free
-// analytics sink. Always returns 204 so the SPA beacon never throws.
 async function recordAccessBeacon(request, env) {
   const parsed = await parseJsonBody(request, AccessBeaconBody);
   if (parsed.error) return new Response(null, { status: 204 });

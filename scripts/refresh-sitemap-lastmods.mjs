@@ -1,11 +1,3 @@
-// Bumps the sitemap <lastmod> of every public page whose content changed.
-//
-// Usage: npm run sitemap:refresh
-//
-// Compares each page's current fingerprint (scripts/public-page-fingerprints.mjs)
-// with the recorded one, sets a fresh UTC lastmod for pages that changed,
-// rewrites ROOT_PUBLIC_LASTMODS in shared/audit-engine.js and its mirror in
-// public/sitemap.xml, and records the new fingerprints.
 import { readFileSync, writeFileSync } from "node:fs";
 import { ROOT_PUBLIC_LASTMODS, ROOT_PUBLIC_PATHS } from "../shared/audit-engine.js";
 import {
@@ -28,7 +20,6 @@ const lastmods = { ...ROOT_PUBLIC_LASTMODS };
 const changed = ROOT_PUBLIC_PATHS.filter((path) => current[path] !== recorded[path]);
 
 for (const path of changed) {
-  // Never move a lastmod backwards (older entries were written in IST with a Z suffix).
   const previous = Date.parse(lastmods[path] || "") || 0;
   lastmods[path] = utcSeconds(Math.max(Date.now(), previous + 1000));
 }

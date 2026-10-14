@@ -69,7 +69,6 @@ export function TeamRepairBoard({ report }) {
   const [actingIssueId, setActingIssueId] = useState("");
   const [actionStatus, setStatus] = useState("idle");
   const [actionMessage, setMessage] = useState("");
-  // Until the first action, the board's own load state drives the message.
   const status =
     actionStatus !== "idle"
       ? actionStatus
@@ -90,7 +89,6 @@ export function TeamRepairBoard({ report }) {
           ? "Repair queue ready."
           : "");
 
-  // Local edits (status, assignee, note) live in the cached board until saved.
   function setIssues(update) {
     queryClient.setQueryData(boardKey, (current = { members: [], issues: [] }) => ({
       ...current,

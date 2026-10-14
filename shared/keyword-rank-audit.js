@@ -597,10 +597,6 @@ function parseMetric(value) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-// CTR parsing rule: values with a "%" sign are percentages, bare values above 1
-// are percentages, and bare values at or below 1 are fractions (0.05 -> 5%).
-// A bare "1" is ambiguous: it is treated as 100% only when other rows in the
-// import look fractional, otherwise it is treated as 1%.
 function parseCtr(value, clicks, impressions, looksFractional = false) {
   if (value !== null && value !== undefined && value !== "") {
     const text = String(value).trim();

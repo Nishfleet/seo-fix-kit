@@ -1,6 +1,3 @@
-// Site header and footer links, shared by the worker-rendered pages
-// (siteHeader()/siteFooter() in worker/routes/pages.js) and the React landing
-// page (src/components/SiteChrome.jsx), so the two cannot drift apart.
 export const SITE_NAV = [
   {
     label: "Product",

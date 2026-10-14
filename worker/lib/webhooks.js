@@ -25,13 +25,9 @@ function cleanWebhookEvents(events = []) {
   return cleaned.length ? [...new Set(cleaned)] : ["audit.completed", "audit.failed"];
 }
 
-// What a Slack channel hears about when no events are chosen: finished and
-// failed audits, plus fixes confirmed and problems that come back.
 const SLACK_ALERT_EVENTS = ["audit.completed", "audit.failed", "repair_action.fixed", "repair_action.regressed"];
 
 async function apiWebhookSigningSecret(env, webhookId) {
-  // Fail closed: without a dedicated secret, webhook signatures would be
-  // forgeable, so refuse to sign rather than fall back to a known seed.
   const seed = String(env.SEOFIXKIT_API_WEBHOOK_SECRET || "");
   if (!seed) {
     throw new Error("Webhook signing is not configured. Set the SEOFIXKIT_API_WEBHOOK_SECRET secret.");
@@ -90,7 +86,6 @@ async function deliverApiWebhooks(env, ownerEmail, eventType, data = {}, options
       )
       .run();
     try {
-      // Slack incoming webhooks get a readable message; everything else gets the signed JSON event.
       const slack = isSlackWebhookUrl(webhook.url);
       const deliveryBody = slack
         ? JSON.stringify(slackMessage(eventType, data, env.SEOFIXKIT_APP_ORIGIN || "https://seofixkit.com"))

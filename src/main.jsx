@@ -16,8 +16,6 @@ const app = (
   </React.StrictMode>
 );
 
-// The homepage arrives prerendered (scripts/prerender.mjs): hydrate it.
-// The /beta shell arrives empty: render from scratch.
 const root = document.getElementById("root");
 if (root.hasChildNodes()) hydrateRoot(root, app);
 else createRoot(root).render(app);

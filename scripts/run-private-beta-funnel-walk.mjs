@@ -1,40 +1,5 @@
 import { pathToFileURL } from "node:url";
 
-// Repeatable production walk of the private-beta funnel (backlog item
-// "Live-surface walk of the private-beta funnel [bootstrap 2026-08-08,
-// risk: green]").
-//
-// The item's accept clause is: "ux-walk of https://seofixkit.com home →
-// /demo → /pricing → access request (observe mode), console clean, links
-// live, no mobile horizontal scroll; defects filed as fresh items". The
-// verify clause is: "walk JSON summarized in journal". This script does both
-// against the deployed Worker with a real browser (Playwright Chromium):
-//
-//   1. Walks the funnel stops in order on a desktop viewport and again on an
-//      iPhone-13 mobile viewport: home (where the private-beta access request
-//      form lives), /demo, and /pricing. The mobile context is created
-//      through buildContextOptions() and verified after launch (the applied
-//      viewport size is recorded per stop), so a "mobile" pass can never
-//      silently be a desktop pass again.
-//   2. Per stop records HTTP status, final URL, document title, canonical,
-//      load-bearing funnel copy, console errors, page errors, broken internal
-//      links, and (mobile) horizontal overflow.
-//   3. Inspects the access request form in observe mode only: email input,
-//      company honeypot, submit CTA, and the public proof/check links. The
-//      form is never submitted, so the walk consumes no waitlist leads, no
-//      access tokens, and no D1 writes.
-//   4. Emits the walk JSON (the "summarized in journal" record) and prints a
-//      human summary; exits 0 pass / 1 fail / 2 error.
-//
-// The walk is opt-in (it is a live read of the deployed product) and never
-// part of `npm run check`; CI stays offline-only. The same per-stop
-// assertions are locked offline by scripts/run-private-beta-funnel-walk.test.mjs,
-// which runs inside `npm run check`:
-//
-//   npm run audit:funnel-walk
-//   SEOFIXKIT_BASE_URL=https://seofixkit.com npm run audit:funnel-walk
-//   SEOFIXKIT_FUNNEL_WALK_TIMEOUT_MS=120000 npm run audit:funnel-walk
-
 const DEFAULT_BASE_URL = process.env.SEOFIXKIT_BASE_URL || "https://seofixkit.com";
 const DEFAULT_TIMEOUT_MS = Number(process.env.SEOFIXKIT_FUNNEL_WALK_TIMEOUT_MS || 120000);
 
@@ -43,10 +8,6 @@ export const WALK_STATUS = {
   FAIL: "fail"
 };
 
-// The viewport descriptors the walk runs in, desktop then mobile. The mobile
-// descriptor must stay 390x844 so the walk keeps measuring the iPhone-13
-// breakpoint it promises; buildContextOptions() is the single translation
-// point into Playwright context options, and the offline lock pins it.
 export const WALK_VIEWPORTS = [
   { name: "desktop", width: 1280, height: 900 },
   {
@@ -59,13 +20,7 @@ export const WALK_VIEWPORTS = [
   }
 ];
 
-// Translates a WALK_VIEWPORTS descriptor into valid Playwright
-// BrowserContextOptions. Playwright silently IGNORES unknown top-level keys:
-// a descriptor passed straight to newContext() as `{ name, width, height,
-// isMobile, ... }` drops width/height and runs at the 1280px desktop default
-// while still reporting the stop as the "mobile" viewport. The size must be
-// nested under `viewport`, and this builder plus the runtime applied-size
-// guard keep the walk honest.
+// Playwright silently ignores unknown top-level context options, so width and height must sit under `viewport`.
 export function buildContextOptions({ width, height, isMobile = false, hasTouch = false, userAgent = "" } = {}) {
   const options = {
     viewport: { width, height },
@@ -76,14 +31,8 @@ export function buildContextOptions({ width, height, isMobile = false, hasTouch 
   return options;
 }
 
-// Exit codes: 0 pass, 1 walk failed (any stop's assertions broke), 2
-// unexpected error (browser launch, unreachable site, walker bug).
 export const WALK_EXIT_CODES = { pass: 0, fail: 1, error: 2 };
 
-// The funnel stops in walk order, matching the item's accept clause
-// (home → /demo → /pricing → access request). The access request lives on
-// the home stop; /demo and /pricing are the public proof stops a visitor
-// reaches from the home nav before deciding to request access.
 export const FUNNEL_STOPS = [
   {
     path: "/",
@@ -124,8 +73,6 @@ export const FUNNEL_STOPS = [
   }
 ];
 
-// Where the access request form must be: email input, hidden company
-// honeypot, submit CTA. Inspect only; never submit.
 export const ACCESS_FORM_EXPECTATIONS = {
   emailSelector: "#email",
   emailType: "email",
@@ -136,14 +83,7 @@ export const ACCESS_FORM_EXPECTATIONS = {
   submitLabel: "Start free"
 };
 
-// Network request failures that are expected in a headless walk and are not
-// product defects: Cloudflare RUM beacons (analytics, not funnel surface).
 const BENIGN_REQUEST_FAILURES = [/cdn-cgi\/rum/i, /static\.cloudflareinsights\.com/i];
-
-// NOTE: the direct-run block lives at the END of this module, after every
-// const and function declaration. A top-level `await main()` before those
-// declarations exist would hit the temporal dead zone because module
-// evaluation suspends at the await.
 
 async function main() {
   const baseUrl = DEFAULT_BASE_URL;
@@ -158,9 +98,6 @@ async function main() {
   }
 }
 
-// Runs the full live walk with a real browser. Returns the walk record; see
-// the module header for the shape. Exported for scripting reuse; the offline
-// regression lock uses the pure helpers below, not this browser path.
 export async function runPrivateBetaFunnelWalk({
   baseUrl = DEFAULT_BASE_URL,
   timeoutMs = DEFAULT_TIMEOUT_MS,
@@ -180,10 +117,6 @@ export async function runPrivateBetaFunnelWalk({
     for (const viewport of WALK_VIEWPORTS) {
       const context = await launched.newContext(buildContextOptions(viewport));
       const page = await context.newPage();
-      // Fail loud if the requested size did not apply: Playwright silently
-      // ignores unknown context-option keys, and a walk that never resized
-      // would journal a fake "mobile" pass. The applied size is also recorded
-      // per stop so journal evidence is self-verifying.
       const appliedViewport = page.viewportSize();
       if (!appliedViewport || appliedViewport.width !== viewport.width || appliedViewport.height !== viewport.height) {
         failures.push(
@@ -277,8 +210,6 @@ function mobileUserAgent() {
   );
 }
 
-// Walks one stop in one viewport and records raw evidence. Never submits the
-// access form; the access request check is inspect-only.
 async function walkStop({ baseUrl, stop, page, timeoutMs, viewport, appliedViewport = null }) {
   const path = stop.path;
   const response = await page
@@ -300,10 +231,7 @@ async function walkStop({ baseUrl, stop, page, timeoutMs, viewport, appliedViewp
       const anchors = Array.from(document.querySelectorAll("a[href]"))
         .map((anchor) => anchor.getAttribute("href"))
         .filter((href) => href && !href.startsWith("#") && !/^(mailto:|tel:|javascript:)/i.test(href));
-      // Compare against the layout viewport, not window.innerWidth: on a
-      // page whose content overflows horizontally, mobile browsers inflate
-      // innerWidth to the overflowing width, which would hide the very
-      // regression this walk exists to catch.
+      // Mobile browsers inflate window.innerWidth to the overflowing content width, so compare against the layout viewport.
       const scrollWidth = document.documentElement.scrollWidth;
       const clientWidth = document.documentElement.clientWidth;
       const innerWidth = window.innerWidth;
@@ -345,9 +273,6 @@ async function walkStop({ baseUrl, stop, page, timeoutMs, viewport, appliedViewp
     }));
 
   const brokenLinks = await checkLinksLive({ baseUrl, anchors: pageState.anchors, timeoutMs });
-  // clientWidth is the layout viewport width; innerWidth can inflate to the
-  // overflowing width on mobile, so it stays recorded only as diagnostic
-  // context alongside the verdict-bearing comparison.
   const horizontalOverflow = pageState.scrollWidth > pageState.clientWidth + 1;
 
   const copyChecks = stop.copyChecks.map((check) => ({
@@ -397,9 +322,6 @@ async function walkStop({ baseUrl, stop, page, timeoutMs, viewport, appliedViewp
   };
 }
 
-// Fetches every same-origin anchor once and records non-200 results. A link
-// is live when the final response (after redirects) is HTTP 200. External
-// links and anchors on other hosts are out of scope for the funnel walk.
 async function checkLinksLive({ baseUrl, anchors, timeoutMs }) {
   const origin = new URL(baseUrl).origin;
   const unique = [...new Set(anchors)].filter((href) => href.startsWith("/") || href.startsWith(origin));
@@ -432,9 +354,6 @@ async function checkLinksLive({ baseUrl, anchors, timeoutMs }) {
   return { checked, broken };
 }
 
-// The item's per-stop assertions, kept in one place so the live walk and the
-// offline regression lock cannot drift. Every field checked here is recorded
-// by walkStop from the rendered DOM.
 export function evaluateStopEvidence(evidence) {
   const failures = [];
   if (!evidence || typeof evidence !== "object") return ["missing stop evidence"];
@@ -504,8 +423,6 @@ export function evaluateStopEvidence(evidence) {
   return failures;
 }
 
-// The human-readable journal summary of a walk result (the item's verify
-// clause: "walk JSON summarized in journal").
 export function funnelWalkSummary(result) {
   if (!result || !Array.isArray(result.stops)) return "Funnel walk produced no stops.";
   const perStop = {};
@@ -544,10 +461,6 @@ function hasContent(text, match, ignoreCase = false) {
   return ignoreCase ? text.toLowerCase().includes(match.toLowerCase()) : text.includes(match);
 }
 
-// Compares an anchor href (possibly absolute, e.g. the Worker pages emit
-// href="https://seofixkit.com/pricing") against an expected site path such
-// as "/pricing". Query strings and hash fragments are ignored; absolute
-// anchors must be same-origin with the walked site.
 export function samePathname(anchor, expectedPath, baseUrl) {
   if (typeof anchor !== "string" || typeof expectedPath !== "string") return false;
   try {

@@ -1,9 +1,3 @@
-// Audit email preferences: the signed-in toggle on the Alerts page and the
-// one-click unsubscribe page linked from every audit email.
-//
-// The unsubscribe link is a GET that only shows a confirm button, so link
-// scanners in corporate inboxes cannot unsubscribe someone by prefetching
-// it; the button POSTs back to the same URL.
 import { escapeHtml } from "../../shared/html.js";
 import { betaAccessResponse, betaAccessStatus } from "../lib/auth.js";
 import { emailPreferencesFor, preferencesForToken, setAuditEmails } from "../lib/audit-emails.js";

@@ -63,10 +63,6 @@ import {
 } from "../lib/text.js";
 import { body, flag, parseJsonBody, text, z } from "../lib/validation.js";
 
-// Shared by the Fix Pack and Repair Sprint checkouts. `reportId` stays loose
-// text so an unknown or malformed id still answers 404 "Report not found.";
-// `testMode`/`isTest` only matter for founder-override sessions. The repair
-// selection fields are read, in this precedence, by selectFixPackRepair().
 const ReportCheckoutBody = body({
   reportId: text(140),
   note: text(1000),
@@ -80,8 +76,6 @@ const ReportCheckoutBody = body({
   selected_repair: z.object({ issue_id: text(160), queue_item_id: text(160) }).nullish()
 });
 
-// The site to monitor, by host (`targetHost`, then `host`) or by URL
-// (`targetUrl`, then `url`). URLs stay raw so new URL() sees them unaltered.
 const MonitoringCheckoutBody = body({
   targetHost: text(500),
   host: text(500),
@@ -121,11 +115,6 @@ const REPAIR_SPRINT_BLOCKED_FIX_REQUEST_STATUSES = new Set(REBUY_BLOCKED_FIX_REQ
 
 const CHECKOUT_URL_TTL_HOURS = 24;
 
-// Identity rejections that mean Dodo took real money the Worker can never
-// attribute: the paid product contradicts the stored checkout, so no retry or
-// later webhook fixes it. These land in dodo_webhook_events as 'error' so the
-// admin webhook-error alert sees them, while Dodo still gets a 200 and stops
-// retrying.
 const UNATTRIBUTABLE_PAYMENT_IDENTITY_REASONS = new Set([
   "checkout_product_mismatch",
   "repair_sprint_checkout_target_missing"
@@ -494,9 +483,6 @@ async function requestRepairSprintCheckout(request, env) {
       proposalSummary
     });
   }
-  // Attaching proposals narrows the owner approval window to the paid states, so
-  // it only happens once Dodo actually returned a checkout. A failed checkout
-  // must leave the queue unattached and freely approvable.
   let checkout;
   try {
     checkout = await createDodoRepairSprintCheckout(request, env, row, fixRequest, access, checkoutTarget);
@@ -653,9 +639,6 @@ async function requestMonitoringCheckout(request, env) {
   });
 }
 
-// Public, unauthenticated Fix Pack price for the homepage. Returns only the
-// display price (no config internals), cached for an hour to keep Dodo calls
-// off the public request path.
 async function getPublicFixPackPricing(request, env, ctx) {
   const config = dodoCheckoutConfigStatus(env);
   if (!config.checkoutReady) return json({ ok: false }, 503);
@@ -664,7 +647,6 @@ async function getPublicFixPackPricing(request, env, ctx) {
   const cached = await cache.match(cacheKey);
   if (cached) return cached;
   try {
-    // Base price without country/customer so one cached price serves everyone.
     const pricing = await previewDodoFixPackPricing({}, env, null);
     const response = new Response(JSON.stringify({ ok: true, pricing: { displayPrice: pricing.displayPrice || "" } }), {
       headers: secureHeaders({
@@ -1298,9 +1280,6 @@ async function seedRepairProposalsForFixRequest(env, report, fixRequest, reportR
   if (!proposals.length) return { status: "ready", total: 0, created: 0, executable: 0 };
 
   try {
-    // Reports seed their own proposals with an empty fix_request_id, so the
-    // report+owner window is the only one that sees them. Rows already sitting
-    // there get adopted with their owner approval intact instead of copied.
     const existing = await env.WAITLIST_DB.prepare(
       `SELECT id, issue_id, fix_request_id
        FROM repair_proposals
@@ -2640,9 +2619,7 @@ async function logOfferEntitlementEvent(
         new Date().toISOString()
       )
       .run();
-  } catch {
-    // Entitlement mutation is the source of truth; health reports event-log schema skew separately.
-  }
+  } catch {}
 }
 
 async function findFixRequestForPayment(env, payment) {
@@ -2738,8 +2715,6 @@ async function dodoPaymentIdentityStatus(env, eventType, payment, fixRequest) {
     if (!nextRepairTargetState.ok) return nextRepairTargetState;
     repairTargetState = nextRepairTargetState;
   } else if (expectedPaymentProduct.offerKey === OFFER_KEYS.REPAIR_SPRINT) {
-    // A Repair Sprint is only ever sold against a stored approved-proposal
-    // snapshot; without one there is nothing to verify approval against.
     return { ok: false, reason: "repair_sprint_checkout_target_missing" };
   }
   if (payment.customerEmail && normalizeEmail(payment.customerEmail) !== fixRequest.owner_email) {

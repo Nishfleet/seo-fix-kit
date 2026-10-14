@@ -1,8 +1,5 @@
 import { QueryClient } from "@tanstack/react-query";
 
-// One cache for every signed-in screen. Data stays fresh for 30 seconds, so
-// moving between app pages shows the last result at once and refreshes it
-// in the background.
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {

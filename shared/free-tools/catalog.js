@@ -1,7 +1,3 @@
-// The free tools at /tools/*: one entry per tool with its page copy, its form
-// fields (rendered by the Worker, wired up in the browser by
-// shared/free-tools/client.js) and the generator that turns the form into
-// output. Field `value`s are the example the page shows before anyone types.
 import {
   SCHEMA_TYPES,
   disavow,
@@ -759,7 +755,6 @@ export function toolBySlug(slug) {
   return FREE_TOOLS.find((tool) => tool.slug === slug) ?? null;
 }
 
-// The form's starting values: each field's example value.
 export function defaultValues(tool) {
   return Object.fromEntries(tool.fields.map((field) => [field.name, field.value ?? ""]));
 }

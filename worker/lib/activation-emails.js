@@ -1,7 +1,3 @@
-// The first-audit nudge: someone signed in but never ran an audit. A day
-// later they get one short email that shows what the first audit gives them
-// and links straight to the audit box. Sent once per owner, never after they
-// have any report or audit job, and never if they stopped audit emails.
 import { emailButton } from "../../shared/email-layout.js";
 import { escapeHtml } from "../../shared/html.js";
 import { emailPreferencesFor } from "./audit-emails.js";
@@ -9,8 +5,6 @@ import { emailSender, sendWorkerEmail } from "./email.js";
 
 const NUDGE_KIND = "first-audit-nudge";
 const NUDGE_AFTER_HOURS = 20;
-// Sign-in sessions last 7 days and are deleted after, so this is the window
-// in which a first sign-in is still on record.
 const NUDGE_WITHIN_DAYS = 6;
 const INK = "#0b0f0d";
 const MUTED = "#6b6f6c";
@@ -92,8 +86,6 @@ async function dueFirstAuditNudges(env, { now = new Date(), limit = 25 } = {}) {
   return results.filter((row) => isNudgeableEmail(row.owner_email));
 }
 
-// Runs from the cron. Never throws: a failed nudge must not stop the rest of
-// the scheduled work.
 async function sendFirstAuditNudges(env, { now = new Date(), appOrigin = "https://seofixkit.com" } = {}) {
   const sent = [];
   try {

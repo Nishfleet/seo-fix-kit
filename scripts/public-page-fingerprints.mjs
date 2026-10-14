@@ -1,12 +1,3 @@
-// Content fingerprints for the public pages listed in the sitemap.
-//
-// A page's <lastmod> must move whenever what it shows changes. Instead of
-// tracking source line ranges through git history, we hash what each page
-// actually serves: Worker-rendered pages are fetched through the Worker, and
-// the SPA homepage ("/") hashes the files that make up its landing page.
-// `npm run sitemap:refresh` stores the hashes in
-// shared/public-page-fingerprints.json and bumps the lastmod of any page whose
-// hash changed; worker/routes/pages.test.mjs fails when they are out of date.
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { ROOT_PUBLIC_PATHS } from "../shared/audit-engine.js";
@@ -40,8 +31,6 @@ async function workerPageHtml(path) {
   return response.text();
 }
 
-// Hashed as bytes, so the product-tour screenshots count too; for the text
-// files this matches hashing their contents joined with newlines.
 function landingFingerprint() {
   const hash = createHash("sha256");
   SPA_LANDING_FILES.forEach((file, index) => {

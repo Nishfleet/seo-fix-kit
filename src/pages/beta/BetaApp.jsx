@@ -45,11 +45,8 @@ const SECTION_TITLES = {
   admin: "Ops"
 };
 
-// A sign-out's cookie-clearing response must land before any new sign-in
-// sets a fresh session cookie, so sign-ins wait for it.
 let pendingSignOut = Promise.resolve();
 
-// Query keys that are not private account data and survive a user switch.
 const SESSION_QUERY_ROOTS = new Set(["session", "access-token"]);
 
 export function BetaApp({ mountKey }) {
@@ -59,8 +56,6 @@ export function BetaApp({ mountKey }) {
   const isAdminRoute = location.pathname === "/beta/admin";
   const isBillingRoute = location.pathname.startsWith("/beta/billing");
   const inviteParams = new URLSearchParams(location.search);
-  // Rewrite the address bar in place (no new history entry) while keeping
-  // this BetaApp mounted; see BetaRoute in App.jsx.
   const replaceUrl = (path) => navigate(path, { replace: true, state: { betaMountKey: mountKey } });
   const accessToken = inviteParams.get("access") || "";
   const hasInviteParam = inviteParams.has("invite");
@@ -70,9 +65,6 @@ export function BetaApp({ mountKey }) {
   const [loginStatus, setLoginStatus] = useState("idle");
   const [loginMessage, setLoginMessage] = useState("");
 
-  // Session: undefined until checked, null when signed out, else the owner.
-  // The server is always asked; until it answers, the stored hint decides
-  // whether to show the workspace optimistically.
   const sessionQuery = useQuery({
     queryKey: queryKeys.session,
     queryFn: async () => {
@@ -89,7 +81,6 @@ export function BetaApp({ mountKey }) {
   const ownerEmail =
     session === undefined ? inviteParams.get("email") || storageGet(BETA_EMAIL_KEY) || "" : session?.ownerEmail || "";
 
-  // Drop every cached account query so one owner's data never shows to the next.
   function clearPrivateData() {
     queryClient.removeQueries({ predicate: (query) => !SESSION_QUERY_ROOTS.has(query.queryKey[0]) });
   }
@@ -108,8 +99,6 @@ export function BetaApp({ mountKey }) {
     queryClient.setQueryData(queryKeys.session, null);
   }
 
-  // One-use sign-in links are verified once per token; the cached result
-  // survives remounts so the token is never spent twice.
   const accessQuery = useQuery({
     queryKey: ["access-token", accessToken],
     queryFn: async () => {
@@ -190,7 +179,6 @@ export function BetaApp({ mountKey }) {
     queryKey: queryKeys.account,
     queryFn: fetchAccountSummary,
     enabled: isAuthed && !isAdminRoute,
-    // Keep the dashboard live while an audit is running.
     refetchInterval: (query) =>
       !reportId && !isBillingRoute && Number(query.state.data?.metrics?.runningAudits || 0) ? 3500 : false
   });
@@ -230,7 +218,6 @@ export function BetaApp({ mountKey }) {
     document.title = `${pageTitle} · SEO Fix Kit`;
   }, [pageTitle]);
 
-  // Drop a consumed ?invite= code from the address bar.
   useEffect(() => {
     if (!hasInviteParam) return;
     const cleanUrl = new URL(window.location.href);
@@ -241,9 +228,6 @@ export function BetaApp({ mountKey }) {
     });
   }, [hasInviteParam, navigate, mountKey]);
 
-  // Queued audits are polled for minutes; tie that loop to this component so
-  // unmounting (or starting another audit) stops it instead of leaking
-  // requests and setState calls.
   const auditPollRef = useRef(null);
   useEffect(() => () => auditPollRef.current?.abort(), []);
 
@@ -491,8 +475,6 @@ export function BetaApp({ mountKey }) {
     }
   }
 
-  // "Check again" on a report: same address and page count, so the new
-  // report's "since your last check" comparison lines up with this one.
   async function rerunReport(source) {
     setRerunStatus("loading");
     setRerunMessage("Starting a fresh check…");
@@ -564,8 +546,6 @@ export function BetaApp({ mountKey }) {
     );
   }
 
-  // No stored hint yet: wait for the server before offering sign-in, so a
-  // valid session is never shown the sign-in screen.
   if (!isAuthed && session === undefined && sessionQuery.isFetching) {
     return (
       <div className="app-loading" aria-busy="true">

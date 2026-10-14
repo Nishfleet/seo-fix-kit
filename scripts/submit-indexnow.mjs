@@ -1,17 +1,3 @@
-// Submit the live sitemap URL set to IndexNow (Bing/Naver/Seznam/Yandex).
-//
-// Usage:
-//   node scripts/submit-indexnow.mjs            # verify key file live, then submit
-//   node scripts/submit-indexnow.mjs --dry-run  # print what would happen, no network writes
-//
-// Requirements: the IndexNow key file must already be live on the production
-// host (the worker route in worker/index.js serves it once the repo change is
-// released). The script refuses to submit until both key-file locations return
-// the exact key text, because a submission with an unreachable key is silently
-// discarded by the engines.
-//
-// Exit codes: 0 = accepted by every endpoint, 2 = key file not live yet,
-// 3 = one or more endpoints rejected the submission.
 import {
   INDEX_NOW_ENDPOINTS,
   INDEX_NOW_HOST,

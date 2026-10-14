@@ -285,7 +285,6 @@ async function createDeveloperWebhook(request, env) {
   const events = !body.events?.length && slack ? SLACK_ALERT_EVENTS : cleanWebhookEvents(body.events);
   const id = crypto.randomUUID();
   if (slack) {
-    // Post a hello first, so a mistyped or revoked Slack URL is caught now.
     const hello = await deliverApiWebhook(
       env,
       { id, url: urlCheck.url },

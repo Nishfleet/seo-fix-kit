@@ -1,14 +1,3 @@
-/*
- * Shared marketing components: site header and footer, buttons, panels,
- * eyebrows, pills, hero lighting and scroll reveal. Used by the
- * worker-rendered public pages (bundled into /tokens.css) and by the React
- * landing page (imported directly), so both surfaces render one product.
- * Every class here is namespaced to avoid clashing with app styles.
- */
-
-/* ---------------------------------------------------------------- Header */
-
-/* Keyboard users skip straight past the header to the page content. */
 .site-skip {
   background: var(--accent);
   border-radius: var(--radius-sm);
@@ -29,8 +18,6 @@
   transform: none;
 }
 
-/* siteHeader() in worker/routes/pages.js, SiteHeader in
-   src/components/SiteChrome.jsx and the copy in public/404.html. */
 .site-header {
   -webkit-backdrop-filter: saturate(160%) blur(14px);
   backdrop-filter: saturate(160%) blur(14px);
@@ -41,8 +28,7 @@
   z-index: 50;
 }
 
-/* Fully transparent at the top of the page, solid once scrolled. Browsers
-   without scroll-driven animations keep the solid look above. */
+/* Browsers without scroll-driven animations keep the solid look. */
 @supports (animation-timeline: scroll()) {
   .site-header {
     animation: sfk-header-solid linear both;
@@ -148,10 +134,6 @@
   transform: rotate(180deg);
 }
 
-/* Product and Use cases menus. They open on hover and keyboard focus with
-   no JavaScript; /site.js and SiteHeader add click, Escape and outside-click
-   handling. The transparent top padding bridges the gap from the trigger so
-   the pointer can travel into the panel without it closing. */
 .site-nav-group {
   position: relative;
 }
@@ -198,8 +180,6 @@
   grid-template-columns: 300px;
 }
 
-/* Keyboard focus opens a menu only without JavaScript; with it, the trigger
-   button's open state decides, so Escape and a second click really close. */
 .site-nav-group:hover > .site-nav-menu,
 :root:not(.js) .site-nav-group:focus-within > .site-nav-menu,
 .site-nav-group[data-open] > .site-nav-menu {
@@ -264,7 +244,6 @@
 }
 
 @media (max-width: 760px) {
-  /* Without JavaScript the nav simply wraps onto its own row. */
   .site-header-inner {
     flex-wrap: wrap;
     padding-bottom: var(--space-8);
@@ -282,7 +261,6 @@
     width: 100%;
   }
 
-  /* Without JavaScript, menus open as one column spanning the nav row. */
   .site-nav {
     position: relative;
   }
@@ -298,7 +276,6 @@
     right: 0;
   }
 
-  /* With JavaScript, the nav becomes a disclosure menu. */
   .js .site-menu-button {
     display: inline-flex;
   }
@@ -359,7 +336,6 @@
     margin-left: 0;
   }
 
-  /* In the small-screen sheet the menus become accordions. */
   .js .site-nav-menu,
   .js .site-nav-group:hover > .site-nav-menu,
   .js .site-nav-group:focus-within > .site-nav-menu {
@@ -398,10 +374,6 @@
   }
 }
 
-/* ---------------------------------------------------------------- Footer */
-
-/* A direct child of <body>, after <main>, so it is the page's contentinfo
-   landmark. The hairline is inset to the content width. */
 .site-foot {
   display: grid;
   gap: var(--space-32) var(--space-24);
@@ -496,16 +468,10 @@
   }
 }
 
-/* A dark island inside a light page (see tokens.css) sets its own text
-   colour, since inherited colour was resolved against the light theme. */
 [data-theme="dark"] {
   color: var(--ink);
 }
 
-/* ------------------------------------------------------------ Closing CTA */
-
-/* siteCtaBand() in worker/routes/pages.js: a dark island that closes every
-   marketing page with a next step. */
 .site-cta {
   background:
     radial-gradient(70% 120% at 100% 0%, rgba(152, 240, 204, 0.16), transparent 60%),
@@ -544,9 +510,6 @@
   }
 }
 
-/* ---------------------------------------------------------------- Buttons */
-
-/* `.cta` is the historical class on page CTAs; it shares .btn-primary. */
 .btn,
 .cta {
   align-items: center;
@@ -670,8 +633,6 @@
   transition: transform var(--duration) var(--ease-out);
 }
 
-/* ---------------------------------------------------------------- Surfaces */
-
 .panel {
   align-content: start;
   background: var(--surface);
@@ -682,7 +643,6 @@
   padding: 20px;
 }
 
-/* An interactive or emphasised card: lifts slightly on hover. */
 .card {
   background: var(--card-bg);
   border: 1px solid var(--line);
@@ -701,7 +661,6 @@
   box-shadow: var(--shadow-md);
 }
 
-/* Eyebrow / kicker label: one style everywhere. */
 .eyebrow,
 .kicker {
   color: var(--accent);
@@ -736,7 +695,6 @@
   width: 6px;
 }
 
-/* Gradient ink for display headings. */
 .ink-gradient {
   -webkit-background-clip: text;
   background-clip: text;
@@ -744,12 +702,9 @@
   color: transparent;
 }
 
-/* Ambient light and a faint grid behind a hero. Put on a positioned
-   ancestor; the light sits behind content and never takes pointer events. */
 .hero-light {
   isolation: isolate;
-  /* The light is wider than a phone screen. Clip it here: body's clip
-     propagates to the viewport, which phones ignore when sizing the page. */
+  /* body's clip propagates to the viewport, which phones ignore when sizing the page. */
   overflow-x: clip;
   position: relative;
 }
@@ -785,18 +740,12 @@
   z-index: -1;
 }
 
-/* ---------------------------------------------------------------- Motion */
-
-/* Above-the-fold entrance: plain CSS, so it runs on first paint with no
-   JavaScript and cannot leave content hidden. Stagger with --enter-delay. */
 .enter {
   animation: sfk-enter var(--duration-enter) var(--ease-out) both;
   animation-delay: var(--enter-delay, 0ms);
 }
 
-/* Below-the-fold reveal driven by scroll position, no JavaScript. Browsers
-   without scroll-driven animations, and anyone who prefers reduced motion,
-   simply see the content. */
+/* Browsers without scroll-driven animations simply see the content. */
 @media (prefers-reduced-motion: no-preference) {
   @supports (animation-timeline: view()) {
     .reveal {

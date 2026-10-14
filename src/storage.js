@@ -1,10 +1,3 @@
-// Web Storage access that never throws.
-//
-// Locked-down browsers (blocked site data, some private modes, sandboxed
-// iframes) throw a SecurityError just for touching `window.sessionStorage`,
-// and quota errors can throw from setItem. Storage here only holds
-// conveniences, so failures degrade to "nothing stored".
-
 function storageArea(kind) {
   try {
     const area = kind === "local" ? globalThis.localStorage : globalThis.sessionStorage;
@@ -36,7 +29,5 @@ export function storageSet(key, value, kind = "session") {
 export function storageRemove(key, kind = "session") {
   try {
     storageArea(kind)?.removeItem(key);
-  } catch {
-    // Nothing stored is the safe fallback.
-  }
+  } catch {}
 }
