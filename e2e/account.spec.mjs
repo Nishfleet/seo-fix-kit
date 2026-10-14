@@ -119,6 +119,41 @@ test("a report lists every problem and jumps from the top fixes to the proof", a
   await expect(target.getByText("Evidence", { exact: true })).toBeInViewport();
 });
 
+test("a report hands over ready-to-paste AI fix prompts", async ({ page, request }, testInfo) => {
+  const email = uniqueEmail(testInfo, "prompt");
+  await page.addInitScript(() => {
+    window.__copied = [];
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: async (text) => window.__copied.push(text) }
+    });
+  });
+  await page.goto("/beta");
+  await page.getByLabel("Email").fill(email);
+  await typeLikeAPerson(page);
+  await page.getByRole("button", { name: "Email me a sign-in link" }).click();
+  await page.goto(await signInLinkFor(request, email));
+  await expect(page.getByRole("heading", { level: 1, name: "Overview" })).toBeVisible();
+  await page.route("**/api/pricing-preview", (route) =>
+    route.fulfill({ json: { pricing: { displayPrice: "$49", currency: "USD" } } })
+  );
+  const { id } = await (await request.post("/__e2e/reports", { data: { ownerEmail: email } })).json();
+
+  await page.goto(`/beta/reports/${id}`);
+  await page.getByRole("button", { name: "Copy AI prompt for the top fixes" }).click();
+  await expect(page.getByRole("button", { name: "Copied" })).toBeVisible();
+  const [all] = await page.evaluate(() => window.__copied);
+  expect(all).toContain("My website is https://acme-widgets.example");
+  expect(all).toMatch(/Please fix these \d+ problems/);
+
+  const first = page.locator(".finding-list > details").first();
+  await first.getByRole("button", { name: "Copy AI fix prompt" }).click();
+  const copied = await page.evaluate(() => window.__copied);
+  expect(copied).toHaveLength(2);
+  expect(copied[1]).toContain("Problem: ");
+  expect(copied[1]).toContain("What the audit found:");
+});
+
 test("the check-your-inbox screen opens the right webmail and resends the link after a short wait", async ({
   page,
   request

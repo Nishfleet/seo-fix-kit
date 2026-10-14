@@ -48,7 +48,8 @@ export function buildAiAnswerReadiness(report = {}, options = {}) {
     structuredData: structuredDataCheck(pages),
     sourceClarity: sourceClarityCheck(pages),
     answerStructure: answerStructureCheck(pages),
-    discoveryFiles: discoveryFilesCheck(report.crawlInventory || report.crawl_inventory, llmsTxt)
+    discoveryFiles: discoveryFilesCheck(report.crawlInventory || report.crawl_inventory, llmsTxt),
+    crawlerAccess: crawlerAccessCheck(options.crawlerAccess || report.crawlerAccess)
   };
   const repairOpportunities = aiReadinessRepairOpportunities(checks, trafficIndex);
   const findings = repairOpportunities.map(repairToFinding);
@@ -57,7 +58,7 @@ export function buildAiAnswerReadiness(report = {}, options = {}) {
   return {
     status: "ready",
     source: "ai-answer-readiness-proof",
-    note: "AI Answer Readiness checks your pages' text, schema, canonical tags, internal links, sitemap and optional llms.txt. It does not sample AI engines or monitor citations, and it does not measure AI visibility.",
+    note: "AI Answer Readiness checks your pages' text, schema, canonical tags, internal links, sitemap, AI crawler access in robots.txt and optional llms.txt. It does not sample AI engines or monitor citations, and it does not measure AI visibility.",
     summary,
     checks,
     findings,
@@ -77,6 +78,7 @@ export function aiAnswerReadinessBriefLines(audit = {}) {
     `Pages with helpful schema: ${summary.pagesWithHelpfulSchema || 0}`,
     `Pages with question-led structure: ${summary.pagesWithQuestionStructure || 0}`,
     `Optional llms.txt: ${summary.llmsTxtStatus || "unknown"}`,
+    `AI crawlers allowed by robots.txt: ${summary.aiCrawlersAllowed ?? 0}/${summary.aiCrawlersChecked ?? 0}`,
     summary.trafficRanked
       ? `Order: by imported Search Console traffic (${summary.trafficRowsUsed || 0} rows). Problems on pages with more clicks and impressions come first.`
       : "Order: as found. Import Search Console data to put problems on your busiest pages first.",
@@ -241,6 +243,21 @@ function discoveryFilesCheck(inventory = {}, llmsTxt = {}) {
   };
 }
 
+function crawlerAccessCheck(access) {
+  if (!access?.ai) return { status: "unknown", checked: 0, allowed: 0, blocked: [] };
+  const blocked = access.ai.filter((bot) => !bot.allowed);
+  const searchBlocked = (access.blockedSearch || []).length > 0;
+  const answersBlocked = (access.blockedAnswerBots || []).length > 0;
+  return {
+    status: searchBlocked || answersBlocked ? "needs_repair" : "passed",
+    checked: access.ai.length,
+    allowed: access.ai.length - blocked.length,
+    searchBlocked,
+    answersBlocked,
+    blocked: blocked.map(({ agent, product, purpose, rule }) => ({ agent, product, purpose, rule }))
+  };
+}
+
 function aiReadinessRepairOpportunities(checks = {}, trafficIndex = emptyTrafficIndex()) {
   const items = [];
   const add = (item) => {
@@ -337,6 +354,25 @@ function aiReadinessRepairOpportunities(checks = {}, trafficIndex = emptyTraffic
     });
   }
 
+  if (checks.crawlerAccess?.answersBlocked && !checks.crawlerAccess.searchBlocked) {
+    const answerBots = checks.crawlerAccess.blocked.filter((bot) => bot.purpose === "answers");
+    add({
+      issueId: "ai-answer-readiness-crawler-access",
+      severity: "warning",
+      title: "AI Answer Readiness: AI search crawlers blocked in robots.txt",
+      affectedPages: [],
+      proof: `robots.txt blocks ${answerBots
+        .map((bot) => `${bot.agent} (${bot.product})${bot.rule ? ` by "${bot.rule}"` : ""}`)
+        .join("; ")}.`,
+      why: "ChatGPT, Claude and Perplexity can only quote and link to pages their crawlers may read. Blocking them keeps you out of AI answers.",
+      fix: "If you want to appear in AI answers, allow these crawlers. You can still block the training-only crawlers (GPTBot, ClaudeBot, Google-Extended, CCBot) if you prefer.",
+      snippet: answerBots.map((bot) => `User-agent: ${bot.agent}\nAllow: /`).join("\n\n"),
+      acceptance: "The robots.txt tester shows each crawler listed here allowed on your homepage.",
+      estimatedEffort: "5-15 min",
+      workType: "config"
+    });
+  }
+
   if (checks.discoveryFiles?.llmsTxt && !checks.discoveryFiles.llmsTxt.ok) {
     add({
       issueId: "ai-answer-readiness-llms-txt",
@@ -366,6 +402,7 @@ function repairToFinding(item = {}, index = 0) {
     evidence: item.proof || "",
     fix: item.fix || "",
     acceptance: item.acceptance || "",
+    snippet: item.snippet || null,
     confidence: item.confidence || "needs-review",
     source: item.source || "ai-answer-readiness-proof",
     pageUrl: item.pageUrl || null,
@@ -382,7 +419,8 @@ function aiReadinessSummary(pages = [], checks = {}, repairs = [], trafficIndex 
     (checks.structuredData?.status === "needs_review" ? 16 : 0) +
     (checks.sourceClarity?.status === "needs_repair" ? 18 : 0) +
     (checks.answerStructure?.status === "needs_review" ? 10 : 0) +
-    (checks.discoveryFiles?.llmsTxt && !checks.discoveryFiles.llmsTxt.ok ? 4 : 0);
+    (checks.discoveryFiles?.llmsTxt && !checks.discoveryFiles.llmsTxt.ok ? 4 : 0) +
+    (checks.crawlerAccess?.searchBlocked ? 40 : checks.crawlerAccess?.answersBlocked ? 24 : 0);
   const trafficRanked = Boolean(trafficIndex.rowCount);
   return {
     method: "proof-derived-readiness-v1",
@@ -400,6 +438,8 @@ function aiReadinessSummary(pages = [], checks = {}, repairs = [], trafficIndex 
     sitemapReady: Boolean(checks.discoveryFiles?.sitemapReady),
     sitemapUrlsDiscovered: checks.discoveryFiles?.sitemapUrlsDiscovered || 0,
     llmsTxtStatus: checks.discoveryFiles?.llmsTxt?.ok ? "reachable" : "not_reachable",
+    aiCrawlersChecked: checks.crawlerAccess?.checked || 0,
+    aiCrawlersAllowed: checks.crawlerAccess?.allowed || 0,
     trafficRanked,
     trafficRowsUsed: trafficIndex.rowCount || 0,
     prioritization: trafficRanked ? "imported-search-console-traffic" : "proof-order"
