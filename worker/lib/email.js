@@ -51,13 +51,8 @@ function shouldSkipOwnedInternalEmail(env, { to, tag }) {
   );
 }
 
-// `html` is the message body only: it is wrapped in the shared table-based
-// layout (logo, white card, support footer) from shared/email-layout.js.
-// `preheader` is the optional hidden inbox preview line.
 async function sendWorkerEmail(env, { to, subject, text, html, preheader = "", tag }) {
-  // Reply-To must use the binding's replyTo field; Email Service rejects it as
-  // a custom header (only whitelisted and X-* headers are accepted). The
-  // binding also takes string[] for multiple recipients directly.
+  // Email Service rejects Reply-To as a custom header; use the binding's replyTo field.
   const from = emailSender(env);
   const replyTo = normalizeEmail(env.SEOFIXKIT_REPLY_TO || "");
   const headers = {};

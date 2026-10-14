@@ -12,8 +12,6 @@ import { queryKeys } from "../../lib/queries.js";
 import { fetchEmailPreferences, fetchReportsPage, saveEmailPreferences } from "../../lib/requests.js";
 import { repairStatusLabel, statusLabel, auditJobDetail, auditScheduleDetail } from "../../lib/labels.js";
 
-// Overview: first-run checklist until the account is set up, the new-audit
-// form, and (once there are reports) headline numbers and the repair feed.
 export function Overview({ accountData, auditPanel, message, status, onRetry }) {
   const metrics = accountData?.metrics || {};
   const reports = accountData?.recentReports || [];
@@ -155,9 +153,6 @@ export function Overview({ accountData, auditPanel, message, status, onRetry }) 
   );
 }
 
-// Score over a site's saved checks: a small line, the latest score and how
-// far it and the problem count moved since the first check. With one check
-// so far it says when the next weekly check will add the second point.
 function Sparkline({ points }) {
   const width = 120;
   const height = 32;
@@ -189,7 +184,6 @@ function Change({ value, goodWhen, unit = "" }) {
   );
 }
 
-// A row opens the site's newest report while one is still kept.
 function ProgressRowLink({ to, children }) {
   return to ? (
     <Link discover="none" className="progress-row" to={to}>
@@ -253,8 +247,6 @@ function ProgressCard({ sites }) {
   );
 }
 
-// "example.com" for a homepage, "example.com/pricing" for any other page, so
-// two reports on one site can be told apart.
 function reportLabel(item) {
   try {
     const url = new URL(item.url);
@@ -316,10 +308,7 @@ function ScoreBadge({ score }) {
 
 const JOB_TONES = { queued: "neutral", running: "info", failed: "bad", completed: "good" };
 
-// Reports: audits that are still running, every saved report, and Fix Pack
-// status.
 export function ReportsPage({ accountData, message, status, onRetry }) {
-  // The account summary only carries the newest few; this lists every report.
   const reportPages = useInfiniteQuery({
     queryKey: queryKeys.reports,
     queryFn: ({ pageParam }) => fetchReportsPage(pageParam),
@@ -435,8 +424,6 @@ export function ReportsPage({ accountData, message, status, onRetry }) {
   );
 }
 
-// Sites & monitoring: add a site, verify ownership, and turn weekly
-// monitoring on or off.
 export function SitesPage({
   accountData,
   message,
@@ -458,8 +445,6 @@ export function SitesPage({
   const monitoring = accountData?.monitoring || {};
   const isFounder = accountData?.owner?.accessMode === "founder-override";
   const loaded = Boolean(accountData);
-  // Weekly checks on a site that isn't verified here (the automatic one-page
-  // check after a first audit) still need a place to be paused.
   const otherChecks = schedules.filter(
     (schedule) =>
       !sites.some(
@@ -732,7 +717,6 @@ export function RepairAgentFeed({ items = [], nextAction = null, reports = [] })
   );
 }
 
-// A destructive button that asks "Are you sure?" in place before it acts.
 function ConfirmButton({ label, confirmLabel, onConfirm, disabled }) {
   const [asking, setAsking] = useState(false);
   if (!asking) {
@@ -774,8 +758,6 @@ function SecretBox({ title, value }) {
 
 const API_KEY_LIMIT = 5;
 
-// Audit emails: "report ready" and each weekly check result. On by default;
-// every email also carries a one-click unsubscribe link.
 function EmailUpdatesCard() {
   const queryClient = useQueryClient();
   const preferences = useQuery({ queryKey: queryKeys.emailPreferences, queryFn: fetchEmailPreferences });

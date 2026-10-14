@@ -4,8 +4,6 @@ function monitoringCheckoutDisabled({ checkoutReady = false, status = "idle", ha
   return status === "submitting" || !checkoutReady || !hasEligibleSite;
 }
 
-// `offerName` keeps the fallback copy truthful when a different one-time offer
-// (Repair Sprint) reuses this outcome shape.
 function monitoringCheckoutOutcome(payload = {}, { offerName = "Proof Monitoring" } = {}) {
   const checkoutUrl = safeDodoCheckoutUrl(payload.checkoutUrl || "");
   if (checkoutUrl) {

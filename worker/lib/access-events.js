@@ -1,17 +1,6 @@
-// First-party activation instrumentation for the private-beta funnel.
-//
-// All events are recorded server-side directly into the D1 access_events
-// table. The helper is intentionally best-effort: it never throws and never
-// blocks the request that called it. A caller can pass a Request object so
-// the helper can derive referrer, user-agent, country, and IP hash, or it
-// can pass those values explicitly when the caller already has them
-// (for example after a server-side token verify).
-
 import { cleanText } from "./text.js";
 import { requestIpHash } from "./security.js";
 
-// Stable, append-only step names. Ordering is meaningful for funnel
-// analysis; keep the order in FUNNEL_STEPS the source of truth.
 const FUNNEL_STEPS = Object.freeze([
   "beta_view",
   "beta_input",
@@ -114,17 +103,12 @@ async function recordAccessEvent(env, options = {}) {
       .bind(step, funnelKey, ownerEmail, source, landingPath, referrer, userAgent, country, ipHash, metadata, now)
       .run();
   } catch {
-    // Instrumentation must never break the request that triggered it.
     return { ok: false, reason: "insert_failed" };
   }
 
   return { ok: true, step, funnelKey, ownerEmail };
 }
 
-// Summarize how many rows each step has in a given window. Returns step
-// counts plus simple conversion rates relative to the first step in the
-// window when that step is present. Designed for low-friction admin
-// dashboard use; it does not materialise per-funnel-key paths.
 async function summarizeAccessEvents(env, options = {}) {
   if (!env?.WAITLIST_DB) return { ok: false, reason: "no_storage", steps: {}, totals: {} };
 
@@ -190,9 +174,7 @@ async function summarizeAccessEvents(env, options = {}) {
       totals.uniqueFunnelKeys = Number(uniqueRows.uniqueFunnelKeys || 0);
       totals.uniqueEmails = Number(uniqueRows.uniqueEmails || 0);
     }
-  } catch {
-    // No-op: uniqueness counts are best-effort.
-  }
+  } catch {}
 
   return {
     ok: true,

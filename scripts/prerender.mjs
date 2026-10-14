@@ -1,10 +1,3 @@
-// Prerenders the homepage into dist/index.html after `vite build`.
-//
-// SEO Fix Kit audits whether a page's content is in its raw HTML, so its own
-// homepage must pass that test: the landing page is rendered to HTML at build
-// time and hydrated in the browser. The signed-in app keeps an empty shell
-// (dist/beta-shell.html), served by the Worker for /beta/*, so it never
-// flashes marketing content before it mounts.
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import { createServer } from "vite";
@@ -28,7 +21,6 @@ export async function prerender({ dist = DIST } = {}) {
     const { render } = await vite.ssrLoadModule("/src/entry-server.jsx");
     const html = render("/");
     fs.writeFileSync(new URL("beta-shell.html", dist), template);
-    // The public site is light; the signed-in app shell above stays dark.
     const page = template
       .replace('<html lang="en">', '<html lang="en" data-theme="light">')
       .replace(EMPTY_ROOT, `<div id="root">${html}</div>`);

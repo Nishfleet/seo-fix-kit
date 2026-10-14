@@ -593,9 +593,6 @@ function normalizePageKey(value = "") {
     let path = url.pathname || "/";
     if (path.length > 1 && path.endsWith("/")) path = path.slice(0, -1);
     const port = url.port ? `:${url.port}` : "";
-    // Return a canonical host+path key WITHOUT the scheme so that imported
-    // http:// rows still match pages whose rendered evidence is https:// after
-    // a redirect (scheme is not part of page identity for traffic matching).
     return `${url.hostname}${port}${path}`;
   } catch {
     return String(value || "")

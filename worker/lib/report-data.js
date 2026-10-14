@@ -172,8 +172,6 @@ async function saveAuditReportWithContext(report, env, access, origin) {
   const fitted = fitReportForStorage(compactAuditReportForStorage(saved));
   const storageReport = fitted.report;
 
-  // Prefer R2 for the blob; fall back to inline D1 storage (size-guarded)
-  // when the binding is missing or the put fails.
   let storedReportJson = fitted.json;
   if (env.REPORTS) {
     try {
@@ -220,9 +218,6 @@ async function saveAuditReportWithContext(report, env, access, origin) {
   return storageReport;
 }
 
-// The long-lived score line behind the progress card: a few numbers per
-// report, kept for 12 months after the full report expires. Never fails the
-// save.
 const SCORE_HISTORY_DAYS = 366;
 
 async function recordScoreHistory(env, row) {
@@ -247,9 +242,6 @@ async function recordScoreHistory(env, row) {
   }
 }
 
-// Report bodies live in R2; the D1 column keeps a marker pointing at the
-// object so old inline rows and dev environments without the binding keep
-// working unchanged.
 const R2_REPORT_MARKER = "r2:";
 
 function reportR2Key(reportId) {
@@ -429,14 +421,10 @@ async function recordReportBlobDeletionFailure(env, failure = {}) {
     )
       .bind(failure.key, failure.reportId || "", failure.error || "Report blob deletion failed.", now, now)
       .run();
-  } catch {
-    // Older local databases may not have the retry table until migrations run.
-  }
+  } catch {}
 }
 
-// D1 rejects rows near its ~2MB value limit, which would fail the save AFTER
-// a long crawl completed. Trim stored page proof until the blob fits; scores,
-// findings, and the repair brief always cover the full crawl.
+// D1 rejects rows near its ~2MB value limit.
 const REPORT_STORAGE_MAX_BYTES = 1_500_000;
 
 function fitReportForStorage(storageReport) {

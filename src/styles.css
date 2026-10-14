@@ -1,7 +1,5 @@
-/* Design tokens (colour, type, spacing, motion) shared with the public pages. */
 @import "./design/tokens.css";
 
-/* App-level aliases kept for existing app styles; new code uses the tokens. */
 :root {
   color-scheme: dark;
   font-family:
@@ -32,8 +30,7 @@
   box-sizing: border-box;
 }
 
-/* clip, not hidden: hidden makes these scroll containers, which pins the
-   sticky site header to them instead of the viewport. */
+/* clip, not hidden: hidden makes these scroll containers, which pins the sticky site header to them instead of the viewport. */
 html {
   min-width: 320px;
   overflow-x: clip;
@@ -2323,7 +2320,6 @@ a {
   white-space: nowrap;
 }
 
-/* Severity reads the same everywhere: red critical, gold warning, grey notice. */
 .status-pill.critical {
   border-color: rgba(255, 180, 169, 0.26);
   color: var(--error);
@@ -3252,8 +3248,6 @@ a {
   }
 }
 
-/* Keyboard focus: a visible ring on every interactive control, drawn with the
-   accent token. Zero-specificity :where() so component focus styles still win. */
 :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
@@ -3270,9 +3264,6 @@ a {
   }
 }
 
-/* Signed-in app shell (src/components/AppShell.jsx). The sidebar sits on
-   the page background; on wide screens the page itself is an inset, raised
-   panel beside it. */
 .app-shell {
   background: var(--bg);
   color: var(--ink);
@@ -3988,7 +3979,6 @@ a.app-table-row:hover {
   border-radius: 12px;
 }
 
-/* Sign-in (src/pages/beta/SignIn.jsx) */
 .signin-shell {
   align-items: center;
   background:
@@ -4250,7 +4240,6 @@ a.app-table-row:hover {
   gap: 10px;
 }
 
-/* Audit run states inside the New audit card: compact and full width. */
 .app-card .empty-state,
 .app-card .loading-state {
   box-shadow: none;
@@ -4292,7 +4281,6 @@ a.app-table-row:hover {
   min-height: 100vh;
 }
 
-/* Fades in only if the session check is slow, so fast loads never flash. */
 .app-loading-brand {
   animation: sfk-loading-in 240ms var(--ease-out) 400ms both;
 }
@@ -4321,8 +4309,6 @@ a.app-table-row:hover {
   padding: 6px 4px;
 }
 
-/* Dashboard QA pass: skeletons, load errors, badges, site rows, developer
-   tables, and the payments table. */
 .visually-hidden {
   clip: rect(0 0 0 0);
   clip-path: inset(50%);
@@ -4455,7 +4441,6 @@ a.app-table-row:hover {
   font-variant-numeric: tabular-nums;
 }
 
-/* On phones: page, score and problems; pages scanned and date drop out. */
 @media (max-width: 560px) {
   .app-table-row-reports {
     grid-template-columns: minmax(0, 1.6fr) auto minmax(56px, auto);
@@ -4673,7 +4658,6 @@ a.app-table-row:hover {
 }
 
 @media (max-width: 860px) {
-  /* Short pages must not stretch the top bar to fill the screen. */
   .app-shell {
     grid-template-rows: auto 1fr;
   }
@@ -4763,8 +4747,6 @@ a.app-table-row:hover {
   margin-top: 14px;
 }
 
-/* Saved report (src/pages/report/ReportView.jsx): app-style header, tabs, and
-   calmer section chrome so the long report reads like the rest of the app. */
 .report-layout {
   gap: 20px;
 }
@@ -4801,8 +4783,6 @@ a.app-table-row:hover {
   color: var(--ink);
 }
 
-/* The dot sits in the gap before each item and is clipped when an item
-   wraps to the start of a line, so no line starts with a stray separator. */
 .report-header-meta {
   color: var(--ink-muted);
   display: flex;
@@ -4961,8 +4941,6 @@ a.app-table-row:hover {
   justify-content: space-between;
 }
 
-/* Wraps onto a second row on narrow phones instead of pushing Notices off
-   screen; the 19px radius stays a pill on one row and a soft card on two. */
 .severity-filter {
   background: rgba(251, 248, 239, 0.035);
   border: 1px solid rgba(251, 248, 239, 0.1);
@@ -5105,7 +5083,6 @@ a.app-table-row:hover {
   justify-content: space-between;
 }
 
-/* Calm the older report panels down to the app card style. */
 .report-layout .section-heading h2 {
   font-size: 19px;
   letter-spacing: -0.01em;
@@ -5190,8 +5167,6 @@ a.app-table-row:hover {
   }
 }
 
-/* Inside the app shell the report fills its column instead of shrinking to
-   its content (auto margins on a grid item). */
 .app-page > .audit-stage,
 .app-page .report-layout {
   margin: 0;
@@ -5281,8 +5256,6 @@ a.app-table-row:hover {
   }
 }
 
-/* Report problems as one scannable list (src/pages/report/FindingItems.jsx):
-   each row shows severity and title and opens to its proof and fix. */
 .finding-list:has(> .finding-row) {
   background: var(--surface);
   border: 1px solid var(--line);
@@ -5411,7 +5384,6 @@ a.app-table-row:hover {
   }
 }
 
-/* Inside the app, the legacy light .action-link reads as a secondary button. */
 .app-page .action-link {
   background: var(--surface);
   border: 1px solid var(--line-strong);
@@ -5428,7 +5400,6 @@ a.app-table-row:hover {
   background: var(--surface-hover);
 }
 
-/* Paid actions stay the primary button inside the app. */
 .app-page .action-link.paid-action {
   background: linear-gradient(180deg, #b6f6dc, var(--accent));
   border-color: rgba(152, 240, 204, 0.55);
@@ -5447,7 +5418,6 @@ a.app-table-row:hover {
   opacity: 0.6;
 }
 
-/* Notices are the quietest severity: neutral, so red and amber stand out. */
 .finding-item.notice span {
   background: var(--surface-strong);
   border-color: var(--line-strong);

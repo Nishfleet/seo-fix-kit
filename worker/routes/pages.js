@@ -5,17 +5,11 @@ import { DEMO_PROOF, DEMO_FIXTURE_PATH, demoProofSnippet } from "./demo-proof.js
 
 const FIX_PACK_PUBLIC_PRICE = "$99.00 one-time";
 
-// The PNG share image every worker-rendered public page ships as
-// og:image/twitter:image (social platforms ignore SVG share images). Single
-// source of truth: public/og-image.png is the 1200x630 render of
-// public/og-image.svg copied into the Worker's asset bundle, and
-// pages.test.mjs pins both the tag and the shipped file's PNG dimensions so
-// shares never point at a dead or wrongly sized URL.
+// Social platforms ignore SVG share images.
 const SOCIAL_IMAGE_PATH = "/og-image.png";
 const SOCIAL_IMAGE_WIDTH = 1200;
 const SOCIAL_IMAGE_HEIGHT = 630;
 
-// Meta tags that describe the share image; reused by /check.
 function socialImageMeta() {
   return `
     <meta property="og:image:type" content="image/png" />
@@ -155,15 +149,10 @@ Start at ${origin}/.
 `;
 }
 
-// Serialize a JSON-LD block safely inside a <script> tag.
 function ldBlock(value) {
   return `<script type="application/ld+json">${JSON.stringify(value).replace(/</g, "\\u003c")}</script>`;
 }
 
-// Favicon, touch icon, and the shared design tokens stylesheet
-// (public/tokens.css) for every worker-rendered public page. The stylesheet
-// is root-relative so it is served by the same host as the page (CSP
-// style-src 'self'); pages keep their own layout CSS inline after it.
 function publicAssetHead(origin) {
   return `
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -174,14 +163,6 @@ function publicAssetHead(origin) {
     <script src="/site.js" defer></script>`;
 }
 
-// The one site header every worker-rendered public page uses, including the
-// static 404 page (notFoundHtml(), written to dist/404.html at build time),
-// twinned by SiteHeader in src/components/SiteChrome.jsx for the React
-// landing page. It sits
-// directly in <body>, outside the page's own layout wrapper, so it can stick
-// to the top full width. Styles live in src/design/site.css; the logo mark is
-// /favicon.svg drawn by .brand::before so the link text stays the plain
-// product name. /site.js turns the nav into a menu on small screens.
 function siteHeader(origin, currentPath = "") {
   const current = (href) => (href === currentPath ? ' aria-current="page"' : "");
   const chevron =
@@ -222,8 +203,6 @@ function siteHeader(origin, currentPath = "") {
     </header>`;
 }
 
-// Closing call to action shared by the marketing pages: a dark band that
-// mirrors the homepage's final section, so every page ends on a next step.
 function siteCtaBand(origin) {
   return `<section class="site-cta" data-theme="dark" aria-labelledby="site-cta-title">
         <h2 id="site-cta-title">See what’s wrong with your site.</h2>
@@ -235,9 +214,6 @@ function siteCtaBand(origin) {
       </section>`;
 }
 
-// The one site footer every worker-rendered public page uses (twinned by
-// SiteFooter in src/components/SiteChrome.jsx). Links come from
-// shared/site-nav.js; styles live in src/design/site.css under .site-foot.
 function siteFooter(origin) {
   const link = ({ href, label }) => `<a href="${href.startsWith("/") ? origin + href : href}">${label}</a>`;
   const columns = SITE_FOOTER.map(
@@ -480,8 +456,6 @@ function methodologyHtml(origin) {
   });
 }
 
-// Plans shown on /pricing. Each row of PRICING_FEATURES says which plans
-// include it, so the cards and the comparison table cannot disagree.
 const PRICING_PLANS = [
   {
     key: "check",
@@ -559,16 +533,12 @@ function pricingCheck(included) {
     : `<span class="dash" aria-label="Not included">–</span>`;
 }
 
-// One card line per feature: "Up to 1,000 pages per audit" for value rows.
 function planFeatureLine(feature, planKey) {
   if (!feature.values) return feature.label;
   const value = feature.values[planKey];
   return `${value} ${value === "1" ? "page" : "pages"} per audit`;
 }
 
-// Each card lists only what it adds over the plan before it, under an
-// "Everything in X, plus:" lead, so the difference reads at a glance. The
-// full grid stays in the comparison table below.
 function planFeatureLines(plan, index) {
   const previous = PRICING_PLANS[index - 1];
   const included = (feature, key) => Boolean(feature.values?.[key]) || Boolean(feature.plans?.includes(key));
@@ -927,10 +897,6 @@ function aiAnswerReadinessHtml(origin) {
   });
 }
 
-// Shared public product page shell. `faq` is an array of { q, a } pairs that is
-// rendered as a visible section AND emitted as FAQPage JSON-LD, so machine
-// schema can never drift from the visible copy. `softwareDescription`, when
-// provided, adds a truthful SoftwareApplication block for the tool itself.
 function aboutHtml(origin) {
   return publicProductPageHtml({
     origin,
@@ -1438,11 +1404,7 @@ ${pageSocialHead({ origin, title: `${title} - SEO Fix Kit`, description, path })
 </html>`;
 }
 
-// The static 404 page. Cloudflare serves dist/404.html for unknown paths
-// ("not_found_handling": "404-page"); vite.config.js writes it from this
-// function at build time, so it shares the live header, footer and styles
-// instead of a hand-kept copy. The audit card is a small brand moment: the
-// broken URL rendered as if SEO Fix Kit had just checked it.
+// Cloudflare serves dist/404.html for unknown paths ("not_found_handling": "404-page").
 function notFoundHtml(origin = "") {
   const description =
     "This page does not exist on SEO Fix Kit. Go to the homepage, check a page for free, or contact support.";

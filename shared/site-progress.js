@@ -1,11 +1,3 @@
-// Per-site progress for the app's Overview: each site's score over its saved
-// reports (oldest first), how far the score and problem count moved since the
-// first one, and when the next weekly check runs. Pure, so the account route
-// and tests share it.
-//
-// Reports of different pages on one site are not comparable, so a site's line
-// follows the page it has been checked on most (the homepage, normally).
-
 function hostOf(value = "") {
   try {
     return new URL(value).hostname.toLowerCase().replace(/^www\./, "");
@@ -86,7 +78,6 @@ export function buildSiteProgress(reports = [], schedules = [], { limit = 4 } = 
         issuesChange: last.issues - first.issues,
         since: first.createdAt,
         latestAt: latestByHost.get(host) || "",
-        // Points older than 30 days have no full report left to open.
         reportPath: [...points].reverse().find((point) => point.reportPath)?.reportPath || "",
         nextCheckAt: nextCheckByHost.get(host) || ""
       };

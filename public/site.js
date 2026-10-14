@@ -1,8 +1,3 @@
-// Progressive enhancement for the worker-rendered public pages: turns the
-// header nav into a disclosure menu on small screens, and makes the Product
-// and Use cases menus open on click and close on Escape or an outside click.
-// Without this script the nav stays visible and wraps, and the menus still
-// open on hover and keyboard focus, so nothing depends on it.
 (() => {
   const groups = [...document.querySelectorAll("[data-nav-group]")];
 

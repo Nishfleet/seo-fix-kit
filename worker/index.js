@@ -153,17 +153,9 @@ import {
   saveLargeRenderedCrawlBatchProof
 } from "./routes/large-crawls.js";
 
-// Canonical host: `www.seofixkit.com` is a serving alias that 301-redirects
-// onto the apex host, and every URL the Worker emits (page canonicals, social
-// tags, robots.txt, sitemap.xml, llms.txt, fixture URLs) is generated from the
-// apex origin. This keeps canonicals, robots, and sitemap apex-only no matter
-// which hostname carried the request, while the redirect converges crawlers
-// and visitors on one host.
 const CANONICAL_HOST = "seofixkit.com";
 const CANONICAL_ORIGIN = `https://${CANONICAL_HOST}`;
 
-// Path prefixes that only ever serve machine responses. Unmatched requests
-// under them get a JSON 404 instead of falling through to the SPA shell.
 const API_PREFIXES = ["/api/", "/v1/", "/admin/"];
 
 function canonicalOrigin(url) {
@@ -172,8 +164,7 @@ function canonicalOrigin(url) {
 }
 
 function executionContext(c) {
-  // Hono's getter throws when the runtime passed no ExecutionContext (unit
-  // tests, local tooling); route handlers already treat ctx as optional.
+  // Hono's getter throws when the runtime passed no ExecutionContext.
   try {
     return c.executionCtx;
   } catch {
@@ -181,9 +172,6 @@ function executionContext(c) {
   }
 }
 
-// Adapts the existing `(request, env, ctx)` route handlers to Hono. Handlers
-// keep reading their own path segments from `request.url`; Hono's patterns
-// make sure only well-formed paths and the right method ever reach them.
 function route(handler) {
   return (c) => handler(c.req.raw, c.env, executionContext(c));
 }
@@ -205,9 +193,6 @@ function htmlPage(render) {
 const app = new Hono();
 
 app.use("*", async (c, next) => {
-  // Canonical host: permanently redirect every www.seofixkit.com request
-  // onto the apex host with its path and query intact before any route
-  // logic runs, so no content or API response is ever served from www.
   const url = new URL(c.req.url);
   if (url.hostname.toLowerCase() === `www.${CANONICAL_HOST}`) {
     return new Response(null, {
@@ -218,10 +203,6 @@ app.use("*", async (c, next) => {
   return next();
 });
 
-// A JSON body that does not parse is a client error. Handlers read bodies with
-// `parseJsonBody()`, which treats a malformed payload as an empty one and
-// would otherwise answer with a misleading field-level error.
-// Empty bodies stay allowed; the Dodo webhook verifies its own raw body.
 const JSON_BODY_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
 app.use("*", async (c, next) => {
@@ -244,7 +225,6 @@ app.use("*", async (c, next) => {
   return next();
 });
 
-// --- Health -----------------------------------------------------------------
 app.get("/api/health", (c) =>
   json({
     ok: true,
@@ -257,10 +237,8 @@ app.get("/api/health", (c) =>
   })
 );
 app.get("/api/status", route(getStatusJson));
-// Deep health owns its method handling (HEAD support, JSON 405).
 app.all("/api/deep-health", route(getDeepHealth));
 
-// --- Access, beta session, waitlist ------------------------------------------
 app.post("/api/waitlist", route(joinWaitlist));
 app.post("/api/access/request", route(requestAccessLink));
 app.post("/api/access/verify", route(verifyAccessLink));
@@ -272,7 +250,6 @@ app.get("/api/sites", route(listSiteClaims));
 app.post("/api/sites/claim", route(createSiteClaim));
 app.post("/api/sites/verify", route(verifySiteClaim));
 
-// --- Billing -----------------------------------------------------------------
 app.post("/api/beta/fix-request", route(requestFixPack));
 app.post("/api/beta/monitoring-checkout", route(requestMonitoringCheckout));
 app.post("/api/beta/repair-sprint-checkout", route(requestRepairSprintCheckout));
@@ -281,7 +258,6 @@ app.get("/api/public-pricing", route(getPublicFixPackPricing));
 app.get("/api/billing/summary", route(getBillingSummary));
 app.post("/api/webhooks/dodo", route(handleDodoWebhook));
 
-// --- Account, team, branding, developer settings -----------------------------
 app.get("/api/account/summary", route(getAccountSummary));
 app.get("/api/reports", route(listReports));
 app.get("/api/developer", route(getDeveloperApiSummary));
@@ -299,13 +275,11 @@ app.post("/api/report-domains", route(createReportDomain));
 app.post("/api/report-domains/:id/verify", route(verifyReportDomain));
 app.delete("/api/report-domains/:id", route(revokeReportDomain));
 
-// --- Audit email preferences -------------------------------------------------
 app.get("/api/account/email-preferences", route(getEmailPreferences));
 app.post("/api/account/email-preferences", route(saveEmailPreferences));
 app.get("/email/unsubscribe/:token", route(showUnsubscribe));
 app.post("/email/unsubscribe/:token", route(confirmUnsubscribe));
 
-// --- Audits and schedules ----------------------------------------------------
 app.post("/api/audit", route(runPrivateAudit));
 app.get("/api/audit/jobs/:id", route(getAuditJob));
 app.get("/api/audit/schedules", route(listAuditSchedules));
@@ -314,7 +288,6 @@ app.delete("/api/audit/schedules/:id", route(deleteAuditSchedule));
 app.all("/api/demo-audit", route(runPrivateDemoAudit));
 app.post("/api/public-check", route(runPublicCheck));
 
-// --- Saved reports, sharing, collaboration, repair queue ---------------------
 app.delete("/api/report-shares/:id", route(revokeReportShare));
 app.get("/api/reports/:id/shares", route(listReportShares));
 app.post("/api/reports/:id/share", route(createReportShare));
@@ -332,7 +305,6 @@ app.get("/api/reports/:id/brief.md", route(getSavedReport));
 app.get("/api/reports/:id/remediation-brief.json", route(getSavedReport));
 app.get("/api/reports/:id", route(getSavedReport));
 
-// --- Large rendered crawls (session) -----------------------------------------
 app.post("/api/large-crawls", route(createLargeRenderedCrawl));
 app.get("/api/large-crawls", route(listLargeRenderedCrawls));
 app.get("/api/large-crawls/:id", route(getLargeRenderedCrawl));
@@ -342,7 +314,6 @@ app.post("/api/large-crawls/:id/batches/process", route(processLargeRenderedCraw
 app.post("/api/large-crawls/:id/batches/:batchId/proof", route(saveLargeRenderedCrawlBatchProof));
 app.post("/api/large-crawls/:id/merge", route(markLargeRenderedCrawlReadyToMerge));
 
-// --- Public developer API (v1) -----------------------------------------------
 app.get("/v1/projects", route(apiListProjects));
 app.post("/v1/projects", route(apiCreateProject));
 app.get("/v1/audits", route(apiListAudits));
@@ -366,7 +337,6 @@ app.post("/v1/large-crawls/:id/batches/process", route(apiProcessLargeRenderedCr
 app.post("/v1/large-crawls/:id/batches/:batchId/proof", route(apiSaveLargeRenderedCrawlBatchProof));
 app.post("/v1/large-crawls/:id/merge", route(apiMarkLargeRenderedCrawlReadyToMerge));
 
-// --- Admin -------------------------------------------------------------------
 app.post("/admin/session", route(createAdminSession));
 app.delete("/admin/session", route(revokeAdminSession));
 app.post("/admin/beta-session", route(createAdminBetaSession));
@@ -376,13 +346,11 @@ app.get("/admin/leads.csv", route(exportLeadsCsv));
 app.post("/admin/invites", route(createInvite));
 app.patch("/admin/fix-requests/:id", route(updateFixRequestAdmin));
 
-// --- White-label client reports ----------------------------------------------
 app.get("/.well-known/seofixkit-report-domain.txt", route(getReportDomainChallenge));
 app.post("/r/:id/unlock", route(unlockClientReport));
 app.get("/r/:file{.+\\.pdf}", route(getClientReportPdf));
 app.get("/r/:id", route(getClientReport));
 
-// --- Audit fixtures ------------------------------------------------------------
 app.get("/fixture/rendered-page", (c) =>
   textResponse(renderedFixture(originOf(c)), "text/html; charset=utf-8", {
     "x-robots-tag": "noindex, nofollow"
@@ -398,13 +366,10 @@ app.get("/fixture/sitemap.xml", (c) =>
   )
 );
 
-// --- Crawler and SEO files -----------------------------------------------------
 app.get("/robots.txt", (c) =>
   textResponse(`User-agent: *\nAllow: /\n\nSitemap: ${originOf(c)}/sitemap.xml\n`, "text/plain; charset=utf-8")
 );
-// IndexNow key file: served at both the spec root and the .well-known alias so
-// Bing/Naver/Seznam/Yandex can validate the submission key without any account
-// credentials. run_worker_first keeps the SPA asset fallback from shadowing them.
+// IndexNow key file: served at the spec root and the .well-known alias (https://www.indexnow.org/documentation).
 for (const keyPath of indexNowKeyFilePaths()) {
   app.get(keyPath, () =>
     textResponse(indexNowKeyFileBody(), "text/plain; charset=utf-8", {
@@ -415,7 +380,6 @@ for (const keyPath of indexNowKeyFilePaths()) {
 app.get("/sitemap.xml", (c) => textResponse(rootSitemap(originOf(c)), "application/xml; charset=utf-8"));
 app.get("/llms.txt", (c) => textResponse(llmsText(originOf(c)), "text/plain; charset=utf-8"));
 
-// --- Server-rendered public pages --------------------------------------------
 app.get("/privacy", htmlPage(privacyHtml));
 app.get("/support", htmlPage(supportHtml));
 app.get("/terms", htmlPage(termsHtml));
@@ -428,7 +392,6 @@ app.get("/rendered-vs-static-seo-audit", htmlPage(renderedVsStaticAuditHtml));
 app.get("/ai-answer-readiness", htmlPage(aiAnswerReadinessHtml));
 app.get("/tools", htmlPage(toolsIndexHtml));
 app.get("/about", htmlPage(aboutHtml));
-// Checked live on every load, so it is never cached.
 app.get("/status", async (c) =>
   textResponse(statusHtml(originOf(c), await serviceStatus(c.env)), "text/html; charset=utf-8", {
     "cache-control": "no-store"
@@ -451,10 +414,6 @@ function proofPage(c) {
 app.get("/proof", proofPage);
 app.get("/proof.md", proofPage);
 
-// --- Redirects ---------------------------------------------------------------
-// /packages was the pricing page's old address; it moves permanently so old
-// links and search results land on /pricing. The common account URLs people
-// type or bookmark all lead to the sign-in screen at /beta.
 function redirectTo(target, status) {
   return (c) => {
     const { search } = new URL(c.req.url);
@@ -479,9 +438,6 @@ for (const path of [
   app.get(path, redirectTo("/beta", 302));
 }
 
-// --- Single-page app ---------------------------------------------------------
-// The signed-in app gets the empty SPA shell (dist/beta-shell.html, written by
-// scripts/prerender.mjs); "/" serves the prerendered homepage instead.
 async function betaShell(c) {
   const indexUrl = new URL("/beta-shell", c.req.url);
   const response = await c.env.ASSETS.fetch(new Request(indexUrl, c.req.raw));
@@ -506,14 +462,10 @@ app.notFound(async (c) => {
 });
 
 app.onError((error, c) => {
-  // A malformed percent-escape in a path segment is a client error.
   if (error instanceof URIError) {
     return json({ error: "This URL is malformed. Check the address and try again." }, 400);
   }
   console.error(`Unhandled error on ${c.req.method} ${new URL(c.req.url).pathname}`, error);
-  // Errors tagged with a `code` are deliberate, user-facing failures (for
-  // example BROWSER_BUSY); anything else may carry internal detail, so the
-  // client gets a generic message and the real one stays in the logs.
   return json(
     {
       error:
@@ -547,8 +499,6 @@ export default {
   },
 
   async queue(batch, env) {
-    // Settle each message on its own so one failing job is retried (and
-    // eventually dead-lettered) without replaying the rest of the batch.
     for (const message of batch.messages) {
       const body = message.body || {};
       try {

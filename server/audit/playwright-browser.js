@@ -1,17 +1,3 @@
-// Playwright adapter for the shared audit engine.
-//
-// The engine was written against @cloudflare/puppeteer and uses exactly this
-// browser surface:
-//   - browser.newPage()
-//   - browser.close()
-//   - page.goto(url, { waitUntil: "networkidle0", timeout })
-//   - page.evaluate(pageFunction)
-//   - page.close()
-//   - response.status() on the goto() result
-// Playwright matches all of it except puppeteer's waitUntil vocabulary
-// ("networkidle0"/"networkidle2" vs playwright's "networkidle") and
-// page.setUserAgent (puppeteer-only; playwright fixes the UA when the
-// context is created). This wrapper presents the puppeteer-shaped facade.
 import { chromium } from "playwright";
 
 const WAIT_UNTIL_MAP = {

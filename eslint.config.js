@@ -23,7 +23,8 @@ const backlogWarnings = {
   "no-control-regex": "off",
   "preserve-caught-error": "warn",
   "no-useless-escape": "warn",
-  "no-regex-spaces": "warn"
+  "no-regex-spaces": "warn",
+  "no-empty": ["error", { allowEmptyCatch: true }]
 };
 
 // Code passed to Playwright/Puppeteer page.evaluate() is serialized and runs

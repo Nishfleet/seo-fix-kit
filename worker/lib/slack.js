@@ -1,8 +1,3 @@
-// Slack alerts. A webhook whose URL is a Slack incoming webhook
-// (https://hooks.slack.com/services/...) gets a readable Slack message instead
-// of the raw JSON event, so people can point an alert at a channel without
-// writing any code. The event stored in api_webhook_events stays the raw JSON.
-
 export function isSlackWebhookUrl(value) {
   try {
     const url = new URL(value);
@@ -124,8 +119,6 @@ export function slackMessage(eventType, data = {}, origin = "https://seofixkit.c
   return { text: message.text, blocks };
 }
 
-// Posted once when a Slack webhook is added, so the owner sees it work and a
-// mistyped URL is caught before it is saved.
 export function slackConnectedMessage(origin = "https://seofixkit.com") {
   const base = String(origin).replace(/\/+$/, "");
   return {

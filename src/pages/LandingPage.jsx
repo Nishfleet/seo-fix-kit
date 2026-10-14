@@ -86,8 +86,6 @@ const PLANS = [
 export function WaitlistPage() {
   useEffect(() => {
     document.title = "SEO Fix Kit - The SEO audit that checks its own work";
-    // The public site is light (prerendered with data-theme="light"); the
-    // signed-in app is dark.
     const root = document.documentElement;
     root.dataset.theme = "light";
     return () => {
@@ -328,8 +326,6 @@ const TOUR = [
   }
 ];
 
-// Real screenshots of the signed-in app, showing a sample report for a demo
-// site (acme-widgets.example).
 function ProductTour() {
   const [active, setActive] = useState(TOUR[0].key);
   const current = TOUR.find((item) => item.key === active);
@@ -378,9 +374,6 @@ function ProductTour() {
   );
 }
 
-// Live proof line above the headline, the way Stripe leads with a live
-// number. It counts up the latest proven result (the case study on /proof);
-// the prerendered HTML already shows the final score.
 function ProofTicker() {
   const [score, setScore] = useState(100);
 
@@ -411,9 +404,6 @@ function ProofTicker() {
   );
 }
 
-// The hero's first step: paste a page and see its real problems at /check,
-// which runs the check straight away. A plain GET form, so it works before
-// (and without) JavaScript.
 function HeroCheckForm() {
   return (
     <form className="landing-form" action="/check" method="get" role="search" aria-label="Check a page">
@@ -578,9 +568,6 @@ const SHOT_ROWS = [
   }
 ];
 
-// Illustrative product shot for the hero, built in HTML so it stays crisp
-// and light. It mirrors the real report (score, repair queue, a filtered
-// false alarm, a fix snippet, rerun proof) and is labelled as an example.
 function ProductShot() {
   return (
     <figure className="shot enter" aria-label="Example SEO Fix Kit report" style={{ "--enter-delay": "220ms" }}>
@@ -688,7 +675,6 @@ function ShotRing({ before, after }) {
   );
 }
 
-// Raw HTML vs rendered page, the comparison behind "no false alarms".
 function FalseAlarmDiff() {
   return (
     <div className="landing-diff" aria-label="Raw HTML compared with the rendered page" data-theme="dark">

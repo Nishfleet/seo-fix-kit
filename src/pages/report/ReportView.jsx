@@ -50,8 +50,6 @@ export function ReportView({ report, onRerun, rerunStatus = "idle", rerunMessage
   const remediationBrief = report.remediationBrief || report.remediation_brief || null;
   const pageSummaries = report.pageSummaries || summarizePages(report.pages || [], report.findings || [], report.url);
   const shareUrl = report.reportUrl || `${window.location.origin}${report.reportPath || window.location.pathname}`;
-  // Without a repair plan, lead with the most serious problems instead of
-  // claiming nothing needs fixing.
   const SEVERITY_ORDER = { critical: 0, warning: 1, notice: 2 };
   const topThree = topFixes.length
     ? topFixes.slice(0, 3)
@@ -346,7 +344,6 @@ export function ReportView({ report, onRerun, rerunStatus = "idle", rerunMessage
   );
 }
 
-// Opens a collapsed problem row before the browser scrolls to its anchor.
 const SEVERITY_FILTERS = [
   { key: "all", label: "All" },
   { key: "critical", label: "Critical" },
@@ -363,17 +360,11 @@ function tabPanelProps(key) {
   return { id: `report-panel-${key}`, role: "tabpanel", "aria-labelledby": `report-tab-${key}` };
 }
 
-// Tabs for the report sections. Every panel stays mounted (hidden when not
-// selected) so switching keeps scroll, filters, and drafts. The chosen tab is
-// kept in the address bar hash so a reload or shared link opens it again.
-// One line under the header after a rerun: did the score move, and how many
-// problems went away or showed up. The full lists live on the Insights tab.
 function ChangeSinceLastCheck({ delta, score, onDetails }) {
   const summary = delta.summary || {};
   const scoreDelta = Number(summary.scoreDelta || 0);
   const fixed = Number(summary.fixedIssuesCount || 0);
   const added = Number(summary.newIssuesCount || 0);
-  // Crossing 90, or reaching 100, is worth a moment of its own.
   const milestone = scoreDelta > 0 ? [100, 90].find((mark) => score >= mark && score - scoreDelta < mark) : undefined;
   const tone = milestone
     ? "win"
@@ -423,8 +414,6 @@ function ReportTabs({ tabs, children, selectRef }) {
 
   function select(key, focus = false) {
     setActive(key);
-    // Bypasses the router on purpose: a hash change through it would remount
-    // the signed-in app (see BetaRoute in App.jsx).
     const { pathname, search } = window.location;
     window.history.replaceState(window.history.state, "", `${pathname}${search}${key === keys[0] ? "" : `#${key}`}`);
     if (focus) listRef.current?.querySelector(`#report-tab-${key}`)?.focus();

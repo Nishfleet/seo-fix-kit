@@ -39,7 +39,6 @@ import { deliverApiWebhooks } from "../lib/webhooks.js";
 import { sendAuditCompletedEmail } from "../lib/audit-emails.js";
 
 const scalarInput = z.union([z.string(), z.number()]).nullish();
-// Imports accept either pasted text (CSV, one per line) or an array of rows.
 const listInput = z.union([z.string(), z.array(z.unknown())]).nullish();
 const objectInput = z.record(z.string(), z.unknown()).nullish();
 
@@ -47,9 +46,6 @@ function fieldsOf(keys, schema) {
   return Object.fromEntries(keys.map((key) => [key, schema]));
 }
 
-// Every key the audit-input parsers (competitors, backlinks, local SEO,
-// keywords) read; they keep their own precedence and error messages. Shared
-// with the v1 API's audit body.
 const auditInputFields = {
   ...fieldsOf(["competitorUrls", "competitor_urls", "competitors"], listInput),
   ...fieldsOf(["backlinks", "backlinkRows", "backlink_rows", "backlinkCsv", "backlink_csv"], listInput),
@@ -102,7 +98,6 @@ const auditInputFields = {
   )
 };
 
-// Starting an audit. `url` stays raw so normalizeUrl() sees it unaltered.
 const AuditRunBody = body({
   url: z.string().nullish(),
   maxPages: number(),
@@ -114,7 +109,6 @@ const AuditRunBody = body({
   ...auditInputFields
 });
 
-// A recurring audit for `url` (or `targetUrl`).
 const AuditScheduleBody = body({
   url: z.string().nullish(),
   targetUrl: z.string().nullish(),
@@ -168,8 +162,6 @@ async function runPrivateAudit(request, env, ctx) {
   );
   const maxPages = clampPageLimit(body.maxPages || 10);
 
-  // A homepage-only Lite check (1 page, no imports or extras) may run before
-  // site verification so new users can see proof quality first.
   const liteEligible =
     maxPages <= 1 &&
     !competitorUrls.length &&
@@ -320,11 +312,6 @@ async function insertAuditSchedule(env, schedule) {
     .run();
 }
 
-// Turns weekly checks on by itself after someone's first finished audit, so
-// the habit loop (weekly email: fixed, new, next fix) starts without a setup
-// step. Only for an owner who has never had a schedule: a paused or removed
-// one means they chose not to. Verified sites keep the page depth they just
-// ran; unverified sites get the one-page check they could run anyway.
 async function autoEnableWeeklyCheck(env, job, completedAt) {
   if (job.schedule_id || job.access_mode === "api" || !job.owner_email) return null;
   try {
@@ -360,8 +347,6 @@ async function autoEnableWeeklyCheck(env, job, completedAt) {
     await insertAuditSchedule(env, schedule);
     return schedule;
   } catch (error) {
-    // The unique active-schedule index can race a manual add; either way the
-    // audit itself already succeeded.
     console.error("Automatic weekly check was not turned on", error);
     return null;
   }
@@ -851,17 +836,12 @@ async function resumeStaleQueuedAuditJobs(env, context = {}) {
   return resumed;
 }
 
-// Queue-first job dispatch: survives Worker eviction and deploys, retries
-// twice, then dead-letters. Falls back to in-invocation processing when the
-// queue binding is missing (local dev) or the send fails.
 async function enqueueAuditJob(env, ctx, jobId, appOrigin) {
   if (env.AUDIT_QUEUE) {
     try {
       await env.AUDIT_QUEUE.send({ kind: "audit-job", jobId, appOrigin });
       return;
-    } catch {
-      // fall through to inline processing
-    }
+    } catch {}
   }
   const processing = processAuditJob(env, jobId, { appOrigin });
   if (ctx?.waitUntil) ctx.waitUntil(processing);
@@ -951,9 +931,7 @@ async function processAuditJob(env, jobId, context = {}) {
       report: apiReportResponse(saved)
     });
   } catch (error) {
-    // Browser Run concurrency limits are transient: requeue instead of
-    // failing, and let the cron resume the job. Jobs older than 2 hours
-    // fail normally so a broken browser pool cannot loop forever.
+    // Browser Run concurrency limits are transient: requeue instead of failing.
     if (error?.code === "BROWSER_BUSY" && row.created_at && row.created_at > isoSecondsFromNow(-2 * 60 * 60)) {
       await env.WAITLIST_DB.prepare(
         `UPDATE audit_jobs
@@ -1073,10 +1051,6 @@ async function auditQuotaStatus(request, env, access, targetUrl) {
   const ipHash = await requestIpHash(request);
   const targetHost = new URL(targetUrl).hostname.toLowerCase();
   const sessionKey = access.sessionHash.slice(0, 24);
-  // The audited site is stored only as a hash (same pattern as the network
-  // hash and the anonymous /check target buckets), so the quota rows never
-  // hold a readable target hostname. Per-site rate limiting is unchanged
-  // because the hash is deterministic per host.
   const targetKey = (await sha256Hex(targetHost)).slice(0, 32);
 
   return checkQuotaSet(env, [

@@ -252,8 +252,6 @@ export function buildStatusNotificationEmail({
     .filter((line) => line !== "")
     .join("\n");
 
-  // One primary button: the delivery notes when they exist, then the final
-  // rerun, then the original report. Every other link keeps a short label.
   const primary = deliveryUrl
     ? { href: deliveryUrl, label: "Open delivery notes" }
     : finalReportUrl

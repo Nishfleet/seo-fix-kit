@@ -7,8 +7,6 @@ import { repairActionUpdateRequest } from "../repair-action-requests.js";
 import { trackingPayload } from "./browser.js";
 import { BETA_SESSION_KEY, BETA_EMAIL_KEY } from "./constants.js";
 
-// Returns the signed-in owner, or null when there is no live session. Keeps
-// the local "signed in" hint in step with the server.
 export async function fetchSession() {
   let result;
   try {

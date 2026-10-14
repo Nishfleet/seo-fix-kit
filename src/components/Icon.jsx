@@ -1,6 +1,3 @@
-// A small, consistent line-icon set (24px grid, 1.6 stroke, round caps) so
-// every surface draws icons the same way. Add a path here rather than
-// pasting one-off SVGs into pages.
 const PATHS = {
   arrowRight: "M5 12h14M13 6l6 6-6 6",
   browser:

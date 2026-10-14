@@ -1,15 +1,9 @@
-// Performance budget for the built site. Runs after `npm run build` (it is
-// the last step of `npm run check`) and fails when a shipped file grows past
-// its gzip budget, so the homepage stays fast without anyone having to notice
-// a slow creep. Raise a budget on purpose, in review, never to make CI pass.
 import { readdirSync, readFileSync } from "node:fs";
 import { gzipSync } from "node:zlib";
 import { join } from "node:path";
 
 const dist = new URL("../dist/", import.meta.url).pathname;
 
-// Budgets are gzip kilobytes. The homepage's critical path is index.html,
-// the entry JS and CSS, and /tokens.css; the signed-in app loads lazily.
 const BUDGETS = [
   { label: "Homepage HTML (prerendered)", match: /^index\.html$/, kb: 10 },
   { label: "Shared design tokens and components", match: /^tokens\.css$/, kb: 6 },

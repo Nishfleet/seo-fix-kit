@@ -112,12 +112,6 @@ export function isPrivateHostname(input = "") {
   return false;
 }
 
-// Resolve a hostname over DNS-over-HTTPS and report whether any answer is a
-// private/internal address. Hostname-string checks alone miss DNS rebinding:
-// a public-looking name can point at 127.0.0.1 or 169.254.169.254. Call this
-// immediately before fetching/rendering a user-supplied URL. DoH failures
-// return false (fail-open) so a resolver hiccup cannot take the product down;
-// the literal-hostname checks above still apply regardless.
 export async function resolvesToPrivateAddress(hostname, fetcher = globalThis.fetch) {
   const host = normalizeHostname(hostname);
   if (!host) return true;
@@ -135,10 +129,7 @@ export async function resolvesToPrivateAddress(hostname, fetcher = globalThis.fe
         if (answer?.type !== 1 && answer?.type !== 28) continue;
         if (isPrivateHostname(String(answer.data || ""))) return true;
       }
-    } catch {
-      // fail-open: literal checks still ran, and the fetch itself will fail
-      // if the name does not resolve
-    }
+    } catch {}
   }
   return false;
 }
@@ -167,7 +158,6 @@ function isPrivateName(host) {
 }
 
 function parseIpv4(host) {
-  // Whole-number forms: http://2130706433, http://0x7f000001, http://017700000001
   if (/^(\d+|0x[0-9a-f]+)$/i.test(host)) {
     const value = parseIpv4Part(host);
     if (value === null || value > 0xffffffff) return null;

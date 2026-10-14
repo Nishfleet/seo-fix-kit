@@ -1,22 +1,5 @@
 import { pathToFileURL } from "node:url";
 
-// Live spot-check for the public promise surfaces the README "What is live in
-// this repo" section relies on: /demo (proof loop), /methodology (limits),
-// /pricing (plans and prices), /check (anonymous one-page check), the
-// no-ranking /support, /terms, and /privacy pages, the machine surfaces
-// the README says stay served by the Worker (/llms.txt, /sitemap.xml,
-// /robots.txt, /api/health, /api/deep-health, and the POST /api/public-check
-// route), and the canonical-host promise that every www.seofixkit.com request
-// 301-redirects onto the apex host. Each must be served by the deployed Worker
-// with the copy that backs the claims. This is the repeatable "spot-check"
-// half of the lane-2 promise audit; the offline regression lock lives in
-// shared/promise-audit.test.mjs and worker/routes/pages.test.mjs.
-//
-// Opt-in script, not part of `npm run check` (CI stays offline-only; the
-// offline regression lock for the same claims is in the check pipeline):
-//   npm run audit:live-promise
-//   SEOFIXKIT_BASE_URL=https://seofixkit.com npm run audit:live-promise
-
 const DEFAULT_BASE_URL = process.env.SEOFIXKIT_BASE_URL || "https://seofixkit.com";
 const DEFAULT_TIMEOUT_MS = Number(process.env.SEOFIXKIT_SPOT_CHECK_TIMEOUT_MS || 15000);
 
@@ -116,10 +99,6 @@ export async function spotCheckPublicPages({
   return results;
 }
 
-// Headline claims only: each page must serve the proof-loop / limits /
-// package-ladder / no-ranking promise the README makes. The full copy is
-// locked offline by worker/routes/pages.test.mjs; this checks the deployed
-// page still carries the load-bearing parts.
 export function publicPageSpotChecks(baseUrl) {
   return [
     {
@@ -385,12 +364,6 @@ export function publicPageSpotChecks(baseUrl) {
   ];
 }
 
-// Machine-readable public surfaces the README "What is live in this repo" and
-// Cloudflare-path sections claim stay served: /llms.txt and /sitemap.xml must
-// still list the anonymous one-page check, /robots.txt must point at the
-// sitemap, and the public health and one-page-check API routes must answer as
-// JSON without running a browser render (the POST probe only exercises input
-// validation). The full copy is locked offline; these are liveness checks.
 export function publicSurfaceSpotChecks(baseUrl) {
   return [
     {
@@ -474,12 +447,6 @@ export function publicSurfaceSpotChecks(baseUrl) {
   ];
 }
 
-// Machine-readable proof on the intent-matching landing pages: each one must
-// carry WebPage + SoftwareApplication + FAQPage JSON-LD (the three blocks
-// `publicProductPageHtml` emits) whose `url`/`name` point at that page, with
-// the FAQ visible copy and the schema built from the same source array.
-// The full offline lock lives in worker/routes/pages.test.mjs; these
-// expectations prove the live deployed page still ships the schema.
 function landingPageLdExpectations(path, pageName) {
   return [
     { reason: "WebPage JSON-LD names the page", match: `"@type":"WebPage","name":"${pageName} - SEO Fix Kit"` },
@@ -496,15 +463,6 @@ function landingPageLdExpectations(path, pageName) {
   ];
 }
 
-// Canonical-host promise: the README "Custom domain" section claims every
-// www.seofixkit.com request 301-redirects onto the apex host with its path and
-// query intact, so canonicals, robots.txt, and sitemap.xml stay apex-only.
-// Redirects are checked with `redirect: "manual"` so the 301 itself is
-// observable instead of being silently followed.
-// The static-asset check exists because wrangler.jsonc must route every
-// request through the Worker (`run_worker_first: true`); an asset path served
-// 200 from www means the config regressed to a path list that bypasses the
-// Worker redirect.
 export function canonicalHostSpotChecks(baseUrl) {
   const apex = new URL(baseUrl);
   const wwwOrigin = `https://www.${apex.hostname}`;
@@ -580,13 +538,6 @@ function hasContent(text, match) {
   return typeof match === "string" ? text.includes(match) : match.test(text);
 }
 
-// Worker-rendered promise pages are served as `text/html; charset=utf-8` with
-// their own body copy. When the deployed Worker predates a promised route, the
-// static-asset layer answers instead — either the SPA `index.html` shell
-// (`text/html` without a charset and a `<div id="root">` root element) for
-// paths the Worker used to serve, or the asset-layer 404 page (`text/html`
-// without a charset and the 404 "Nothing to fix here." body) for paths the
-// Worker never served. Both mean a deploy gap, not copy drift.
 function isAssetFallback(text, contentType) {
   if (!/text\/html/i.test(contentType) || /charset/i.test(contentType)) {
     return false;

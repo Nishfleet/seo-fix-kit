@@ -1,5 +1,3 @@
-// Sections of the signed-in app. Each maps to a /beta path so every screen
-// has its own URL, back-button step, and shareable link.
 export const APP_SECTIONS = [
   { key: "overview", icon: "home", label: "Overview", path: "/beta" },
   { key: "reports", icon: "file", label: "Reports", path: "/beta/reports" },

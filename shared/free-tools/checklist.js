@@ -1,6 +1,3 @@
-// The SEO and AI search checklist at /tools/seo-checklist. `auto: true` marks
-// items the free page check (/check) tests by itself, so the page can point
-// visitors at it; keep those in step with the audit engine's checks.
 export const SEO_CHECKLIST = [
   {
     id: "crawl",

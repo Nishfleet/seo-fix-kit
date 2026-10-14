@@ -20,7 +20,6 @@ export function AdminDashboard({
   const [inviteResult, setInviteResult] = useState(null);
   const metrics = adminData?.metrics || {};
   const opsLoaded = Boolean(adminData) && adminStatus !== "error";
-  // Show a dash, not a misleading 0, until ops data has loaded.
   const stat = (value) => (adminData ? value || 0 : "—");
 
   async function createInvite(event) {

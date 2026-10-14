@@ -2,9 +2,6 @@ import { Link } from "react-router";
 import { APP_SECTIONS } from "../lib/app-sections.js";
 import { Icon } from "./Icon.jsx";
 
-// Signed-in app frame: a left sidebar on desktop and a top bar with a
-// scrolling tab row on small screens. On wide screens the page sits in an
-// inset panel beside the sidebar, the way Linear and Vercel frame their apps.
 export function AppShell({ section, ownerEmail, onSignOut, showOps = false, children }) {
   const active = section === "report" ? "reports" : section;
   const items = showOps

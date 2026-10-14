@@ -1,10 +1,6 @@
 import { useEffect, useState } from "react";
 import { SITE_FOOTER, SITE_NAV, SITE_TAGLINE } from "../../shared/site-nav.js";
 
-// React twins of siteHeader() / siteFooter() in worker/routes/pages.js: same
-// links (shared/site-nav.js), markup and classes (src/design/site.css), so the
-// landing page and the worker-rendered pages share one header and footer.
-
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
   const [group, setGroup] = useState(null);

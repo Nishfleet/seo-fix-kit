@@ -5,7 +5,6 @@ export function reportIdFromPath(pathname = window.location.pathname) {
   return match ? decodeURIComponent(match[1]) : "";
 }
 
-// Resolves true only when the value actually reached the clipboard.
 export async function copyText(value) {
   if (!value || !navigator.clipboard) return false;
   try {
@@ -68,7 +67,5 @@ export function sendAccessBeacon(step, { funnelKey = "", source = "", landingPat
         })
         .catch(() => {});
     }
-  } catch {
-    // Instrumentation is best-effort; never break the page.
-  }
+  } catch {}
 }

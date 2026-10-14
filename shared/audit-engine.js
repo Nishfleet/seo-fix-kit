@@ -1,16 +1,5 @@
 import { escapeHtml } from "./html.js";
 import { TOOL_PATHS } from "./free-tools/catalog.js";
-// Shared audit engine extracted verbatim from worker/index.js (the production
-// audit pipeline). Runtime specifics are injected through createAuditEngine():
-// - launchBrowser(): @cloudflare/puppeteer in the Worker, Playwright (via
-//   server/audit/playwright-browser.js) for the local dev server and tests.
-// - fetchImpl: defaults to globalThis.fetch.
-// - pagespeedApiKey / pagespeedDisabled: PageSpeed Insights config the Worker
-//   reads from env (GOOGLE_PAGESPEED_API_KEY / PAGESPEED_API_KEY /
-//   SEOFIXKIT_PAGESPEED_DISABLED).
-// - allowLocalAudits: false in production (SSRF guard rejects private hosts);
-//   true only for the local dev server and smoke tests so 127.0.0.1 fixtures
-//   can be crawled, rendered, and resource-checked.
 import { aiAnswerReadinessBriefLines, buildAiAnswerReadiness } from "./ai-answer-readiness.js";
 import { backlinkAuditBriefLines, buildBacklinkAudit } from "./backlink-audit.js";
 import { buildCompetitorBenchmark, competitorBenchmarkBriefLines } from "./competitor-benchmark.js";
@@ -264,9 +253,6 @@ export function createAuditEngine({
 
     const aiAnswerReadiness = buildAiAnswerReadiness(report, {
       llmsTxt: report.llmsTxt,
-      // Prefer the complete imported rows over the capped keywordRankAudit rows
-      // so readiness prioritization does not silently drop traffic beyond the
-      // keyword audit's row cap.
       keywordRows: options.keywordRows || options.keywordRankRows || report.keywordRankAudit?.rows || []
     });
     if (aiAnswerReadiness.status === "ready") {
@@ -474,10 +460,6 @@ export function createAuditEngine({
       }));
 
     const canonicalOrigin = rendered.canonical ? safeOrigin(rendered.canonical) : "";
-    // A canonical pointing at the site's own apex↔www twin is still the
-    // customer's own infrastructure: transient origin errors there must be
-    // guarded exactly like a same-origin canonical, so it gets kind
-    // "internal" too. Only genuinely third-party canonicals stay "canonical".
     const canonicalKind =
       canonicalOrigin && pageOrigin && isSameSiteOrigin(canonicalOrigin, pageOrigin) ? "internal" : "canonical";
 
@@ -511,16 +493,6 @@ export function createAuditEngine({
     return result;
   }
 
-  // Verify the declared images (social share images and the Apple touch icon)
-  // actually load as images instead of trusting tag presence alone. A page that
-  // points og:image/twitter:image/apple-touch-icon at a dead file or at an HTML
-  // page has no working preview or icon, so the snippet must not guess a
-  // replacement path that may not exist on the customer's origin: it names a
-  // placeholder the customer has to create.
-  //
-  // When no working apple-touch-icon is declared we probe the conventional
-  // /apple-touch-icon.png once per origin. If a real file is already served
-  // there the snippet can reference a URL we verified instead of a guess.
   async function checkDeclaredImages(pages) {
     const results = [];
     const seen = new Set();
@@ -531,10 +503,6 @@ export function createAuditEngine({
       seen.add(candidate.url);
       const checked = await checkResource({ url: candidate.url, label: candidate.key, kind: "image" });
       const contentType = String(checked.contentType || "").toLowerCase();
-      // A declared content-type wins over the file extension: a 200 response
-      // that is text/html is not a working image even when the URL ends in
-      // .png. The extension fallback only applies when the server returned no
-      // content-type at all.
       const isImage =
         contentType.includes("image/") ||
         (!contentType && /\.(png|jpe?g|gif|webp|avif|svg)$/.test(new URL(candidate.url).pathname));
@@ -773,8 +741,6 @@ function discoveryFileSummary(file = {}) {
   };
 }
 
-// Dev/test-only guard: literal localhost targets are allowed; everything else
-// still goes through the production public-URL guard.
 function localAuditUrlStatus(value) {
   let parsed;
   try {
@@ -802,17 +768,8 @@ async function extractRenderedFacts(browser, url, options = {}) {
   try {
     await installRenderRequestGuard(page, options);
 
-    // networkidle0 waits for zero in-flight requests, which never happens on a
-    // site with analytics beacons, polling, or a websocket. aiconverter.app
-    // failed its entire audit this way — the customer gets nothing rather than a
-    // slightly less settled page. Fall back instead of throwing away the run.
+    // networkidle0 never settles on pages with analytics beacons, polling or websockets.
     const navigationTimeoutMs = Number(options.navigationTimeoutMs) > 0 ? Number(options.navigationTimeoutMs) : 25_000;
-    // Whether the page actually settled (network idle reached). When the idle
-    // wait times out and we fall back, loadDurationMs is dominated by our own
-    // navigation timeout — reporting that number as the page's load time, or as
-    // proof the page "reached network idle", would sell our measurement policy
-    // as the customer's defect (same family as the throttled-link and
-    // empty-header bugs).
     let loadSettled = true;
     let response;
     try {
@@ -921,8 +878,6 @@ async function extractRenderedFacts(browser, url, options = {}) {
         }
       });
       const bodyText = text(document.body);
-      // First real paragraph of the page's own content, skipping navigation
-      // and chrome, so a suggested description reads like the page.
       const leadText =
         [...(document.querySelector("main, article, [role=main]") || document.body).querySelectorAll("p")]
           .filter((node) => !node.closest("nav, header, footer, aside, [role=navigation]"))
@@ -1094,14 +1049,7 @@ async function abortInterceptedRequest(target) {
 function extractStaticFacts(html, url, fetchResult = {}) {
   const base = new URL(url);
   const head = html.match(/<head[\s\S]*?<\/head>/i)?.[0] || "";
-  // Static element facts (headings, links, images) are read from HTML with only
-  // script and style element bodies removed. This excludes markup that exists
-  // solely inside script or style strings (no static crawler sees that), while
-  // preserving <noscript> fallback markup, which is real crawlable content for
-  // crawlers that do not run JavaScript.
   const staticMarkup = html.replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<style[\s\S]*?<\/style>/gi, "");
-  // Word count intentionally keeps the prior behavior: script, style, and
-  // noscript bodies are all removed before body-text extraction.
   const withoutScripts = html
     .replace(/<script[\s\S]*?<\/script>/gi, "")
     .replace(/<style[\s\S]*?<\/style>/gi, "")
@@ -1289,8 +1237,6 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
     const imageChecks = page.imageChecks || [];
     const brokenInternalLinks = linkChecks.filter((check) => check.kind === "internal" && isBrokenResource(check));
     const brokenExternalLinks = linkChecks.filter((check) => check.kind === "external" && isBrokenResource(check));
-    // A redirect observed while the origin was throttling us says nothing about
-    // the customer's link graph — it is where their rate limiter sent our crawler.
     const redirectedInternalLinks = linkChecks.filter(
       (check) =>
         check.kind === "internal" && !isBrokenResource(check) && !isThrottledResource(check) && check.redirected
@@ -1415,11 +1361,6 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
       });
     }
 
-    // Only claim a slow load when the page actually reached network idle. When
-    // the idle wait times out (analytics beacons, polling, websockets), the
-    // elapsed time is dominated by our own navigation timeout and says nothing
-    // about the customer's page speed; the fallback snapshot stays in the
-    // report as proof context instead of becoming repair work.
     if (rendered.loadSettled !== false && rendered.loadDurationMs > RESOURCE_LIMITS.slowRenderMs) {
       add({
         type: "issue",
@@ -1562,10 +1503,6 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
       });
     }
 
-    // A same-site canonical probe that failed transiently (Cloudflare origin
-    // errors, or a transport-level failure with no HTTP status at all) is our
-    // scan-time hiccup, not the customer's defect: neither an "unreachable"
-    // warning nor a "redirects" notice may be built on top of it.
     const canonicalProbeFailedTransiently = isTransientCanonicalProbeFailure(page.canonicalCheck);
     if (
       rendered.canonical &&
@@ -1839,10 +1776,6 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
       }
     }
 
-    // Presence of the tag is not proof of a working icon: a declared
-    // apple-touch-icon that 404s or returns HTML leaves the same blank
-    // home-screen tile as no tag at all, so the declared file is fetched and
-    // verified before the page is treated as covered.
     const declaredAppleIcon = rendered.appleTouchIcon
       ? declaredImages.find((check) => check.key === "apple-touch-icon" && check.url === rendered.appleTouchIcon)
       : null;
@@ -1910,11 +1843,6 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
       });
     }
 
-    // Only claim a header is missing when we actually captured headers to look
-    // at. When the static fetch does not complete — /search on 0509.io took
-    // 7.6s to settle — page.headers is an empty object, and asserting "missing"
-    // from that reports the customer's working HSTS as a defect. Absence of
-    // evidence is not evidence of absence.
     const capturedHeaderCount = Object.keys(page.headers || {}).length;
     if (
       capturedHeaderCount > 0 &&
@@ -2236,9 +2164,6 @@ function buildSocialSnippet(url, facts, declaredImages = []) {
   const title = escapeHtml(facts.title || suggestTitle(url, facts));
   const description = escapeHtml(facts.description || suggestDescription(facts));
   const origin = new URL(url).origin;
-  // Only reference an image path we verified actually loads as an image on the
-  // audited origin. Guessing ${origin}/og-image.png for a site that serves no
-  // such file ships a broken tag into the customer's head.
   const liveImage =
     declaredImages.find((check) => check.key === "og" && check.ok && check.url.startsWith(origin)) ||
     declaredImages.find((check) => check.key === "twitter" && check.ok && check.url.startsWith(origin));
@@ -2259,12 +2184,6 @@ function buildSocialSnippet(url, facts, declaredImages = []) {
     .replace(/^/, placeholderNote);
 }
 
-// Never publish a hard-coded ${origin}/apple-touch-icon.png: shipping a tag
-// that points at a file the site does not serve replaces a missing icon with a
-// broken one. The engine probes the conventional path during the audit, so the
-// snippet either references an icon URL verified to load as an image on the
-// audited origin, or carries an explicit note that the file must be created
-// first.
 function buildAppleTouchIconSnippet(url, declaredImages = []) {
   const origin = new URL(url).origin;
   const verified = declaredImages.find(
@@ -2274,9 +2193,6 @@ function buildAppleTouchIconSnippet(url, declaredImages = []) {
       check.url.startsWith(`${origin}/`)
   );
   const href = verified ? verified.url : `${origin}/apple-touch-icon.png`;
-  // No sizes attribute is emitted: the audit verifies the file loads as an
-  // image, not that it is 180x180, and a size claim we did not measure would be
-  // the same guess in a different attribute.
   const note = verified
     ? `<!-- ${verified.url} was verified to load as an image during this audit. Apple expects a square PNG, ideally 180x180. -->\n`
     : `<!-- No icon file loaded at ${origin}/apple-touch-icon.png during this audit. Create a square 180x180 PNG there, or point href at your real icon file, before shipping this tag. -->\n`;
@@ -2564,11 +2480,6 @@ function safeOrigin(value = "") {
   }
 }
 
-// Same site = exact same origin, or one host is the other with the leading
-// "www." stripped (apex↔www). This is deliberately narrower than a full
-// registrable-domain comparison: blog.example.com pointing at www.example.com
-// is a cross-host canonical worth observing, while www.example.com pointing at
-// example.com is the same site choosing its preferred host.
 function isSameSiteOrigin(originA = "", originB = "") {
   if (!originA || !originB) return false;
   if (originA === originB) return true;
@@ -2649,26 +2560,10 @@ function dedupeHreflangIssues(issues) {
   });
 }
 
-// 429 and 503 mean "ask again later", not "this page is dead". Google backs off
-// on them rather than dropping the URL. Reporting them as broken links turns our
-// own crawl rate into the customer's critical defect: auditing 0509.io produced
-// 8 critical "broken internal links" findings, all stamped confidence=verified,
-// every one of them our crawler tripping that site's rate limiter. Requesting the
-// same URLs politely returned 200 and 302.
+// 429 and 503 mean "ask again later"; Google backs off on them rather than dropping the URL.
 const THROTTLED_STATUSES = new Set([408, 425, 429, 503]);
 
-// 520 (origin returned an unknown/empty error), 521 (web server is down),
-// 522 (connection timed out), 523 (origin unreachable), 524 (origin did
-// not answer in time), 525 (SSL handshake with origin failed), and 526
-// (invalid SSL certificate on origin) are Cloudflare-edge errors returned
-// when the checked site's own origin temporarily cannot be reached. Every
-// same-origin link fails at once while the origin is down and recovers with
-// it; Google backs off and retries 5xx rather than treating the URLs as
-// dead. Reporting a scan-time origin hiccup as verified critical broken
-// internal links invents a defect the page does not have, so same-origin
-// (internal) checks in this class are treated as transient infra failures,
-// not broken links. External targets' failures stay reportable: that is a
-// real observation about the referenced site, not our own footprint.
+// Cloudflare 520-526 are edge errors for an unreachable origin; Google retries 5xx rather than treating the URL as dead.
 const CLOUDFLARE_ORIGIN_ERRORS = new Set([520, 521, 522, 523, 524, 525, 526]);
 
 export function isThrottledResource(check) {
@@ -2679,14 +2574,6 @@ export function isSameOriginInfraFailure(check) {
   return Boolean(check && check.kind === "internal" && check.status && CLOUDFLARE_ORIGIN_ERRORS.has(check.status));
 }
 
-// The canonical probe is a second request to the customer's own site seconds
-// after the page itself rendered fine. A same-site probe that never received
-// an HTTP status at all (timeout, connection reset, DNS hiccup) is a
-// scan-time transport failure on our side, not evidence the canonical URL is
-// dead. Deliberate refusals from our own safety guards (private address,
-// off-origin) are marked `guarded` and stay reportable: refusing to fetch is
-// our decision, not a network hiccup. Same-site means exact origin or the
-// apex↔www twin — both are the customer's own infrastructure.
 export function isTransientCanonicalProbeFailure(check) {
   if (!check || check.kind !== "internal") return false;
   if (isSameOriginInfraFailure(check)) return true;
@@ -3121,10 +3008,6 @@ export function publicAuditUrlStatus(value) {
   }
 
   const host = parsed.hostname.toLowerCase();
-  // A single-label hostname (no dot and no IPv6 colons) is never a public
-  // website: it is a typo, an intranet name, or a local alias. Reject it
-  // here so the visitor gets a clear validation message instead of a raw
-  // browser `net::ERR_*` navigation failure after the render attempt.
   if (!host.includes(".") && !host.includes(":")) {
     return { ok: false, error: "Enter a valid public website URL." };
   }
@@ -3173,8 +3056,6 @@ function suggestTitle(url, facts) {
   return trimSentence(firstH1 || `${host} page`, 58);
 }
 
-// A starting point for a missing meta description: the page's first real
-// paragraph, cut at a sentence end where one fits (Google shows ~155 chars).
 function suggestDescription(facts = {}) {
   const base =
     facts.leadText ||
@@ -3208,9 +3089,6 @@ function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// The canonical public route set for the apex host, shared by the sitemap,
-// IndexNow submissions, and any future search-submission surface. Keep in sync
-// with the public page routes in worker/index.js and worker/routes/pages.js.
 export const ROOT_PUBLIC_PATHS = [
   "/",
   "/demo",
@@ -3228,18 +3106,6 @@ export const ROOT_PUBLIC_PATHS = [
   ...TOOL_PATHS
 ];
 
-// Truthful per-page last modification times (W3C datetime, Z-suffixed): the
-// commit timestamp of the last change to the code that renders each page —
-// for "/" the SPA source (src/App.jsx), for the worker-rendered pages the
-// generator in worker/routes/pages.js or worker/routes/public-check.js.
-// Times follow the existing sitemap convention: the commit's local IST
-// datetime formatted with a Z suffix (technically not real UTC, but what
-// the sitemap, IndexNow payload, and the freshness-discipline test all
-// compare against). Update a page's entry whenever that page's visible
-// content changes, so the sitemap keeps giving crawlers an accurate
-// re-crawl freshness signal; the freshness discipline pin in
-// worker/routes/pages.test.mjs refuses a stale lastmod so the update
-// cannot silently ship.
 export const ROOT_PUBLIC_LASTMODS = {
   "/": "2026-10-13T16:38:22Z",
   "/demo": "2026-10-13T04:43:48Z",

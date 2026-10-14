@@ -74,7 +74,6 @@ function constantTimeEqual(left, right) {
 
 function csvCell(value) {
   let text = String(value ?? "");
-  // Neutralize spreadsheet formula triggers in attacker-supplied fields
   if (/^[=+\-@\t\r]/.test(text)) {
     text = `'${text}`;
   }

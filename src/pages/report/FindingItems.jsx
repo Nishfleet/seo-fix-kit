@@ -41,9 +41,6 @@ function FindingDetails({ finding, plan, compact }) {
   );
 }
 
-// One problem. In the full list it is a row that opens to its proof and fix
-// (scan the list, open what you are working on, the way Linear lists issues);
-// compact items in other tabs stay fully open.
 export function FindingItem({ finding, plan, compact = false, collapsible = false, defaultOpen = false }) {
   if (collapsible) {
     return (

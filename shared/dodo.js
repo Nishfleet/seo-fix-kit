@@ -137,10 +137,7 @@ export function hasDodoRepairSprintCheckoutConfig(env = {}) {
   return dodoRepairSprintCheckoutConfigStatus(env).checkoutReady;
 }
 
-// Dodo signs webhooks per the Standard Webhooks spec
-// (https://www.standardwebhooks.com), so verification is delegated to the
-// reference implementation: signature over `id.timestamp.body`, multiple
-// space-separated `v1,` signatures, and a 5-minute replay tolerance.
+// Standard Webhooks spec (https://www.standardwebhooks.com): signature over `id.timestamp.body`, 5-minute replay tolerance.
 export async function verifyDodoWebhookSignature({ payload, webhookId, webhookTimestamp, webhookSignature, secret }) {
   if (!payload || !webhookId || !webhookTimestamp || !webhookSignature || !secret) return false;
   try {

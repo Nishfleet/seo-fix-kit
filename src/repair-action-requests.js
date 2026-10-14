@@ -19,7 +19,6 @@ function repairActionProofReceiptUrl(reportId, actionId) {
 }
 
 function repairActionImplementationPackAvailable(maybeAction) {
-  // Queue items without an agent action carry `latestAction: null`.
   const action = maybeAction || {};
   const approvalState = action.approvalState || action.approval_state || "";
   const executionState = action.executionState || action.execution_state || "";
@@ -27,7 +26,6 @@ function repairActionImplementationPackAvailable(maybeAction) {
 }
 
 function repairActionProofReceiptAvailable(maybeAction) {
-  // Queue items without an agent action carry `latestAction: null`.
   const action = maybeAction || {};
   const approvalState = action.approvalState || action.approval_state || "";
   const executionState = action.executionState || action.execution_state || "";

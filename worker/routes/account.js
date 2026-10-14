@@ -71,8 +71,6 @@ async function getAccountSummary(request, env) {
     )
       .bind(access.ownerEmail)
       .all(),
-    // Score history for the progress card: kept 12 months, longer than
-    // the reports themselves. report_exists says whether a point can link.
     env.WAITLIST_DB.prepare(
       `SELECT h.url, h.score, h.total_findings, h.created_at, h.report_id,
         EXISTS (
@@ -382,8 +380,6 @@ function reportListItem(row) {
   };
 }
 
-// Every unexpired report for the signed-in owner, newest first, one page at a
-// time. `cursor` is the last item's "createdAt|id" from the previous page.
 async function listReports(request, env) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);

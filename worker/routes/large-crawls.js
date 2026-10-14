@@ -33,7 +33,6 @@ const LargeCrawlCreateBody = body(
     targetPages: number(),
     maxConcurrency: number(),
     crawlDelayMs: number(),
-    // Pasted text (one URL per line or comma separated) or an array of URLs.
     seedUrls: z.union([z.string(), z.array(z.unknown())]).nullish(),
     incrementalMode: flag()
   },
@@ -52,8 +51,6 @@ const LargeCrawlCreateBody = body(
 
 const LargeCrawlProcessBody = body({ limit: number() });
 
-// Renderer output: page proofs and per-URL failures. Rows that match no
-// frontier entry are skipped, as before.
 const LargeCrawlProofBody = body(
   {
     pages: z

@@ -1,8 +1,3 @@
-// Browser side of the free tools (/tools/*), bundled by Vite to /tools.js.
-// The Worker already rendered the form and the output for the example values;
-// this recomputes the output as the visitor types, shows or hides fields that
-// depend on another field, and wires up copy, download and the checklist.
-// Nothing is sent anywhere: every tool runs in the page.
 import { defaultValues, isFieldVisible, toolBySlug } from "./catalog.js";
 import { SERP_LIMITS, estimateTextWidth } from "./generators.js";
 import { renderOutput } from "./render.js";
@@ -92,14 +87,10 @@ function wireTool(root, tool) {
     const result = tool.generate(values, measure);
     lastCode = result.code;
     lastFilename = result.filename;
-    // Leave the panel alone when nothing changed (a blur fires "change" too),
-    // so a just-clicked Copy button keeps its "Copied" label.
     const html = renderOutput(result, { measure });
     if (html === lastHtml) return;
     lastHtml = html;
     output.innerHTML = html;
-    // The example's image lives on a made-up domain; fetch images only once
-    // the visitor has typed their own.
     if (edited) loadImages(output);
     const errors = result.notes.filter((note) => note.level === "error").length;
     if (edited) live.textContent = errors ? `Updated. ${errors} thing${errors === 1 ? "" : "s"} to fix.` : "Updated.";
@@ -155,7 +146,6 @@ function wireTool(root, tool) {
     }
   });
 
-  // Swap the server's character-width estimate for real canvas measurements.
   update();
 }
 

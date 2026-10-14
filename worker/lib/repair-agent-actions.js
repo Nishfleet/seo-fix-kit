@@ -25,11 +25,6 @@ import { reportJsonForRow } from "./report-data.js";
 import { cleanText, parseJson } from "./text.js";
 import { body, text, z } from "./validation.js";
 
-// Request bodies for the repair queue and repair actions, shared by the beta
-// app routes and the public v1 API. The state, mode, and type fields stay
-// `unknown` because the shared repair rules check whether each key is present
-// and answer an unknown value with their own message. Both camelCase and
-// snake_case keys are kept since those rules read both.
 const repairQueueItemFields = {
   issueId: text(160),
   issue_id: text(160),
@@ -40,7 +35,6 @@ const repairQueueItemFields = {
   rerun_status: z.unknown().optional()
 };
 
-// One queue item, either as `items: [item]` or as the body itself.
 const RepairQueuePatchBody = body({
   ...repairQueueItemFields,
   items: z.array(body(repairQueueItemFields)).nullish()
@@ -58,8 +52,6 @@ const RepairActionCreateBody = body({
   action_type: z.unknown().optional()
 });
 
-// The rerun report id keys are read with `??`, so an absent key must stay
-// absent rather than become "".
 const RepairActionPatchBody = body({
   approvalState: z.unknown().optional(),
   approval_state: z.unknown().optional(),

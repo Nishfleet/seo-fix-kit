@@ -1,27 +1,3 @@
-// Public anonymous one-page check: the low-friction proof-to-repair entry
-// path. Any visitor can paste one public URL and get browser-rendered proof
-// without an account, an email, or a stored report.
-//
-// Truthfulness contract (pinned by worker/routes/public-check.test.mjs):
-// - The result is built ONLY from the shared audit engine's live output for
-//   the submitted URL. Nothing here is hand-written marketing copy.
-// - The page and response never promise rankings, traffic, indexing,
-//   revenue, AI citations, or live answer-engine visibility.
-// - The check is one page, anonymous, and ephemeral: no report or URL is
-//   stored, only short-lived anonymous rate-limit counters (hashed per
-//   network and per checked site) that expire with the same cleanup as every
-//   other abuse counter. It is rate-limited per network and per target site
-//   so the service and the pages it checks stay protected.
-// - The engine's `snippet` field is GENERATED repair markup (a proposed
-//   change the engine built), never an exact quote from the checked page.
-//   The response names it `proposedMarkup` and the page labels the code
-//   block as a proposed change, so the anonymous surface never presents
-//   generated repair markup as an unlabeled observed snippet.
-// - Full multi-page audits, saved proof reports, site verification, and the
-//   repair queue need a signed-in account; this route only measures
-//   the handoff into that account.
-// - Engine failures are mapped through friendlyCheckError() into visitor
-//   copy; raw browser diagnostics (net::ERR_*) never leak into the response.
 import { VERSION, normalizeUrl, publicAuditUrlStatus } from "../../shared/audit-engine.js";
 import { resolvesToPrivateAddress } from "../../shared/url-safety.js";
 import { jsonNoStore } from "../lib/http.js";
@@ -34,15 +10,8 @@ import { SOCIAL_IMAGE_PATH, publicAssetHead, siteFooter, siteHeader, socialImage
 export const CHECK_PAGE_PATH = "/check";
 export const PUBLIC_CHECK_API_PATH = "/api/public-check";
 
-// The URL stays raw: validatePublicCheckUrl() normalizes and vets it.
 const PublicCheckBody = body({ url: z.string().nullish() });
 
-// Rate limits for the anonymous surface. Deliberately small: the point is a
-// proof preview, not a free full audit. Buckets live in the existing
-// `audit_usage` D1 table (see worker/lib/security.js checkQuotaSet) so they
-// expire with the same cleanup as every other abuse counter. The checked site
-// and the visitor network are stored only as SHA-256 hashes, so the quota
-// rows never contain a readable target hostname, URL, or visitor identifier.
 export const PUBLIC_CHECK_LIMITS = {
   ipHour: 6,
   ipDay: 15,
@@ -55,11 +24,6 @@ const NEXT_STEP_COPY =
 const BOUNDARY_COPY =
   "This check measured one public page at scan time. It is not a full site audit, and no report or URL is stored: only short-lived anonymous rate-limit counters (a hash of your network and a hash of the checked site) are kept and expire automatically. It does not guarantee rankings, traffic, indexing, revenue, AI citations, or live answer-engine visibility.";
 
-// Maps an engine failure into a human-readable /check error. Raw browser
-// diagnostics like "net::ERR_NAME_NOT_RESOLVED at https://..." are useful in
-// logs but are not visitor copy: the page promises evidence, not protocol
-// dumps. Unmatched messages keep the engine's own wording so no failure mode
-// is silently hidden.
 export function friendlyCheckError(raw) {
   const message = String(raw || "The check failed. Try another public URL.").slice(0, 260);
   if (/ERR_NAME_NOT_RESOLVED|ERR_DNS|DNS_PROBE|getaddrinfo/i.test(message)) {
@@ -100,8 +64,6 @@ export async function publicCheckQuotaChecks(ipHash, targetHost) {
   const now = new Date();
   const hour = hourWindow(now);
   const day = dayWindow(now);
-  // The checked site is stored only as a hash (same pattern as the network
-  // hash in requestIpHash), so D1 never holds a readable target hostname.
   const targetKey = (
     await sha256Hex(
       String(targetHost || "")
@@ -141,9 +103,6 @@ export async function publicCheckQuotaChecks(ipHash, targetHost) {
   ];
 }
 
-// Maps one live engine report (maxPages: 1) to the compact public proof
-// payload. Only real engine fields are copied; the page renders these
-// verbatim, so the public surface cannot drift from what the engine found.
 export function buildPublicCheckResponse(report) {
   const page = report?.pages?.[0];
   const guards = (report?.findings || [])
@@ -165,9 +124,6 @@ export function buildPublicCheckResponse(report) {
       why: finding.why,
       evidence: finding.evidence,
       fix: finding.fix,
-      // The engine's snippet is generated repair markup (a proposed change),
-      // not an exact quote from the checked page. Named and rendered as such
-      // so the anonymous surface cannot pass it off as observed text.
       proposedMarkup: finding.snippet || ""
     }));
   return {
@@ -198,11 +154,6 @@ export function buildPublicCheckResponse(report) {
   };
 }
 
-// Worker handler for POST /api/public-check. Anonymous by design: no beta
-// session, no stored report, no owner records. The only D1 writes are the
-// rate-limit counters in `audit_usage`, hashed per network and per checked
-// site, so the database never holds a readable target hostname, URL, or
-// visitor identifier.
 export async function runPublicCheck(request, env) {
   const parsed = await parseJsonBody(request, PublicCheckBody);
   if (parsed.error) return jsonNoStore(parsed.error, 400);
@@ -244,10 +195,6 @@ export async function runPublicCheck(request, env) {
   }
 }
 
-// WebPage and FAQPage JSON-LD for the live /check surface. Every question
-// and answer mirrors text a visitor can read on the page itself, and the
-// answers keep the same no-ranking boundary the page and the API pin. The
-// `\\u003c` escape keeps "</script>" out of the block, same as pages.js.
 export function checkJsonLd(origin) {
   const url = `${origin}/check`;
   const jsonLd = JSON.stringify({

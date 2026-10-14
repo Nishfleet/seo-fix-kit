@@ -97,7 +97,6 @@ export function FixRequestStatusPanel({ fixRequest, checkoutReturned }) {
 }
 
 export function RepairProposalPanel({ reportId, initialProposals = [], repairSprint = null }) {
-  // Proposals come from the report; approvals made here override them by id.
   const [updatedById, setUpdatedById] = useState({});
   const queryClient = useQueryClient();
   const proposals = initialProposals.map((proposal) => updatedById[proposal.id] || proposal);
@@ -121,9 +120,7 @@ export function RepairProposalPanel({ reportId, initialProposals = [], repairSpr
       return;
     }
     setUpdatedById((current) => ({ ...current, [proposal.id]: result.proposal }));
-    // Keep the cached report (and its Repair Sprint eligibility) in step.
     queryClient.invalidateQueries({ queryKey: queryKeys.report(reportId), exact: true });
-    // A later success must clear the styling left by an earlier failed checkout.
     setSprintCheckoutStatus("idle");
     showMessage(action === "approve" ? "Repair approved." : "Repair dismissed.");
   }
@@ -151,8 +148,6 @@ export function RepairProposalPanel({ reportId, initialProposals = [], repairSpr
     }
   }
 
-  // The server counts approvals over executable proposals only, so the panel
-  // has to use the same rule or the checkout gate disagrees with the strip.
   const executableProposals = proposals.filter((proposal) => proposal.executionMode !== "unsupported");
   const executableCount = executableProposals.length;
   const approvedCount = executableProposals.filter((proposal) => proposal.approvalStatus === "approved").length;

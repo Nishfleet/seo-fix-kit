@@ -1,7 +1,3 @@
-// Public service status: /status (page) and /api/status (JSON). Each part of
-// the product is checked live on every request (bindings, provider config and
-// a database round trip), so the page shows what is true right now. It is
-// not an uptime history and doesn't claim to be one.
 import { dodoCheckoutConfigStatus } from "../../shared/dodo.js";
 import { VERSION } from "../../shared/audit-engine.js";
 import { esc } from "../../shared/free-tools/render.js";

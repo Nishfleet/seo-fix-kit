@@ -12,7 +12,6 @@ import { fixRequestResponse, repairProposalResponse } from "../lib/serializers.j
 import { cleanText, isSafeReportId, isSafeUuid, normalizeEmail, parseJson } from "../lib/text.js";
 import { body, parseJsonBody, text, z } from "../lib/validation.js";
 
-// Unknown roles fall back to "editor" (see cleanTeamRole).
 const TeamMemberBody = body({
   email: z.string().nullish(),
   memberEmail: z.string().nullish(),
@@ -333,9 +332,7 @@ async function logRepairProposalEvent(
         new Date().toISOString()
       )
       .run();
-  } catch {
-    // Approval is the source of truth; event logging should not block owners.
-  }
+  } catch {}
 }
 
 async function teamMembersForOwner(env, ownerEmail) {
@@ -614,8 +611,6 @@ async function seedRepairProposalsForReport(env, report, reportRow, ownerEmail) 
   });
   if (!proposals.length) return;
   try {
-    // Every saved row for this report counts as already-seeded, attached or
-    // not; a windowed read here would silently re-insert the rows it missed.
     const saved = await env.WAITLIST_DB.prepare(
       `SELECT issue_id
        FROM repair_proposals
@@ -661,9 +656,7 @@ async function seedRepairProposalsForReport(env, report, reportRow, ownerEmail) 
         .run();
       existingIssueIds.add(proposal.issueId);
     }
-  } catch {
-    // Report loading should stay available; health surfaces proposal schema issues.
-  }
+  } catch {}
 }
 
 function jsonForStorage(value, max = 4000, fallback = {}) {
