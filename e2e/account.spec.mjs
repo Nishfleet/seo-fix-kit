@@ -119,7 +119,10 @@ test("a report lists every problem and jumps from the top fixes to the proof", a
   await expect(target.getByText("Evidence", { exact: true })).toBeInViewport();
 });
 
-test("a report hands over ready-to-paste AI fix prompts", async ({ page, request }, testInfo) => {
+test("a report shows what each fix is worth and hands over ready-to-paste AI fix prompts", async ({
+  page,
+  request
+}, testInfo) => {
   const email = uniqueEmail(testInfo, "prompt");
   await page.addInitScript(() => {
     window.__copied = [];
@@ -140,6 +143,10 @@ test("a report hands over ready-to-paste AI fix prompts", async ({ page, request
   const { id } = await (await request.post("/__e2e/reports", { data: { ownerEmail: email } })).json();
 
   await page.goto(`/beta/reports/${id}`);
+  const verdict = page.locator(".verdict-card");
+  await expect(verdict.getByText("+12 pts", { exact: true })).toBeVisible();
+  await expect(verdict.getByText("+16 pts · 2 pages").first()).toBeVisible();
+  await expect(verdict.getByText(/score could rise by about 28 points/)).toBeVisible();
   await page.getByRole("button", { name: "Copy AI prompt for the top fixes" }).click();
   await expect(page.getByRole("button", { name: "Copied" })).toBeVisible();
   const [all] = await page.evaluate(() => window.__copied);
@@ -152,6 +159,32 @@ test("a report hands over ready-to-paste AI fix prompts", async ({ page, request
   expect(copied).toHaveLength(2);
   expect(copied[1]).toContain("Problem: ");
   expect(copied[1]).toContain("What the audit found:");
+});
+
+test("an owner turns on a live score badge and its public score page", async ({ page, request }, testInfo) => {
+  const email = uniqueEmail(testInfo, "badge");
+  await page.goto("/beta");
+  await page.getByLabel("Email").fill(email);
+  await typeLikeAPerson(page);
+  await page.getByRole("button", { name: "Email me a sign-in link" }).click();
+  await page.goto(await signInLinkFor(request, email));
+  await expect(page.getByRole("heading", { level: 1, name: "Overview" })).toBeVisible();
+  await page.route("**/api/pricing-preview", (route) =>
+    route.fulfill({ json: { pricing: { displayPrice: "$49", currency: "USD" } } })
+  );
+  const { id } = await (await request.post("/__e2e/reports", { data: { ownerEmail: email } })).json();
+
+  await page.goto(`/beta/reports/${id}#share`);
+  await page.getByRole("button", { name: "Get my score badge" }).click();
+  const badge = page.getByRole("img", { name: "Your SEO Fix Kit score badge" });
+  await expect(badge).toBeVisible();
+  await expect.poll(() => badge.evaluate((img) => img.naturalWidth)).toBeGreaterThan(0);
+  await expect(page.getByRole("button", { name: "Copy badge HTML" })).toBeVisible();
+
+  const scorePage = await badge.locator("xpath=..").getAttribute("href");
+  await page.goto(scorePage);
+  await expect(page.getByRole("heading", { level: 1, name: "acme-widgets.example" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Check your site free" })).toBeVisible();
 });
 
 test("the check-your-inbox screen opens the right webmail and resends the link after a short wait", async ({

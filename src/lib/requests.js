@@ -438,3 +438,23 @@ export async function saveEmailPreferences(auditEmails) {
     fallbackError: "That setting didn’t save. Try again."
   });
 }
+
+export async function loadScoreBadge(reportId) {
+  return apiFetch(`/api/reports/${encodeURIComponent(reportId)}/badge`, {
+    fallbackError: "Your score badge didn’t load. Try again."
+  });
+}
+
+export async function createScoreBadge(reportId) {
+  return apiFetch(`/api/reports/${encodeURIComponent(reportId)}/badge`, {
+    method: "POST",
+    fallbackError: "The badge wasn’t turned on. Try again."
+  });
+}
+
+export async function revokeScoreBadge(badgeId) {
+  return apiFetch(`/api/badges/${encodeURIComponent(badgeId)}`, {
+    method: "DELETE",
+    fallbackError: "The badge wasn’t turned off. Try again."
+  });
+}

@@ -21,5 +21,6 @@ export const queryKeys = {
   report: (id) => ["report", id],
   repairQueue: (id) => ["report", id, "repair-queue"],
   repairBoard: (id) => ["report", id, "repair-board"],
-  clientTools: (id) => ["report", id, "client-tools"]
+  clientTools: (id) => ["report", id, "client-tools"],
+  scoreBadge: (id) => ["report", id, "score-badge"]
 };

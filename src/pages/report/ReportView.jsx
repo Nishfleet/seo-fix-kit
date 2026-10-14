@@ -21,6 +21,8 @@ import {
 } from "./ImportedDataPanels.jsx";
 import { PerformancePanel, ResourceWaterfallPanel } from "./PerformancePanels.jsx";
 import { FixRequestStatusPanel, RepairProposalPanel, FixQuotePanel } from "./RepairOfferPanels.jsx";
+import { ScoreBadgePanel } from "./ScoreBadgePanel.jsx";
+import { ScoreGain } from "./ScoreGain.jsx";
 import { TeamRepairBoard } from "./TeamRepairBoard.jsx";
 
 export function ReportView({ report, onRerun, rerunStatus = "idle", rerunMessage = "" }) {
@@ -160,6 +162,7 @@ export function ReportView({ report, onRerun, rerunStatus = "idle", rerunMessage
           delta={reportDelta}
           score={Number(report.score)}
           onDetails={() => tabsRef.current?.("insights")}
+          onShare={() => tabsRef.current?.("share")}
         />
       )}
 
@@ -202,13 +205,22 @@ export function ReportView({ report, onRerun, rerunStatus = "idle", rerunMessage
                           ) : (
                             <strong>{fix.title}</strong>
                           )}
-                          <span>{[fix.estimatedEffort, fix.workType].filter(Boolean).join(" · ")}</span>
+                          <span>
+                            {[fix.estimatedEffort, fix.workType].filter(Boolean).join(" · ")}
+                            {fix.scoreGain > 0 && <ScoreGain fix={fix} />}
+                          </span>
                         </li>
                       );
                     })}
                   </ol>
                 ) : (
                   <p className="app-card-text">Nothing to fix. Rerun after you change content or templates.</p>
+                )}
+                {report.projectedScore?.to > report.projectedScore?.from && (
+                  <p className="verdict-projection">
+                    Fix these and your score could rise by about{" "}
+                    <strong>{report.projectedScore.to - report.projectedScore.from} points</strong>.
+                  </p>
                 )}
                 {topThree.length > 0 && (
                   <div className="verdict-actions">
@@ -347,6 +359,7 @@ export function ReportView({ report, onRerun, rerunStatus = "idle", rerunMessage
             )}
 
             <div className="report-tab-panel" hidden={active !== "share"} {...tabPanelProps("share")}>
+              <ScoreBadgePanel report={report} />
               <ClientReportPanel report={report} />
             </div>
           </>
@@ -372,7 +385,7 @@ function tabPanelProps(key) {
   return { id: `report-panel-${key}`, role: "tabpanel", "aria-labelledby": `report-tab-${key}` };
 }
 
-function ChangeSinceLastCheck({ delta, score, onDetails }) {
+function ChangeSinceLastCheck({ delta, score, onDetails, onShare }) {
   const summary = delta.summary || {};
   const scoreDelta = Number(summary.scoreDelta || 0);
   const fixed = Number(summary.fixedIssuesCount || 0);
@@ -411,6 +424,11 @@ function ChangeSinceLastCheck({ delta, score, onDetails }) {
       <button className="report-change-link" onClick={onDetails} type="button">
         See what changed
       </button>
+      {(tone === "win" || tone === "up") && scoreDelta > 0 && (
+        <button className="report-change-link" onClick={onShare} type="button">
+          Share this win
+        </button>
+      )}
     </section>
   );
 }
