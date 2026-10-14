@@ -58,6 +58,9 @@ async function cleanupExpiredRows(env) {
     env.WAITLIST_DB.prepare(`DELETE FROM audit_usage WHERE updated_at < ?`).bind(isoSecondsFromNow(-7 * 24 * 60 * 60)),
     env.WAITLIST_DB.prepare(`DELETE FROM score_history WHERE created_at < ?`).bind(
       isoSecondsFromNow(-SCORE_HISTORY_DAYS * 24 * 60 * 60)
+    ),
+    env.WAITLIST_DB.prepare(`DELETE FROM widget_leads WHERE created_at < ?`).bind(
+      isoSecondsFromNow(-SCORE_HISTORY_DAYS * 24 * 60 * 60)
     )
   ]);
 }

@@ -642,7 +642,7 @@ export function BetaApp({ mountKey }) {
       <div className="app-page">
         <PageHeader
           title="Alerts & API"
-          description="Get Slack alerts when audits finish and when fixed problems come back. Use an API key to run audits from your own code."
+          description="Get alerts when audits finish and when fixed problems come back, collect leads with a free audit on your own site, and run audits from your own code."
         />
         <DeveloperApiPanel
           apiTokenSecret={apiTokenSecret}
