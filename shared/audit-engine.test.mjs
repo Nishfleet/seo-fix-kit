@@ -1473,3 +1473,132 @@ test("a suggested meta description starts from the page's own first paragraph, n
     '<meta name="description" content="Acme Widgets builds hand-finished widgets that last for years in busy workshops. Every widget ships with a lifetime repair promise and free spare parts." />'
   );
 });
+
+function siteFetch({ robots = null, sitemap = true, headers = {} } = {}) {
+  return async (url) => {
+    if (url === "https://public.example/") {
+      return new Response(
+        "<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>",
+        { status: 200, headers: { "content-type": "text/html; charset=utf-8", ...headers } }
+      );
+    }
+    if (url === "https://public.example/robots.txt" && robots !== null) {
+      return new Response(robots, { status: 200, headers: { "content-type": "text/plain" } });
+    }
+    if (url === "https://public.example/sitemap.xml" && sitemap) {
+      return new Response(
+        '<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://public.example/</loc></url></urlset>',
+        { status: 200, headers: { "content-type": "application/xml" } }
+      );
+    }
+    return new Response("", { status: 404, headers: { "content-type": "text/plain" } });
+  };
+}
+
+async function auditWith(options) {
+  const engine = createAuditEngine({
+    launchBrowser: async () => fakeBrowser("https://public.example/"),
+    fetchImpl: siteFetch(options),
+    pagespeedDisabled: true
+  });
+  return engine.auditUrl("https://public.example/", { maxPages: 1, pageSpeed: false });
+}
+
+const SECURE_HEADERS = {
+  "strict-transport-security": "max-age=31536000",
+  "x-content-type-options": "nosniff",
+  "x-frame-options": "SAMEORIGIN",
+  "referrer-policy": "strict-origin-when-cross-origin"
+};
+
+test("robots.txt that blocks AI answer crawlers is reported with an allow snippet", async () => {
+  const report = await auditWith({
+    robots:
+      "User-agent: PerplexityBot\nDisallow: /\n\nUser-agent: OAI-SearchBot\nDisallow: /\n\nUser-agent: *\nAllow: /\n\nSitemap: https://public.example/sitemap.xml\n",
+    headers: SECURE_HEADERS
+  });
+  const finding = report.findings.find((item) => /AI search crawlers blocked/.test(item.title));
+  assert.ok(finding, "blocked answer crawlers must be reported");
+  assert.equal(finding.severity, "warning");
+  assert.match(finding.evidence, /PerplexityBot \(Perplexity\) by "Disallow: \/"/);
+  assert.match(finding.evidence, /OAI-SearchBot/);
+  assert.match(finding.snippet, /User-agent: PerplexityBot\nAllow: \//);
+  assert.equal(report.aiAnswerReadiness.summary.aiCrawlersChecked, 10);
+  assert.equal(report.aiAnswerReadiness.summary.aiCrawlersAllowed, 8);
+  assert.equal(
+    report.findings.some((item) => /blocks search engines/.test(item.title)),
+    false
+  );
+});
+
+test("blocking only training crawlers is a choice, not a problem", async () => {
+  const report = await auditWith({
+    robots:
+      "User-agent: GPTBot\nUser-agent: CCBot\nDisallow: /\n\nUser-agent: *\nAllow: /\n\nSitemap: https://public.example/sitemap.xml\n",
+    headers: SECURE_HEADERS
+  });
+  assert.deepEqual(
+    report.crawlerAccess.blockedTrainingBots.map((bot) => bot.agent),
+    ["GPTBot", "CCBot"]
+  );
+  assert.equal(
+    report.findings.some((item) => /crawlers blocked|blocks search engines/.test(item.title)),
+    false
+  );
+});
+
+test("robots.txt that blocks Google is critical and outranks the AI crawler warning", async () => {
+  const report = await auditWith({
+    robots: "User-agent: *\nDisallow: /\n\nSitemap: https://public.example/sitemap.xml\n",
+    headers: SECURE_HEADERS
+  });
+  const blocked = report.findings.find((item) => /blocks search engines/.test(item.title));
+  assert.ok(blocked);
+  assert.equal(blocked.severity, "critical");
+  assert.match(blocked.evidence, /Googlebot \(Google Search\) by "Disallow: \/"/);
+  assert.equal(
+    report.findings.some((item) => /AI search crawlers blocked/.test(item.title)),
+    false
+  );
+  const repair = report.repairPlan.find((item) => /blocks search engines/.test(item.title));
+  assert.match(repair.acceptance, /Googlebot and Bingbot allowed/);
+});
+
+test("robots.txt without a Sitemap line gets a notice when the sitemap exists", async () => {
+  const report = await auditWith({ robots: "User-agent: *\nAllow: /\n", headers: SECURE_HEADERS });
+  const finding = report.findings.find((item) => /does not list your sitemap/.test(item.title));
+  assert.ok(finding);
+  assert.equal(finding.snippet, "Sitemap: https://public.example/sitemap.xml");
+});
+
+test("an X-Robots-Tag noindex header is reported even when the meta tag is clean", async () => {
+  const report = await auditWith({
+    robots: "User-agent: *\nAllow: /\n\nSitemap: https://public.example/sitemap.xml\n",
+    headers: { ...SECURE_HEADERS, "x-robots-tag": "noindex, nofollow" }
+  });
+  const finding = report.findings.find((item) => /Noindex found/.test(item.title));
+  assert.ok(finding);
+  assert.equal(finding.severity, "critical");
+  assert.match(finding.evidence, /X-Robots-Tag response header: "noindex, nofollow"/);
+});
+
+test("missing basic security headers are reported once with copy-paste headers", async () => {
+  const report = await auditWith({
+    robots: "User-agent: *\nAllow: /\n\nSitemap: https://public.example/sitemap.xml\n",
+    headers: { "strict-transport-security": "max-age=31536000", "x-content-type-options": "nosniff" }
+  });
+  const findings = report.findings.filter((item) => /security headers missing/.test(item.title));
+  assert.equal(findings.length, 1);
+  assert.match(findings[0].evidence, /X-Frame-Options or CSP frame-ancestors, Referrer-Policy/);
+  assert.doesNotMatch(findings[0].evidence, /X-Content-Type-Options/);
+  assert.match(findings[0].snippet, /Referrer-Policy: strict-origin-when-cross-origin/);
+
+  const clean = await auditWith({
+    robots: "User-agent: *\nAllow: /\n\nSitemap: https://public.example/sitemap.xml\n",
+    headers: SECURE_HEADERS
+  });
+  assert.equal(
+    clean.findings.some((item) => /security headers missing/.test(item.title)),
+    false
+  );
+});

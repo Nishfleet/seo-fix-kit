@@ -17,6 +17,7 @@ import {
   resourceWaterfallBriefLines,
   resourceWaterfallFindings
 } from "./resource-waterfall.js";
+import { describeBlocked, robotsAccess } from "./robots-access.js";
 import { isPrivateHost, isPrivateHostname } from "./url-safety.js";
 
 const DOCS = {
@@ -173,6 +174,7 @@ export function createAuditEngine({
       pageSummaries,
       findings,
       llmsTxt: discoveryFileSummary(llmsTxt),
+      crawlerAccess: robotsAccess(robots, pages[0]?.url || startUrl),
       repairPlan,
       repairBrief: "",
       fixPack
@@ -1725,6 +1727,7 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
       });
     }
 
+    const robotsHeader = headerValue(page.headers, "x-robots-tag");
     if ((rendered.robots || "").toLowerCase().includes("noindex")) {
       add({
         type: "issue",
@@ -1732,6 +1735,15 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         title: `Noindex found on ${label}`,
         why: "This tag tells search engines to keep the page out of results.",
         evidence: `Robots meta: "${rendered.robots}"`,
+        fix: "If this page should show up in search, remove the noindex tag or header."
+      });
+    } else if (robotsHeader.toLowerCase().includes("noindex")) {
+      add({
+        type: "issue",
+        severity: "critical",
+        title: `Noindex found on ${label}`,
+        why: "Your server sends a header that tells search engines to keep the page out of results. It's invisible in the page source, so it's easy to miss.",
+        evidence: `X-Robots-Tag response header: "${robotsHeader}"`,
         fix: "If this page should show up in search, remove the noindex tag or header."
       });
     }
@@ -1844,6 +1856,21 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
     }
 
     const capturedHeaderCount = Object.keys(page.headers || {}).length;
+    const missingSecurityHeaders = capturedHeaderCount ? missingBasicSecurityHeaders(page.headers) : [];
+    if (page === pages[0] && missingSecurityHeaders.length) {
+      add({
+        type: "issue",
+        severity: "notice",
+        title: "Basic security headers missing",
+        why: "These headers stop other sites from framing your pages and stop browsers from guessing file types. Google counts a safe site as part of page experience, and visitors trust it more.",
+        evidence: `The HTML response did not include: ${missingSecurityHeaders.map((item) => item.label).join(", ")}.`,
+        fix: "Add these headers in your host or CDN settings (for example Cloudflare Transform Rules, Netlify _headers, or Vercel headers). They apply to every page at once.",
+        snippet: missingSecurityHeaders.map((item) => item.snippet).join("\n"),
+        confidence: "needs-review",
+        acceptance:
+          "The homepage response includes X-Content-Type-Options, a frame-ancestors or X-Frame-Options rule, and a Referrer-Policy."
+      });
+    }
     if (
       capturedHeaderCount > 0 &&
       finalUrlObject.protocol === "https:" &&
@@ -1871,6 +1898,31 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
       evidence: `GET /robots.txt returned ${robots.status || "no response"}.`,
       fix: "Add a robots.txt file at the site root with a Sitemap: line.",
       snippet: "User-agent: *\nAllow: /\n\nSitemap: /sitemap.xml"
+    });
+  }
+
+  const access = robotsAccess(robots, pages[0]?.url || startUrl);
+  if (access?.blockedSearch.length) {
+    add({
+      type: "issue",
+      severity: "critical",
+      title: "Robots.txt blocks search engines from your site",
+      why: "Search engines obey robots.txt. While this rule stays, your pages can drop out of Google and Bing results.",
+      evidence: `For ${access.path}, robots.txt blocks ${describeBlocked(access.blockedSearch)}.`,
+      fix: "Remove the Disallow rule that covers your public pages. Keep Disallow only for private areas like /admin or /cart.",
+      snippet: `User-agent: *\nAllow: /\n\nSitemap: ${new URL("/sitemap.xml", startUrl).href}`,
+      acceptance: "The robots.txt tester shows Googlebot and Bingbot allowed on your homepage."
+    });
+  }
+  if (access && sitemap.ok && !access.sitemaps.length) {
+    add({
+      type: "issue",
+      severity: "notice",
+      title: "Robots.txt does not list your sitemap",
+      why: "A Sitemap: line in robots.txt is how every search engine and AI crawler finds your sitemap without being told.",
+      evidence: "robots.txt loads but has no Sitemap: line.",
+      fix: "Add a Sitemap: line with the full URL of your sitemap to the end of robots.txt.",
+      snippet: `Sitemap: ${new URL("/sitemap.xml", startUrl).href}`
     });
   }
 
@@ -1905,7 +1957,7 @@ function buildRepairPlan(findings) {
       snippet: finding.snippet || null,
       estimatedEffort: estimatedEffort(finding),
       workType: workType(finding),
-      acceptance: acceptanceCheck(finding)
+      acceptance: finding.acceptance || acceptanceCheck(finding)
     }));
 }
 
@@ -2644,6 +2696,30 @@ function headersToObject(headers) {
     output[key.toLowerCase()] = value;
   });
   return output;
+}
+
+const BASIC_SECURITY_HEADERS = [
+  {
+    label: "X-Content-Type-Options",
+    present: (headers) => /nosniff/i.test(headerValue(headers, "x-content-type-options")),
+    snippet: "X-Content-Type-Options: nosniff"
+  },
+  {
+    label: "X-Frame-Options or CSP frame-ancestors",
+    present: (headers) =>
+      Boolean(headerValue(headers, "x-frame-options")) ||
+      /frame-ancestors/i.test(headerValue(headers, "content-security-policy")),
+    snippet: "Content-Security-Policy: frame-ancestors 'self'"
+  },
+  {
+    label: "Referrer-Policy",
+    present: (headers) => Boolean(headerValue(headers, "referrer-policy")),
+    snippet: "Referrer-Policy: strict-origin-when-cross-origin"
+  }
+];
+
+function missingBasicSecurityHeaders(headers = {}) {
+  return BASIC_SECURITY_HEADERS.filter((item) => !item.present(headers));
 }
 
 function headerValue(headers = {}, name) {

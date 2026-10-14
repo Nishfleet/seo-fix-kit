@@ -24,9 +24,10 @@ export function AiAnswerReadinessPanel({ audit }) {
             : "No AI search readiness problems found"}
         </h2>
         <p>
-          Checks whether your pages have enough readable text, schema that matches the page, a clear canonical URL,
-          question-and-answer structure and an optional llms.txt file. If you import Search Console rows, problems are
-          ranked by their traffic. This does not track AI citations or sample AI answers.
+          Checks whether AI crawlers may read your site, and whether your pages have enough readable text, schema that
+          matches the page, a clear canonical URL, question-and-answer structure and an optional llms.txt file. If you
+          import Search Console rows, problems are ranked by their traffic. This does not track AI citations or sample
+          AI answers.
         </p>
       </div>
 
@@ -35,6 +36,13 @@ export function AiAnswerReadinessPanel({ audit }) {
         <Metric label="Enough text" value={`${summary.pagesWithEnoughText || 0}/${summary.pagesChecked || 0}`} />
         <Metric label="Pages with schema" value={summary.pagesWithHelpfulSchema || 0} />
         <Metric label="Q&A structure" value={summary.pagesWithQuestionStructure || 0} />
+        {summary.aiCrawlersChecked ? (
+          <Metric
+            label="AI crawlers allowed"
+            tone={summary.aiCrawlersAllowed === summary.aiCrawlersChecked ? "good" : undefined}
+            value={`${summary.aiCrawlersAllowed}/${summary.aiCrawlersChecked}`}
+          />
+        ) : null}
         <Metric label="llms.txt" value={summary.llmsTxtStatus === "reachable" ? "Yes" : "No"} />
         <Metric label="Ranked by" value={summary.trafficRanked ? "Search traffic" : "Report order"} />
       </div>
