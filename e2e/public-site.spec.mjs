@@ -270,7 +270,7 @@ test.describe("free page check", () => {
     await expect(compare.getByRole("columnheader", { name: "rival.example" })).toBeVisible();
     await expect(compare.getByRole("row", { name: /Words on the page/ })).toContainText("1,284");
     await expect(compare.getByRole("row", { name: /Main heading/ })).toContainText("Missing");
-    await expect(compare.getByRole("row", { name: /crawlers allowed/ })).toContainText("1 of 3");
+    await expect(compare.getByRole("row", { name: /answer tools allowed/ })).toContainText("1 of 2");
 
     await expect(page.locator("#result").getByRole("link", { name: "Create a free account" })).toHaveAttribute(
       "href",

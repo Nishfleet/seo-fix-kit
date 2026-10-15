@@ -685,7 +685,11 @@ test("competitor comparison marks who leads each measure and explains the score 
     projectedScore: { to: 88 },
     issues: { critical: 1, warnings: 2, notices: 0 },
     measured: { renderedWordCount: 1200, renderedInternalLinkCount: 10, renderedH1: "Hi" },
-    crawlers: [{ allowed: true }, { allowed: false }]
+    crawlers: [
+      { purpose: "search", allowed: true },
+      { purpose: "answers", allowed: true },
+      { purpose: "training", allowed: false }
+    ]
   };
   const theirs = {
     checkedUrl: "https://www.rival.example/",
@@ -700,8 +704,22 @@ test("competitor comparison marks who leads each measure and explains the score 
   assert.equal(rows["Words on the page"].lead, "mine");
   assert.equal(rows["Internal links"].lead, "");
   assert.equal(rows["Main heading (H1)"].theirs, "Missing");
-  assert.equal(rows["Search and AI crawlers allowed"].mine, "1 of 2");
-  assert.equal(rows["Search and AI crawlers allowed"].theirs, "Not checked");
+  assert.equal(rows["Main heading (H1)"].lead, "mine");
+  const bots = "Search and AI answer tools allowed";
+  assert.equal(rows[bots].mine, "2 of 2", "blocking a training-only bot costs nothing");
+  assert.equal(rows[bots].theirs, "Not checked");
+  assert.equal(rows[bots].lead, "", "an unchecked robots.txt is never a loss");
+  const rival = {
+    ...theirs,
+    crawlers: [
+      { purpose: "search", allowed: true },
+      { purpose: "answers", allowed: false },
+      { purpose: "training", allowed: true }
+    ]
+  };
+  const botRow = compareRows(mine, rival).find((row) => row.label === bots);
+  assert.equal(botRow.theirs, "1 of 2");
+  assert.equal(botRow.lead, "mine");
   assert.equal(
     compareVerdict(mine, theirs),
     "rival.example scores 12 points higher than your page. Fixing the problems above would put you ahead."

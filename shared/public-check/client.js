@@ -258,14 +258,18 @@ async function requestCheck(url) {
 
 const problemCount = (p) =>
   p.issues ? p.issues.critical + p.issues.warnings + p.issues.notices : (p.findings || []).length;
-const crawlersAllowed = (p) =>
-  Array.isArray(p.crawlers)
-    ? `${p.crawlers.filter((bot) => bot.allowed).length} of ${p.crawlers.length}`
-    : "Not checked";
+// Training-only bots are left out: blocking them is a choice, not a visibility loss.
+const visibilityBots = (p) =>
+  Array.isArray(p.crawlers) ? p.crawlers.filter((bot) => bot.purpose !== "training") : null;
 
 export function compareRows(mine, theirs) {
   const words = (p) => p.measured?.renderedWordCount;
   const links = (p) => p.measured?.renderedInternalLinkCount;
+  const hasH1 = (p) => (p.measured?.renderedH1 ? 1 : 0);
+  const [myBots, theirBots] = [visibilityBots(mine), visibilityBots(theirs)];
+  const allowed = (bots) => bots?.filter((bot) => bot.allowed).length;
+  const botsShown = (bots) => (bots ? `${allowed(bots)} of ${bots.length}` : "Not checked");
+  const botsComparable = myBots && theirBots && myBots.length === theirBots.length;
   const rows = [
     ["Score", mine.score, theirs.score, "high"],
     ["Problems found", problemCount(mine), problemCount(theirs), "low"],
@@ -273,15 +277,24 @@ export function compareRows(mine, theirs) {
     ["Internal links", links(mine), links(theirs), "high"],
     [
       "Main heading (H1)",
-      mine.measured?.renderedH1 ? "Yes" : "Missing",
-      theirs.measured?.renderedH1 ? "Yes" : "Missing"
+      hasH1(mine) ? "Yes" : "Missing",
+      hasH1(theirs) ? "Yes" : "Missing",
+      "high",
+      [hasH1(mine), hasH1(theirs)]
     ],
-    ["Search and AI crawlers allowed", crawlersAllowed(mine), crawlersAllowed(theirs)]
+    [
+      "Search and AI answer tools allowed",
+      botsShown(myBots),
+      botsShown(theirBots),
+      "high",
+      botsComparable ? [allowed(myBots), allowed(theirBots)] : null
+    ]
   ];
-  return rows.map(([label, a, b, better]) => {
+  return rows.map(([label, a, b, better, ranks = [a, b]]) => {
+    const [x, y] = ranks || [];
     let lead = "";
-    if (better && typeof a === "number" && typeof b === "number" && a !== b) {
-      lead = (better === "high" ? a > b : a < b) ? "mine" : "theirs";
+    if (typeof x === "number" && typeof y === "number" && x !== y) {
+      lead = (better === "high" ? x > y : x < y) ? "mine" : "theirs";
     }
     return { label, mine: a ?? "Not found", theirs: b ?? "Not found", lead };
   });
