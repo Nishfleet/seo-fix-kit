@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { reportFixPrompt } from "../../../shared/ai-fix-prompt.js";
 import { DEFAULT_CRAWL_PAGES } from "../../../shared/crawl-depth.js";
+import { distinctFixes, issuePatternKey } from "../../../shared/fix-patterns.js";
 import { CopyButton } from "../../components/CopyButton.jsx";
 import { Metric } from "../../components/Metric.jsx";
 import { findingAnchor, formatCount } from "../../lib/format.js";
@@ -55,7 +56,7 @@ export function ReportView({ report, onRerun, rerunStatus = "idle", rerunMessage
   const shareUrl = report.reportUrl || `${window.location.origin}${report.reportPath || window.location.pathname}`;
   const SEVERITY_ORDER = { critical: 0, warning: 1, notice: 2 };
   const topThree = topFixes.length
-    ? topFixes.slice(0, 3)
+    ? distinctFixes(topFixes, 3)
     : [...issues]
         .sort((a, b) => (SEVERITY_ORDER[a.severity] ?? 3) - (SEVERITY_ORDER[b.severity] ?? 3))
         .slice(0, 3)
@@ -200,10 +201,10 @@ export function ReportView({ report, onRerun, rerunStatus = "idle", rerunMessage
                                 openFinding(anchor);
                               }}
                             >
-                              {fix.title}
+                              {fixTitle(fix)}
                             </a>
                           ) : (
-                            <strong>{fix.title}</strong>
+                            <strong>{fixTitle(fix)}</strong>
                           )}
                           <span>
                             {[fix.estimatedEffort, fix.workType].filter(Boolean).join(" · ")}
@@ -364,6 +365,11 @@ const SEVERITY_FILTERS = [
   { key: "warning", label: "Warnings" },
   { key: "notice", label: "Notices" }
 ];
+
+// A fix that covers several pages is named once, without the first page's suffix.
+function fixTitle(fix) {
+  return fix.sameIssueCount > 1 ? issuePatternKey(fix.title) : fix.title;
+}
 
 function openFinding(anchor) {
   const row = document.getElementById(anchor);

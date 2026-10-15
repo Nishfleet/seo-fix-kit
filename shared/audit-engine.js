@@ -1,3 +1,4 @@
+import { distinctFixes, issuePatternKey } from "./fix-patterns.js";
 import { escapeHtml } from "./html.js";
 import { TOOL_PATHS } from "./free-tools/catalog.js";
 import { aiAnswerReadinessBriefLines, buildAiAnswerReadiness } from "./ai-answer-readiness.js";
@@ -2908,7 +2909,7 @@ export function withScoreGains(plan = [], findings = [], score = scoreFindings(f
 }
 
 export function projectedScore(plan = [], findings = [], score = scoreFindings(findings), limit = 3) {
-  const top = plan.slice(0, limit);
+  const top = distinctFixes(plan, limit);
   const keys = new Set(top.map((item) => issuePatternKey(item.title)));
   const after = scoreFindings(findings.filter((finding) => !keys.has(scoreFindingKey(finding))));
   return after > score ? { fixes: top.length, from: score, to: after } : null;
@@ -3090,12 +3091,7 @@ export function clampPageLimit(value) {
   return normalizeCrawlLimit(value);
 }
 
-export function issuePatternKey(title) {
-  return String(title || "Unknown issue")
-    .replace(/\son\s(home|\/[^\s]+)/i, "")
-    .replace(/\sneeds cleanup.*/i, " needs cleanup")
-    .trim();
-}
+export { issuePatternKey };
 
 export function publicAuditUrlStatus(value) {
   let parsed;
