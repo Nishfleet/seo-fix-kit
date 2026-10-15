@@ -3,7 +3,7 @@ function repairAccountSummaryFromItems(contexts = [], schedules = []) {
   const queueItems = [];
   const regressionItems = [];
 
-  for (const context of contexts) {
+  for (const context of latestContextPerUrl(contexts)) {
     const response = context.response || {};
     const report = context.report || {};
     for (const item of context.items || []) {
@@ -173,6 +173,17 @@ function monitorRegressionItem(report = {}, response = {}, monitoredReportIds = 
     nextActionLabel: "Review new problems",
     nextActionDetail: `${targetHost} has new or worse problems since the last rerun.`
   };
+}
+
+function latestContextPerUrl(contexts = []) {
+  const seen = new Set();
+  return contexts.filter((context) => {
+    const url = context.response?.url || context.report?.url || "";
+    const key = url.toLowerCase().replace(/\/+$/, "") || context.response?.id;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function isActionableRepairItem(item = {}) {

@@ -39,6 +39,27 @@ test("account summary derives open repairs from recent reports before queue rows
   assert.equal(body.nextActions[0].id, "start-proof-repair");
 });
 
+test("account summary counts only the latest report of a URL that was audited twice", async () => {
+  const env = fakeAccountEnv({
+    reports: [
+      reportRow({ id: "report-new", report_json: reportJson({ id: "report-new" }) }),
+      reportRow({ url: "https://example.com" })
+    ],
+    queueItems: [],
+    actions: []
+  });
+
+  const response = await getAccountSummary(sessionRequest("/api/account"), env);
+  assert.equal(response.status, 200);
+  const body = await response.json();
+
+  assert.equal(body.metrics.openRepairs, 1);
+  assert.deepEqual(
+    body.repairAgent.nextItems.map((item) => item.reportId),
+    ["report-new"]
+  );
+});
+
 test("account summary marks repair agent unavailable when repair tables are missing", async () => {
   const env = fakeAccountEnv({ queueItems: [], actions: [], missingRepairTables: true });
 
