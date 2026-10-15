@@ -14,43 +14,9 @@ const DROPPED_INTEGRATIONS = new Set(["Console"]);
 // SDK contexts that carry no request or customer data; anything else is dropped.
 const TRACE_CONTEXT_KEYS = ["trace_id", "span_id", "parent_span_id", "op", "status", "origin"];
 
-// Per-isolate cap on error events, so a 500 storm (a D1 outage, or a request an
-// attacker can make fail) cannot burn the Sentry quota: at most
-// MAX_EVENTS_PER_WINDOW events per window, the rest are dropped.
-const MAX_EVENTS_PER_WINDOW = 20;
-const EVENT_WINDOW_MS = 60_000;
-
-function createEventCap({ max = MAX_EVENTS_PER_WINDOW, windowMs = EVENT_WINDOW_MS, now = Date.now } = {}) {
-  let windowStart = -Infinity;
-  let count = 0;
-  return {
-    allow() {
-      const at = now();
-      if (at - windowStart >= windowMs) {
-        windowStart = at;
-        count = 0;
-      }
-      if (count >= max) return false;
-      count += 1;
-      return true;
-    },
-    reset() {
-      windowStart = -Infinity;
-      count = 0;
-    }
-  };
-}
-
-const isolateEventCap = createEventCap();
-
-function resetSentryEventCap() {
-  isolateEventCap.reset();
-}
-
 function beforeSend(event, hint) {
   if (hint?.originalException?.alreadyReported) return null;
-  const scrubbed = scrubEvent(event);
-  return isolateEventCap.allow() ? scrubbed : null;
+  return scrubEvent(event);
 }
 
 function sentryOptions(env) {
@@ -137,14 +103,4 @@ function withErrorReporting(handlers) {
   return wrapped;
 }
 
-export {
-  alreadyReported,
-  createEventCap,
-  MAX_EVENTS_PER_WINDOW,
-  reportError,
-  resetSentryEventCap,
-  scrubBreadcrumb,
-  scrubEvent,
-  sentryOptions,
-  withErrorReporting
-};
+export { alreadyReported, reportError, scrubBreadcrumb, scrubEvent, sentryOptions, withErrorReporting };

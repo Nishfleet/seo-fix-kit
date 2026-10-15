@@ -2,15 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { getClient } from "@sentry/cloudflare";
 import worker from "../index.js";
-import {
-  createEventCap,
-  MAX_EVENTS_PER_WINDOW,
-  resetSentryEventCap,
-  scrubBreadcrumb,
-  scrubEvent,
-  sentryOptions,
-  withErrorReporting
-} from "./sentry.js";
+import { scrubBreadcrumb, scrubEvent, sentryOptions, withErrorReporting } from "./sentry.js";
 
 const FAKE_DSN = "https://publickey@sentry.invalid/1";
 
@@ -211,7 +203,7 @@ test("scrubEvent hides client report share links in URLs, messages and breadcrum
 function failingSessionRequest(ctx, index, beforeThrow = () => {}) {
   return worker.fetch(
     new Request("https://seofixkit.test/api/beta/session", {
-      headers: { cookie: "sfk_beta_session=storm-session-token" }
+      headers: { cookie: "sfk_beta_session=test-session-token" }
     }),
     {
       SENTRY_DSN: FAKE_DSN,
@@ -276,7 +268,6 @@ test("scrubEvent drops extra, custom contexts and breadcrumb text", () => {
 });
 
 test("with SENTRY_DSN a console line logged before an error never reaches Sentry", async () => {
-  resetSentryEventCap();
   const restoreConsole = quietConsole();
   const originalWarn = console.warn;
   const fetchStub = stubFetch();
@@ -295,34 +286,4 @@ test("with SENTRY_DSN a console line logged before an error never reaches Sentry
     fetchStub.restore();
     restoreConsole();
   }
-});
-
-test("with SENTRY_DSN a 500 storm sends at most the per-isolate cap of events", async () => {
-  resetSentryEventCap();
-  const restoreConsole = quietConsole();
-  const fetchStub = stubFetch();
-  try {
-    const storm = MAX_EVENTS_PER_WINDOW + 10;
-    const statuses = [];
-    const ctx = collectingCtx();
-    for (let i = 0; i < storm; i += 1) statuses.push((await failingSessionRequest(ctx, i)).status);
-    await Promise.all(ctx.pending);
-    assert.deepEqual(new Set(statuses), new Set([500]), "every request still gets its 500");
-    const sent = fetchStub.calls.filter((call) => call.url.includes("sentry.invalid"));
-    assert.equal(sent.length, MAX_EVENTS_PER_WINDOW);
-  } finally {
-    fetchStub.restore();
-    restoreConsole();
-    resetSentryEventCap();
-  }
-});
-
-test("the event cap allows a fixed number per window and opens again in the next window", () => {
-  let now = 1_000;
-  const cap = createEventCap({ max: 3, windowMs: 60_000, now: () => now });
-  assert.deepEqual([cap.allow(), cap.allow(), cap.allow(), cap.allow()], [true, true, true, false]);
-  now += 59_999;
-  assert.equal(cap.allow(), false);
-  now += 1;
-  assert.deepEqual([cap.allow(), cap.allow(), cap.allow(), cap.allow()], [true, true, true, false]);
 });
