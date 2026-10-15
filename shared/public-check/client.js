@@ -112,6 +112,36 @@ function scoreNode(score) {
   return box;
 }
 
+function crawlerBlock(crawlers) {
+  const section = block("Search and AI crawlers");
+  if (!Array.isArray(crawlers)) {
+    section.appendChild(
+      el("p", "We couldn't read this site's robots.txt, so crawler access wasn't checked.", "empty-note")
+    );
+    return section;
+  }
+  const list = el("ul", "", "crawler-list");
+  for (const bot of crawlers) {
+    const item = el("li", `${bot.allowed ? "✓" : "✕"} ${bot.agent}`, bot.allowed ? "allowed" : "blocked");
+    item.title = `${bot.product}: ${bot.allowed ? "can read this page" : "blocked by robots.txt"}`;
+    item.setAttribute("aria-label", item.title);
+    list.appendChild(item);
+  }
+  section.appendChild(list);
+  const blocked = crawlers.filter((bot) => !bot.allowed);
+  const search = blocked.filter((bot) => bot.purpose === "search");
+  const answers = blocked.filter((bot) => bot.purpose === "answers");
+  const note = search.length
+    ? `robots.txt blocks ${search.map((bot) => bot.agent).join(" and ")}, so this page can't appear in that search engine.`
+    : answers.length
+      ? `robots.txt blocks ${answers.map((bot) => bot.product).join(", ")}, so those AI tools can't quote this page in answers.`
+      : blocked.length
+        ? "Only AI training bots are blocked. Search engines and AI answer tools can still read this page."
+        : "Every search engine and AI tool we check can read this page.";
+  section.appendChild(el("p", note, "crawler-note"));
+  return section;
+}
+
 export function renderResult(payload) {
   const measured = payload.measured || {};
   const findings = payload.findings || [];
@@ -189,6 +219,8 @@ export function renderResult(payload) {
   grid.appendChild(measure("Title", measured.renderedTitle));
   proof.appendChild(grid);
   body.appendChild(proof);
+
+  body.appendChild(crawlerBlock(payload.crawlers));
 
   const ruledOut = block("False alarms ruled out");
   if (guards.length === 0) ruledOut.appendChild(el("p", "No false alarms to rule out on this page."));

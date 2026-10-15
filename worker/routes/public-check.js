@@ -104,6 +104,16 @@ export async function publicCheckQuotaChecks(ipHash, targetHost) {
   ];
 }
 
+function crawlerSummary(access) {
+  if (!access) return null;
+  return [...(access.search || []), ...(access.ai || [])].map((bot) => ({
+    agent: bot.agent,
+    product: bot.product,
+    purpose: bot.purpose || "search",
+    allowed: bot.allowed
+  }));
+}
+
 export function buildPublicCheckResponse(report) {
   const page = report?.pages?.[0];
   const plan = report?.repairPlan || [];
@@ -140,6 +150,7 @@ export function buildPublicCheckResponse(report) {
     score: typeof report?.score === "number" ? report.score : null,
     projectedScore: report?.projectedScore || null,
     fixPrompt: report ? reportFixPrompt(report) : "",
+    crawlers: crawlerSummary(report?.crawlerAccess),
     measured: {
       staticWordCount: page?.static?.wordCount ?? null,
       renderedWordCount: page?.rendered?.wordCount ?? null,
@@ -317,6 +328,11 @@ export function checkHtml(origin) {
       .result-body { display: grid; gap: 28px; grid-template-columns: minmax(0, 1fr); padding: 24px; }
       .result-body > section, .finding, .snippet-wrap { min-width: 0; }
       .result-body h3 { color: var(--ink-muted); font-size: 12px; font-weight: 600; letter-spacing: .08em; margin: 0 0 12px; text-transform: uppercase; }
+      .crawler-list { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 0; padding: 0; }
+      .crawler-list li { border: 1px solid var(--line); border-radius: 999px; font-size: 13px; padding: 5px 11px; }
+      .crawler-list li.allowed { background: var(--success-surface); border-color: var(--line-accent); color: var(--success); }
+      .crawler-list li.blocked { background: var(--error-surface); border-color: var(--error-line); color: var(--error); font-weight: 600; }
+      .crawler-note { color: var(--ink-muted); font-size: 14px; margin: 10px 0 0; }
       .measure-grid { display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--radius-lg); grid-template-columns: repeat(4, minmax(0, 1fr)); overflow: hidden; }
       .measure { background: var(--card-bg); min-width: 0; padding: 14px 16px; }
       .measure .label { color: var(--ink-muted); font-size: 13px; }

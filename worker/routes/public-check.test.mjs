@@ -4,6 +4,7 @@ import http from "node:http";
 import test from "node:test";
 import { createAuditEngine, publicAuditUrlStatus } from "../../shared/audit-engine.js";
 import { publicUrlError, scoreTone } from "../../shared/public-check/client.js";
+import { robotsAccess } from "../../shared/robots-access.js";
 import { auditUrl } from "../../server/audit/engine.js";
 import { renderedFixture } from "./audits.js";
 import {
@@ -476,9 +477,31 @@ test("public check output is verbatim engine output for the public test page", a
       "each fixable problem carries the points it is worth"
     );
     assert.match(payload.fixPrompt, new RegExp(`scored it ${report.score}/100`), "one AI prompt covers the page");
+    assert.ok(
+      payload.crawlers.every((bot) => bot.allowed),
+      "every crawler may read the page"
+    );
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }
+});
+
+test("public check lists which search and AI crawlers robots.txt blocks", () => {
+  const crawlerAccess = robotsAccess(
+    {
+      ok: true,
+      url: "https://shop.example/robots.txt",
+      body: "User-agent: GPTBot\nDisallow: /\n\nUser-agent: *\nAllow: /\n"
+    },
+    "https://shop.example/"
+  );
+  const { crawlers } = buildPublicCheckResponse({ url: "https://shop.example/", crawlerAccess });
+  const crawler = (agent) => crawlers.find((bot) => bot.agent === agent);
+  assert.equal(crawler("GPTBot").allowed, false);
+  assert.equal(crawler("GPTBot").purpose, "training");
+  assert.equal(crawler("Googlebot").allowed, true);
+  assert.equal(crawler("Googlebot").purpose, "search");
+  assert.equal(buildPublicCheckResponse({ url: "https://shop.example/" }).crawlers, null);
 });
 
 test("public check never reports same-origin 522/523/524 link failures as critical broken links", async () => {
