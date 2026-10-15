@@ -15,6 +15,28 @@ const MUTED = "#6b6f6c";
 const GOOD = "#0f7a56";
 const BAD = "#b42318";
 
+// Downtime alerts are a paid perk: owners who bought a Fix Pack (not refunded)
+// or hold an active paid plan. Everyone else keeps weekly checks only.
+const PAID_OWNER_SQL = (owner) => `(
+  EXISTS (SELECT 1 FROM fix_requests f
+          WHERE f.owner_email = ${owner} AND f.paid_at IS NOT NULL AND f.status != 'refunded'
+            AND f.is_test = 0)
+  OR EXISTS (SELECT 1 FROM offer_entitlements e
+             WHERE e.owner_email = ${owner} AND e.status = 'active' AND e.revoked_at IS NULL)
+)`;
+
+async function uptimeAlertsIncluded(env, ownerEmail) {
+  if (!env.WAITLIST_DB || !ownerEmail) return false;
+  try {
+    const row = await env.WAITLIST_DB.prepare(`SELECT ${PAID_OWNER_SQL("?")} AS included`)
+      .bind(ownerEmail, ownerEmail)
+      .first();
+    return Boolean(row?.included);
+  } catch {
+    return false;
+  }
+}
+
 // Only server errors and no answer at all count as down. A 403 or 404 usually
 // means a bot rule or a moved page, which the weekly audit already reports.
 // Every redirect hop is checked so a public URL can't bounce us to a private one.
@@ -110,7 +132,26 @@ async function sendUptimeEmail(env, schedule, details) {
   }
 }
 
-async function checkSchedule(env, schedule, { fetchImpl, privateAddressResolver, now, appOrigin }) {
+// State older than this came from before a gap in checking (lost paid access,
+// paused checks), so it says nothing about the site now and is dropped.
+const STALE_STATE_MINUTES = 60;
+
+function freshState(schedule, now) {
+  const checkedAt = Date.parse(schedule.uptime_checked_at || "");
+  if (!Number.isFinite(checkedAt) || Date.parse(now) - checkedAt <= STALE_STATE_MINUTES * 60_000) return schedule;
+  return {
+    ...schedule,
+    uptime_status: null,
+    uptime_fail_count: 0,
+    uptime_first_fail_at: null,
+    uptime_down_since: null,
+    uptime_alerted: null,
+    staleState: true
+  };
+}
+
+async function checkSchedule(env, storedSchedule, { fetchImpl, privateAddressResolver, now, appOrigin }) {
+  const schedule = freshState(storedSchedule, now);
   const result = await probe(schedule.target_url, fetchImpl, privateAddressResolver);
   const db = env.WAITLIST_DB;
   // The owner may have paused weekly checks while the probe was in flight.
@@ -142,7 +183,7 @@ async function checkSchedule(env, schedule, { fetchImpl, privateAddressResolver,
 
   // uptime_alerted remembers that the owner was told the site is down. A failed
   // send leaves it unchanged, so the same alert is tried again next tick.
-  let alerted = current.uptime_alerted || null;
+  let alerted = schedule.staleState ? null : current.uptime_alerted || null;
   if (status === "down" && alerted !== "down") {
     const sent = await sendUptimeEmail(env, schedule, { kind: "down", error: result.error, now, appOrigin });
     if (sent !== "failed") alerted = "down";
@@ -192,6 +233,7 @@ async function runUptimeChecks(
     const rows = await env.WAITLIST_DB.prepare(
       `SELECT * FROM audit_schedules
        WHERE status = 'active' AND (uptime_checked_at IS NULL OR uptime_checked_at <= ?)
+         AND ${PAID_OWNER_SQL("audit_schedules.owner_email")}
        ORDER BY uptime_checked_at IS NOT NULL, uptime_checked_at ASC
        LIMIT ?`
     )
@@ -219,4 +261,4 @@ async function runUptimeChecks(
   return outcomes;
 }
 
-export { buildUptimeEmail, runUptimeChecks };
+export { buildUptimeEmail, runUptimeChecks, uptimeAlertsIncluded };

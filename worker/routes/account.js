@@ -3,6 +3,7 @@ import { parseJson, safeHostname } from "../lib/text.js";
 import { betaAccessResponse, betaAccessStatus } from "../lib/auth.js";
 import { repairTableAll } from "../lib/repair-tables.js";
 import { agencyWorkspaceAccessForOwner, monitoringAccessForOwner, offerCatalogForOwner } from "../lib/offers.js";
+import { uptimeAlertsIncluded } from "../lib/uptime.js";
 import {
   auditJobResponse,
   auditScheduleResponse,
@@ -138,6 +139,7 @@ async function getAccountSummary(request, env) {
   const offers = await offerCatalogForOwner(env, access.ownerEmail);
   const monitoring = await monitoringAccessForOwner(env, access.ownerEmail, schedules.length);
   const agencyWorkspace = await agencyWorkspaceAccessForOwner(env, access.ownerEmail);
+  const uptimeAlerts = { included: await uptimeAlertsIncluded(env, access.ownerEmail) };
 
   return jsonNoStore({
     ok: true,
@@ -179,6 +181,7 @@ async function getAccountSummary(request, env) {
     offers,
     monitoring,
     agencyWorkspace,
+    uptimeAlerts,
     nextActions: accountNextActions(recentReports, requests, sites, recentAuditJobs, repairAgent)
   });
 }
