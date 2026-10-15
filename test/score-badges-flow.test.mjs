@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash, randomBytes } from "node:crypto";
 import test from "node:test";
+import { scoreCardHtml, scoreCardVersion } from "../worker/routes/badges.js";
 import { app } from "../worker/index.js";
 import { createTestD1 } from "./support/d1.mjs";
 
@@ -55,7 +56,7 @@ function seed(db) {
   );
 }
 
-const call = (db, path, { method = "GET", session } = {}) =>
+const call = (db, path, { method = "GET", session, env = {} } = {}) =>
   app.fetch(
     new Request(`${ORIGIN}${path}`, {
       method,
@@ -64,7 +65,7 @@ const call = (db, path, { method = "GET", session } = {}) =>
         ...(method === "GET" ? {} : { origin: ORIGIN, "content-type": "application/json" })
       }
     }),
-    { WAITLIST_DB: db },
+    { WAITLIST_DB: db, ...env },
     ctx
   );
 
@@ -98,6 +99,82 @@ test("an owner turns on a badge that shows their latest score and progress publi
   assert.match(html, /\+27 since/);
   assert.match(html, /noindex, follow/);
   assert.match(html, /Check your site free/);
+  assert.match(html, new RegExp(`og:image" content="${ORIGIN}/score/${created.badge.id}/card\\.png\\?v=[a-z0-9]+"`));
+  assert.match(html, /x\.com\/intent\/post\?text=example\.com%20went%20up%2027%20points%20to%2091%2F100/);
+  assert.match(html, /linkedin\.com\/sharing\/share-offsite/);
+});
+
+test("the score share card is cached per score and falls back to the site image without a browser", async () => {
+  const db = createTestD1();
+  seed(db);
+  const session = signIn(db);
+  const { badge } = await (await call(db, "/api/reports/rep-1/badge", { method: "POST", session })).json();
+
+  const fallback = await call(db, `/score/${badge.id}/card.png`);
+  assert.equal(fallback.status, 302);
+  assert.equal(fallback.headers.get("location"), `${ORIGIN}/og-image.png`);
+
+  const stored = new Map();
+  const deleted = [];
+  const REPORTS = {
+    async get(key) {
+      return stored.get(key) || null;
+    },
+    async delete(key) {
+      deleted.push(key);
+    }
+  };
+  const key = `score-cards/${badge.id}.png`;
+  stored.set(key, { body: "OLD", customMetadata: { version: "stale" } });
+  assert.equal(
+    (await call(db, `/score/${badge.id}/card.png`, { env: { REPORTS } })).status,
+    302,
+    "a card from older history is never served"
+  );
+
+  const page = await (await call(db, `/score/${badge.id}`)).text();
+  const version = page.match(/card\.png\?v=([a-z0-9]+)"/)[1];
+  stored.set(key, { body: "PNG", customMetadata: { version } });
+  const cached = await call(db, `/score/${badge.id}/card.png`, { env: { REPORTS } });
+  assert.equal(cached.status, 200);
+  assert.equal(cached.headers.get("content-type"), "image/png");
+  assert.equal(await cached.text(), "PNG");
+
+  const broken = {
+    async get() {
+      throw new Error("R2 down");
+    }
+  };
+  assert.equal(
+    (await call(db, `/score/${badge.id}/card.png`, { env: { REPORTS: broken } })).status,
+    302,
+    "a storage error falls back to the site image"
+  );
+
+  assert.notEqual(
+    scoreCardVersion([
+      { score: 64, created_at: "a" },
+      { score: 91, created_at: "b" }
+    ]),
+    scoreCardVersion([{ score: 91, created_at: "b" }]),
+    "dropping an expired check changes the version"
+  );
+
+  await call(db, `/api/badges/${badge.id}`, { method: "DELETE", session, env: { REPORTS } });
+  assert.deepEqual(deleted, [key], "turning a badge off removes its card");
+
+  assert.equal((await call(db, "/score/00000000000000000000/card.png")).status, 404);
+
+  const card = scoreCardHtml({
+    host: "example.com",
+    points: [
+      { score: 64, created_at: iso(60) },
+      { score: 91, created_at: iso(1) }
+    ]
+  });
+  assert.match(card, /<span class="score">91<\/span>/);
+  assert.match(card, /\+27 points/);
+  assert.match(card, /seofixkit\.com/);
 });
 
 test("badges stay private to their owner and stop working once turned off", async () => {
