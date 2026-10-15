@@ -158,6 +158,7 @@ test.describe("pricing", () => {
     await expect(plans.nth(2)).toContainText("Everything in Site audit, plus:");
     await expect(plans.nth(2)).toContainText("$99");
     await expect(page.getByRole("table")).toContainText("Rerun that confirms each fix");
+    await expect(page.getByRole("table")).toContainText("AI fix prompt for ChatGPT, Claude or Cursor");
 
     await plans.nth(1).getByRole("link", { name: "Create an account" }).click();
     await expect(page).toHaveURL(/\/#get-started$/);
@@ -192,6 +193,11 @@ test.describe("free page check", () => {
           score: 72,
           projectedScore: { fixes: 1, from: 72, to: 84 },
           fixPrompt: "You are a senior web developer and SEO expert. My website is https://example.com/.",
+          crawlers: [
+            { agent: "Googlebot", product: "Google Search", purpose: "search", allowed: true },
+            { agent: "OAI-SearchBot", product: "ChatGPT search", purpose: "answers", allowed: false },
+            { agent: "GPTBot", product: "OpenAI model training", purpose: "training", allowed: false }
+          ],
           measured: {
             staticWordCount: 41,
             renderedWordCount: 1284,
@@ -233,6 +239,11 @@ test.describe("free page check", () => {
     await expect(page.locator("#result").getByText("+12 pts")).toBeVisible();
     await expect(page.locator("#result").getByText("this page could score about 84")).toBeVisible();
     await expect(page.getByRole("button", { name: "Copy AI fix prompt" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Search and AI crawlers" })).toBeVisible();
+    await expect(page.getByLabel("ChatGPT search: blocked by robots.txt")).toBeVisible();
+    await expect(page.locator("#result")).toContainText(
+      "robots.txt blocks ChatGPT search, so those AI tools can't quote this page in answers."
+    );
     await expect(page.getByRole("heading", { name: "“Missing H1” is a false alarm" })).toBeVisible();
     await expect(page.locator("#result").getByRole("link", { name: "Create a free account" })).toHaveAttribute(
       "href",

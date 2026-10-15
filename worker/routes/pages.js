@@ -488,10 +488,16 @@ const PRICING_FEATURES = [
   { label: "Real-browser rendering with evidence", plans: ["check", "audit", "fixpack"] },
   { label: "False alarms filtered out", plans: ["check", "audit", "fixpack"] },
   { label: "Pages per audit", values: { check: "1", audit: "Up to 1,000", fixpack: "Up to 1,000" } },
+  { label: "Score with points gained per fix", plans: ["check", "audit", "fixpack"] },
+  { label: "AI fix prompt for ChatGPT, Claude or Cursor", plans: ["check", "audit", "fixpack"] },
+  { label: "AI crawler access checks (GPTBot, ClaudeBot)", plans: ["check", "audit", "fixpack"] },
   { label: "Saved reports and history", plans: ["audit", "fixpack"] },
   { label: "Repair queue with code to paste", plans: ["audit", "fixpack"] },
   { label: "Weekly monitoring for verified sites", plans: ["audit", "fixpack"] },
   { label: "Developer API and webhooks", plans: ["audit", "fixpack"] },
+  { label: "Client reports with your logo, as link or PDF", plans: ["audit", "fixpack"] },
+  { label: "Score badge and share page", plans: ["audit", "fixpack"] },
+  { label: "Audit widget for your own site", plans: ["audit", "fixpack"] },
   { label: "Guided repair pass on one report", plans: ["fixpack"] },
   { label: "Rerun that confirms each fix", plans: ["fixpack"] }
 ];

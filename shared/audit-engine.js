@@ -3211,9 +3211,9 @@ export const ROOT_PUBLIC_PATHS = [
 export const ROOT_PUBLIC_LASTMODS = {
   "/": "2026-10-15T04:56:18Z",
   "/demo": "2026-10-13T04:43:48Z",
-  "/check": "2026-10-15T05:01:35Z",
+  "/check": "2026-10-15T06:08:03Z",
   "/methodology": "2026-10-13T04:43:48Z",
-  "/pricing": "2026-10-13T04:43:48Z",
+  "/pricing": "2026-10-15T05:58:29Z",
   "/small-business-seo-audit": "2026-10-13T04:43:48Z",
   "/rendered-vs-static-seo-audit": "2026-10-13T04:43:48Z",
   "/ai-answer-readiness": "2026-10-13T04:43:48Z",
