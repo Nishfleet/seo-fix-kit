@@ -1652,3 +1652,10 @@ test("the same problem on several pages counts as one of the top fixes", () => {
   );
   assert.deepEqual(projectedScore(plan, findings), { fixes: 3, from: 70, to: 100 });
 });
+
+test("asking for no top fixes projects nothing", () => {
+  const findings = [{ title: "Noindex found on /pricing", severity: "critical" }];
+  const plan = withScoreGains([{ title: "Noindex found on /pricing" }], findings);
+  assert.deepEqual(distinctFixes(plan, 0), []);
+  assert.equal(projectedScore(plan, findings, undefined, 0), null);
+});

@@ -7,6 +7,7 @@ export function issuePatternKey(title) {
 }
 
 export function distinctFixes(plan = [], limit = 3) {
+  if (!(limit > 0)) return [];
   const seen = new Set();
   const picked = [];
   for (const item of plan) {
