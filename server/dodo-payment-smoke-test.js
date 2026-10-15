@@ -266,6 +266,20 @@ assert.equal(
   ).limit,
   10
 );
+// A paid plan never covers fewer sites than the free beta allowance.
+assert.equal(
+  monitoringAccessFromEntitlements(
+    [
+      {
+        offer_key: OFFER_KEYS.MONITORING,
+        status: "active",
+        limits_json: JSON.stringify({ monitoredSites: 1, cadenceDays: 7 })
+      }
+    ],
+    0
+  ).limit,
+  monitoringAccessFromEntitlements([], 0).limit
+);
 assert.equal(
   repairSprintEligibilityFromProposals([{ executionMode: "generated_proposal", approvalStatus: "pending" }]).status,
   "needs_owner_approval"
