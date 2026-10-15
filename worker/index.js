@@ -40,6 +40,7 @@ import { getDeepHealth } from "./routes/health.js";
 import { isSafeUuid } from "./lib/text.js";
 import { createAdminSession, revokeAdminSession } from "./lib/auth.js";
 import { cleanupExpiredRows } from "./lib/db.js";
+import { runScheduledTasks } from "./lib/scheduled.js";
 import { sendFirstAuditNudges } from "./lib/activation-emails.js";
 import { runUptimeChecks } from "./lib/uptime.js";
 import {
@@ -513,22 +514,28 @@ export { app };
 
 export default {
   async scheduled(_event, env, ctx) {
-    if (env.WAITLIST_DB) {
-      ctx.waitUntil(cleanupExpiredRows(env));
-      ctx.waitUntil(
-        failStaleRunningAuditJobs(env).then(() =>
-          resumeStaleQueuedAuditJobs(env, { appOrigin: "https://seofixkit.com" })
-        )
-      );
-      ctx.waitUntil(runDueAuditSchedules(env));
-      ctx.waitUntil(runUptimeChecks(env));
-      if (String(env.SEOFIXKIT_LARGE_CRAWL_WORKERS_ENABLED || "").toLowerCase() === "true") {
-        ctx.waitUntil(runDueLargeRenderedCrawlWorkers(env));
-      }
-      ctx.waitUntil(sendFirstAuditNudges(env));
-      ctx.waitUntil(sendDailyOpsDigest(env));
-      ctx.waitUntil(sendUrgentOpsAlerts(env));
+    if (!env.WAITLIST_DB) return;
+    const tasks = [
+      ["cleanupExpiredRows", cleanupExpiredRows],
+      [
+        "auditJobs",
+        async (scheduledEnv) => {
+          await failStaleRunningAuditJobs(scheduledEnv);
+          await resumeStaleQueuedAuditJobs(scheduledEnv, { appOrigin: "https://seofixkit.com" });
+        }
+      ],
+      ["runDueAuditSchedules", runDueAuditSchedules],
+      ["runUptimeChecks", runUptimeChecks]
+    ];
+    tasks.push(
+      ["sendFirstAuditNudges", sendFirstAuditNudges],
+      ["sendDailyOpsDigest", sendDailyOpsDigest],
+      ["sendUrgentOpsAlerts", sendUrgentOpsAlerts]
+    );
+    if (String(env.SEOFIXKIT_LARGE_CRAWL_WORKERS_ENABLED || "").toLowerCase() === "true") {
+      tasks.push(["runDueLargeRenderedCrawlWorkers", runDueLargeRenderedCrawlWorkers]);
     }
+    ctx.waitUntil(runScheduledTasks(env, tasks));
   },
 
   async queue(batch, env) {
