@@ -108,3 +108,39 @@ test("the pages table lists every summary and keeps the HTTP status of older rep
   });
   assert.match(legacy, /https:\/\/example\.com\/gone<\/td>\s*<td>404<\/td>/);
 });
+
+test("an older saved report recomputes its projected score from distinct top fixes", async () => {
+  const db = createTestD1();
+  const session = signIn(db);
+  const findings = [
+    { title: "Missing meta description on home", severity: "warning" },
+    { title: "Missing meta description on /about", severity: "warning" },
+    { title: "Noindex found on /pricing", severity: "critical" },
+    { title: "Missing H1 on /blog", severity: "critical" }
+  ];
+  const report = {
+    url: "https://example.com/",
+    score: 70,
+    findings,
+    repairPlan: findings.map((finding) => ({ title: finding.title })),
+    projectedScore: { fixes: 3, from: 70, to: 88 }
+  };
+  db.insert("audit_reports", {
+    id: "example-com-legacyproj01",
+    url: report.url,
+    origin: "https://example.com",
+    score: 70,
+    summary_json: "{}",
+    report_json: JSON.stringify(report),
+    created_at: iso(0),
+    updated_at: iso(0),
+    owner_email: OWNER,
+    owner_session_hash: "s",
+    target_host: "example.com",
+    expires_at: iso(-29)
+  });
+  const response = await call(db, "/api/reports/example-com-legacyproj01", { session });
+  assert.equal(response.status, 200, await response.clone().text());
+  const body = await response.json();
+  assert.deepEqual((body.report || body).projectedScore, { fixes: 3, from: 70, to: 100 });
+});

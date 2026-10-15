@@ -145,7 +145,8 @@ test("a report shows what each fix is worth and hands over ready-to-paste AI fix
   await page.goto(`/beta/reports/${id}`);
   const verdict = page.locator(".verdict-card");
   await expect(verdict.getByText("+12 pts", { exact: true })).toBeVisible();
-  await expect(verdict.getByText("+16 pts · 2 pages").first()).toBeVisible();
+  await expect(verdict.getByText("+16 pts · 2 pages")).toHaveCount(1);
+  await expect(verdict.getByRole("link", { name: "Missing meta description", exact: true })).toBeVisible();
   await expect(verdict.getByText(/score could rise by about 28 points/)).toBeVisible();
   await page.getByRole("button", { name: "Copy AI prompt for the top fixes" }).click();
   await expect(page.getByRole("button", { name: "Copied" })).toBeVisible();

@@ -1,3 +1,5 @@
+import { issuePatternKey } from "./fix-patterns.js";
+
 const MAX_FIELD = 1200;
 
 function clip(value = "", max = MAX_FIELD) {
@@ -20,7 +22,8 @@ function siteLine(report = {}) {
 function problemBlock(item = {}, index = null) {
   const lines = [`${index === null ? "Problem:" : `${index}.`} ${clip(item.title, 200)}`];
   const page = item.pageUrl || item.finalUrl;
-  if (page) lines.push(`Page: ${page}`);
+  if (item.pages?.length > 1) lines.push(`Pages: ${clip(item.pages.join(", "), 600)}`);
+  else if (page) lines.push(`Page: ${page}`);
   const evidence = item.evidence || item.proof;
   if (evidence) lines.push(`What the audit found: ${clip(evidence)}`);
   if (item.why) lines.push(`Why it matters: ${clip(item.why, 400)}`);
@@ -51,9 +54,25 @@ export function findingFixPrompt(finding = {}, report = {}, plan = null) {
 
 export function reportFixPrompt(report = {}, { limit = 5 } = {}) {
   const findings = report.findings || [];
-  const items = (report.repairPlan || []).slice(0, limit).map((plan) => {
+  // The same problem on several pages is one fix, so it takes one slot and lists its pages.
+  const groups = new Map();
+  for (const plan of report.repairPlan || []) {
+    const key = issuePatternKey(plan.title);
+    if (!groups.has(key) && groups.size >= limit) continue;
+    groups.set(key, [...(groups.get(key) || []), plan]);
+  }
+  const items = [...groups.entries()].map(([key, plans]) => {
+    const [plan] = plans;
     const finding = findings.find((item) => item.title === plan.title) || {};
-    return { ...finding, ...plan, evidence: plan.proof || finding.evidence };
+    const item = { ...finding, ...plan, evidence: plan.proof || finding.evidence };
+    if (plans.length < 2) return item;
+    const pages = plans
+      .map((entry) => {
+        const match = findings.find((candidate) => candidate.title === entry.title) || {};
+        return match.pageUrl || match.finalUrl || entry.title.slice(key.length).replace(/^\s*on\s+/i, "");
+      })
+      .filter(Boolean);
+    return { ...item, title: `${key} (${plans.length} pages)`, pages };
   });
   if (!items.length) return "";
   return [

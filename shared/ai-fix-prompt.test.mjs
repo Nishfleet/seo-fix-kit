@@ -53,3 +53,24 @@ test("long evidence is clipped so prompts stay pasteable", () => {
   assert.ok(prompt.length < 2000);
   assert.match(prompt, /…/);
 });
+
+test("the report prompt gives a problem on several pages one slot and lists its pages", () => {
+  const titles = [
+    "Missing meta description on home",
+    "Missing meta description on /about",
+    "Missing meta description on /blog",
+    "Missing meta description on /shop",
+    "Missing meta description on /faq",
+    "Missing H1 on /contact"
+  ];
+  const prompt = reportFixPrompt({
+    url: "https://shop.example/",
+    score: 60,
+    findings: titles.map((title, i) => ({ title, severity: "warning", pageUrl: `https://shop.example/p${i}` })),
+    repairPlan: titles.map((title) => ({ title }))
+  });
+  assert.match(prompt, /Please fix these 2 problems/);
+  assert.match(prompt, /1\. Missing meta description \(5 pages\)/);
+  assert.match(prompt, /Pages: https:\/\/shop\.example\/p0, https:\/\/shop\.example\/p1, .*p4/);
+  assert.match(prompt, /2\. Missing H1 on \/contact/);
+});

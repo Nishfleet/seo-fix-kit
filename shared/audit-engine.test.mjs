@@ -10,6 +10,7 @@ import {
   withScoreGains
 } from "./audit-engine.js";
 import { buildBacklinkAudit } from "./backlink-audit.js";
+import { distinctFixes } from "./fix-patterns.js";
 import { buildCrawlInventory } from "./crawl-inventory.js";
 import { buildLocalSeoAudit } from "./local-seo-audit.js";
 import { buildResourceWaterfall, resourceWaterfallFindings } from "./resource-waterfall.js";
@@ -1627,4 +1628,34 @@ test("each fix shows the points it is worth, grouped across pages, and the top f
   assert.equal("scoreGain" in plan[2], false);
   assert.deepEqual(projectedScore(plan, findings), { fixes: 3, from: 82, to: 100 });
   assert.equal(projectedScore([], findings), null);
+});
+
+test("the same problem on several pages counts as one of the top fixes", () => {
+  const findings = [
+    { title: "Missing meta description on home", severity: "warning" },
+    { title: "Missing meta description on /about", severity: "warning" },
+    { title: "Noindex found on /pricing", severity: "critical" },
+    { title: "Missing H1 on /blog", severity: "critical" }
+  ];
+  const plan = withScoreGains(
+    [
+      { title: "Missing meta description on home" },
+      { title: "Missing meta description on /about" },
+      { title: "Noindex found on /pricing" },
+      { title: "Missing H1 on /blog" }
+    ],
+    findings
+  );
+  assert.deepEqual(
+    distinctFixes(plan).map((item) => item.title),
+    ["Missing meta description on home", "Noindex found on /pricing", "Missing H1 on /blog"]
+  );
+  assert.deepEqual(projectedScore(plan, findings), { fixes: 3, from: 70, to: 100 });
+});
+
+test("asking for no top fixes projects nothing", () => {
+  const findings = [{ title: "Noindex found on /pricing", severity: "critical" }];
+  const plan = withScoreGains([{ title: "Noindex found on /pricing" }], findings);
+  assert.deepEqual(distinctFixes(plan, 0), []);
+  assert.equal(projectedScore(plan, findings, undefined, 0), null);
 });

@@ -1,3 +1,4 @@
+import { distinctFixes } from "../../shared/fix-patterns.js";
 import { escapeHtml } from "../../shared/html.js";
 import { resolvesToPrivateAddress } from "../../shared/url-safety.js";
 import { betaAccessResponse, betaAccessStatus } from "../lib/auth.js";
@@ -102,9 +103,11 @@ export async function revokeAuditWidget(request, env) {
 }
 
 function topProblems(report) {
-  return (report?.repairPlan || [])
-    .slice(0, 3)
-    .map((item) => ({ severity: item.severity, title: item.title, scoreGain: item.scoreGain || 0 }));
+  return distinctFixes(report?.repairPlan || [], 3).map((item) => ({
+    severity: item.severity,
+    title: item.title,
+    scoreGain: item.scoreGain || 0
+  }));
 }
 
 async function notifyOwner(env, origin, widget, lead, problems) {
