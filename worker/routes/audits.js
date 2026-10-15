@@ -877,6 +877,11 @@ async function processAuditJob(env, jobId, context = {}) {
       keywordRows: parseJson(row.keyword_rows_json, []),
       renderedCrawlTarget: row.rendered_crawl_target || 0
     });
+    // The owner may have deleted their account while the audit ran.
+    const stillWanted = await env.WAITLIST_DB.prepare(`SELECT id FROM audit_jobs WHERE id = ? LIMIT 1`)
+      .bind(jobId)
+      .first();
+    if (!stillWanted?.id) return;
     const saved = await saveAuditReportWithContext(
       report,
       env,

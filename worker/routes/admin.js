@@ -21,7 +21,8 @@ import {
   isoSecondsFromNow,
   parseJson
 } from "../lib/text.js";
-import { body, isoDateSchema, number, optionalEmail, parseJsonBody, text, z } from "../lib/validation.js";
+import { body, email, isoDateSchema, number, optionalEmail, parseJsonBody, text, z } from "../lib/validation.js";
+import { deleteAccount, deletionBlockedMessage } from "../lib/account-deletion.js";
 import { adminAccessStatus, adminDeniedJson, createBetaSession, logAdminAction } from "../lib/auth.js";
 import { countRows } from "../lib/db.js";
 import { summarizeAccessEvents } from "../lib/access-events.js";
@@ -40,6 +41,8 @@ import {
 } from "./billing.js";
 
 const blankToUndefined = (value) => (value === "" || value === null ? undefined : value);
+
+const AccountDeletionBody = body({ email: email() });
 
 const AdminBetaSessionBody = body({ ownerEmail: optionalEmail() }, { email: "ownerEmail" });
 
@@ -918,8 +921,24 @@ async function sendDailyOpsDigest(env) {
   }
 }
 
+// Completes a deletion request that came in by email, with the same code as the
+// in-app "Delete account" button. Support confirms the sender owns the address first.
+async function deleteAccountAdmin(request, env) {
+  const admin = await adminAccessStatus(request, env, "delete-account");
+  if (!admin.ok) return adminDeniedJson(admin);
+  if (!env.WAITLIST_DB) return jsonNoStore({ error: "Account storage is not set up on this server." }, 503);
+  const parsed = await parseJsonBody(request, AccountDeletionBody);
+  if (parsed.error) return jsonNoStore(parsed.error, 400);
+  const result = await deleteAccount(env, parsed.data.email, { actor: admin.actorEmail });
+  if (!result.ok)
+    return jsonNoStore({ error: deletionBlockedMessage(result.blockers), blockers: result.blockers }, 409);
+  await logAdminAction(request, env, "delete-account", true, admin.actorEmail, result.deletionId);
+  return jsonNoStore(result);
+}
+
 export {
   createAdminBetaSession,
+  deleteAccountAdmin,
   createInvite,
   exportLeadsCsv,
   fixRequestAdminResponse,

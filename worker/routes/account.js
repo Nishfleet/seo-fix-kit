@@ -1,6 +1,8 @@
 import { json, jsonNoStore } from "../lib/http.js";
-import { parseJson, safeHostname } from "../lib/text.js";
-import { betaAccessResponse, betaAccessStatus } from "../lib/auth.js";
+import { normalizeEmail, parseJson, safeHostname } from "../lib/text.js";
+import { betaAccessResponse, betaAccessStatus, clearSessionCookie } from "../lib/auth.js";
+import { deleteAccount, deletionBlockedMessage } from "../lib/account-deletion.js";
+import { body, parseJsonBody, text } from "../lib/validation.js";
 import { repairTableAll } from "../lib/repair-tables.js";
 import { agencyWorkspaceAccessForOwner, monitoringAccessForOwner, offerCatalogForOwner } from "../lib/offers.js";
 import { uptimeAlertsIncluded } from "../lib/uptime.js";
@@ -418,4 +420,29 @@ async function listReports(request, env) {
   });
 }
 
-export { getAccountSummary, listReports };
+const DeleteAccountBody = body({ confirmEmail: text(254) });
+
+async function deleteOwnAccount(request, env) {
+  const access = await betaAccessStatus(request, env);
+  if (!access.ok) return betaAccessResponse(access);
+  if (access.accessMode === "founder-override") {
+    return jsonNoStore({ error: "Founder sessions can't delete accounts. Use the admin deletion endpoint." }, 403);
+  }
+  const parsed = await parseJsonBody(request, DeleteAccountBody);
+  if (parsed.error) return jsonNoStore(parsed.error, 400);
+  if (normalizeEmail(parsed.data.confirmEmail) !== access.ownerEmail) {
+    return jsonNoStore({ error: "Type your account email exactly to confirm." }, 400);
+  }
+  const result = await deleteAccount(env, access.ownerEmail);
+  if (!result.ok)
+    return jsonNoStore({ error: deletionBlockedMessage(result.blockers), blockers: result.blockers }, 409);
+  const response = jsonNoStore({
+    ok: true,
+    deletedAt: result.deletedAt,
+    paymentRecordsKept: result.paymentRecordsKept
+  });
+  response.headers.append("set-cookie", clearSessionCookie(request));
+  return response;
+}
+
+export { deleteOwnAccount, getAccountSummary, listReports };

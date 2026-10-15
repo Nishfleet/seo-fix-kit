@@ -591,6 +591,7 @@ export {
   preserveFixRequestReports,
   protectedFixRequestForReport,
   protectedRepairExecutionForReport,
+  recordReportBlobDeletionFailure,
   reportJsonForRow,
   reportR2Key,
   saveAuditReport,

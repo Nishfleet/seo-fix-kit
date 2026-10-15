@@ -354,3 +354,44 @@ test("Check again reruns a report and leads with what changed", async ({ page, r
   const width = await page.evaluate(() => document.documentElement.scrollWidth);
   expect(width).toBeLessThanOrEqual(page.viewportSize().width);
 });
+
+test("an owner deletes their account from Billing and their reports go with it", async ({
+  page,
+  request
+}, testInfo) => {
+  const email = uniqueEmail(testInfo, "delete");
+  await page.goto("/beta");
+  await page.getByLabel("Email").fill(email);
+  await typeLikeAPerson(page);
+  await page.getByRole("button", { name: "Email me a sign-in link" }).click();
+  await page.goto(await signInLinkFor(request, email));
+  await expect(page.getByRole("heading", { level: 1, name: "Overview" })).toBeVisible();
+  await request.post("/__e2e/reports", { data: { ownerEmail: email } });
+
+  await page.goto("/beta/billing");
+  const card = page.getByRole("region", { name: "Delete account" });
+  const confirm = card.getByLabel("Type your email to confirm");
+  const button = card.getByRole("button", { name: "Delete account" });
+  await expect(button).toBeDisabled();
+  await confirm.fill("someone-else@example.com");
+  await expect(button).toBeDisabled();
+  await confirm.fill(email);
+  await button.click();
+
+  await expect(page.getByText("Your account and its data were deleted.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Email me a sign-in link" })).toBeVisible();
+  await expect
+    .poll(async () => {
+      const messages = await (await request.get(`/__e2e/emails?to=${encodeURIComponent(email)}`)).json();
+      return messages.at(-1)?.subject || "";
+    })
+    .toMatch(/account was deleted/);
+
+  await page.getByLabel("Email").fill(email);
+  await typeLikeAPerson(page);
+  await page.getByRole("button", { name: "Email me a sign-in link" }).click();
+  await page.goto(await signInLinkFor(request, email));
+  await expect(page.getByRole("heading", { level: 1, name: "Overview" })).toBeVisible();
+  await page.goto("/beta/reports");
+  await expect(page.getByText("No reports yet.")).toBeVisible();
+});
