@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import http from "node:http";
 import test from "node:test";
-import nodeVm from "node:vm";
-import { createAuditEngine } from "../../shared/audit-engine.js";
+import { createAuditEngine, publicAuditUrlStatus } from "../../shared/audit-engine.js";
+import { publicUrlError, scoreTone } from "../../shared/public-check/client.js";
 import { auditUrl } from "../../server/audit/engine.js";
 import { renderedFixture } from "./audits.js";
 import {
@@ -81,21 +82,10 @@ test("engine failures map to visitor copy, never raw browser diagnostics", () =>
   assert.equal(fallback, "The check failed. Try another public URL.");
 });
 
-test("public check page validates the URL client-side before any network round trip", () => {
+test("public check page loads its client script and keeps scheme-less URLs allowed", () => {
   const html = checkHtml(origin);
-  assert.match(html, /function publicUrlError\(value\)/, "the page carries a client-side validator");
-  assert.match(html, /single-label hostname/, "the validator mirrors the server-side public-URL rule");
-  assert.ok(
-    (html.match(/Enter a valid public website URL\./g) || []).length >= 2,
-    "the validator emits the same friendly message the server emits"
-  );
-  const submit = html.match(/form\.addEventListener\("submit"[\s\S]*?finally\s*\{[\s\S]*?\}\)\(\);/);
-  assert.ok(submit, "submit handler present");
-  assert.match(submit[0], /validationError/, "a validation failure short-circuits before the fetch");
-  assert.ok(
-    /if \(validationError\) \{[\s\S]*?return;[\s\S]*?\}/.test(submit[0]),
-    "validation failure returns without fetching"
-  );
+  assert.match(html, /<script type="module" src="https:\/\/seofixkit\.com\/check\.js"><\/script>/);
+  assert.doesNotMatch(html, /<script>\s*\(function/, "no hand-written inline client remains");
   assert.match(
     html,
     /id="url-input" name="url" type="text" inputmode="url"/,
@@ -103,26 +93,21 @@ test("public check page validates the URL client-side before any network round t
   );
 });
 
-test("the page's inline client-side validator actually executes with the server's rules", () => {
-  const html = checkHtml(origin);
-  const served = html.match(/function publicUrlError[\s\S]*?return "";\n {8}}/);
-  assert.ok(served, "the served page includes the full validator function");
-  assert.match(
-    served[0],
-    /:\\\/\\\//,
-    "the served validator regex must keep its escaped slash (a bare // would comment out the rest of the line)"
-  );
-
-  const sandbox = { URL, String };
-  nodeVm.createContext(sandbox);
-  const validator = nodeVm.runInContext(`(${served[0]})`, sandbox);
-
-  for (const input of ["notaurl", "example", "intranet", "http://printer/", "", "https://"]) {
-    assert.equal(validator(input), "Enter a valid public website URL.", `client rejects: ${input}`);
+test("the client-side validator applies the server's public URL rules", () => {
+  for (const input of ["notaurl", "example", "intranet", "http://printer/", "", "https://", "ftp://example.com"]) {
+    assert.equal(publicUrlError(input), "Enter a valid public website URL.", `client rejects: ${input}`);
+    if (input) assert.equal(publicAuditUrlStatus(input).ok, false, `server rejects: ${input}`);
   }
   for (const input of ["example.com", "https://example.com/x", "example.com/about?q=1", "8.8.8.8", "//example.com/a"]) {
-    assert.equal(validator(input), "", `client accepts: ${input}`);
+    assert.equal(publicUrlError(input), "", `client accepts: ${input}`);
   }
+});
+
+test("score tones match the report's colour bands", () => {
+  assert.equal(scoreTone(100), "good");
+  assert.equal(scoreTone(90), "good");
+  assert.equal(scoreTone(72), "ok");
+  assert.equal(scoreTone(49), "bad");
 });
 
 test("public check quota buckets cover per-network and per-site windows without storing the target host", async () => {
@@ -262,7 +247,6 @@ test("public check page is searchable and hands off into a free account", () => 
     /id="url-input" name="url" type="text" inputmode="url"/,
     "the URL input must not block scheme-less entries client-side"
   );
-  assert.match(html, /https:\/\/seofixkit\.com\/api\/public-check/);
   assert.match(html, /no report or URL is stored/i);
   assert.match(html, /short-lived anonymous rate-limit counters/i);
   assert.match(html, /<a class="cta" href="https:\/\/seofixkit\.com\/beta">Create a free account<\/a>/);
@@ -359,13 +343,14 @@ test("public check page labels generated repair markup as a proposed change, nev
   assert.doesNotMatch(html, /exact snippet/i, "the page must not call generated markup an exact snippet");
   assert.doesNotMatch(html, /observed snippet/i, "the page must not call generated markup an observed snippet");
   assert.match(html, /proposed markup change/i, "the panel copy names the block a proposed markup change");
-  assert.match(html, /finding\.proposedMarkup/, "the renderer reads the explicitly named field");
+  const client = fs.readFileSync(new URL("../../shared/public-check/client.js", import.meta.url), "utf8");
+  assert.match(client, /finding\.proposedMarkup/, "the renderer reads the explicitly named field");
   assert.match(
-    html,
+    client,
     /Suggested markup\. Generated for this page, not copied from it/,
     "the code block carries an explicit label before the markup"
   );
-  assert.match(html, /snippet-label/, "the label has a distinct style class");
+  assert.match(html, /\.snippet-label/, "the label has a distinct style class");
 });
 
 test("public check page carries WebPage and truthful FAQ JSON-LD", () => {
@@ -485,6 +470,12 @@ test("public check output is verbatim engine output for the public test page", a
     assert.equal(payload.issues.critical, report.summary.critical);
     assert.ok(payload.nextStep.includes("create a free account"));
     assert.ok(payload.boundary.includes("does not guarantee rankings"));
+    assert.equal(payload.score, report.score, "the check shows the engine's own score");
+    assert.ok(
+      payload.findings.some((finding) => finding.scoreGain > 0),
+      "each fixable problem carries the points it is worth"
+    );
+    assert.match(payload.fixPrompt, new RegExp(`scored it ${report.score}/100`), "one AI prompt covers the page");
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }
