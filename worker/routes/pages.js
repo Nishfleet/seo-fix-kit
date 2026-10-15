@@ -495,11 +495,12 @@ const PRICING_FEATURES = [
   { label: "Repair queue with code to paste", plans: ["audit", "fixpack"] },
   { label: "Weekly monitoring for verified sites", plans: ["audit", "fixpack"] },
   { label: "Developer API and webhooks", plans: ["audit", "fixpack"] },
-  { label: "Client reports with your logo, as link or PDF", plans: ["audit", "fixpack"] },
+  { label: "Client report links and PDFs", plans: ["audit", "fixpack"] },
   { label: "Score badge and share page", plans: ["audit", "fixpack"] },
-  { label: "Audit widget for your own site", plans: ["audit", "fixpack"] },
   { label: "Fix files: code for every page, sitemap, robots.txt, llms.txt", plans: ["fixpack"] },
   { label: "Fix list as a spreadsheet for Jira, Trello or Asana", plans: ["fixpack"] },
+  { label: "Your logo, colours and domain on client reports", plans: ["fixpack"] },
+  { label: "Lead-capture audit widget for your own site", plans: ["fixpack"] },
   { label: "Guided repair pass on one report", plans: ["fixpack"] },
   { label: "Rerun that confirms each fix", plans: ["fixpack"] }
 ];

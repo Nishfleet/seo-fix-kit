@@ -3,6 +3,7 @@ import { escapeHtml } from "../../shared/html.js";
 import { fetchPublicUrl, resolvesToPrivateAddress } from "../../shared/url-safety.js";
 import { emailPreferencesFor } from "./audit-emails.js";
 import { emailSender, sendWorkerEmail } from "./email.js";
+import { hasPaidFixPack, PAID_FIX_PACK_STATUSES } from "./paid-features.js";
 
 const CHECK_EVERY_MINUTES = 14;
 const CHECK_BATCH = 25;
@@ -15,21 +16,26 @@ const MUTED = "#6b6f6c";
 const GOOD = "#0f7a56";
 const BAD = "#b42318";
 
-// Downtime alerts are a paid perk: owners who bought a Fix Pack (not refunded)
-// or hold an active paid plan. Everyone else keeps weekly checks only.
+// Downtime alerts are a paid perk: owners who bought a Fix Pack (not refunded or
+// disputed) or hold an active paid plan. Everyone else keeps weekly checks only.
+// Matches hasPaidFixPack, minus founder override, which SQL can't see.
+const PAID_STATUS_SQL = PAID_FIX_PACK_STATUSES.map((status) => `'${status}'`).join(", ");
 const PAID_OWNER_SQL = (owner) => `(
   EXISTS (SELECT 1 FROM fix_requests f
-          WHERE f.owner_email = ${owner} AND f.paid_at IS NOT NULL AND f.status != 'refunded'
-            AND f.is_test = 0)
+          WHERE f.owner_email = ${owner} AND f.status IN (${PAID_STATUS_SQL}) AND f.is_test = 0)
   OR EXISTS (SELECT 1 FROM offer_entitlements e
              WHERE e.owner_email = ${owner} AND e.status = 'active' AND e.revoked_at IS NULL)
 )`;
 
-async function uptimeAlertsIncluded(env, ownerEmail) {
+async function uptimeAlertsIncluded(env, ownerEmail, access = null) {
   if (!env.WAITLIST_DB || !ownerEmail) return false;
   try {
-    const row = await env.WAITLIST_DB.prepare(`SELECT ${PAID_OWNER_SQL("?")} AS included`)
-      .bind(ownerEmail, ownerEmail)
+    if (await hasPaidFixPack(env, ownerEmail, access)) return true;
+    const row = await env.WAITLIST_DB.prepare(
+      `SELECT EXISTS (SELECT 1 FROM offer_entitlements
+                      WHERE owner_email = ? AND status = 'active' AND revoked_at IS NULL) AS included`
+    )
+      .bind(ownerEmail)
       .first();
     return Boolean(row?.included);
   } catch {

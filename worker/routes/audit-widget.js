@@ -2,6 +2,7 @@ import { distinctFixes } from "../../shared/fix-patterns.js";
 import { escapeHtml } from "../../shared/html.js";
 import { resolvesToPrivateAddress } from "../../shared/url-safety.js";
 import { betaAccessResponse, betaAccessStatus } from "../lib/auth.js";
+import { hasPaidFixPack, paidFeatureLockedResponse } from "../lib/paid-features.js";
 import { sendWorkerEmail } from "../lib/email.js";
 import { json, jsonNoStore, secureHeaders } from "../lib/http.js";
 import { checkQuotaSet, requestIpHash } from "../lib/security.js";
@@ -29,11 +30,15 @@ export function widgetEmbedCode(origin, id) {
   return `<iframe src="${origin}/embed/${id}" title="Free SEO check" width="100%" height="480" loading="lazy" style="border:0;max-width:640px;width:100%"></iframe>`;
 }
 
+// A widget only runs while its owner has a paid Fix Pack.
 async function activeWidget(env, id) {
   if (!WIDGET_ID.test(id || "") || !env.WAITLIST_DB) return null;
-  return env.WAITLIST_DB.prepare(`SELECT id, owner_email FROM audit_widgets WHERE id = ? AND revoked_at IS NULL`)
+  const widget = await env.WAITLIST_DB.prepare(
+    `SELECT id, owner_email FROM audit_widgets WHERE id = ? AND revoked_at IS NULL`
+  )
     .bind(id)
     .first();
+  return widget && (await hasPaidFixPack(env, widget.owner_email)) ? widget : null;
 }
 
 async function ownerBranding(env, ownerEmail) {
@@ -46,13 +51,14 @@ async function ownerBranding(env, ownerEmail) {
   return { name: row?.agency_name || "", color };
 }
 
-async function widgetPayload(env, origin, ownerEmail) {
+async function widgetPayload(env, origin, ownerEmail, unlocked) {
+  if (!unlocked) return { ok: true, unlocked: false, widget: null, leads: [] };
   const widget = await env.WAITLIST_DB.prepare(
     `SELECT id FROM audit_widgets WHERE owner_email = ? AND revoked_at IS NULL`
   )
     .bind(ownerEmail)
     .first();
-  if (!widget) return { ok: true, widget: null, leads: [] };
+  if (!widget) return { ok: true, unlocked: true, widget: null, leads: [] };
   const leads = await env.WAITLIST_DB.prepare(
     `SELECT email, url, score, problems, created_at FROM widget_leads WHERE owner_email = ?
      ORDER BY created_at DESC, id DESC LIMIT ?`
@@ -61,6 +67,7 @@ async function widgetPayload(env, origin, ownerEmail) {
     .all();
   return {
     ok: true,
+    unlocked: true,
     widget: { id: widget.id, url: `${origin}/embed/${widget.id}`, embedCode: widgetEmbedCode(origin, widget.id) },
     leads: (leads.results || []).map((lead) => ({
       email: lead.email,
@@ -76,20 +83,22 @@ export async function getAuditWidget(request, env, _params, origin) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
   if (!env.WAITLIST_DB) return json({ error: "The audit widget is not set up on this server." }, 503);
-  return jsonNoStore(await widgetPayload(env, origin, access.ownerEmail));
+  const unlocked = await hasPaidFixPack(env, access.ownerEmail, access);
+  return jsonNoStore(await widgetPayload(env, origin, access.ownerEmail, unlocked));
 }
 
 export async function createAuditWidget(request, env, _params, origin) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
   if (!env.WAITLIST_DB) return json({ error: "The audit widget is not set up on this server." }, 503);
+  if (!(await hasPaidFixPack(env, access.ownerEmail, access))) return paidFeatureLockedResponse();
   await env.WAITLIST_DB.prepare(
     `INSERT INTO audit_widgets (id, owner_email, created_at) VALUES (?, ?, ?)
      ON CONFLICT(owner_email) DO UPDATE SET revoked_at = NULL`
   )
     .bind(newWidgetId(), access.ownerEmail, new Date().toISOString())
     .run();
-  return jsonNoStore(await widgetPayload(env, origin, access.ownerEmail));
+  return jsonNoStore(await widgetPayload(env, origin, access.ownerEmail, true));
 }
 
 export async function revokeAuditWidget(request, env) {
@@ -99,7 +108,12 @@ export async function revokeAuditWidget(request, env) {
   await env.WAITLIST_DB.prepare(`UPDATE audit_widgets SET revoked_at = ? WHERE owner_email = ? AND revoked_at IS NULL`)
     .bind(new Date().toISOString(), access.ownerEmail)
     .run();
-  return jsonNoStore({ ok: true, widget: null, leads: [] });
+  return jsonNoStore({
+    ok: true,
+    unlocked: await hasPaidFixPack(env, access.ownerEmail, access),
+    widget: null,
+    leads: []
+  });
 }
 
 function topProblems(report) {

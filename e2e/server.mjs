@@ -176,6 +176,24 @@ const server = http.createServer(async (request, response) => {
       return;
     }
 
+    if (url.pathname === "/__e2e/paid-fix-pack" && request.method === "POST") {
+      const { ownerEmail } = JSON.parse((await readBody(request)).toString());
+      const now = new Date().toISOString();
+      env.WAITLIST_DB.insert("fix_requests", {
+        id: `fr-paid-${createHash("sha256").update(ownerEmail).digest("hex").slice(0, 12)}`,
+        report_id: "acme-widgets-example-paid",
+        owner_email: ownerEmail,
+        target_url: "https://acme-widgets.example/",
+        target_host: "acme-widgets.example",
+        status: "paid",
+        created_at: now,
+        updated_at: now
+      });
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end(JSON.stringify({ ok: true }));
+      return;
+    }
+
     if (url.pathname === "/__e2e/reports" && request.method === "POST") {
       const { ownerEmail, score, daysAgo = 0, reportDelta } = JSON.parse((await readBody(request)).toString());
       const id = `acme-widgets-example-${createHash("sha256").update(`${ownerEmail}:${daysAgo}`).digest("hex").slice(0, 12)}`;

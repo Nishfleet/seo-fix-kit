@@ -955,6 +955,16 @@ a {
   padding: 16px;
 }
 
+.client-report-locked p {
+  color: var(--ink-soft);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.client-report-locked .app-button-secondary {
+  justify-self: start;
+}
+
 .client-report-card-head {
   align-items: center;
   display: flex;

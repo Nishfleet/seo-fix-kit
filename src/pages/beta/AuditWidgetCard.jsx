@@ -14,6 +14,7 @@ export function AuditWidgetCard() {
   const turnOn = useMutation({ mutationFn: enableAuditWidget, onSuccess });
   const turnOff = useMutation({ mutationFn: disableAuditWidget, onSuccess });
   const widget = widgetQuery.data?.widget || null;
+  const locked = widgetQuery.data?.unlocked === false;
   const leads = widgetQuery.data?.leads || [];
   const error = turnOn.error || turnOff.error;
 
@@ -25,9 +26,17 @@ export function AuditWidgetCard() {
           <p className="app-card-subtle">
             Put a free SEO check on your own site. Visitors enter their site and email, see their score and top
             problems, and you get the lead by email. It uses your report branding.
+            {locked && " Included with the Fix Pack: buy one on any report with open problems to turn it on."}
           </p>
         </div>
-        {widgetQuery.isSuccess && !widget && (
+        {locked && (
+          <div className="app-card-actions">
+            <a className="app-button-secondary" href="/pricing#plans">
+              See what the Fix Pack includes
+            </a>
+          </div>
+        )}
+        {widgetQuery.isSuccess && !widget && !locked && (
           <div className="app-card-actions">
             <button className="app-button" disabled={turnOn.isPending} onClick={() => turnOn.mutate()} type="button">
               {turnOn.isPending ? "Turning on…" : "Get the widget"}
