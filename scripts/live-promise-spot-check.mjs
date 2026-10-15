@@ -157,7 +157,7 @@ export function publicPageSpotChecks(baseUrl) {
       isPage: true,
       acceptStatuses: [200],
       expectations: [
-        { reason: "pricing headline", match: "Audits are free. Fixes are $99, once." },
+        { reason: "pricing headline", match: "Audits are free. Fixes are $99 per report." },
         { reason: "fix pack offer", match: "Fix Pack" },
         { reason: "public fix pack price", match: "$99.00 one-time" },
         {

@@ -27,6 +27,7 @@ import {
   serveScoreCard,
   showScorePage
 } from "./routes/badges.js";
+import { downloadFixKit, getFixKit } from "./routes/fix-kit.js";
 import {
   createAuditWidget,
   getAuditWidget,
@@ -369,6 +370,8 @@ app.get("/r/:id", route(getClientReport));
 
 const badgeRoute = (handler) => (c) => handler(c.req.raw, c.env, c.req.param(), originOf(c), executionContext(c));
 app.get("/api/reports/:id/badge", badgeRoute(getScoreBadgeForReport));
+app.get("/api/reports/:id/fix-kit", badgeRoute(getFixKit));
+app.get("/api/reports/:id/fix-kit.zip", badgeRoute(downloadFixKit));
 app.post("/api/reports/:id/badge", badgeRoute(createScoreBadge));
 app.delete("/api/badges/:id", badgeRoute(revokeScoreBadge));
 app.get("/badge/:file{[a-f0-9]+\\.svg}", badgeRoute(serveBadgeSvg));

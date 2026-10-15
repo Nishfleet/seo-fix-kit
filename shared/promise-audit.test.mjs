@@ -2472,7 +2472,7 @@ test("README anonymous-check claim keeps the deployed copy locked to the live sp
     { path: "/demo", copy: "See which warnings a real browser rules out." },
     { path: "/demo", copy: "an exact snippet when the engine can generate one" },
     { path: "/methodology", copy: "What it does not do" },
-    { path: "/pricing", copy: "Audits are free. Fixes are $99, once." },
+    { path: "/pricing", copy: "Audits are free. Fixes are $99 per report." },
     { path: "/pricing", copy: "$99.00 one-time" },
     { path: "/pricing", copy: "a paid plan is not on sale yet" }
   ]) {

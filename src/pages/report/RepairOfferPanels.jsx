@@ -11,6 +11,7 @@ import {
 } from "../../fix-pack-checkout.js";
 import { monitoringCheckoutErrorOutcome, monitoringCheckoutOutcome } from "../../monitoring-checkout.js";
 import { usePricingPreview } from "../../hooks/usePricingPreview.js";
+import { FixKitIncludes } from "./FixKitPanel.jsx";
 import { beforeAfterText, formatDate } from "../../lib/format.js";
 import { proposalStatusLabel, checkoutMessage, statusLabel } from "../../lib/labels.js";
 import { queryKeys } from "../../lib/queries.js";
@@ -177,7 +178,7 @@ export function RepairProposalPanel({ reportId, initialProposals = [], repairSpr
         <div className={`repair-sprint-strip ${currentRepairSprint.status}`}>
           <div>
             <span className="status-pill">Repair Sprint</span>
-            <strong>{currentRepairSprint.priceRange}</strong>
+            {currentRepairSprint.checkoutLive && <strong>Price shown at checkout</strong>}
           </div>
           <p>{currentRepairSprint.message}</p>
           {currentRepairSprint.checkoutLive && (
@@ -289,13 +290,17 @@ export function FixQuotePanel({ report, hasPriorityFixes }) {
     <aside className="paid-panel">
       <div>
         <p className="beta-eyebrow">{hasPriorityFixes ? "Fix Pack" : "Next step"}</p>
-        <h3>{hasPriorityFixes ? "Get a guided repair pass for this report" : "Nothing here needs a Fix Pack"}</h3>
+        <h3>
+          {hasPriorityFixes
+            ? "Get every fix ready to ship, plus a guided repair pass"
+            : "Nothing here needs a Fix Pack"}
+        </h3>
         {hasPriorityFixes && (
           <div className={`price-preview ${pricing.status}`}>
             <strong>{priceLabel}</strong>
             <span>
               {pricing.status === "available"
-                ? "One-time payment through Dodo Payments."
+                ? "One-time, for this report. Local tax included. Paid through Dodo Payments."
                 : pricing.status === "loading"
                   ? "Checking the current price."
                   : "Checkout opens once the price loads."}
@@ -304,9 +309,10 @@ export function FixQuotePanel({ report, hasPriorityFixes }) {
         )}
         <p>
           {hasPriorityFixes
-            ? "One guided repair pass on this report’s problems, then one rerun to check the fixes. We don’t guarantee rankings or traffic."
+            ? "Download every fix as files your developer or AI tool can use today. Then we go through the fixes with you and rerun the audit to show what got fixed. We don’t guarantee rankings or traffic."
             : "Rerun the audit after you change content or templates."}
         </p>
+        {hasPriorityFixes && <FixKitIncludes reportId={report.id} />}
         {hasPriorityFixes && selectedRepair?.title && (
           <p className="quiet-note">
             {selectedRepairIsLive ? "Starts with" : "Top problem"}: {selectedRepair.title}
