@@ -20,6 +20,9 @@ export const DODO_DISPUTE_EVENTS = new Set([
   "dispute.lost"
 ]);
 
+// The merchant won, or the customer withdrew: the payment stands again.
+export const DODO_DISPUTE_RESOLVED_EVENTS = new Set(["dispute.won", "dispute.cancelled", "dispute.expired"]);
+
 export const DODO_SUBSCRIPTION_ACTIVE_EVENTS = new Set([
   "subscription.active",
   "subscription.plan_changed",
@@ -190,6 +193,7 @@ export function extractDodoPayment(payment = {}) {
     productQuantity: productItems.reduce((sum, item) => sum + item.quantity, 0),
     amount: numberOrZero(payment.total_amount ?? payment.amount_total ?? payment.amount),
     currency: normalizeCurrency(payment.currency),
+    refundReason: firstText(payment.reason, payment.refund_reason, payment.refundReason).slice(0, 500),
     refundStatus: String(payment.refund_status || payment.refundStatus || "").toLowerCase(),
     isPartialRefund: Boolean(payment.is_partial || payment.isPartial),
     status: String(payment.status || "").toLowerCase()

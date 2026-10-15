@@ -84,6 +84,8 @@ export function checkoutMessage(status, checkoutReturned) {
   if (status === "delivered") return "Your repair pass is done. Open the delivery and rerun links below.";
   if (status === "payment_failed") return "Payment didn’t go through. You can open checkout again from this report.";
   if (status === "refunded") return "This Fix Pack was refunded.";
+  if (status === "refund_failed")
+    return "Your refund didn’t go through yet. Email support@seofixkit.com and we’ll make sure it reaches you.";
   if (status === "disputed") return "This payment is disputed and under review by support.";
   if (checkoutReturned) return "Back from checkout. Payment confirmation from Dodo Payments can take a minute.";
   return "Checkout is open for this report.";
