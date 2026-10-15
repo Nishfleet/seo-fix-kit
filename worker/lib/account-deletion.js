@@ -1,22 +1,34 @@
 import { isEmailConfigured } from "../../shared/fulfillment.js";
+import { CHECKOUT_URL_TTL_HOURS } from "../routes/billing.js";
 import { recordReportBlobDeletionFailure } from "./report-data.js";
 import { sendWorkerEmail } from "./email.js";
 import { sha256Hex } from "./security.js";
-import { cleanText, normalizeEmail } from "./text.js";
+import { cleanText, isoSecondsFromNow, normalizeEmail } from "./text.js";
 
 // Deletes one account and everything stored for it. Payment records the merchant
-// of record and tax law need for reconciliation are kept with every personal field
-// cleared and the owner replaced by a random pseudonym; every other row is deleted.
+// of record and tax law need for reconciliation are kept with only the accounting
+// fields (amounts, currency, dates, provider payment and refund ids, status) and the
+// owner replaced by a random pseudonym; every other row is deleted.
 
 // Fix Pack requests in these states still owe the customer a repair, a refund or a
 // dispute answer, so the account stays until they settle.
 const OPEN_FIX_REQUEST_STATUSES = ["paid", "in_progress", "refund_failed", "disputed"];
 
-// A request that never reached checkout has no payment trail and is deleted outright.
-const UNPAID_FIX_REQUEST = `status = 'new'
-  AND COALESCE(checkout_session_id, '') = ''
-  AND COALESCE(payment_id, '') = ''
+// Money moved for a request: a recorded payment, refund or dispute. Only these are
+// kept; a request without any (new, checkout_created, payment_failed, ...) is deleted.
+const UNPAID_FIX_REQUEST = `paid_at IS NULL
+  AND refunded_at IS NULL
+  AND COALESCE(refund_id, '') = ''
+  AND disputed_at IS NULL
+  AND COALESCE(dispute_event, '') = ''
   AND NOT EXISTS (SELECT 1 FROM fix_request_payments p WHERE p.fix_request_id = fix_requests.id)`;
+
+// A checkout opened within the window the app itself treats as live (it reuses the
+// checkout URL for CHECKOUT_URL_TTL_HOURS) can still be paid, so it blocks deletion;
+// an older one has been abandoned and is deleted with the account.
+function liveCheckoutCutoff() {
+  return isoSecondsFromNow(-CHECKOUT_URL_TTL_HOURS * 60 * 60);
+}
 
 const REDACTED = "[deleted account]";
 const R2_DELETE_CHUNK = 1000;
@@ -26,7 +38,8 @@ const BLOCKER_MESSAGES = {
   open_fix_pack:
     "A Fix Pack on this account is paid, in progress, or has an open refund or dispute. Delete the account once it is delivered or refunded, or email support@seofixkit.com.",
   active_subscription:
-    "This account has a Proof Monitoring subscription. Cancel it first (email support@seofixkit.com if you need help), then delete the account."
+    "This account has a Proof Monitoring subscription. Cancel it first (email support@seofixkit.com if you need help), then delete the account.",
+  open_checkout: `This account has a checkout that is still open. Finish the payment, or wait for the checkout to expire (${CHECKOUT_URL_TTL_HOURS} hours after it was opened), then delete the account.`
 };
 
 function deletionBlockedMessage(blockers = []) {
@@ -40,7 +53,9 @@ function deletionBlockedMessage(blockers = []) {
 
 async function accountDeletionBlockers(env, ownerEmail) {
   const placeholders = OPEN_FIX_REQUEST_STATUSES.map(() => "?").join(", ");
-  const [openRequests, subscriptions] = await Promise.all([
+  const now = new Date().toISOString();
+  const cutoff = liveCheckoutCutoff();
+  const [openRequests, subscriptions, fixPackCheckouts, monitoringCheckouts] = await Promise.all([
     env.WAITLIST_DB.prepare(
       `SELECT COUNT(*) AS count FROM fix_requests
        WHERE owner_email = ? AND is_test = 0 AND status IN (${placeholders})`
@@ -52,36 +67,55 @@ async function accountDeletionBlockers(env, ownerEmail) {
        WHERE owner_email = ? AND source = 'dodo_subscription' AND revoked_at IS NULL`
     )
       .bind(ownerEmail)
+      .first(),
+    // An unpaid Fix Pack whose checkout is being opened or is still payable.
+    env.WAITLIST_DB.prepare(
+      `SELECT COUNT(*) AS count FROM fix_requests
+       WHERE owner_email = ? AND is_test = 0 AND ${UNPAID_FIX_REQUEST}
+         AND (
+           checkout_lock_until > ?
+           OR (COALESCE(checkout_session_id, '') != '' AND checkout_created_at > ?)
+         )`
+    )
+      .bind(ownerEmail, now, cutoff)
+      .first(),
+    // A Proof Monitoring checkout being opened or still payable, unless a subscription
+    // has already been recorded since it was opened.
+    env.WAITLIST_DB.prepare(
+      `SELECT COUNT(*) AS count FROM monitoring_checkout_sessions s
+       WHERE s.owner_email = ?
+         AND (
+           s.lock_until > ?
+           OR (
+             COALESCE(s.checkout_session_id, '') != ''
+             AND s.checkout_created_at > ?
+             AND NOT EXISTS (
+               SELECT 1 FROM offer_entitlements e
+               WHERE e.owner_email = s.owner_email AND e.source = 'dodo_subscription'
+                 AND e.updated_at >= s.checkout_created_at
+             )
+           )
+         )`
+    )
+      .bind(ownerEmail, now, cutoff)
       .first()
   ]);
   const blockers = [];
   if (Number(openRequests?.count || 0)) blockers.push("open_fix_pack");
   if (Number(subscriptions?.count || 0)) blockers.push("active_subscription");
+  if (Number(fixPackCheckouts?.count || 0) || Number(monitoringCheckouts?.count || 0)) blockers.push("open_checkout");
   return blockers;
 }
 
-async function reportBlobKeys(env, ownerEmail) {
-  const [reports, shares] = await Promise.all([
-    env.WAITLIST_DB.prepare(
-      `SELECT id, CASE WHEN substr(report_json, 1, 3) = 'r2:' THEN substr(report_json, 4) ELSE '' END AS blob_key
-       FROM audit_reports
-       WHERE owner_email = ?`
-    )
-      .bind(ownerEmail)
-      .all(),
-    env.WAITLIST_DB.prepare(
-      `SELECT id FROM report_share_links
-       WHERE owner_email = ? OR report_id IN (SELECT id FROM audit_reports WHERE owner_email = ?)`
-    )
-      .bind(ownerEmail, ownerEmail)
-      .all()
-  ]);
+// Report files to delete, from the rows the deletion batch itself removed, so a report
+// saved while the deletion was being prepared is not missed.
+function reportBlobKeys(reportRows = [], shareRows = []) {
   const keys = [];
-  for (const row of reports.results || []) {
+  for (const row of reportRows) {
     if (row.blob_key) keys.push({ reportId: row.id, key: row.blob_key });
     keys.push({ reportId: row.id, key: `report-pdfs/owner/${row.id}.pdf` });
   }
-  for (const row of shares.results || []) keys.push({ reportId: "", key: `report-pdfs/shares/${row.id}.pdf` });
+  for (const row of shareRows) keys.push({ reportId: "", key: `report-pdfs/shares/${row.id}.pdf` });
   return keys;
 }
 
@@ -93,8 +127,18 @@ function deletionStatements(env, ownerEmail, pseudonym, now, loginBucketHash) {
   const unpaidFixRequests = `SELECT id FROM fix_requests WHERE owner_email = ? AND ${UNPAID_FIX_REQUEST}`;
   const ownedCrawls = "SELECT id FROM large_crawl_jobs WHERE owner_email = ?";
   const e = ownerEmail;
+  const shareLinks = run(
+    `DELETE FROM report_share_links WHERE owner_email = ? OR report_id IN (${ownedReports}) RETURNING id`,
+    e,
+    e
+  );
+  const reports = run(
+    `DELETE FROM audit_reports WHERE owner_email = ?
+     RETURNING id, CASE WHEN substr(report_json, 1, 3) = 'r2:' THEN substr(report_json, 4) ELSE '' END AS blob_key`,
+    e
+  );
 
-  return [
+  const statements = [
     // Traces of this person inside other accounts.
     run(`UPDATE issue_collaboration SET assignee_email = NULL WHERE assignee_email = ?`, e),
     run(`UPDATE issue_collaboration SET updated_by_email = NULL WHERE updated_by_email = ?`, e),
@@ -114,7 +158,7 @@ function deletionStatements(env, ownerEmail, pseudonym, now, loginBucketHash) {
     run(`DELETE FROM repair_agent_actions WHERE owner_email = ? OR report_id IN (${ownedReports})`, e, e),
     run(`DELETE FROM repair_queue_items WHERE owner_email = ? OR report_id IN (${ownedReports})`, e, e),
     run(`DELETE FROM issue_collaboration WHERE owner_email = ? OR report_id IN (${ownedReports})`, e, e),
-    run(`DELETE FROM report_share_links WHERE owner_email = ? OR report_id IN (${ownedReports})`, e, e),
+    shareLinks,
     run(`DELETE FROM report_branding WHERE owner_email = ?`, e),
     run(`DELETE FROM report_domains WHERE owner_email = ?`, e),
     run(`DELETE FROM score_badges WHERE owner_email = ?`, e),
@@ -147,20 +191,23 @@ function deletionStatements(env, ownerEmail, pseudonym, now, loginBucketHash) {
     run(`DELETE FROM api_webhooks WHERE owner_email = ?`, e),
     run(`DELETE FROM api_tokens WHERE owner_email = ?`, e),
 
-    // Payments: unpaid requests go; paid ones stay with personal fields cleared.
+    // Payments: requests without payment evidence go with their children; paid ones
+    // keep only their accounting fields.
     run(`DELETE FROM fix_request_events WHERE fix_request_id IN (${unpaidFixRequests})`, e),
     run(`DELETE FROM fix_request_notifications WHERE fix_request_id IN (${unpaidFixRequests})`, e),
+    run(`DELETE FROM dodo_webhook_events WHERE fix_request_id IN (${unpaidFixRequests})`, e),
     run(`DELETE FROM fix_requests WHERE owner_email = ? AND ${UNPAID_FIX_REQUEST}`, e),
     run(
       `UPDATE fix_request_events
-       SET actor_email = NULL, detail_json = NULL, reason = REPLACE(reason, ?, '${REDACTED}')
+       SET actor_email = NULL, detail_json = NULL, reason = NULL
        WHERE fix_request_id IN (${ownedFixRequests})`,
-      e,
       e
     ),
     run(`UPDATE fix_request_events SET actor_email = NULL WHERE actor_email = ?`, e),
     run(
-      `UPDATE fix_request_notifications SET recipient_email = NULL, error = NULL WHERE fix_request_id IN (${ownedFixRequests})`,
+      `UPDATE fix_request_notifications
+       SET recipient_email = NULL, error = NULL, provider_message_id = NULL
+       WHERE fix_request_id IN (${ownedFixRequests})`,
       e
     ),
     run(`UPDATE fix_request_notifications SET recipient_email = NULL WHERE recipient_email = ?`, e),
@@ -173,18 +220,25 @@ function deletionStatements(env, ownerEmail, pseudonym, now, loginBucketHash) {
       e
     ),
     run(
+      // Report ids start with the site's host, so they are replaced too.
       `UPDATE fix_requests
        SET owner_email = ?,
+           report_id = 'deleted-report:' || id,
+           final_report_id = NULL,
            payment_customer_email = NULL,
            note = NULL,
            customer_note = NULL,
            admin_note = NULL,
-           status_reason = REPLACE(status_reason, ?, '${REDACTED}'),
-           refund_reason = REPLACE(refund_reason, ?, '${REDACTED}'),
+           assigned_to = NULL,
+           status_reason = NULL,
+           refund_reason = NULL,
            target_url = '',
            target_host = '',
+           score = NULL,
+           issue_count = NULL,
            checkout_url = NULL,
            checkout_repair_json = NULL,
+           checkout_lock_until = NULL,
            before_after_summary_json = NULL,
            delivery_url = NULL,
            notification_error = NULL,
@@ -192,8 +246,6 @@ function deletionStatements(env, ownerEmail, pseudonym, now, loginBucketHash) {
            updated_at = ?
        WHERE owner_email = ?`,
       pseudonym,
-      e,
-      e,
       now,
       e
     ),
@@ -222,8 +274,9 @@ function deletionStatements(env, ownerEmail, pseudonym, now, loginBucketHash) {
     run(`UPDATE admin_audit_log SET actor_email = NULL WHERE actor_email = ?`, e),
 
     // The reports themselves go last: the statements above select through them.
-    run(`DELETE FROM audit_reports WHERE owner_email = ?`, e)
+    reports
   ];
+  return { statements, shareLinks, reports };
 }
 
 async function deleteBlobs(env, keys) {
@@ -300,11 +353,22 @@ async function deleteAccount(env, rawEmail, { actor = "account-owner", notify = 
   const deletionId = crypto.randomUUID();
   const pseudonym = `deleted-account:${deletionId}`;
   const now = new Date().toISOString();
-  const blobKeys = await reportBlobKeys(env, ownerEmail);
-  const reportCount = new Set(blobKeys.filter((entry) => entry.reportId).map((entry) => entry.reportId)).size;
-  const statements = deletionStatements(env, ownerEmail, pseudonym, now, await sha256Hex(ownerEmail));
+  const { statements, shareLinks, reports } = deletionStatements(
+    env,
+    ownerEmail,
+    pseudonym,
+    now,
+    await sha256Hex(ownerEmail)
+  );
   const results = await env.WAITLIST_DB.batch(statements);
-  const rowsChanged = results.reduce((total, result) => total + Number(result?.meta?.changes || 0), 0);
+  const returned = (statement) => results[statements.indexOf(statement)]?.results || [];
+  const reportRows = returned(reports);
+  const blobKeys = reportBlobKeys(reportRows, returned(shareLinks));
+  const reportCount = reportRows.length;
+  const rowsChanged = results.reduce(
+    (total, result) => total + (Number(result?.meta?.changes || 0) || Number(result?.results?.length || 0)),
+    0
+  );
   const kept = await env.WAITLIST_DB.prepare(`SELECT COUNT(*) AS count FROM fix_requests WHERE owner_email = ?`)
     .bind(pseudonym)
     .first();

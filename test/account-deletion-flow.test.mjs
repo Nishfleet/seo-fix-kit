@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import test from "node:test";
 import worker from "../worker/index.js";
+import { deleteAccount } from "../worker/lib/account-deletion.js";
+import { processAuditJob } from "../worker/routes/audits.js";
 import { createTestD1 } from "./support/d1.mjs";
 
 const ORIGIN = "https://seofixkit.test";
@@ -409,7 +411,13 @@ function seedEverything(world) {
     payment_amount: 9900,
     payment_currency: "USD",
     payment_customer_email: e,
-    refund_reason: `requested by ${e}`,
+    refund_reason: "Lee Leaver changed their mind",
+    status_reason: "Lee Leaver asked for the homepage first",
+    final_report_id: "leaver-example-11111111-1111-4111-8111-111111111111",
+    assigned_to: "ops",
+    score: 70,
+    issue_count: 4,
+    delivery_url: `https://${host}/fixed`,
     created_at: NOW,
     updated_at: NOW
   });
@@ -439,6 +447,7 @@ function seedEverything(world) {
     event: "status_changed",
     actor_type: "customer",
     actor_email: e,
+    reason: "Lee Leaver phoned support",
     detail_json: JSON.stringify({ email: e }),
     created_at: NOW
   });
@@ -457,6 +466,9 @@ function seedEverything(world) {
     recipient_type: "customer",
     recipient_email: e,
     status: "sent",
+    provider: "cloudflare",
+    provider_message_id: "msg-to-lee-leaver",
+    error: "Lee Leaver mailbox full",
     created_at: NOW
   });
   db.insert("dodo_webhook_events", {
@@ -585,6 +597,52 @@ function seedEverything(world) {
   });
 }
 
+// What a retained Fix Pack may still hold after its owner is deleted: money, dates,
+// provider ids and status. Everything else must be NULL or empty.
+const FIX_REQUEST_ACCOUNTING_COLUMNS = [
+  "id",
+  "report_id",
+  "owner_email",
+  "status",
+  "created_at",
+  "updated_at",
+  "checkout_session_id",
+  "checkout_created_at",
+  "product_id",
+  "payment_id",
+  "paid_at",
+  "in_progress_at",
+  "delivered_at",
+  "last_notification_at",
+  "is_test",
+  "due_at",
+  "next_update_at",
+  "payment_amount",
+  "payment_currency",
+  "dodo_business_id",
+  "dodo_brand_id",
+  "refund_id",
+  "refund_amount",
+  "refund_currency",
+  "refunded_at",
+  "dispute_event",
+  "disputed_at",
+  "delivery_notified_at",
+  "expected_amount",
+  "expected_currency",
+  "pre_dispute_status"
+];
+
+function assertOnlyAccountingFields(db, table, allowed) {
+  const allowedSet = new Set(allowed);
+  for (const row of db.rows(`SELECT * FROM ${table}`)) {
+    for (const [column, value] of Object.entries(row)) {
+      if (value === null || value === "" || allowedSet.has(column)) continue;
+      assert.fail(`${table}.${column} still holds ${JSON.stringify(value)} after deletion`);
+    }
+  }
+}
+
 function tables(db) {
   return db
     .rows("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
@@ -685,6 +743,31 @@ test("a signed-in user deletes their account and every trace of it, keeping anon
   assert.equal(kept.customer_note, null);
   assert.equal(kept.target_url, "");
   assert.equal(kept.checkout_url, null);
+  assert.equal(kept.report_id, "deleted-report:fix-paid-leaver", "report ids start with the site's host");
+  assertOnlyAccountingFields(db, "fix_requests", FIX_REQUEST_ACCOUNTING_COLUMNS);
+  assertOnlyAccountingFields(db, "fix_request_events", ["id", "fix_request_id", "event", "actor_type", "created_at"]);
+  assertOnlyAccountingFields(db, "fix_request_notifications", [
+    "id",
+    "fix_request_id",
+    "event",
+    "recipient_type",
+    "status",
+    "provider",
+    "created_at"
+  ]);
+  assertOnlyAccountingFields(db, "dodo_webhook_events", [
+    "webhook_id",
+    "event_type",
+    "payment_id",
+    "fix_request_id",
+    "status",
+    "payload_hash",
+    "received_count",
+    "first_received_at",
+    "last_received_at",
+    "created_at",
+    "updated_at"
+  ]);
   assert.equal(db.rows("SELECT * FROM fix_request_payments").length, 1);
   const [webhook] = db.rows("SELECT * FROM dodo_webhook_events");
   assert.equal(webhook.payload_json, null);
@@ -818,4 +901,328 @@ test("support completes an emailed deletion request with the same code", async (
   assert.equal(audit.length, 1);
   assert.equal(audit[0].id, response.json.deletionId);
   assert.equal(sent.length, 1);
+});
+
+// --- Audits that finish while the account is being deleted ---
+
+const JOB_ID = "22222222-2222-4222-8222-222222222222";
+
+// Stands in for the browser crawl: a finished one-page audit of the leaver's site.
+async function fakeAudit(url) {
+  const origin = new URL(url).origin;
+  return {
+    url,
+    origin,
+    score: 72,
+    summary: { totalFindings: 1, pagesCrawled: 1 },
+    pages: [{ url, status: 200, title: "Leaver plumbing" }],
+    findings: [{ id: "missing-description", title: "Missing meta description", severity: "medium", urls: [url] }]
+  };
+}
+
+function seedRunningAudit(db) {
+  db.insert("audit_jobs", {
+    id: JOB_ID,
+    owner_email: TARGET,
+    owner_session_hash: "session-hash",
+    access_mode: "self-serve",
+    target_url: "https://leaver.example/",
+    target_host: "leaver.example",
+    max_pages: 2,
+    status: "queued",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  });
+}
+
+// Runs `action` just before the first statement whose SQL contains `marker` executes.
+function beforeStatement(db, marker, action) {
+  const prepare = db.prepare.bind(db);
+  let fired = false;
+  db.prepare = (sql) => {
+    const statement = prepare(sql);
+    if (fired || !sql.includes(marker)) return statement;
+    const bind = statement.bind.bind(statement);
+    statement.bind = (...values) => {
+      const bound = bind(...values);
+      const run = bound.run.bind(bound);
+      bound.run = async () => {
+        if (!fired) {
+          fired = true;
+          await action();
+        }
+        return run();
+      };
+      return bound;
+    };
+    return statement;
+  };
+}
+
+test("an audit that finishes normally saves its report and emails the owner", async () => {
+  const { db, env, sent, REPORTS } = makeWorld();
+  seedRunningAudit(db);
+  await processAuditJob(env, JOB_ID, { appOrigin: ORIGIN, runAudit: fakeAudit });
+  const [report] = db.rows("SELECT id, report_json FROM audit_reports WHERE owner_email = ?", TARGET);
+  assert.ok(report, "the control run must save a report");
+  assert.ok(REPORTS.objects.has(report.report_json.slice(3)));
+  assert.equal(db.rows("SELECT status FROM audit_jobs WHERE id = ?", JOB_ID)[0].status, "completed");
+  assert.equal(sent.length, 1, "the control run must send the audit email");
+});
+
+for (const [moment, marker] of [
+  ["after the report file is written but before the report row", "INSERT INTO audit_reports"],
+  ["after the report is saved but before the job is marked complete", "SET status = 'completed'"]
+]) {
+  test(`deleting the account ${moment} leaves no report, file, history or email behind`, async () => {
+    const { db, env, sent, REPORTS } = makeWorld();
+    seedRunningAudit(db);
+    let deletion;
+    beforeStatement(db, marker, async () => {
+      deletion = await deleteAccount(env, TARGET);
+    });
+    await processAuditJob(env, JOB_ID, { appOrigin: ORIGIN, runAudit: fakeAudit });
+    assert.equal(deletion?.ok, true, "the deletion must have run during the audit");
+    assert.deepEqual(rowsMentioning(db, TARGET), [], "nothing may be saved for the deleted account");
+    assert.deepEqual(rowsMentioning(db, "leaver.example"), []);
+    assert.deepEqual(
+      [...REPORTS.objects.keys()].filter((key) => key.startsWith("reports/")),
+      [],
+      "the report file must be removed"
+    );
+    assert.deepEqual(
+      sent.map((message) => message.subject),
+      ["Your SEO Fix Kit account was deleted"],
+      "only the deletion confirmation may be sent"
+    );
+  });
+}
+
+// --- Which Fix Packs are kept, and which checkouts block deletion ---
+
+function isoHoursAgo(hours) {
+  return new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+}
+
+function seedFixRequest(db, id, fields = {}) {
+  db.insert("fix_requests", {
+    id,
+    report_id: `rpt-${id}`,
+    owner_email: TARGET,
+    target_url: "https://leaver.example/",
+    target_host: "leaver.example",
+    status: "new",
+    created_at: NOW,
+    updated_at: NOW,
+    ...fields
+  });
+  db.insert("fix_request_events", {
+    id: `event-${id}`,
+    fix_request_id: id,
+    event: "status_changed",
+    actor_type: "dodo",
+    reason: "payment.failed",
+    created_at: NOW
+  });
+  db.insert("fix_request_notifications", {
+    id: `notification-${id}`,
+    fix_request_id: id,
+    event: "payment",
+    recipient_type: "customer",
+    recipient_email: TARGET,
+    status: "sent",
+    created_at: NOW
+  });
+  db.insert("dodo_webhook_events", {
+    webhook_id: `wh-${id}`,
+    event_type: "payment.failed",
+    fix_request_id: id,
+    status: "processed",
+    first_received_at: NOW,
+    last_received_at: NOW,
+    created_at: NOW,
+    updated_at: NOW
+  });
+}
+
+test("only Fix Packs where money moved are kept; never-paid ones go with their children", async () => {
+  const { db, env } = makeWorld();
+  const stale = isoHoursAgo(48);
+  seedFixRequest(db, "fix-new");
+  seedFixRequest(db, "fix-abandoned", {
+    status: "checkout_created",
+    checkout_session_id: "cs_abandoned",
+    checkout_created_at: stale
+  });
+  seedFixRequest(db, "fix-failed", {
+    status: "payment_failed",
+    payment_id: "pay_failed",
+    checkout_session_id: "cs_failed",
+    checkout_created_at: stale
+  });
+  seedFixRequest(db, "fix-delivered", {
+    status: "delivered",
+    payment_id: "pay_delivered",
+    paid_at: NOW,
+    payment_amount: 9900,
+    payment_currency: "USD"
+  });
+  seedFixRequest(db, "fix-refund-only", {
+    status: "refunded",
+    refund_id: "rf_early",
+    refund_amount: 9900,
+    refund_currency: "USD",
+    refunded_at: NOW
+  });
+  seedFixRequest(db, "fix-payment-row", {
+    status: "checkout_created",
+    checkout_session_id: "cs_paid_row",
+    checkout_created_at: stale
+  });
+  db.insert("fix_request_payments", {
+    payment_id: "pay_row",
+    fix_request_id: "fix-payment-row",
+    role: "primary",
+    status: "paid",
+    amount: 9900,
+    currency: "USD",
+    created_at: NOW,
+    updated_at: NOW
+  });
+
+  const result = await deleteAccount(env, TARGET, { notify: false });
+  assert.equal(result.ok, true, JSON.stringify(result));
+  const keptIds = ["fix-delivered", "fix-payment-row", "fix-refund-only"];
+  assert.equal(result.paymentRecordsKept, keptIds.length);
+  assert.deepEqual(
+    db.rows("SELECT id FROM fix_requests ORDER BY id").map((row) => row.id),
+    keptIds
+  );
+  for (const table of ["fix_request_events", "fix_request_notifications", "dodo_webhook_events"]) {
+    assert.deepEqual(
+      db.rows(`SELECT fix_request_id FROM ${table} ORDER BY fix_request_id`).map((row) => row.fix_request_id),
+      keptIds,
+      `${table} rows of never-paid requests must be deleted`
+    );
+  }
+  assert.deepEqual(rowsMentioning(db, TARGET), []);
+});
+
+const LIVE_CHECKOUTS = {
+  "a Fix Pack checkout opened an hour ago": (db) =>
+    db.insert("fix_requests", {
+      id: "fix-live",
+      report_id: "rpt-live",
+      owner_email: TARGET,
+      target_url: "https://leaver.example/",
+      target_host: "leaver.example",
+      status: "checkout_created",
+      checkout_session_id: "cs_live",
+      checkout_created_at: isoHoursAgo(1),
+      created_at: NOW,
+      updated_at: NOW
+    }),
+  "a Fix Pack checkout whose last payment attempt failed an hour ago": (db) =>
+    db.insert("fix_requests", {
+      id: "fix-retry",
+      report_id: "rpt-retry",
+      owner_email: TARGET,
+      target_url: "https://leaver.example/",
+      target_host: "leaver.example",
+      status: "payment_failed",
+      payment_id: "pay_failed",
+      checkout_session_id: "cs_retry",
+      checkout_created_at: isoHoursAgo(1),
+      created_at: NOW,
+      updated_at: NOW
+    }),
+  "a Fix Pack checkout being opened right now": (db) =>
+    db.insert("fix_requests", {
+      id: "fix-opening",
+      report_id: "rpt-opening",
+      owner_email: TARGET,
+      target_url: "https://leaver.example/",
+      target_host: "leaver.example",
+      status: "new",
+      checkout_lock_until: new Date(Date.now() + 30_000).toISOString(),
+      created_at: NOW,
+      updated_at: NOW
+    }),
+  "a Proof Monitoring checkout opened an hour ago": (db) =>
+    db.insert("monitoring_checkout_sessions", {
+      owner_email: TARGET,
+      target_host: "leaver.example",
+      checkout_session_id: "cs_monitoring",
+      checkout_url: "https://test.dodopayments.com/session/cs_monitoring",
+      checkout_created_at: isoHoursAgo(1),
+      updated_at: isoHoursAgo(1)
+    }),
+  "a Proof Monitoring checkout being opened right now": (db) =>
+    db.insert("monitoring_checkout_sessions", {
+      owner_email: TARGET,
+      lock_until: new Date(Date.now() + 30_000).toISOString(),
+      updated_at: NOW
+    })
+};
+
+for (const [name, seed] of Object.entries(LIVE_CHECKOUTS)) {
+  test(`${name} blocks deletion until it is paid or expires`, async () => {
+    const { db, env, sent } = makeWorld();
+    const cookie = signIn(db, TARGET);
+    seed(db);
+    const response = await call(env, "/api/account/delete", {
+      method: "POST",
+      cookie,
+      body: { confirmEmail: TARGET }
+    });
+    assert.equal(response.status, 409, JSON.stringify(response.json));
+    assert.deepEqual(response.json.blockers, ["open_checkout"]);
+    assert.match(response.json.error, /Finish the payment, or wait for the checkout to expire \(24 hours/);
+    assert.equal(db.rows("SELECT * FROM beta_sessions").length, 1);
+    assert.equal(sent.length, 0);
+  });
+}
+
+test("expired or already-subscribed checkouts do not block deletion and are removed", async () => {
+  const { db, env } = makeWorld();
+  db.insert("fix_requests", {
+    id: "fix-expired",
+    report_id: "rpt-expired",
+    owner_email: TARGET,
+    target_url: "https://leaver.example/",
+    target_host: "leaver.example",
+    status: "checkout_created",
+    checkout_session_id: "cs_expired",
+    checkout_created_at: isoHoursAgo(25),
+    checkout_lock_until: isoHoursAgo(25),
+    created_at: NOW,
+    updated_at: NOW
+  });
+  // Opened an hour ago, then paid and cancelled: the subscription record is newer.
+  db.insert("monitoring_checkout_sessions", {
+    owner_email: TARGET,
+    target_host: "leaver.example",
+    checkout_session_id: "cs_subscribed",
+    checkout_created_at: isoHoursAgo(1),
+    lock_until: isoHoursAgo(1),
+    updated_at: isoHoursAgo(1)
+  });
+  db.insert("offer_entitlements", {
+    id: "entitlement-cancelled",
+    owner_email: TARGET,
+    offer_key: "proof_monitoring",
+    status: "cancelled",
+    source: "dodo_subscription",
+    provider: "dodo",
+    subscription_id: "sub_cancelled",
+    created_at: isoHoursAgo(1),
+    updated_at: new Date().toISOString(),
+    revoked_at: new Date().toISOString()
+  });
+
+  const result = await deleteAccount(env, TARGET, { notify: false });
+  assert.equal(result.ok, true, JSON.stringify(result));
+  assert.equal(db.rows("SELECT * FROM fix_requests").length, 0);
+  assert.equal(db.rows("SELECT * FROM monitoring_checkout_sessions").length, 0);
+  assert.deepEqual(rowsMentioning(db, TARGET), []);
 });
