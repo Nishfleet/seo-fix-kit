@@ -156,7 +156,9 @@ test("options keep personal data and tracing off", () => {
   const options = sentryOptions({ SENTRY_DSN: FAKE_DSN });
   assert.equal(options.dsn, FAKE_DSN);
   assert.equal(options.sendDefaultPii, false);
-  assert.equal(options.tracesSampleRate, 0);
+  assert.equal("tracesSampleRate" in options, false);
+  assert.equal(options.beforeSendTransaction({ type: "transaction", transaction: "GET /r/abc123" }), null);
+  assert.deepEqual(options.tracePropagationTargets, []);
   assert.equal(sentryOptions({}).dsn, undefined);
 });
 

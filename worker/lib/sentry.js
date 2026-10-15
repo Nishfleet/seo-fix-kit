@@ -24,7 +24,11 @@ function sentryOptions(env) {
     dsn: env.SENTRY_DSN,
     environment: env.SENTRY_ENVIRONMENT || "production",
     sendDefaultPii: false,
-    tracesSampleRate: 0,
+    // Tracing stays off: no tracesSampleRate (even 0 lets an incoming
+    // sentry-trace header sample a request), and any transaction that still
+    // gets built is dropped, since transactions skip beforeSend's scrubber.
+    beforeSendTransaction: () => null,
+    tracePropagationTargets: [],
     integrations: (defaults) => defaults.filter((integration) => !DROPPED_INTEGRATIONS.has(integration.name)),
     beforeSend,
     beforeBreadcrumb: scrubBreadcrumb
