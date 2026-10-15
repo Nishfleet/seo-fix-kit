@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash, randomBytes } from "node:crypto";
 import test from "node:test";
-import { scoreCardHtml } from "../worker/routes/badges.js";
+import { scoreCardHtml, scoreCardVersion } from "../worker/routes/badges.js";
 import { app } from "../worker/index.js";
 import { createTestD1 } from "./support/d1.mjs";
 
@@ -99,7 +99,7 @@ test("an owner turns on a badge that shows their latest score and progress publi
   assert.match(html, /\+27 since/);
   assert.match(html, /noindex, follow/);
   assert.match(html, /Check your site free/);
-  assert.match(html, new RegExp(`og:image" content="${ORIGIN}/score/${created.badge.id}/card\\.png\\?v=`));
+  assert.match(html, new RegExp(`og:image" content="${ORIGIN}/score/${created.badge.id}/card\\.png\\?v=[a-z0-9]+"`));
   assert.match(html, /x\.com\/intent\/post\?text=example\.com%20went%20up%2027%20points%20to%2091%2F100/);
   assert.match(html, /linkedin\.com\/sharing\/share-offsite/);
 });
@@ -115,20 +115,54 @@ test("the score share card is cached per score and falls back to the site image 
   assert.equal(fallback.headers.get("location"), `${ORIGIN}/og-image.png`);
 
   const stored = new Map();
-  const asked = [];
+  const deleted = [];
   const REPORTS = {
     async get(key) {
-      asked.push(key);
-      return stored.has(key) ? { body: stored.get(key) } : null;
+      return stored.get(key) || null;
+    },
+    async delete(key) {
+      deleted.push(key);
     }
   };
-  assert.equal((await call(db, `/score/${badge.id}/card.png`, { env: { REPORTS } })).status, 302);
-  assert.match(asked[0], new RegExp(`^score-cards/${badge.id}-\\d{8}T\\d+Z\\.png$`), "keyed by the latest score time");
-  stored.set(asked[0], "PNG");
+  const key = `score-cards/${badge.id}.png`;
+  stored.set(key, { body: "OLD", customMetadata: { version: "stale" } });
+  assert.equal(
+    (await call(db, `/score/${badge.id}/card.png`, { env: { REPORTS } })).status,
+    302,
+    "a card from older history is never served"
+  );
+
+  const page = await (await call(db, `/score/${badge.id}`)).text();
+  const version = page.match(/card\.png\?v=([a-z0-9]+)"/)[1];
+  stored.set(key, { body: "PNG", customMetadata: { version } });
   const cached = await call(db, `/score/${badge.id}/card.png`, { env: { REPORTS } });
   assert.equal(cached.status, 200);
   assert.equal(cached.headers.get("content-type"), "image/png");
   assert.equal(await cached.text(), "PNG");
+
+  const broken = {
+    async get() {
+      throw new Error("R2 down");
+    }
+  };
+  assert.equal(
+    (await call(db, `/score/${badge.id}/card.png`, { env: { REPORTS: broken } })).status,
+    302,
+    "a storage error falls back to the site image"
+  );
+
+  assert.notEqual(
+    scoreCardVersion([
+      { score: 64, created_at: "a" },
+      { score: 91, created_at: "b" }
+    ]),
+    scoreCardVersion([{ score: 91, created_at: "b" }]),
+    "dropping an expired check changes the version"
+  );
+
+  await call(db, `/api/badges/${badge.id}`, { method: "DELETE", session, env: { REPORTS } });
+  assert.deepEqual(deleted, [key], "turning a badge off removes its card");
+
   assert.equal((await call(db, "/score/00000000000000000000/card.png")).status, 404);
 
   const card = scoreCardHtml({

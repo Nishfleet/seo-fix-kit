@@ -125,6 +125,7 @@ export async function revokeScoreBadge(request, env, params) {
     .bind(new Date().toISOString(), params.id, access.ownerEmail)
     .run();
   if (!result.meta?.changes) return json({ error: "Badge not found." }, 404);
+  await env.REPORTS?.delete(scoreCardKey(params.id)).catch(() => {});
   return jsonNoStore({ ok: true });
 }
 
@@ -251,7 +252,7 @@ export function scorePageHtml(origin, { id, host, points }) {
     <meta property="og:title" content="${escapeHtml(title)}" />
     <meta property="og:description" content="${escapeHtml(description)}" />
     <meta property="og:url" content="${pageUrl}" />
-    <meta property="og:image" content="${pageUrl}/card.png${latest ? `?v=${encodeURIComponent(latest.created_at)}` : ""}" />
+    <meta property="og:image" content="${pageUrl}/card.png?v=${scoreCardVersion(points)}" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />${publicAssetHead(origin)}
@@ -318,26 +319,41 @@ async function renderScoreCard(env, html) {
   }
 }
 
+export function scoreCardVersion(points = []) {
+  let hash = 2166136261;
+  for (const char of points.map((point) => `${point.score}@${point.created_at}`).join("|")) {
+    hash = Math.imul(hash ^ char.charCodeAt(0), 16777619);
+  }
+  return (hash >>> 0).toString(36);
+}
+
+function scoreCardKey(id) {
+  return `score-cards/${id}.png`;
+}
+
 export async function serveScoreCard(request, env, params, origin) {
   const badge = await activeBadge(env, params.id);
   if (!badge)
     return new Response("Not found", { status: 404, headers: secureHeaders({ "content-type": "text/plain" }) });
   const points = await scoreHistory(env, badge);
-  const latest = points.at(-1);
-  const key = `score-cards/${badge.id}-${String(latest?.created_at || "none").replace(/[^0-9A-Za-z]/g, "")}.png`;
+  const version = scoreCardVersion(points);
+  const key = scoreCardKey(badge.id);
   const headers = secureHeaders({
     "content-type": "image/png",
     "cache-control": "public, max-age=3600, stale-while-revalidate=86400"
   });
-  const cached = await env.REPORTS?.get(key);
-  if (cached) return new Response(cached.body, { headers });
-  if (!env.BROWSER) return Response.redirect(`${origin}/og-image.png`, 302);
+  const fallback = () => Response.redirect(`${origin}/og-image.png`, 302);
+  const cached = await env.REPORTS?.get(key).catch(() => null);
+  if (cached?.customMetadata?.version === version) return new Response(cached.body, { headers });
+  if (!env.BROWSER) return fallback();
   try {
     const png = await renderScoreCard(env, scoreCardHtml({ host: badge.target_host, points }));
-    await env.REPORTS?.put(key, png, { httpMetadata: { contentType: "image/png" } });
+    await env.REPORTS?.put(key, png, { httpMetadata: { contentType: "image/png" }, customMetadata: { version } }).catch(
+      () => {}
+    );
     return new Response(png, { headers });
   } catch {
-    return Response.redirect(`${origin}/og-image.png`, 302);
+    return fallback();
   }
 }
 
