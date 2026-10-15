@@ -12,11 +12,10 @@ import { publicUrlStatus } from "./url-safety.js";
 const DEFAULT_BRAND_COLOR = "#163f5f";
 const DEFAULT_ACCENT_COLOR = "#0f9f6e";
 
-export function defaultBranding(ownerEmail = "") {
-  const owner = String(ownerEmail || "").split("@")[1] || "";
-  const agencyName = owner ? `${titleCase(owner.split(".")[0])} SEO` : "Client SEO Report";
+export function defaultBranding() {
   return normalizeBrandingInput({
-    agencyName,
+    agencyName: "SEO Fix Kit",
+    logoUrl: "/brand/mark.svg",
     brandColor: DEFAULT_BRAND_COLOR,
     accentColor: DEFAULT_ACCENT_COLOR,
     footerText: "Prepared for your team."
@@ -27,7 +26,7 @@ export function normalizeBrandingInput(input = {}, fallback = {}) {
   return {
     agencyName:
       cleanText(input.agencyName ?? input.agency_name ?? fallback.agencyName ?? fallback.agency_name ?? "", 120) ||
-      "Client SEO Report",
+      "SEO Fix Kit",
     logoUrl: cleanPublicAssetUrl(input.logoUrl ?? input.logo_url ?? fallback.logoUrl ?? fallback.logo_url ?? ""),
     brandColor:
       cleanColor(input.brandColor ?? input.brand_color ?? fallback.brandColor ?? fallback.brand_color ?? "") ||
@@ -61,7 +60,7 @@ export function buildWhiteLabelReportHtml({
   error = "",
   includeDraftBriefs = false
 } = {}) {
-  const cleanBrand = normalizeBrandingInput(branding);
+  const cleanBrand = withAbsoluteLogo(normalizeBrandingInput(branding), origin);
   const host = safeHost(report.url || report.origin || "");
   const renderedCrawlScale = report.renderedCrawlScale || report.rendered_crawl_scale || null;
   const title = locked
@@ -205,7 +204,7 @@ export function buildWhiteLabelReportHtml({
             <p class="eyebrow">Coverage</p>
             <h2>Pages checked</h2>
           </div>
-          ${pagesTable(report.pages || [])}
+          ${pagesTable(report.pageSummaries?.length ? report.pageSummaries : report.pages || [])}
         </section>
 
         <footer>
@@ -436,6 +435,11 @@ function fullHtml({ title, branding, body }) {
 </html>`;
 }
 
+function withAbsoluteLogo(branding, origin) {
+  if (!origin || !branding.logoUrl?.startsWith("/") || branding.logoUrl.startsWith("//")) return branding;
+  return { ...branding, logoUrl: `${origin.replace(/\/+$/, "")}${branding.logoUrl}` };
+}
+
 function brandHeader(branding) {
   const logo = branding.logoUrl
     ? `<span class="brand-logo"><img src="${escapeHtml(branding.logoUrl)}" alt="" /></span>`
@@ -446,7 +450,7 @@ function brandHeader(branding) {
         ${logo}
         <div>
           <strong>${escapeHtml(branding.agencyName)}</strong>
-          ${branding.customDomain ? `<span>${escapeHtml(branding.customDomain)}</span>` : "<span>Client audit report</span>"}
+          ${branding.customDomain ? `<span>${escapeHtml(branding.customDomain)}</span>` : "<span>SEO audit report</span>"}
         </div>
       </div>
     </header>
@@ -935,16 +939,17 @@ function pagesTable(pages) {
   return `
     <table>
       <thead>
-        <tr><th>Page</th><th>Status</th><th>Title</th><th>H1</th></tr>
+        <tr><th>Page</th><th>Status</th><th>Score</th><th>Problems</th><th>Title</th><th>H1</th></tr>
       </thead>
       <tbody>
         ${pages
-          .slice(0, 30)
           .map(
             (page) => `
           <tr>
             <td>${escapeHtml(page.url || "")}</td>
-            <td>${escapeHtml(String(page.status || page.statusCode || ""))}</td>
+            <td>${escapeHtml(String(page.status ?? ""))}</td>
+            <td>${escapeHtml(String(page.score ?? ""))}</td>
+            <td>${escapeHtml(String(pageProblemCount(page)))}</td>
             <td>${escapeHtml(page.rendered?.title || page.title || "")}</td>
             <td>${escapeHtml(pageH1Text(page))}</td>
           </tr>
@@ -954,6 +959,11 @@ function pagesTable(pages) {
       </tbody>
     </table>
   `;
+}
+
+function pageProblemCount(page = {}) {
+  if (page.critical === undefined && page.warnings === undefined) return "";
+  return Number(page.critical || 0) + Number(page.warnings || 0) + Number(page.notices || 0);
 }
 
 function pageH1Text(page = {}) {
@@ -987,13 +997,6 @@ function initials(name) {
       .map((word) => word[0]?.toUpperCase() || "")
       .join("") || "S"
   );
-}
-
-function titleCase(value) {
-  return String(value || "")
-    .replace(/[-_]+/g, " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase())
-    .trim();
 }
 
 function slugPart(value) {
