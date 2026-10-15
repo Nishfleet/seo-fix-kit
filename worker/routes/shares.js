@@ -29,6 +29,9 @@ import { reportIdFromSuffixPath } from "./reports.js";
 
 const REPORT_SHARE_PASSWORD_MIN_LENGTH = 10;
 
+// Fresh PDF renders (cache misses) allowed per IP (share links) or per account (owner export).
+const REPORT_PDF_RENDERS_PER_HOUR = 10;
+
 const passwordField = z
   .union([z.string(), z.number()])
   .nullish()
@@ -272,7 +275,9 @@ async function getPrivateReportPdf(request, env) {
     branding,
     share,
     origin: url.origin,
-    includeDraftBriefs: true
+    includeDraftBriefs: true,
+    cacheKey: `report-pdfs/owner/${row.id || reportId}.pdf`,
+    missQuota: () => reportPdfRenderQuotaStatus(env, `owner:${access.ownerEmail}`)
   });
 }
 
@@ -336,7 +341,9 @@ async function getClientReportPdf(request, env) {
     report,
     branding,
     share: shareToCamel(share),
-    origin: url.origin
+    origin: url.origin,
+    cacheKey: `report-pdfs/shares/${share.id}.pdf`,
+    missQuota: async () => reportPdfRenderQuotaStatus(env, `ip:${await requestIpHash(request)}`)
   });
 }
 
@@ -955,14 +962,48 @@ function clientReportLockedResponse(request, branding, share, status = 401, erro
   );
 }
 
-async function renderWorkerWhiteLabelPdf(env, { report, branding, share, origin, includeDraftBriefs = false }) {
+// Version of a rendered PDF: the hash of the exact HTML the browser would print, so any
+// change to the report, branding or share copy renders a fresh PDF.
+async function whiteLabelPdfVersionForHtml(html) {
+  return (await sha256Hex(`white-label-pdf:v1:${html}`)).slice(0, 32);
+}
+
+async function whiteLabelPdfCacheVersion(args) {
+  return whiteLabelPdfVersionForHtml(buildWhiteLabelReportHtml(args));
+}
+
+function whiteLabelPdfResponse(body, { report, branding, share }) {
+  const headers = secureHeaders();
+  headers.set("cache-control", "no-store");
+  headers.set("content-disposition", `attachment; filename="${whiteLabelReportFilename({ report, branding, share })}"`);
+  headers.set("content-type", "application/pdf");
+  headers.set("x-robots-tag", "noindex, nofollow");
+  return new Response(body, { headers });
+}
+
+// Launching a browser costs money, so a rendered PDF is kept in R2 (REPORTS) under
+// `cacheKey` and served from there while its version matches. `missQuota` limits renders.
+async function renderWorkerWhiteLabelPdf(
+  env,
+  { report, branding, share, origin, includeDraftBriefs = false, cacheKey = "", missQuota = null }
+) {
+  const args = { report, branding, share, origin, includeDraftBriefs };
+  const html = buildWhiteLabelReportHtml(args);
+  const version = cacheKey ? await whiteLabelPdfVersionForHtml(html) : "";
+  if (cacheKey && env.REPORTS) {
+    const cached = await env.REPORTS.get(cacheKey).catch(() => null);
+    if (cached && cached.customMetadata?.version === version) return whiteLabelPdfResponse(cached.body, args);
+  }
+  if (missQuota) {
+    const quota = await missQuota();
+    if (!quota.ok) return jsonNoStore({ error: quota.error, resetAt: quota.resetAt }, 429);
+  }
   if (!env.BROWSER) {
     return jsonNoStore(
       { error: "PDF export is not set up on this server yet. Email support@seofixkit.com for a PDF copy." },
       503
     );
   }
-  const html = buildWhiteLabelReportHtml({ report, branding, share, origin, includeDraftBriefs });
   let browser = null;
   try {
     browser = await puppeteer.launch(env.BROWSER);
@@ -979,20 +1020,31 @@ async function renderWorkerWhiteLabelPdf(env, { report, branding, share, origin,
         left: "24px"
       }
     });
-    const headers = secureHeaders();
-    headers.set("cache-control", "no-store");
-    headers.set(
-      "content-disposition",
-      `attachment; filename="${whiteLabelReportFilename({ report, branding, share })}"`
-    );
-    headers.set("content-type", "application/pdf");
-    headers.set("x-robots-tag", "noindex, nofollow");
-    return new Response(pdf, { headers });
+    if (cacheKey && env.REPORTS) {
+      await env.REPORTS.put(cacheKey, pdf, {
+        httpMetadata: { contentType: "application/pdf" },
+        customMetadata: { version }
+      }).catch(() => {});
+    }
+    return whiteLabelPdfResponse(pdf, args);
   } catch (error) {
     return jsonNoStore({ error: error?.message || "PDF export failed." }, 500);
   } finally {
     await browser?.close?.().catch(() => {});
   }
+}
+
+async function reportPdfRenderQuotaStatus(env, bucketKey) {
+  const hour = hourWindow(new Date());
+  return checkQuotaSet(env, [
+    {
+      bucket: `report-pdf:${bucketKey}:${hour.key}`,
+      limit: REPORT_PDF_RENDERS_PER_HOUR,
+      windowStart: hour.key,
+      resetAt: hour.resetAt,
+      error: "Too many PDF downloads right now. Try again in an hour."
+    }
+  ]);
 }
 
 function clientReportCookieName(share) {
@@ -1144,6 +1196,7 @@ export {
   passwordFromRequest,
   primaryVerifiedReportDomain,
   renderWorkerWhiteLabelPdf,
+  whiteLabelPdfCacheVersion,
   reportBrandingForOwner,
   reportBrandingFromRow,
   reportDomainDnsName,

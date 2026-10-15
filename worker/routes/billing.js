@@ -1,5 +1,6 @@
 import {
   DODO_DISPUTE_EVENTS,
+  DODO_DISPUTE_RESOLVED_EVENTS,
   DODO_PAYMENT_FAILURE_EVENTS,
   DODO_PAYMENT_PROCESSING_EVENTS,
   DODO_PAYMENT_SUCCESS_EVENTS,
@@ -46,7 +47,7 @@ import { preserveFixRequestReports, reportJsonForRow } from "../lib/report-data.
 import { repairProposalSummariesForFixRequests } from "../lib/repair-proposal-summary.js";
 import { isRepairTablesMissingError } from "../lib/repair-tables.js";
 import { ensureRepairQueueRows } from "../lib/repair-agent-actions.js";
-import { sha256Hex } from "../lib/security.js";
+import { checkQuotaSet, sha256Hex } from "../lib/security.js";
 import { billingFixRequestResponse, fixRequestResponse } from "../lib/serializers.js";
 import { cleanQueueStatus } from "../../shared/repair-queue.js";
 import { selectFixPackRepair } from "../../shared/fix-pack-repair-selection.js";
@@ -54,6 +55,7 @@ import { OFFER_KEYS, repairSprintEligibilityFromProposals } from "../../shared/o
 import {
   cleanText,
   cleanReportDomain,
+  hourWindow,
   isSafeReportId,
   isoDaysFromNow,
   isoSecondsFromNow,
@@ -115,10 +117,105 @@ const REPAIR_SPRINT_BLOCKED_FIX_REQUEST_STATUSES = new Set(REBUY_BLOCKED_FIX_REQ
 
 const CHECKOUT_URL_TTL_HOURS = 24;
 
+// A paid payment rejected for one of these reasons means a customer was charged
+// without getting access: the webhook is recorded as `error` and the admin is alerted.
 const UNATTRIBUTABLE_PAYMENT_IDENTITY_REASONS = new Set([
   "checkout_product_mismatch",
-  "repair_sprint_checkout_target_missing"
+  "repair_sprint_checkout_target_missing",
+  "customer_email_mismatch",
+  "product_mismatch",
+  "missing_product_cart",
+  "product_quantity_mismatch"
 ]);
+
+// Lease taken on a fix request (or monitoring owner) while a Dodo checkout is being created.
+const CHECKOUT_LOCK_SECONDS = 30;
+
+const CHECKOUT_HOURLY_LIMIT = 10;
+
+// Only flag clearly wrong amounts: tax and adaptive-currency fees move the total a little.
+const MIN_EXPECTED_AMOUNT_RATIO = 0.5;
+
+function isRefundOrDisputeEvent(eventType) {
+  return (
+    DODO_REFUND_SUCCESS_EVENTS.has(eventType) ||
+    DODO_REFUND_FAILURE_EVENTS.has(eventType) ||
+    DODO_DISPUTE_EVENTS.has(eventType) ||
+    DODO_DISPUTE_RESOLVED_EVENTS.has(eventType)
+  );
+}
+
+async function checkoutQuotaResponse(env, access, kind) {
+  const hour = hourWindow(new Date());
+  const quota = await checkQuotaSet(env, [
+    {
+      bucket: `checkout:${kind}:${hour.key}:${normalizeEmail(access.ownerEmail)}`,
+      limit: CHECKOUT_HOURLY_LIMIT,
+      windowStart: hour.key,
+      resetAt: hour.resetAt,
+      error: "Too many checkout attempts. Try again in an hour, or email support@seofixkit.com."
+    }
+  ]);
+  if (quota.ok) return null;
+  return jsonNoStore({ error: quota.error, code: "CHECKOUT_RATE_LIMITED", resetAt: quota.resetAt }, 429);
+}
+
+async function claimFixRequestCheckoutLock(env, fixRequestId) {
+  const result = await env.WAITLIST_DB.prepare(
+    `UPDATE fix_requests
+     SET checkout_lock_until = ?
+     WHERE id = ?
+       AND (checkout_lock_until IS NULL OR checkout_lock_until <= ?)`
+  )
+    .bind(isoSecondsFromNow(CHECKOUT_LOCK_SECONDS), fixRequestId, new Date().toISOString())
+    .run();
+  return Number(result?.meta?.changes || 0) === 1;
+}
+
+async function releaseFixRequestCheckoutLock(env, fixRequestId) {
+  await env.WAITLIST_DB.prepare("UPDATE fix_requests SET checkout_lock_until = NULL WHERE id = ?")
+    .bind(fixRequestId)
+    .run();
+}
+
+async function fixRequestById(env, fixRequestId) {
+  return env.WAITLIST_DB.prepare("SELECT * FROM fix_requests WHERE id = ? LIMIT 1").bind(fixRequestId).first();
+}
+
+function isFreshCheckout(fixRequest = {}) {
+  return Boolean(
+    fixRequest.status === "checkout_created" &&
+    fixRequest.checkout_url &&
+    fixRequest.checkout_session_id &&
+    fixRequest.checkout_created_at &&
+    fixRequest.checkout_created_at > isoSecondsFromNow(-CHECKOUT_URL_TTL_HOURS * 60 * 60)
+  );
+}
+
+function checkoutInProgressResponse(extra = {}) {
+  return jsonNoStore(
+    {
+      ok: false,
+      code: "CHECKOUT_IN_PROGRESS",
+      error: "Checkout is already being opened for this report. Wait a few seconds and try again.",
+      checkoutAvailable: false,
+      ...extra
+    },
+    409
+  );
+}
+
+async function expectedFixPackPrice(request, env, access) {
+  try {
+    const pricing = await previewDodoFixPackPricing(request, env, access);
+    return {
+      amount: Number.isFinite(pricing.amountMinor) && pricing.amountMinor > 0 ? pricing.amountMinor : null,
+      currency: pricing.currency || null
+    };
+  } catch {
+    return { amount: null, currency: null };
+  }
+}
 
 async function requestFixPack(request, env) {
   const access = await betaAccessStatus(request, env);
@@ -128,6 +225,8 @@ async function requestFixPack(request, env) {
       { error: "Fix request storage is not set up on this server. Email support@seofixkit.com for help." },
       503
     );
+  const fixPackLimited = await checkoutQuotaResponse(env, access, "fix-pack");
+  if (fixPackLimited) return fixPackLimited;
 
   const parsed = await parseJsonBody(request, ReportCheckoutBody);
   if (parsed.error) return json(parsed.error, 400);
@@ -239,23 +338,19 @@ async function requestFixPack(request, env) {
       selectedRepair: repairContext.selectedRepair
     }));
 
-  const cachedCheckoutFresh =
-    fixRequest.status === "checkout_created" &&
-    fixRequest.checkout_url &&
-    fixRequest.checkout_session_id &&
-    fixRequest.checkout_created_at &&
-    fixRequest.checkout_created_at > isoSecondsFromNow(-CHECKOUT_URL_TTL_HOURS * 60 * 60) &&
-    checkoutRepairTargetMatches(fixRequest, repairContext.selectedRepair);
-  if (cachedCheckoutFresh) {
-    return jsonNoStore({
-      ok: true,
-      mode: "checkout",
-      checkoutUrl: fixRequest.checkout_url,
-      request: fixRequestWithProposalSummary(fixRequest, skippedProposalSeed, now),
-      offer: FIX_PACK_OFFER,
-      selectedRepair: repairContext.selectedRepair
-    });
-  }
+  const cachedFixPackCheckout = (current) =>
+    isFreshCheckout(current) && checkoutRepairTargetMatches(current, repairContext.selectedRepair)
+      ? jsonNoStore({
+          ok: true,
+          mode: "checkout",
+          checkoutUrl: current.checkout_url,
+          request: fixRequestWithProposalSummary(current, skippedProposalSeed, now),
+          offer: FIX_PACK_OFFER,
+          selectedRepair: repairContext.selectedRepair
+        })
+      : null;
+  const cachedResponse = cachedFixPackCheckout(fixRequest);
+  if (cachedResponse) return cachedResponse;
 
   if (!hasDodoCheckoutConfig(env)) {
     return jsonNoStore({
@@ -284,10 +379,31 @@ async function requestFixPack(request, env) {
     );
   }
 
+  // Claim the request before calling Dodo so concurrent clicks cannot each mint a session.
+  if (!(await claimFixRequestCheckoutLock(env, fixRequest.id))) {
+    const current = await fixRequestById(env, fixRequest.id);
+    return (
+      cachedFixPackCheckout(current || {}) ||
+      checkoutInProgressResponse({ offer: FIX_PACK_OFFER, selectedRepair: repairContext.selectedRepair })
+    );
+  }
+  const claimed = (await fixRequestById(env, fixRequest.id)) || fixRequest;
+  const claimedCached = cachedFixPackCheckout(claimed);
+  if (
+    claimedCached ||
+    PAID_LIKE_FIX_REQUEST_STATUSES.has(claimed.status) ||
+    REBUY_BLOCKED_FIX_REQUEST_STATUSES.has(claimed.status)
+  ) {
+    await releaseFixRequestCheckoutLock(env, fixRequest.id);
+    return claimedCached || checkoutInProgressResponse({ offer: FIX_PACK_OFFER, selectedRepair: null });
+  }
+
+  const expectedPrice = await expectedFixPackPrice(request, env, access);
   let checkout;
   try {
     checkout = await createDodoFixPackCheckout(request, env, row, fixRequest, access, repairContext.selectedRepair);
   } catch (error) {
+    await releaseFixRequestCheckoutLock(env, fixRequest.id);
     return jsonNoStore(
       {
         error: error?.message || "Dodo checkout could not be created.",
@@ -308,6 +424,9 @@ async function requestFixPack(request, env) {
          checkout_created_at = ?,
          product_id = ?,
          checkout_repair_json = ?,
+         expected_amount = ?,
+         expected_currency = ?,
+         checkout_lock_until = NULL,
          updated_at = ?
      WHERE id = ?`
   )
@@ -317,6 +436,8 @@ async function requestFixPack(request, env) {
       checkoutCreatedAt,
       dodoProductId(env),
       checkoutRepairTargetJson(repairContext.selectedRepair),
+      expectedPrice.amount,
+      expectedPrice.currency,
       checkoutCreatedAt,
       fixRequest.id
     )
@@ -346,6 +467,8 @@ async function requestRepairSprintCheckout(request, env) {
       { error: "Repair Sprint storage is not set up on this server. Email support@seofixkit.com for help." },
       503
     );
+  const sprintLimited = await checkoutQuotaResponse(env, access, "repair-sprint");
+  if (sprintLimited) return sprintLimited;
 
   const parsed = await parseJsonBody(request, ReportCheckoutBody);
   if (parsed.error) return json(parsed.error, 400);
@@ -483,10 +606,14 @@ async function requestRepairSprintCheckout(request, env) {
       proposalSummary
     });
   }
+  if (!(await claimFixRequestCheckoutLock(env, fixRequest.id))) {
+    return checkoutInProgressResponse({ offer: REPAIR_SPRINT_OFFER, proposalSummary });
+  }
   let checkout;
   try {
     checkout = await createDodoRepairSprintCheckout(request, env, row, fixRequest, access, checkoutTarget);
   } catch (error) {
+    await releaseFixRequestCheckoutLock(env, fixRequest.id);
     return repairSprintCheckoutErrorResponse({
       status: 503,
       code: error?.code || "DODO_REPAIR_SPRINT_CHECKOUT_ERROR",
@@ -505,6 +632,9 @@ async function requestRepairSprintCheckout(request, env) {
          checkout_created_at = ?,
          product_id = ?,
          checkout_repair_json = ?,
+         expected_amount = NULL,
+         expected_currency = NULL,
+         checkout_lock_until = NULL,
          updated_at = ?
      WHERE id = ?`
   )
@@ -564,6 +694,8 @@ async function requestMonitoringCheckout(request, env) {
       target: monitoringCheckoutTargetResponse()
     });
   }
+  const monitoringLimited = await checkoutQuotaResponse(env, access, "monitoring");
+  if (monitoringLimited) return monitoringLimited;
 
   const schema = await monitoringEntitlementSchemaStatus(env);
   if (!schema.ok) {
@@ -614,10 +746,48 @@ async function requestMonitoringCheckout(request, env) {
     });
   }
 
+  const checkoutResponse = (checkoutUrl) =>
+    jsonNoStore({
+      ok: true,
+      mode: "checkout",
+      checkoutUrl,
+      checkoutAvailable: true,
+      message: "Checkout opens on Dodo Payments. Monitoring starts once Dodo confirms your payment.",
+      monitoring,
+      offer: MONITORING_OFFER,
+      target: monitoringCheckoutTargetResponse(context)
+    });
+
+  // Reuse the owner's open subscription checkout, and lock while creating one,
+  // so repeat clicks cannot start several Dodo subscriptions.
+  let lock;
+  try {
+    lock = await claimMonitoringCheckout(env, access.ownerEmail, context.targetHost);
+  } catch {
+    return monitoringCheckoutErrorResponse({
+      status: 503,
+      code: "MONITORING_CHECKOUT_SCHEMA_MISSING",
+      error: "Monitoring checkout storage is being updated. Try again in a few minutes.",
+      monitoring,
+      target: monitoringCheckoutTargetResponse(context)
+    });
+  }
+  if (lock.cachedUrl) return checkoutResponse(lock.cachedUrl);
+  if (!lock.claimed) {
+    return monitoringCheckoutErrorResponse({
+      status: 409,
+      code: "CHECKOUT_IN_PROGRESS",
+      error: "Monitoring checkout is already being opened. Wait a few seconds and try again.",
+      monitoring,
+      target: monitoringCheckoutTargetResponse(context)
+    });
+  }
+
   let checkout;
   try {
     checkout = await createDodoMonitoringCheckout(request, env, access, context);
   } catch (error) {
+    await releaseMonitoringCheckoutLock(env, access.ownerEmail);
     return monitoringCheckoutErrorResponse({
       status: 503,
       code: error?.code || "DODO_MONITORING_CHECKOUT_ERROR",
@@ -626,17 +796,58 @@ async function requestMonitoringCheckout(request, env) {
       target: monitoringCheckoutTargetResponse(context)
     });
   }
+  const createdAt = new Date().toISOString();
+  await env.WAITLIST_DB.prepare(
+    `UPDATE monitoring_checkout_sessions
+     SET target_host = ?, checkout_session_id = ?, checkout_url = ?, checkout_created_at = ?,
+         lock_until = NULL, updated_at = ?
+     WHERE owner_email = ?`
+  )
+    .bind(context.targetHost, checkout.checkoutSessionId, checkout.checkoutUrl, createdAt, createdAt, access.ownerEmail)
+    .run();
 
-  return jsonNoStore({
-    ok: true,
-    mode: "checkout",
-    checkoutUrl: checkout.checkoutUrl,
-    checkoutAvailable: true,
-    message: "Checkout opens on Dodo Payments. Monitoring starts once Dodo confirms your payment.",
-    monitoring,
-    offer: MONITORING_OFFER,
-    target: monitoringCheckoutTargetResponse(context)
-  });
+  return checkoutResponse(checkout.checkoutUrl);
+}
+
+function freshMonitoringCheckoutUrl(row, targetHost) {
+  if (!row?.checkout_url || row.target_host !== targetHost || !row.checkout_created_at) return "";
+  return row.checkout_created_at > isoSecondsFromNow(-CHECKOUT_URL_TTL_HOURS * 60 * 60) ? row.checkout_url : "";
+}
+
+async function monitoringCheckoutRow(env, ownerEmail) {
+  return env.WAITLIST_DB.prepare("SELECT * FROM monitoring_checkout_sessions WHERE owner_email = ? LIMIT 1")
+    .bind(ownerEmail)
+    .first();
+}
+
+async function releaseMonitoringCheckoutLock(env, ownerEmail) {
+  await env.WAITLIST_DB.prepare("UPDATE monitoring_checkout_sessions SET lock_until = NULL WHERE owner_email = ?")
+    .bind(ownerEmail)
+    .run();
+}
+
+async function claimMonitoringCheckout(env, ownerEmail, targetHost) {
+  const cachedUrl = freshMonitoringCheckoutUrl(await monitoringCheckoutRow(env, ownerEmail), targetHost);
+  if (cachedUrl) return { claimed: false, cachedUrl };
+  const now = new Date().toISOString();
+  const result = await env.WAITLIST_DB.prepare(
+    `INSERT INTO monitoring_checkout_sessions (owner_email, lock_until, updated_at)
+     VALUES (?, ?, ?)
+     ON CONFLICT(owner_email) DO UPDATE SET
+       lock_until = excluded.lock_until,
+       updated_at = excluded.updated_at
+     WHERE monitoring_checkout_sessions.lock_until IS NULL OR monitoring_checkout_sessions.lock_until <= ?`
+  )
+    .bind(ownerEmail, isoSecondsFromNow(CHECKOUT_LOCK_SECONDS), now, now)
+    .run();
+  const claimed = Number(result?.meta?.changes || 0) === 1;
+  // Another click may have finished creating a session while this one waited.
+  const raced = freshMonitoringCheckoutUrl(await monitoringCheckoutRow(env, ownerEmail), targetHost);
+  if (raced) {
+    if (claimed) await releaseMonitoringCheckoutLock(env, ownerEmail);
+    return { claimed: false, cachedUrl: raced };
+  }
+  return { claimed, cachedUrl: "" };
 }
 
 async function getPublicFixPackPricing(request, env, ctx) {
@@ -1086,7 +1297,9 @@ async function fixPackRepairContext(env, access, reportId, report = {}, body = {
 
 async function fixPackCheckoutSchemaStatus(env) {
   try {
-    const statement = env.WAITLIST_DB.prepare("SELECT checkout_repair_json FROM fix_requests LIMIT 1");
+    const statement = env.WAITLIST_DB.prepare(
+      "SELECT checkout_repair_json, checkout_lock_until, expected_amount, pre_dispute_status FROM fix_requests LIMIT 1"
+    );
     if (typeof statement.first === "function") {
       await statement.first();
     } else {
@@ -1573,6 +1786,8 @@ async function createDodoFixPackCheckout(request, env, reportRow, fixRequest, ac
     product_cart: [{ product_id: dodoProductId(env), quantity: 1 }],
     return_url: returnUrl.toString(),
     adaptive_currency_fees_inclusive: dodoAdaptiveCurrencyFeesInclusive(env),
+    // Dodo docs: feature_flags.allow_discount_code shows the discount-code field; keep it off.
+    feature_flags: { allow_discount_code: false },
     customer: { email: access.ownerEmail },
     metadata: {
       product_key: FIX_PACK_OFFER.productKey,
@@ -1632,6 +1847,8 @@ async function createDodoMonitoringCheckout(request, env, access, context) {
     product_cart: [{ product_id: dodoMonitoringProductId(env), quantity: 1 }],
     return_url: returnUrl.toString(),
     adaptive_currency_fees_inclusive: dodoAdaptiveCurrencyFeesInclusive(env),
+    // Dodo docs: feature_flags.allow_discount_code shows the discount-code field; keep it off.
+    feature_flags: { allow_discount_code: false },
     customer: { email: access.ownerEmail },
     metadata: {
       product_key: MONITORING_OFFER.productKey,
@@ -1688,6 +1905,8 @@ async function createDodoRepairSprintCheckout(request, env, reportRow, fixReques
     product_cart: [{ product_id: dodoRepairSprintProductId(env), quantity: 1 }],
     return_url: returnUrl.toString(),
     adaptive_currency_fees_inclusive: dodoAdaptiveCurrencyFeesInclusive(env),
+    // Dodo docs: feature_flags.allow_discount_code shows the discount-code field; keep it off.
+    feature_flags: { allow_discount_code: false },
     customer: { email: access.ownerEmail },
     metadata: {
       product_key: REPAIR_SPRINT_OFFER.productKey,
@@ -1938,9 +2157,14 @@ async function handleDodoWebhook(request, env, ctx) {
       env,
       webhookId,
       result.status || "processed",
-      result.alertReason ? `payment_identity_rejected: ${result.alertReason}` : "",
+      result.errorText || (result.alertReason ? `payment_identity_rejected: ${result.alertReason}` : ""),
       result.fixRequestId || payment.metadataFixRequestId || ""
     );
+    if (result.adminAlert) {
+      const alert = notifyAdminBillingAlert(env, { ...result.adminAlert, eventType, webhookId });
+      if (ctx?.waitUntil) ctx.waitUntil(alert);
+      else await alert;
+    }
     if (result.paymentNotification?.fixRequest) {
       const notification = notifyPaymentSucceeded(env, result.paymentNotification.fixRequest, payment, {
         offerKey: result.paymentNotification.offerKey || result.offerKey || OFFER_KEYS.FIX_PACK
@@ -1948,7 +2172,7 @@ async function handleDodoWebhook(request, env, ctx) {
       if (ctx?.waitUntil) ctx.waitUntil(notification);
       else await notification;
     }
-    return jsonNoStore({ received: true, ...result });
+    return jsonNoStore({ received: true, ...result, adminAlert: result.adminAlert ? true : undefined });
   } catch (error) {
     await markDodoWebhookProcessed(
       env,
@@ -2018,13 +2242,28 @@ async function reserveDodoWebhookEvent(env, { webhookId, eventType, payment, pay
 }
 
 async function processDodoPaymentWebhook(env, eventType, payment, webhookId = "") {
+  const moneyBackEvent = isRefundOrDisputeEvent(eventType);
   if (!payment.paymentId && !payment.checkoutSessionId && !payment.metadataFixRequestId) {
-    return { ok: false, ignored: true, status: "ignored", reason: "missing_payment_identity" };
+    return {
+      ok: false,
+      ignored: !moneyBackEvent,
+      status: moneyBackEvent ? "error" : "ignored",
+      reason: "missing_payment_identity",
+      errorText: moneyBackEvent ? "unmatched_refund_or_dispute: missing_payment_identity" : ""
+    };
   }
 
   const fixRequest = await findFixRequestForPayment(env, payment);
   if (!fixRequest?.id) {
-    return { ok: false, ignored: true, status: "ignored", reason: "fix_request_not_found" };
+    // A refund or dispute we cannot match yet (for example one that arrives before
+    // payment.succeeded) stays `error`: it is visible, retried, and replayed once the payment lands.
+    return {
+      ok: false,
+      ignored: !moneyBackEvent,
+      status: moneyBackEvent ? "error" : "ignored",
+      reason: "fix_request_not_found",
+      errorText: moneyBackEvent ? "unmatched_refund_or_dispute: fix_request_not_found" : ""
+    };
   }
 
   const now = new Date().toISOString();
@@ -2057,15 +2296,19 @@ async function processDodoPaymentWebhook(env, eventType, payment, webhookId = ""
       reason: identity.reason,
       detail: { eventType, paymentId: payment.paymentId, webhookId }
     });
-    const unattributable =
+    const chargedWithoutAccess =
       DODO_PAYMENT_SUCCESS_EVENTS.has(eventType) && UNATTRIBUTABLE_PAYMENT_IDENTITY_REASONS.has(identity.reason);
+    const unattributable = chargedWithoutAccess || moneyBackEvent;
     return {
       ok: false,
       ignored: true,
       status: unattributable ? "error" : "ignored",
       alertReason: unattributable ? identity.reason : "",
       reason: identity.reason,
-      fixRequestId: fixRequest.id
+      fixRequestId: fixRequest.id,
+      adminAlert: chargedWithoutAccess
+        ? { reason: identity.reason, fixRequest, detail: { paymentId: payment.paymentId } }
+        : undefined
     };
   }
 
@@ -2073,12 +2316,21 @@ async function processDodoPaymentWebhook(env, eventType, payment, webhookId = ""
     if (payment.status && !PAID_STATUSES.has(payment.status)) {
       return { ok: false, ignored: true, status: "ignored", reason: "not_paid", fixRequestId: fixRequest.id };
     }
+    if (
+      fixRequest.paid_at &&
+      fixRequest.payment_id &&
+      payment.paymentId &&
+      payment.paymentId !== fixRequest.payment_id
+    ) {
+      return recordDuplicatePayment(env, eventType, payment, fixRequest, webhookId, now);
+    }
     const paymentStatusReason =
       identity.repairTargetState && identity.repairTargetState !== "active"
         ? `repair_target_${identity.repairTargetState}`
         : identity.checkoutSessionState === "superseded"
           ? "checkout_session_superseded"
           : "";
+    const amountIssue = expectedAmountIssue(fixRequest, payment);
     await env.WAITLIST_DB.prepare(
       `UPDATE fix_requests
        SET status = CASE
@@ -2115,6 +2367,7 @@ async function processDodoPaymentWebhook(env, eventType, payment, webhookId = ""
         fixRequest.id
       )
       .run();
+    await recordFixRequestPayment(env, { fixRequestId: fixRequest.id, payment, role: "primary", webhookId, now });
     await logFixRequestEvent(env, {
       fixRequestId: fixRequest.id,
       event: "payment_succeeded",
@@ -2126,6 +2379,9 @@ async function processDodoPaymentWebhook(env, eventType, payment, webhookId = ""
         webhookId,
         amount: payment.amount,
         currency: payment.currency,
+        expectedAmount: fixRequest.expected_amount ?? null,
+        expectedCurrency: fixRequest.expected_currency || "",
+        amountIssue,
         checkoutSessionId: payment.checkoutSessionId,
         repairIssueId: payment.metadataRepairIssueId || "",
         repairQueueItemId: payment.metadataRepairQueueItemId || "",
@@ -2135,17 +2391,27 @@ async function processDodoPaymentWebhook(env, eventType, payment, webhookId = ""
         repairTargetStatus: identity.repairTargetStatus || ""
       }
     });
-    const updated = await env.WAITLIST_DB.prepare("SELECT * FROM fix_requests WHERE id = ? LIMIT 1")
-      .bind(fixRequest.id)
-      .first();
-    await seedRepairProposalsForPaidFixRequest(env, updated || { ...fixRequest, status: "paid" }, now);
-    await preserveFixRequestReports(env, updated || fixRequest);
+    await replayPendingMoneyEvents(env, payment.paymentId, webhookId);
+    const updated = (await fixRequestById(env, fixRequest.id)) || { ...fixRequest, status: "paid" };
+    await seedRepairProposalsForPaidFixRequest(env, updated, now);
+    await preserveFixRequestReports(env, updated);
+    const refundedAlready = updated.status === "refunded";
     return {
       ok: true,
-      status: "processed",
-      paid: true,
+      // The payment is recorded and access is granted either way; a clearly wrong
+      // amount only flags the webhook for the admin.
+      status: amountIssue ? "error" : "processed",
+      errorText: amountIssue ? `amount_mismatch: ${amountIssue}` : "",
+      reason: amountIssue ? "amount_mismatch" : refundedAlready ? "refund_recorded_before_payment" : "",
+      paid: !refundedAlready,
+      refunded: refundedAlready || undefined,
       fixRequestId: fixRequest.id,
-      paymentNotification: { fixRequest: updated || fixRequest, offerKey: identity.offerKey || OFFER_KEYS.FIX_PACK }
+      adminAlert: amountIssue
+        ? { reason: "amount_mismatch", fixRequest: updated, detail: { paymentId: payment.paymentId, amountIssue } }
+        : undefined,
+      paymentNotification: refundedAlready
+        ? undefined
+        : { fixRequest: updated, offerKey: identity.offerKey || OFFER_KEYS.FIX_PACK }
     };
   }
 
@@ -2185,19 +2451,71 @@ async function processDodoPaymentWebhook(env, eventType, payment, webhookId = ""
     return { ok: true, status: "processed", processing: true, fixRequestId: fixRequest.id };
   }
 
+  if (identity.paymentRole === "duplicate") {
+    return processDuplicatePaymentMoneyEvent(env, eventType, payment, fixRequest, webhookId, now);
+  }
+
   if (DODO_REFUND_SUCCESS_EVENTS.has(eventType)) {
+    if (isPartialRefund(fixRequest, payment)) {
+      // A partial refund keeps the Fix Pack: record how much went back and why.
+      await env.WAITLIST_DB.prepare(
+        `UPDATE fix_requests
+         SET refund_id = ?,
+             refund_amount = COALESCE(refund_amount, 0) + ?,
+             refund_currency = ?,
+             refund_reason = ?,
+             updated_at = ?
+         WHERE id = ?`
+      )
+        .bind(
+          payment.refundId || "",
+          payment.amount || 0,
+          payment.currency || "",
+          payment.refundReason || "",
+          now,
+          fixRequest.id
+        )
+        .run();
+      await updateFixRequestPaymentRecord(env, payment, "partially_refunded", now);
+      await logFixRequestEvent(env, {
+        fixRequestId: fixRequest.id,
+        event: "partial_refund_succeeded",
+        actorType: "dodo",
+        fromStatus: fixRequest.status || "new",
+        toStatus: fixRequest.status || "new",
+        reason: payment.refundReason || payment.refundId || eventType,
+        detail: {
+          webhookId,
+          paymentId: payment.paymentId,
+          refundId: payment.refundId,
+          amount: payment.amount,
+          currency: payment.currency
+        }
+      });
+      return { ok: true, status: "processed", partialRefund: true, fixRequestId: fixRequest.id };
+    }
     await env.WAITLIST_DB.prepare(
       `UPDATE fix_requests
        SET status = 'refunded',
            refund_id = ?,
            refund_amount = ?,
            refund_currency = ?,
+           refund_reason = ?,
            refunded_at = COALESCE(refunded_at, ?),
            updated_at = ?
        WHERE id = ?`
     )
-      .bind(payment.refundId || "", payment.amount || null, payment.currency || "", now, now, fixRequest.id)
+      .bind(
+        payment.refundId || "",
+        payment.amount || null,
+        payment.currency || "",
+        payment.refundReason || "",
+        now,
+        now,
+        fixRequest.id
+      )
       .run();
+    await updateFixRequestPaymentRecord(env, payment, "refunded", now);
     await logFixRequestEvent(env, {
       fixRequestId: fixRequest.id,
       event: "refund_succeeded",
@@ -2237,7 +2555,8 @@ async function processDodoPaymentWebhook(env, eventType, payment, webhookId = ""
   if (DODO_DISPUTE_EVENTS.has(eventType)) {
     await env.WAITLIST_DB.prepare(
       `UPDATE fix_requests
-       SET status = CASE WHEN status = 'delivered' THEN status ELSE 'disputed' END,
+       SET pre_dispute_status = CASE WHEN status = 'disputed' THEN pre_dispute_status ELSE status END,
+           status = CASE WHEN status = 'delivered' THEN status ELSE 'disputed' END,
            dispute_event = ?,
            disputed_at = COALESCE(disputed_at, ?),
            updated_at = ?
@@ -2245,6 +2564,7 @@ async function processDodoPaymentWebhook(env, eventType, payment, webhookId = ""
     )
       .bind(eventType, now, now, fixRequest.id)
       .run();
+    await updateFixRequestPaymentRecord(env, payment, "disputed", now, eventType);
     await logFixRequestEvent(env, {
       fixRequestId: fixRequest.id,
       event: "dispute_event",
@@ -2257,7 +2577,236 @@ async function processDodoPaymentWebhook(env, eventType, payment, webhookId = ""
     return { ok: true, status: "processed", disputed: true, fixRequestId: fixRequest.id };
   }
 
+  if (DODO_DISPUTE_RESOLVED_EVENTS.has(eventType)) {
+    // Won or withdrawn: the payment stands, so the request goes back to where it was.
+    await env.WAITLIST_DB.prepare(
+      `UPDATE fix_requests
+       SET status = CASE
+             WHEN status = 'disputed' THEN COALESCE(
+               NULLIF(pre_dispute_status, ''),
+               CASE WHEN paid_at IS NOT NULL THEN 'paid' ELSE status END
+             )
+             ELSE status
+           END,
+           pre_dispute_status = NULL,
+           dispute_event = ?,
+           updated_at = ?
+       WHERE id = ?`
+    )
+      .bind(eventType, now, fixRequest.id)
+      .run();
+    await updateFixRequestPaymentRecord(env, payment, "paid", now, eventType);
+    const restored = await fixRequestById(env, fixRequest.id);
+    await logFixRequestEvent(env, {
+      fixRequestId: fixRequest.id,
+      event: "dispute_resolved",
+      actorType: "dodo",
+      fromStatus: fixRequest.status || "new",
+      toStatus: restored?.status || fixRequest.status || "new",
+      reason: eventType,
+      detail: { webhookId, paymentId: payment.paymentId }
+    });
+    return { ok: true, status: "processed", disputeResolved: true, fixRequestId: fixRequest.id };
+  }
+
   return { ok: true, ignored: true, status: "ignored", reason: "unsupported_event", fixRequestId: fixRequest.id };
+}
+
+function expectedAmountIssue(fixRequest = {}, payment = {}) {
+  const expectedAmount = Number(fixRequest.expected_amount || 0);
+  const expectedCurrency = normalizeCurrencyCode(fixRequest.expected_currency || "");
+  if (!expectedAmount || !expectedCurrency) return "";
+  const currency = normalizeCurrencyCode(payment.currency || "");
+  if (currency !== expectedCurrency) {
+    return `paid ${payment.amount} ${currency || "?"}, checkout expected ${expectedAmount} ${expectedCurrency}`;
+  }
+  if (Number(payment.amount || 0) < expectedAmount * MIN_EXPECTED_AMOUNT_RATIO) {
+    return `paid ${payment.amount} ${currency}, under half of the expected ${expectedAmount} ${expectedCurrency}`;
+  }
+  return "";
+}
+
+function isPartialRefund(fixRequest = {}, payment = {}) {
+  if (payment.isPartialRefund) return true;
+  const paid = Number(fixRequest.payment_amount || 0);
+  const refunded = Number(payment.amount || 0);
+  if (!paid || !refunded || refunded >= paid) return false;
+  const paidCurrency = normalizeCurrencyCode(fixRequest.payment_currency || "");
+  const refundCurrency = normalizeCurrencyCode(payment.currency || "");
+  return !paidCurrency || !refundCurrency || paidCurrency === refundCurrency;
+}
+
+async function recordFixRequestPayment(env, { fixRequestId, payment, role, webhookId, now }) {
+  if (!payment.paymentId) return;
+  await env.WAITLIST_DB.prepare(
+    `INSERT OR IGNORE INTO fix_request_payments
+      (payment_id, fix_request_id, role, status, checkout_session_id, amount, currency, webhook_id, created_at, updated_at)
+     VALUES (?, ?, ?, 'paid', ?, ?, ?, ?, ?, ?)`
+  )
+    .bind(
+      payment.paymentId,
+      fixRequestId,
+      role,
+      payment.checkoutSessionId || "",
+      payment.amount || null,
+      payment.currency || "",
+      webhookId,
+      now,
+      now
+    )
+    .run();
+}
+
+async function updateFixRequestPaymentRecord(env, payment, status, now, disputeEvent = "") {
+  if (!payment.paymentId) return;
+  const refund = status === "refunded" || status === "partially_refunded";
+  await env.WAITLIST_DB.prepare(
+    `UPDATE fix_request_payments
+     SET status = ?,
+         refund_id = CASE WHEN ? THEN ? ELSE refund_id END,
+         refund_amount = CASE WHEN ? THEN COALESCE(refund_amount, 0) + ? ELSE refund_amount END,
+         refund_currency = CASE WHEN ? THEN ? ELSE refund_currency END,
+         refunded_at = CASE WHEN ? = 'refunded' THEN COALESCE(refunded_at, ?) ELSE refunded_at END,
+         dispute_event = COALESCE(NULLIF(?, ''), dispute_event),
+         updated_at = ?
+     WHERE payment_id = ?`
+  )
+    .bind(
+      status,
+      refund ? 1 : 0,
+      payment.refundId || "",
+      refund ? 1 : 0,
+      payment.amount || 0,
+      refund ? 1 : 0,
+      payment.currency || "",
+      status,
+      now,
+      disputeEvent,
+      now,
+      payment.paymentId
+    )
+    .run();
+}
+
+async function fixRequestPaymentRecord(env, paymentId, fixRequestId = "") {
+  if (!paymentId) return null;
+  try {
+    return await env.WAITLIST_DB.prepare(
+      `SELECT *
+       FROM fix_request_payments
+       WHERE payment_id = ?
+         AND (? = '' OR fix_request_id = ?)
+       LIMIT 1`
+    )
+      .bind(paymentId, fixRequestId, fixRequestId)
+      .first();
+  } catch {
+    return null;
+  }
+}
+
+// A second distinct payment for a request that is already paid: keep the original
+// payment, record the extra one, and flag it for a refund.
+async function recordDuplicatePayment(env, eventType, payment, fixRequest, webhookId, now) {
+  await recordFixRequestPayment(env, { fixRequestId: fixRequest.id, payment, role: "duplicate", webhookId, now });
+  await logFixRequestEvent(env, {
+    fixRequestId: fixRequest.id,
+    event: "duplicate_payment",
+    actorType: "dodo",
+    fromStatus: fixRequest.status || "new",
+    toStatus: fixRequest.status || "new",
+    reason: "duplicate_payment_needs_refund",
+    detail: {
+      webhookId,
+      eventType,
+      paymentId: payment.paymentId,
+      originalPaymentId: fixRequest.payment_id,
+      checkoutSessionId: payment.checkoutSessionId,
+      amount: payment.amount,
+      currency: payment.currency
+    }
+  });
+  await replayPendingMoneyEvents(env, payment.paymentId, webhookId);
+  const record = await fixRequestPaymentRecord(env, payment.paymentId, fixRequest.id);
+  if (record?.status === "refunded") {
+    return {
+      ok: true,
+      status: "processed",
+      duplicatePayment: true,
+      reason: "duplicate_payment_already_refunded",
+      fixRequestId: fixRequest.id
+    };
+  }
+  return {
+    ok: false,
+    status: "error",
+    duplicatePayment: true,
+    reason: "duplicate_payment_needs_refund",
+    errorText: `duplicate_payment_needs_refund: ${payment.paymentId} (kept ${fixRequest.payment_id})`,
+    fixRequestId: fixRequest.id,
+    adminAlert: {
+      reason: "duplicate_payment_needs_refund",
+      fixRequest,
+      detail: { paymentId: payment.paymentId, originalPaymentId: fixRequest.payment_id }
+    }
+  };
+}
+
+// Refunds and disputes of an extra payment touch only that payment's record.
+async function processDuplicatePaymentMoneyEvent(env, eventType, payment, fixRequest, webhookId, now) {
+  let status = "paid";
+  if (DODO_REFUND_SUCCESS_EVENTS.has(eventType)) status = payment.isPartialRefund ? "partially_refunded" : "refunded";
+  else if (DODO_REFUND_FAILURE_EVENTS.has(eventType)) status = "refund_failed";
+  else if (DODO_DISPUTE_EVENTS.has(eventType)) status = "disputed";
+  await updateFixRequestPaymentRecord(
+    env,
+    payment,
+    status,
+    now,
+    DODO_DISPUTE_EVENTS.has(eventType) || DODO_DISPUTE_RESOLVED_EVENTS.has(eventType) ? eventType : ""
+  );
+  await logFixRequestEvent(env, {
+    fixRequestId: fixRequest.id,
+    event: `duplicate_payment_${status}`,
+    actorType: "dodo",
+    fromStatus: fixRequest.status || "new",
+    toStatus: fixRequest.status || "new",
+    reason: eventType,
+    detail: { webhookId, paymentId: payment.paymentId, refundId: payment.refundId, amount: payment.amount }
+  });
+  return {
+    ok: true,
+    status: "processed",
+    duplicatePayment: true,
+    duplicatePaymentStatus: status,
+    fixRequestId: fixRequest.id
+  };
+}
+
+// Refund or dispute webhooks that arrived before their payment were stored as `error`;
+// once the payment is recorded, apply them in arrival order.
+async function replayPendingMoneyEvents(env, paymentId, currentWebhookId = "") {
+  if (!paymentId) return;
+  const rows = await env.WAITLIST_DB.prepare(
+    `SELECT webhook_id, event_type, payload_json
+     FROM dodo_webhook_events
+     WHERE payment_id = ?
+       AND status = 'error'
+       AND webhook_id != ?
+       AND (event_type LIKE 'refund.%' OR event_type LIKE 'dispute.%')
+     ORDER BY first_received_at, webhook_id`
+  )
+    .bind(paymentId, currentWebhookId)
+    .all();
+  for (const row of rows.results || []) {
+    const event = parseJson(row.payload_json, null);
+    if (!event?.data) continue;
+    const pending = extractDodoPayment(event.data);
+    const result = await processDodoPaymentWebhook(env, row.event_type, pending, row.webhook_id);
+    if (result.status === "processed") {
+      await markDodoWebhookProcessed(env, row.webhook_id, "processed", "", result.fixRequestId || "");
+    }
+  }
 }
 
 async function processDodoSubscriptionWebhook(env, eventType, subscription, webhookId = "") {
@@ -2351,6 +2900,25 @@ async function processDodoSubscriptionWebhook(env, eventType, subscription, webh
       subscriptionStatus: subscription.status || ""
     }
   });
+
+  if (result.reason === "active_entitlement_exists") {
+    // A second subscription went live while one is active: the customer is billed twice.
+    return {
+      ok: false,
+      status: "error",
+      ignored: true,
+      reason: "duplicate_subscription_needs_cancel",
+      errorText: `duplicate_subscription_needs_cancel: ${subscription.subscriptionId} (active ${result.activeSubscriptionId || "?"})`,
+      offerKey: OFFER_KEYS.MONITORING,
+      entitlementId: result.entitlementId || "",
+      entitlementStatus: result.toStatus || "active",
+      adminAlert: {
+        reason: "duplicate_subscription_needs_cancel",
+        ownerEmail: identity.ownerEmail,
+        detail: { subscriptionId: subscription.subscriptionId, activeSubscriptionId: result.activeSubscriptionId || "" }
+      }
+    };
+  }
 
   return {
     ok: true,
@@ -2473,7 +3041,8 @@ async function upsertMonitoringEntitlement(env, subscription, ownerEmail, now) {
         fromStatus: active.status || "",
         toStatus: active.status || "active",
         ignored: true,
-        reason: "active_entitlement_exists"
+        reason: "active_entitlement_exists",
+        activeSubscriptionId: active.subscription_id
       };
     }
     await env.WAITLIST_DB.prepare(
@@ -2640,20 +3209,21 @@ async function findFixRequestForPayment(env, payment) {
       .bind(payment.paymentId)
       .first();
     if (row?.id) return row;
+    // Extra payments recorded against a request (refunds and disputes of them must still match).
+    const record = await fixRequestPaymentRecord(env, payment.paymentId);
+    if (record?.fix_request_id) return fixRequestById(env, record.fix_request_id);
   }
   return null;
 }
 
 async function dodoPaymentIdentityStatus(env, eventType, payment, fixRequest) {
-  if (
-    DODO_REFUND_SUCCESS_EVENTS.has(eventType) ||
-    DODO_REFUND_FAILURE_EVENTS.has(eventType) ||
-    DODO_DISPUTE_EVENTS.has(eventType)
-  ) {
-    if (!payment.paymentId || !fixRequest.payment_id || payment.paymentId !== fixRequest.payment_id) {
-      return { ok: false, reason: "payment_id_mismatch" };
+  if (isRefundOrDisputeEvent(eventType)) {
+    if (payment.paymentId && fixRequest.payment_id && payment.paymentId === fixRequest.payment_id) {
+      return { ok: true, paymentRole: "primary" };
     }
-    return { ok: true };
+    const record = await fixRequestPaymentRecord(env, payment.paymentId, fixRequest.id);
+    if (record?.payment_id) return { ok: true, paymentRole: record.role === "primary" ? "primary" : "duplicate" };
+    return { ok: false, reason: "payment_id_mismatch" };
   }
 
   const expectedPaymentProduct = dodoPaymentProductForKey(env, payment.metadataProductKey);
@@ -2816,6 +3386,58 @@ async function markDodoWebhookProcessed(env, webhookId, status, error = "", fixR
   )
     .bind(status, String(error || "").slice(0, 1000), fixRequestId, status === "processed" ? now : "", now, webhookId)
     .run();
+}
+
+// Emails the admin about a billing problem that needs a human (refund, cancel, review).
+// The webhook row is already `error`, so this is best effort and never throws.
+async function notifyAdminBillingAlert(
+  env,
+  { reason, fixRequest = null, ownerEmail = "", detail = {}, eventType, webhookId }
+) {
+  const recipientEmail = adminNotificationEmail(env);
+  const fixRequestId = fixRequest?.id || "";
+  const event = `billing_alert_${cleanText(reason, 60)}`;
+  const log = async (status, error = "", providerMessageId = "") => {
+    if (!fixRequestId) return;
+    await logFixRequestNotification(env, {
+      fixRequestId,
+      event,
+      recipientType: "admin",
+      recipientEmail,
+      status,
+      provider: EMAIL_PROVIDER,
+      providerMessageId,
+      error
+    }).catch(() => {});
+  };
+  if (!recipientEmail) return log("skipped", "missing_recipient");
+  if (!isEmailConfigured(env)) return log("skipped", "missing_email_config");
+  const owner = fixRequest?.owner_email || ownerEmail || "";
+  const target = fixRequest?.target_host || "";
+  const lines = [
+    `Billing alert: ${reason}`,
+    "",
+    `Dodo event: ${eventType} (webhook ${webhookId})`,
+    owner ? `Customer: ${owner}` : "",
+    target ? `Site: ${target}` : "",
+    fixRequestId ? `Fix request: ${fixRequestId}` : "",
+    ...Object.entries(detail || {}).map(([key, value]) => `${key}: ${value ?? ""}`),
+    "",
+    "The webhook is marked error in the admin dashboard. Check Dodo and refund, cancel or reconcile by hand."
+  ].filter((line, index, all) => line || all[index - 1]);
+  const text = lines.join("\n");
+  try {
+    const payload = await sendWorkerEmail(env, {
+      to: recipientEmail,
+      subject: `Billing alert: ${reason}${target ? ` for ${target}` : ""}`,
+      text,
+      html: `<pre style="white-space:pre-wrap">${text.replace(/[&<>]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[char])}</pre>`,
+      tag: "billing-alert"
+    });
+    await log("sent", "", payload.messageId);
+  } catch (error) {
+    await log("error", String(error?.message || "Email send failed.").slice(0, 1000));
+  }
 }
 
 async function notifyPaymentSucceeded(env, fixRequest, payment, options = {}) {

@@ -20,6 +20,7 @@ test("Fix Pack checkout carries selected repair metadata to Dodo", async () => {
   const dodoRequests = [];
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, options = {}) => {
+    if (String(url).endsWith("/checkouts/preview")) return new Response("{}", { status: 404 });
     dodoRequests.push({ url: String(url), body: JSON.parse(options.body || "{}") });
     return new Response(
       JSON.stringify({
@@ -91,6 +92,7 @@ test("Fix Pack checkout rejects requested closed repairs instead of silently swi
   const dodoRequests = [];
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, options = {}) => {
+    if (String(url).endsWith("/checkouts/preview")) return new Response("{}", { status: 404 });
     dodoRequests.push({ url: String(url), body: JSON.parse(options.body || "{}") });
     return new Response(
       JSON.stringify({
@@ -146,6 +148,7 @@ test("Fix Pack checkout rejects mismatched explicit repair identifiers", async (
   const dodoRequests = [];
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, options = {}) => {
+    if (String(url).endsWith("/checkouts/preview")) return new Response("{}", { status: 404 });
     dodoRequests.push({ url: String(url), body: JSON.parse(options.body || "{}") });
     return new Response(
       JSON.stringify({
@@ -198,6 +201,7 @@ test("Fix Pack checkout has no selected repair when every repair is closed", asy
   const dodoRequests = [];
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, options = {}) => {
+    if (String(url).endsWith("/checkouts/preview")) return new Response("{}", { status: 404 });
     dodoRequests.push({ url: String(url), body: JSON.parse(options.body || "{}") });
     return new Response(
       JSON.stringify({
@@ -272,6 +276,7 @@ test("Fix Pack checkout returns an existing paid request after its repair closes
   const dodoRequests = [];
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, options = {}) => {
+    if (String(url).endsWith("/checkouts/preview")) return new Response("{}", { status: 404 });
     dodoRequests.push({ url: String(url), body: JSON.parse(options.body || "{}") });
     return new Response(
       JSON.stringify({
@@ -345,6 +350,7 @@ test("Fix Pack checkout blocks rebuy after refund or dispute statuses", async ()
     const dodoRequests = [];
     const originalFetch = globalThis.fetch;
     globalThis.fetch = async (url, options = {}) => {
+      if (String(url).endsWith("/checkouts/preview")) return new Response("{}", { status: 404 });
       dodoRequests.push({ url: String(url), body: JSON.parse(options.body || "{}") });
       return new Response(
         JSON.stringify({
@@ -395,6 +401,7 @@ test("Fix Pack checkout materializes repair queue before Dodo metadata", async (
   const dodoRequests = [];
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, options = {}) => {
+    if (String(url).endsWith("/checkouts/preview")) return new Response("{}", { status: 404 });
     dodoRequests.push({ url: String(url), body: JSON.parse(options.body || "{}") });
     return new Response(
       JSON.stringify({
@@ -447,6 +454,7 @@ test("Fix Pack checkout returns migration error when repair queue tables are una
   const dodoRequests = [];
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, options = {}) => {
+    if (String(url).endsWith("/checkouts/preview")) return new Response("{}", { status: 404 });
     dodoRequests.push({ url: String(url), body: JSON.parse(options.body || "{}") });
     return new Response(
       JSON.stringify({
@@ -496,6 +504,7 @@ test("Fix Pack checkout preflights checkout repair metadata column before Dodo",
   const dodoRequests = [];
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, options = {}) => {
+    if (String(url).endsWith("/checkouts/preview")) return new Response("{}", { status: 404 });
     dodoRequests.push({ url: String(url), body: JSON.parse(options.body || "{}") });
     return new Response(
       JSON.stringify({
@@ -545,6 +554,7 @@ test("Fix Pack checkout refreshes cached checkout when selected repair closes", 
   const dodoRequests = [];
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, options = {}) => {
+    if (String(url).endsWith("/checkouts/preview")) return new Response("{}", { status: 404 });
     const session = `dodo-session-refresh-${dodoRequests.length + 1}`;
     dodoRequests.push({ url: String(url), body: JSON.parse(options.body || "{}"), session });
     return new Response(
@@ -653,6 +663,7 @@ test("Fix Pack checkout reuses cached checkout when selected repair is unchanged
   const dodoRequests = [];
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, options = {}) => {
+    if (String(url).endsWith("/checkouts/preview")) return new Response("{}", { status: 404 });
     dodoRequests.push({ url: String(url), body: JSON.parse(options.body || "{}") });
     return new Response(
       JSON.stringify({
@@ -912,7 +923,10 @@ test("Dodo payment still validates customer email when checkout repair target ma
   const result = await processDodoPaymentWebhook(env, "payment.succeeded", payment, "wh_email_mismatch");
 
   assert.equal(result.ok, false);
-  assert.equal(result.status, "ignored");
+  // The customer was charged without getting access: flagged for the admin, never silently ignored.
+  assert.equal(result.status, "error");
+  assert.equal(result.alertReason, "customer_email_mismatch");
+  assert.equal(result.adminAlert.reason, "customer_email_mismatch");
   assert.equal(result.reason, "customer_email_mismatch");
   assert.equal(env.fixRequests[0].status, "checkout_created");
   assert.equal(env.fixRequests[0].payment_id, "");
@@ -1362,6 +1376,7 @@ test("Proof Monitoring checkout creates Dodo subscription checkout for verified 
   const dodoRequests = [];
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, options = {}) => {
+    if (String(url).endsWith("/checkouts/preview")) return new Response("{}", { status: 404 });
     dodoRequests.push({ url: String(url), body: JSON.parse(options.body || "{}") });
     return new Response(
       JSON.stringify({
@@ -1415,6 +1430,7 @@ test("Proof Monitoring checkout fails closed when subscription product is not co
   const dodoRequests = [];
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, options = {}) => {
+    if (String(url).endsWith("/checkouts/preview")) return new Response("{}", { status: 404 });
     dodoRequests.push({ url: String(url), body: JSON.parse(options.body || "{}") });
     return new Response(JSON.stringify({ checkout_url: "https://checkout.example.com/unexpected" }), {
       status: 200,
@@ -1468,6 +1484,7 @@ test("Proof Monitoring checkout fails closed without an eligible verified site o
     const dodoRequests = [];
     const originalFetch = globalThis.fetch;
     globalThis.fetch = async (url, options = {}) => {
+      if (String(url).endsWith("/checkouts/preview")) return new Response("{}", { status: 404 });
       dodoRequests.push({ url: String(url), body: JSON.parse(options.body || "{}") });
       return new Response(JSON.stringify({ checkout_url: "https://checkout.example.com/unexpected" }), {
         status: 200,
@@ -1508,6 +1525,7 @@ test("Proof Monitoring checkout fails closed when entitlement schema is unavaila
   const dodoRequests = [];
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, options = {}) => {
+    if (String(url).endsWith("/checkouts/preview")) return new Response("{}", { status: 404 });
     dodoRequests.push({ url: String(url), body: JSON.parse(options.body || "{}") });
     return new Response(JSON.stringify({ checkout_url: "https://checkout.example.com/unexpected" }), {
       status: 200,
@@ -1585,6 +1603,7 @@ test("Repair Sprint checkout creates Dodo checkout for approved proposal queue",
   const dodoRequests = [];
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, options = {}) => {
+    if (String(url).endsWith("/checkouts/preview")) return new Response("{}", { status: 404 });
     dodoRequests.push({ url: String(url), body: JSON.parse(options.body || "{}") });
     return new Response(
       JSON.stringify({
@@ -1663,6 +1682,7 @@ test("Repair Sprint checkout can use a report-level owner-approved proposal", as
   const dodoRequests = [];
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, options = {}) => {
+    if (String(url).endsWith("/checkouts/preview")) return new Response("{}", { status: 404 });
     dodoRequests.push({ url: String(url), body: JSON.parse(options.body || "{}") });
     return new Response(
       JSON.stringify({
@@ -1708,6 +1728,7 @@ test("Repair Sprint checkout fails closed when product is not configured", async
   const dodoRequests = [];
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, options = {}) => {
+    if (String(url).endsWith("/checkouts/preview")) return new Response("{}", { status: 404 });
     dodoRequests.push({ url: String(url), body: JSON.parse(options.body || "{}") });
     return new Response(JSON.stringify({ checkout_url: "https://checkout.example.com/unexpected" }), {
       status: 200,
@@ -1767,6 +1788,7 @@ test("Repair Sprint checkout blocks refunded and disputed prior requests", async
     const dodoRequests = [];
     const originalFetch = globalThis.fetch;
     globalThis.fetch = async (url, options = {}) => {
+      if (String(url).endsWith("/checkouts/preview")) return new Response("{}", { status: 404 });
       dodoRequests.push({ url: String(url), body: JSON.parse(options.body || "{}") });
       return new Response(
         JSON.stringify({
@@ -1831,6 +1853,7 @@ test("Repair Sprint checkout lets a declined customer retry self-serve", async (
   const dodoRequests = [];
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, options = {}) => {
+    if (String(url).endsWith("/checkouts/preview")) return new Response("{}", { status: 404 });
     dodoRequests.push({ url: String(url), body: JSON.parse(options.body || "{}") });
     return new Response(
       JSON.stringify({
@@ -1923,6 +1946,7 @@ test("Repair Sprint checkout fails closed when proposal storage is unavailable",
   const dodoRequests = [];
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, options = {}) => {
+    if (String(url).endsWith("/checkouts/preview")) return new Response("{}", { status: 404 });
     dodoRequests.push({ url: String(url), body: JSON.parse(options.body || "{}") });
     return new Response(JSON.stringify({ checkout_url: "https://checkout.example.com/unexpected" }), {
       status: 200,
@@ -1981,6 +2005,7 @@ test("Repair Sprint checkout reuses cached matching checkout without relinking p
   const dodoRequests = [];
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, options = {}) => {
+    if (String(url).endsWith("/checkouts/preview")) return new Response("{}", { status: 404 });
     dodoRequests.push({ url: String(url), body: JSON.parse(options.body || "{}") });
     return new Response(JSON.stringify({ checkout_url: "https://checkout.example.com/unexpected" }), {
       status: 200,
@@ -3300,7 +3325,9 @@ test("signed refund and dispute webhooks with mismatched payment identity mutate
     assert.equal(fixRequest.dispute_event, undefined, eventType);
     const rejectedEvent = env.events.find((event) => event.event === "payment_identity_rejected");
     assert.equal(rejectedEvent.reason, "payment_id_mismatch", eventType);
-    assert.equal(env.dodoWebhookEvents.at(-1).status, "ignored", eventType);
+    // Unmatched refunds and disputes stay visible and retryable instead of being swallowed.
+    assert.equal(env.dodoWebhookEvents.at(-1).status, "error", eventType);
+    assert.match(env.dodoWebhookEvents.at(-1).error, /payment_id_mismatch/, eventType);
   }
 });
 
@@ -3337,10 +3364,10 @@ test("signed second subscription active while the first entitlement is active gr
   assert.equal(second.status, 200);
   const body = await second.json();
   assert.equal(body.received, true);
-  assert.equal(body.ok, true);
-  assert.equal(body.status, "processed");
+  assert.equal(body.ok, false);
+  assert.equal(body.status, "error");
   assert.equal(body.ignored, true);
-  assert.equal(body.reason, "active_entitlement_exists");
+  assert.equal(body.reason, "duplicate_subscription_needs_cancel");
   assert.equal(body.entitlementStatus, "active");
   assert.equal(body.entitlementId, firstEntitlementId);
 
@@ -3354,7 +3381,9 @@ test("signed second subscription active while the first entitlement is active gr
   assert.equal(ignoredEvent.from_status, "active");
   assert.equal(ignoredEvent.to_status, "active");
   assert.equal(env.dodoWebhookEvents.length, 2);
-  assert.ok(env.dodoWebhookEvents.every((row) => row.status === "processed"));
+  assert.equal(env.dodoWebhookEvents[0].status, "processed");
+  assert.equal(env.dodoWebhookEvents[1].status, "error");
+  assert.match(env.dodoWebhookEvents[1].error, /^duplicate_subscription_needs_cancel: sub-2 \(active sub-1\)/);
 });
 
 test("signed second subscription active after the first is cancelled grants exactly one fresh entitlement", async () => {
@@ -3840,9 +3869,24 @@ function first(sql, values, env) {
   if (sql.includes("FROM beta_sessions")) {
     return snapshot(env.sessions.find((row) => row.token_hash === values[0])) || null;
   }
-  if (sql.includes("SELECT checkout_repair_json FROM fix_requests")) {
+  if (sql.includes("SELECT checkout_repair_json")) {
     if (env.missingCheckoutRepairColumn) throw new Error("no such column: checkout_repair_json");
     return env.fixRequests[0] ? { checkout_repair_json: env.fixRequests[0].checkout_repair_json || "" } : null;
+  }
+  if (sql.includes("FROM fix_request_payments")) {
+    env.payments = env.payments || [];
+    const [paymentId, fixRequestId] = values;
+    return (
+      snapshot(
+        env.payments.find(
+          (row) => row.payment_id === paymentId && (!fixRequestId || row.fix_request_id === fixRequestId)
+        )
+      ) || null
+    );
+  }
+  if (sql.includes("FROM monitoring_checkout_sessions")) {
+    env.monitoringCheckouts = env.monitoringCheckouts || [];
+    return snapshot(env.monitoringCheckouts.find((row) => row.owner_email === values[0])) || null;
   }
   if (sql.includes("FROM dodo_webhook_events")) {
     return snapshot(env.dodoWebhookEvents.find((row) => row.webhook_id === values[0])) || null;
@@ -3927,6 +3971,18 @@ function first(sql, values, env) {
 }
 
 function all(sql, values, env) {
+  if (sql.includes("FROM dodo_webhook_events") && sql.includes("status = 'error'")) {
+    const [paymentId, webhookId] = values;
+    return {
+      results: env.dodoWebhookEvents.filter(
+        (row) =>
+          row.payment_id === paymentId &&
+          row.status === "error" &&
+          row.webhook_id !== webhookId &&
+          /^(refund|dispute)\./.test(row.event_type)
+      )
+    };
+  }
   if (sql.includes("FROM fix_requests") && sql.includes("WHERE owner_email = ?")) {
     const [ownerEmail] = values;
     return {
@@ -4027,6 +4083,73 @@ function all(sql, values, env) {
 
 function run(sql, values, env) {
   if (sql.includes("UPDATE beta_sessions")) return { meta: { changes: 1 } };
+  if (sql.includes("INSERT INTO audit_usage")) {
+    env.usage = env.usage || {};
+    const [bucket, , , limit] = values;
+    if ((env.usage[bucket] || 0) >= limit) return { meta: { changes: 0 } };
+    env.usage[bucket] = (env.usage[bucket] || 0) + 1;
+    return { meta: { changes: 1 } };
+  }
+  if (sql.includes("UPDATE fix_requests") && sql.includes("SET checkout_lock_until = ?")) {
+    const row = env.fixRequests.find((item) => item.id === values[1]);
+    if (!row || (row.checkout_lock_until && row.checkout_lock_until > values[2])) return { meta: { changes: 0 } };
+    row.checkout_lock_until = values[0];
+    return { meta: { changes: 1 } };
+  }
+  if (sql.includes("UPDATE fix_requests SET checkout_lock_until = NULL")) {
+    const row = env.fixRequests.find((item) => item.id === values[0]);
+    if (row) row.checkout_lock_until = null;
+    return { meta: { changes: row ? 1 : 0 } };
+  }
+  if (sql.includes("INSERT INTO monitoring_checkout_sessions")) {
+    env.monitoringCheckouts = env.monitoringCheckouts || [];
+    const [ownerEmail, lockUntil, updatedAt, now] = values;
+    const row = env.monitoringCheckouts.find((item) => item.owner_email === ownerEmail);
+    if (!row) {
+      env.monitoringCheckouts.push({ owner_email: ownerEmail, lock_until: lockUntil, updated_at: updatedAt });
+      return { meta: { changes: 1 } };
+    }
+    if (row.lock_until && row.lock_until > now) return { meta: { changes: 0 } };
+    row.lock_until = lockUntil;
+    row.updated_at = updatedAt;
+    return { meta: { changes: 1 } };
+  }
+  if (sql.includes("UPDATE monitoring_checkout_sessions")) {
+    const row = (env.monitoringCheckouts || []).find((item) => item.owner_email === values.at(-1));
+    if (row && sql.includes("checkout_url = ?")) {
+      Object.assign(row, {
+        target_host: values[0],
+        checkout_session_id: values[1],
+        checkout_url: values[2],
+        checkout_created_at: values[3],
+        lock_until: null,
+        updated_at: values[4]
+      });
+    } else if (row) {
+      row.lock_until = null;
+    }
+    return { meta: { changes: row ? 1 : 0 } };
+  }
+  if (sql.includes("INSERT OR IGNORE INTO fix_request_payments")) {
+    env.payments = env.payments || [];
+    if (env.payments.some((row) => row.payment_id === values[0])) return { meta: { changes: 0 } };
+    env.payments.push({
+      payment_id: values[0],
+      fix_request_id: values[1],
+      role: values[2],
+      status: "paid",
+      checkout_session_id: values[3],
+      amount: values[4],
+      currency: values[5],
+      webhook_id: values[6]
+    });
+    return { meta: { changes: 1 } };
+  }
+  if (sql.includes("UPDATE fix_request_payments")) {
+    const row = (env.payments || []).find((item) => item.payment_id === values.at(-1));
+    if (row) row.status = values[0];
+    return { meta: { changes: row ? 1 : 0 } };
+  }
   if (sql.includes("INSERT OR IGNORE INTO dodo_webhook_events")) {
     if (values.some((value) => value === undefined)) {
       throw new Error("D1_TYPE_ERROR: undefined bind value");
@@ -4308,7 +4431,7 @@ function run(sql, values, env) {
     return { meta: { changes: 1 } };
   }
   if (sql.includes("UPDATE fix_requests") && sql.includes("checkout_url")) {
-    const row = env.fixRequests.find((row) => row.id === values[6]);
+    const row = env.fixRequests.find((row) => row.id === values.at(-1));
     if (row) {
       row.status = "checkout_created";
       row.checkout_session_id = values[0];
@@ -4316,7 +4439,12 @@ function run(sql, values, env) {
       row.checkout_created_at = values[2];
       row.product_id = values[3];
       row.checkout_repair_json = values[4];
-      row.updated_at = values[5];
+      if (sql.includes("expected_amount = ?")) {
+        row.expected_amount = values[5];
+        row.expected_currency = values[6];
+      }
+      row.checkout_lock_until = null;
+      row.updated_at = values.at(-2);
     }
     return { meta: { changes: row ? 1 : 0 } };
   }
@@ -4360,14 +4488,16 @@ function run(sql, values, env) {
     return { meta: { changes: row ? 1 : 0 } };
   }
   if (sql.includes("UPDATE fix_requests") && sql.includes("refund_id = ?")) {
-    const row = env.fixRequests.find((item) => item.id === values[5]);
+    const row = env.fixRequests.find((item) => item.id === values.at(-1));
     if (row) {
-      row.status = sql.includes("status = 'refunded'") ? "refunded" : "paid";
+      const full = sql.includes("status = 'refunded'");
+      if (full) row.status = "refunded";
       row.refund_id = values[0];
-      row.refund_amount = values[1];
+      row.refund_amount = full ? values[1] : Number(row.refund_amount || 0) + values[1];
       row.refund_currency = values[2];
-      row.refunded_at = sql.includes("COALESCE(refunded_at,") ? row.refunded_at || values[3] : values[3];
-      row.updated_at = values[4];
+      row.refund_reason = values[3];
+      if (full) row.refunded_at = row.refunded_at || values[4];
+      row.updated_at = values.at(-2);
     }
     return { meta: { changes: row ? 1 : 0 } };
   }

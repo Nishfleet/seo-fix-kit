@@ -4,6 +4,7 @@ import test from "node:test";
 import { app } from "../worker/index.js";
 import { sha256Hex } from "../worker/lib/security.js";
 import { createTestD1 } from "./support/d1.mjs";
+import { checkoutMessage } from "../src/lib/labels.js";
 
 const ORIGIN = "https://seofixkit.com";
 const OWNER = "owner@example.com";
@@ -795,4 +796,410 @@ test("Proof Monitoring checkout fails closed without a Dodo call when the produc
   delete before.beta_sessions;
   delete after.beta_sessions;
   assert.deepEqual(after, before);
+});
+
+// ---------- Money safety regressions ----------
+
+const ADMIN = "admin@ops.test";
+
+function createAlertingWorld() {
+  const sent = [];
+  const world = createWorld({
+    EMAIL: {
+      async send(message) {
+        sent.push(message);
+        return { messageId: `msg_${sent.length}` };
+      }
+    },
+    SEOFIXKIT_EMAIL_FROM: "SEO Fix Kit <hello@seofixkit.com>",
+    SEOFIXKIT_ADMIN_EMAIL: ADMIN
+  });
+  return { ...world, sent };
+}
+
+function adminAlerts(world, reason) {
+  return world.sent.filter((message) => message.to === ADMIN && message.subject.startsWith(`Billing alert: ${reason}`));
+}
+
+function webhookRow(db, webhookId) {
+  return db.rows("SELECT * FROM dodo_webhook_events WHERE webhook_id = ?", webhookId)[0];
+}
+
+async function paidFixPack(world, token, overrides = {}) {
+  const fixRequest = await startFixPackCheckout(world, token);
+  const item = queueItem(world.db);
+  const paid = await withDodo(() =>
+    send(
+      world.env,
+      webhookRequest({ type: "payment.succeeded", data: paymentData(fixRequest, item, overrides) }, "wh_paid")
+    )
+  );
+  assert.equal(paid.body.status, "processed", JSON.stringify(paid.body));
+  return { fixRequest, item };
+}
+
+// A Dodo fake that answers slowly and hands out a new session per call, so overlapping requests overlap.
+async function withSlowDodo(callback) {
+  const calls = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input, options = {}) => {
+    const url = String(input instanceof Request ? input.url : input);
+    calls.push({ url, body: options.body ? JSON.parse(options.body) : null });
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    if (url === "https://test.dodopayments.com/checkouts/preview") {
+      return Response.json({ display_price: "$99.00", currency: "USD", total_amount: 9900 });
+    }
+    if (url === "https://test.dodopayments.com/checkouts") {
+      const n = dodoCheckoutCalls(calls).length;
+      return Response.json({ checkout_url: `https://test.dodopayments.com/session/cs_${n}`, session_id: `cs_${n}` });
+    }
+    return new Response("unexpected", { status: 599 });
+  };
+  try {
+    return { result: await callback(), calls };
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+}
+
+function refundEvent(paymentId, refundId, extra = {}) {
+  return {
+    type: "refund.succeeded",
+    data: { payment_id: paymentId, refund_id: refundId, amount: 9900, currency: "USD", ...extra }
+  };
+}
+
+test("concurrent Fix Pack checkout clicks create exactly one Dodo session", async () => {
+  const world = createWorld();
+  const token = await arrangeOwnerSession(world.db);
+  arrangeSavedReport(world.db);
+
+  const { result, calls } = await withSlowDodo(() =>
+    Promise.all(
+      [1, 2, 3].map(() =>
+        send(world.env, apiRequest("/api/beta/fix-request", { method: "POST", token, body: { reportId: REPORT_ID } }))
+      )
+    )
+  );
+
+  assert.equal(dodoCheckoutCalls(calls).length, 1, "one Dodo checkout session");
+  const row = fixRequestRow(world.db);
+  for (const response of result) {
+    if (response.status === 200) assert.equal(response.body.checkoutUrl, row.checkout_url);
+    else {
+      assert.equal(response.status, 409);
+      assert.equal(response.body.code, "CHECKOUT_IN_PROGRESS");
+    }
+  }
+  assert.ok(result.some((response) => response.status === 200));
+  assert.equal(row.checkout_lock_until, null, "lock released once the session is saved");
+  assert.equal(row.expected_amount, 9900);
+  assert.equal(row.expected_currency, "USD");
+  assert.deepEqual(dodoCheckoutCalls(calls)[0].body.feature_flags, { allow_discount_code: false });
+});
+
+test("a second distinct payment keeps the original, is recorded for refund, and alerts the admin", async () => {
+  const world = createAlertingWorld();
+  const token = await arrangeOwnerSession(world.db);
+  arrangeSavedReport(world.db);
+  const { fixRequest, item } = await paidFixPack(world, token, { payment_id: "pay_A" });
+
+  const second = await withDodo(() =>
+    send(
+      world.env,
+      webhookRequest(
+        {
+          type: "payment.succeeded",
+          data: paymentData(fixRequest, item, { payment_id: "pay_B", checkout_session_id: "cs_other_tab" })
+        },
+        "wh_pay_B"
+      )
+    )
+  );
+  assert.equal(second.status, 200);
+  assert.equal(second.body.reason, "duplicate_payment_needs_refund");
+  let row = fixRequestRow(world.db);
+  assert.equal(row.status, "paid");
+  assert.equal(row.payment_id, "pay_A", "original payment kept");
+  const webhook = webhookRow(world.db, "wh_pay_B");
+  assert.equal(webhook.status, "error");
+  assert.match(webhook.error, /^duplicate_payment_needs_refund/);
+  const payments = world.db.rows("SELECT payment_id, role, status FROM fix_request_payments ORDER BY payment_id");
+  assert.deepEqual(payments, [
+    { payment_id: "pay_A", role: "primary", status: "paid" },
+    { payment_id: "pay_B", role: "duplicate", status: "paid" }
+  ]);
+  assert.equal(adminAlerts(world, "duplicate_payment_needs_refund").length, 1);
+
+  // Refunding the extra payment (no metadata) is matched and leaves the Fix Pack paid.
+  const refundB = await withDodo(() => send(world.env, webhookRequest(refundEvent("pay_B", "ref_B"), "wh_ref_B")));
+  assert.equal(refundB.body.duplicatePayment, true);
+  assert.equal(webhookRow(world.db, "wh_ref_B").status, "processed");
+  assert.equal(fixRequestRow(world.db).status, "paid");
+  assert.equal(
+    world.db.rows("SELECT status FROM fix_request_payments WHERE payment_id = 'pay_B'")[0].status,
+    "refunded"
+  );
+
+  // Refunding the original still refunds the Fix Pack.
+  await withDodo(() => send(world.env, webhookRequest(refundEvent("pay_A", "ref_A"), "wh_ref_A")));
+  row = fixRequestRow(world.db);
+  assert.equal(row.status, "refunded");
+  assert.equal(row.refund_id, "ref_A");
+});
+
+test("a payment after a refund (second tab) is flagged for refund instead of silently accepted", async () => {
+  const world = createWorld();
+  const token = await arrangeOwnerSession(world.db);
+  arrangeSavedReport(world.db);
+  const { fixRequest, item } = await paidFixPack(world, token);
+  await withDodo(() => send(world.env, webhookRequest(refundEvent("pay_1", "r"), "wh_r")));
+  await withDodo(() =>
+    send(
+      world.env,
+      webhookRequest(
+        {
+          type: "payment.succeeded",
+          data: paymentData(fixRequest, item, { payment_id: "pay_2", checkout_session_id: "cs_x" })
+        },
+        "wh_p2"
+      )
+    )
+  );
+  const row = fixRequestRow(world.db);
+  assert.equal(row.status, "refunded");
+  assert.equal(row.payment_id, "pay_1");
+  assert.equal(webhookRow(world.db, "wh_p2").status, "error");
+});
+
+test("refunds and disputes that match no recorded payment are errors, not ignored", async () => {
+  const world = createWorld();
+  const token = await arrangeOwnerSession(world.db);
+  arrangeSavedReport(world.db);
+  await paidFixPack(world, token);
+  const unknown = await withDodo(() =>
+    send(
+      world.env,
+      webhookRequest({ type: "dispute.opened", data: { payment_id: "pay_unknown", dispute_id: "dp_x" } }, "wh_dsp_x")
+    )
+  );
+  assert.equal(unknown.status, 200);
+  assert.equal(unknown.body.reason, "fix_request_not_found");
+  const row = webhookRow(world.db, "wh_dsp_x");
+  assert.equal(row.status, "error");
+  assert.match(row.error, /unmatched_refund_or_dispute/);
+  assert.equal(fixRequestRow(world.db).status, "paid");
+});
+
+test("a refund that arrives before payment.succeeded is applied once the payment lands", async () => {
+  const world = createWorld();
+  const token = await arrangeOwnerSession(world.db);
+  arrangeSavedReport(world.db);
+  const fixRequest = await startFixPackCheckout(world, token);
+  const item = queueItem(world.db);
+  const early = await withDodo(() => send(world.env, webhookRequest(refundEvent("pay_1", "ref_1"), "wh_ref")));
+  assert.equal(early.status, 200);
+  assert.equal(webhookRow(world.db, "wh_ref").status, "error", "kept visible and retryable");
+
+  const paid = await withDodo(() =>
+    send(world.env, webhookRequest({ type: "payment.succeeded", data: paymentData(fixRequest, item) }, "wh_pay"))
+  );
+  assert.equal(paid.body.paid, false);
+  assert.equal(paid.body.refunded, true);
+  assert.equal(webhookRow(world.db, "wh_ref").status, "processed");
+
+  const retry = await withDodo(() => send(world.env, webhookRequest(refundEvent("pay_1", "ref_1"), "wh_ref")));
+  assert.equal(retry.body.duplicate, true);
+  const row = fixRequestRow(world.db);
+  assert.equal(row.status, "refunded");
+  assert.equal(row.refund_id, "ref_1");
+  assert.equal(
+    world.db.rows("SELECT id FROM fix_request_notifications WHERE event = 'payment_succeeded'").length,
+    0,
+    "no payment receipt for a payment that is already refunded"
+  );
+});
+
+test("a clearly wrong amount or currency is recorded but flagged amount_mismatch", async () => {
+  for (const [label, overrides, flagged] of [
+    ["wrong currency", { total_amount: 1, currency: "JPY" }, true],
+    ["under half the price", { total_amount: 4000, currency: "USD" }, true],
+    ["tax on top", { total_amount: 11880, currency: "USD" }, false],
+    ["small regional discount", { total_amount: 8000, currency: "USD" }, false]
+  ]) {
+    const world = createAlertingWorld();
+    const token = await arrangeOwnerSession(world.db);
+    arrangeSavedReport(world.db);
+    const fixRequest = await startFixPackCheckout(world, token);
+    assert.equal(fixRequest.expected_amount, 9900, label);
+    const response = await withDodo(() =>
+      send(
+        world.env,
+        webhookRequest(
+          { type: "payment.succeeded", data: paymentData(fixRequest, queueItem(world.db), overrides) },
+          "wh_amount"
+        )
+      )
+    );
+    const row = fixRequestRow(world.db);
+    assert.equal(row.status, "paid", `${label}: access is never blocked`);
+    assert.equal(row.payment_amount, overrides.total_amount, label);
+    const webhook = webhookRow(world.db, "wh_amount");
+    if (flagged) {
+      assert.equal(webhook.status, "error", label);
+      assert.match(webhook.error, /^amount_mismatch/, label);
+      assert.equal(response.body.reason, "amount_mismatch", label);
+      assert.equal(adminAlerts(world, "amount_mismatch").length, 1, label);
+    } else {
+      assert.equal(webhook.status, "processed", label);
+    }
+  }
+});
+
+test("customer email, product and quantity mismatches on a paid payment are errors with an admin alert", async () => {
+  for (const [reason, overrides] of [
+    ["customer_email_mismatch", { customer: { email: "billing@client.com" } }],
+    ["product_mismatch", { product_cart: [{ product_id: "pdt_other", quantity: 1 }] }],
+    ["product_quantity_mismatch", { product_cart: [{ product_id: "pdt_fix_pack", quantity: 2 }] }]
+  ]) {
+    const world = createAlertingWorld();
+    const token = await arrangeOwnerSession(world.db);
+    arrangeSavedReport(world.db);
+    const fixRequest = await startFixPackCheckout(world, token);
+    const response = await withDodo(() =>
+      send(
+        world.env,
+        webhookRequest(
+          { type: "payment.succeeded", data: paymentData(fixRequest, queueItem(world.db), overrides) },
+          "wh_identity"
+        )
+      )
+    );
+    assert.equal(response.body.reason, reason);
+    const webhook = webhookRow(world.db, "wh_identity");
+    assert.equal(webhook.status, "error", reason);
+    assert.equal(webhook.error, `payment_identity_rejected: ${reason}`);
+    assert.equal(fixRequestRow(world.db).status, "checkout_created", reason);
+    assert.equal(adminAlerts(world, reason).length, 1, reason);
+  }
+});
+
+test("a partial refund keeps the Fix Pack and records the amount and reason", async () => {
+  const world = createWorld();
+  const token = await arrangeOwnerSession(world.db);
+  arrangeSavedReport(world.db);
+  await paidFixPack(world, token);
+  const response = await withDodo(() =>
+    send(
+      world.env,
+      webhookRequest(
+        refundEvent("pay_1", "ref_p", { amount: 1000, is_partial: true, reason: "Goodwill credit" }),
+        "wh_partial"
+      )
+    )
+  );
+  assert.equal(response.body.partialRefund, true);
+  const row = fixRequestRow(world.db);
+  assert.equal(row.status, "paid");
+  assert.equal(row.refund_amount, 1000);
+  assert.equal(row.refund_currency, "USD");
+  assert.equal(row.refund_reason, "Goodwill credit");
+  assert.equal(row.refunded_at, null);
+});
+
+test("dispute won, cancelled or expired restores the status from before the dispute", async () => {
+  for (const [resolution, before] of [
+    ["dispute.won", "paid"],
+    ["dispute.cancelled", "in_progress"],
+    ["dispute.expired", "paid"]
+  ]) {
+    const world = createWorld();
+    const token = await arrangeOwnerSession(world.db);
+    arrangeSavedReport(world.db);
+    await paidFixPack(world, token);
+    world.db.sqlite.prepare("UPDATE fix_requests SET status = ?").run(before);
+    const dispute = { payment_id: "pay_1", dispute_id: "dp_1" };
+    await withDodo(() => send(world.env, webhookRequest({ type: "dispute.opened", data: dispute }, "wh_d1")));
+    assert.equal(fixRequestRow(world.db).status, "disputed", resolution);
+    const resolved = await withDodo(() =>
+      send(world.env, webhookRequest({ type: resolution, data: dispute }, "wh_d2"))
+    );
+    assert.equal(resolved.body.disputeResolved, true, resolution);
+    const row = fixRequestRow(world.db);
+    assert.equal(row.status, before, resolution);
+    assert.equal(row.dispute_event, resolution);
+    assert.equal(webhookRow(world.db, "wh_d2").status, "processed", resolution);
+  }
+});
+
+test("refund_failed has its own customer message", () => {
+  const message = checkoutMessage("refund_failed", false);
+  assert.notEqual(message, checkoutMessage("checkout_created", false));
+  assert.match(message, /refund/i);
+  assert.match(message, /support@seofixkit\.com/);
+});
+
+test("checkout endpoints allow about 10 attempts per account per hour", async () => {
+  const world = createWorld({ DODO_SEOFIXKIT_PRODUCT_REPAIR_SPRINT_ID: "pdt_sprint" });
+  const token = await arrangeOwnerSession(world.db);
+  arrangeSavedReport(world.db);
+  arrangeVerifiedSite(world.db);
+  for (const path of ["/api/beta/fix-request", "/api/beta/monitoring-checkout", "/api/beta/repair-sprint-checkout"]) {
+    const statuses = [];
+    await withSlowDodo(async () => {
+      for (let i = 0; i < 11; i += 1) {
+        const response = await send(
+          world.env,
+          apiRequest(path, { method: "POST", token, body: { reportId: REPORT_ID } })
+        );
+        statuses.push(response.status);
+      }
+    });
+    assert.ok(
+      statuses.slice(0, 10).every((status) => status !== 429),
+      `${path}: ${statuses}`
+    );
+    assert.equal(statuses[10], 429, path);
+  }
+  const other = await arrangeOwnerSession(world.db, "other@example.com");
+  const fresh = await withDodo(() =>
+    send(
+      world.env,
+      apiRequest("/api/beta/fix-request", { method: "POST", token: other, body: { reportId: REPORT_ID } })
+    )
+  );
+  assert.notEqual(fresh.status, 429, "the limit is per account");
+});
+
+test("monitoring checkout reuses the open session and a second live subscription is flagged", async () => {
+  const world = createAlertingWorld();
+  const token = await arrangeOwnerSession(world.db);
+  arrangeVerifiedSite(world.db);
+  const click = () => send(world.env, apiRequest("/api/beta/monitoring-checkout", { method: "POST", token, body: {} }));
+
+  const { result, calls } = await withSlowDodo(async () => {
+    const parallel = await Promise.all([click(), click()]);
+    return [...parallel, await click()];
+  });
+  assert.equal(dodoCheckoutCalls(calls).length, 1, "one Dodo subscription checkout");
+  const urls = new Set(result.filter((r) => r.status === 200).map((r) => r.body.checkoutUrl));
+  assert.equal(urls.size, 1);
+  assert.equal(result.at(-1).status, 200);
+  assert.deepEqual(dodoCheckoutCalls(calls)[0].body.feature_flags, { allow_discount_code: false });
+
+  await withDodo(() =>
+    send(world.env, webhookRequest({ type: "subscription.active", data: subscriptionData() }, "wh_s1"))
+  );
+  const second = await withDodo(() =>
+    send(
+      world.env,
+      webhookRequest({ type: "subscription.active", data: subscriptionData({ subscription_id: "sub_2" }) }, "wh_s2")
+    )
+  );
+  assert.equal(second.body.reason, "duplicate_subscription_needs_cancel");
+  const webhook = webhookRow(world.db, "wh_s2");
+  assert.equal(webhook.status, "error");
+  assert.match(webhook.error, /^duplicate_subscription_needs_cancel: sub_2/);
+  assert.equal(world.db.rows("SELECT id FROM offer_entitlements").length, 1);
+  assert.equal(adminAlerts(world, "duplicate_subscription_needs_cancel").length, 1);
 });
