@@ -60,6 +60,26 @@ test("account summary counts only the latest report of a URL that was audited tw
   );
 });
 
+test("account summary keeps pages whose paths differ only by letter case", async () => {
+  const env = fakeAccountEnv({
+    reports: [
+      reportRow({
+        id: "report-upper",
+        url: "https://example.com/Products",
+        report_json: reportJson({ id: "report-upper" })
+      }),
+      reportRow({ url: "https://example.com/products" })
+    ],
+    queueItems: [],
+    actions: []
+  });
+
+  const response = await getAccountSummary(sessionRequest("/api/account"), env);
+  const body = await response.json();
+
+  assert.equal(body.metrics.openRepairs, 2);
+});
+
 test("account summary marks repair agent unavailable when repair tables are missing", async () => {
   const env = fakeAccountEnv({ queueItems: [], actions: [], missingRepairTables: true });
 

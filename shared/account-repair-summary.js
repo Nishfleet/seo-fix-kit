@@ -4,13 +4,13 @@ function repairAccountSummaryFromItems(contexts = [], schedules = []) {
   const regressionItems = [];
 
   for (const context of latestContextPerUrl(contexts)) {
-    const response = context.response || {};
-    const report = context.report || {};
     for (const item of context.items || []) {
       if (!isActionableRepairItem(item)) continue;
-      queueItems.push(accountRepairItemResponse(item, response));
+      queueItems.push(accountRepairItemResponse(item, context.response || {}));
     }
-    const regression = monitorRegressionItem(report, response, monitoredReportIds);
+  }
+  for (const context of contexts) {
+    const regression = monitorRegressionItem(context.report || {}, context.response || {}, monitoredReportIds);
     if (regression) regressionItems.push(regression);
   }
 
@@ -178,12 +178,20 @@ function monitorRegressionItem(report = {}, response = {}, monitoredReportIds = 
 function latestContextPerUrl(contexts = []) {
   const seen = new Set();
   return contexts.filter((context) => {
-    const url = context.response?.url || context.report?.url || "";
-    const key = url.toLowerCase().replace(/\/+$/, "") || context.response?.id;
+    const key = urlKey(context.response?.url || context.report?.url) || context.response?.id;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
   });
+}
+
+function urlKey(value) {
+  try {
+    const url = new URL(value);
+    return `${url.protocol}//${url.host.toLowerCase()}${url.pathname.replace(/\/+$/, "")}${url.search}`;
+  } catch {
+    return "";
+  }
 }
 
 function isActionableRepairItem(item = {}) {
