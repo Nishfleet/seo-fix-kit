@@ -250,7 +250,7 @@
     padding-top: var(--space-8);
   }
 
-  .site-header .header-cta {
+  .site-header-actions {
     margin-left: auto;
   }
 
@@ -284,10 +284,6 @@
     flex-wrap: nowrap;
     padding-bottom: 0;
     padding-top: 0;
-  }
-
-  .js .site-header .header-cta {
-    margin-left: auto;
   }
 
   .js .site-nav {
@@ -367,7 +363,7 @@
   }
 }
 
-@media (max-width: 420px) {
+@media (max-width: 379px) {
   .site-header .brand {
     font-size: 0;
     gap: 0;

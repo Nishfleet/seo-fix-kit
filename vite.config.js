@@ -32,25 +32,28 @@ function siteStylesheet() {
   };
 }
 
-// The free tools at /tools/* are Worker-rendered pages that load one script,
-// /tools.js, built from shared/free-tools/client.js under a fixed name so the
-// Worker can link it without reading a build manifest.
-function freeToolsScript() {
+// Worker-rendered pages load their scripts under fixed names, so the Worker
+// can link them without reading a build manifest: /tools.js for the free tools
+// and /check.js for the free page check.
+const WORKER_PAGE_SCRIPTS = {
+  "tools.js": "shared/free-tools/client.js",
+  "check.js": "shared/public-check/client.js"
+};
+
+function workerPageScripts() {
   return {
-    name: "seofixkit-free-tools-script",
+    name: "seofixkit-worker-page-scripts",
     apply: "build",
     buildStart() {
-      this.emitFile({
-        type: "chunk",
-        id: fileURLToPath(new URL("shared/free-tools/client.js", import.meta.url)),
-        fileName: "tools.js"
-      });
+      for (const [fileName, source] of Object.entries(WORKER_PAGE_SCRIPTS)) {
+        this.emitFile({ type: "chunk", id: fileURLToPath(new URL(source, import.meta.url)), fileName });
+      }
     }
   };
 }
 
 export default defineConfig({
-  plugins: [react(), siteStylesheet(), freeToolsScript()],
+  plugins: [react(), siteStylesheet(), workerPageScripts()],
   server: {
     proxy: {
       "/api": "http://127.0.0.1:8787",

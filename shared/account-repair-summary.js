@@ -3,14 +3,14 @@ function repairAccountSummaryFromItems(contexts = [], schedules = []) {
   const queueItems = [];
   const regressionItems = [];
 
-  for (const context of contexts) {
-    const response = context.response || {};
-    const report = context.report || {};
+  for (const context of latestContextPerUrl(contexts)) {
     for (const item of context.items || []) {
       if (!isActionableRepairItem(item)) continue;
-      queueItems.push(accountRepairItemResponse(item, response));
+      queueItems.push(accountRepairItemResponse(item, context.response || {}));
     }
-    const regression = monitorRegressionItem(report, response, monitoredReportIds);
+  }
+  for (const context of contexts) {
+    const regression = monitorRegressionItem(context.report || {}, context.response || {}, monitoredReportIds);
     if (regression) regressionItems.push(regression);
   }
 
@@ -173,6 +173,25 @@ function monitorRegressionItem(report = {}, response = {}, monitoredReportIds = 
     nextActionLabel: "Review new problems",
     nextActionDetail: `${targetHost} has new or worse problems since the last rerun.`
   };
+}
+
+function latestContextPerUrl(contexts = []) {
+  const seen = new Set();
+  return contexts.filter((context) => {
+    const key = urlKey(context.response?.url || context.report?.url) || context.response?.id;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function urlKey(value) {
+  try {
+    const url = new URL(value);
+    return `${url.protocol}//${url.host.toLowerCase()}${url.pathname.replace(/\/+$/, "")}${url.search}`;
+  } catch {
+    return "";
+  }
 }
 
 function isActionableRepairItem(item = {}) {

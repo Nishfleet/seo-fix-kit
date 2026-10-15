@@ -582,7 +582,7 @@ test("public one-page check page is a truthful, searchable entry path", () => {
   assert.match(check, new RegExp(`rel="canonical" href="${origin}/check"`));
   assert.match(check, /id="check-form"/);
   assert.match(check, /Check this page/);
-  assert.match(check, new RegExp(`${origin}/api/public-check`));
+  assert.match(check, new RegExp(`<script type="module" src="${origin}/check.js">`));
   assert.match(check, /What the browser sees/);
   assert.match(check, /False alarms ruled out/);
   assert.match(check, /Real problems only/);

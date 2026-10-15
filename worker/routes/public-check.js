@@ -1,4 +1,5 @@
 import { VERSION, normalizeUrl, publicAuditUrlStatus } from "../../shared/audit-engine.js";
+import { reportFixPrompt } from "../../shared/ai-fix-prompt.js";
 import { resolvesToPrivateAddress } from "../../shared/url-safety.js";
 import { jsonNoStore } from "../lib/http.js";
 import { checkQuotaSet, requestIpHash, sha256Hex } from "../lib/security.js";
@@ -105,6 +106,7 @@ export async function publicCheckQuotaChecks(ipHash, targetHost) {
 
 export function buildPublicCheckResponse(report) {
   const page = report?.pages?.[0];
+  const plan = report?.repairPlan || [];
   const guards = (report?.findings || [])
     .filter((finding) => finding?.severity === "good")
     .slice(0, 3)
@@ -124,7 +126,8 @@ export function buildPublicCheckResponse(report) {
       why: finding.why,
       evidence: finding.evidence,
       fix: finding.fix,
-      proposedMarkup: finding.snippet || ""
+      proposedMarkup: finding.snippet || "",
+      scoreGain: plan.find((item) => item.title === finding.title)?.scoreGain || 0
     }));
   return {
     ok: true,
@@ -134,6 +137,9 @@ export function buildPublicCheckResponse(report) {
     scannedAt: report?.scannedAt || "",
     durationMs: report?.durationMs || 0,
     engineVersion: VERSION,
+    score: typeof report?.score === "number" ? report.score : null,
+    projectedScore: report?.projectedScore || null,
+    fixPrompt: report ? reportFixPrompt(report) : "",
     measured: {
       staticWordCount: page?.static?.wordCount ?? null,
       renderedWordCount: page?.rendered?.wordCount ?? null,
@@ -348,6 +354,20 @@ export function checkHtml(origin) {
       .next-step { background: var(--accent-surface); border: 1px solid var(--line-accent); border-radius: 12px; margin: 40px 0 32px; padding: 20px 22px; }
       .next-step p:last-child { margin-bottom: 0; }
       .box-min { min-width: 0; }
+      .result-head { align-items: center; }
+      .result-title { flex: 1; }
+      .score { align-items: baseline; border: 1px solid var(--line); border-radius: 14px; display: inline-flex; flex: none; gap: 2px; padding: 10px 14px; }
+      .score strong { font-size: 34px; font-variant-numeric: tabular-nums; letter-spacing: -0.03em; line-height: 1; }
+      .score span { color: var(--ink-muted); font-size: 14px; font-weight: 600; }
+      .score.good { background: var(--success-surface); border-color: var(--line-accent); color: var(--success); }
+      .score.ok { background: var(--warning-surface); color: var(--warning); }
+      .score.bad { background: var(--error-surface); border-color: var(--error-line); color: var(--error); }
+      .gain { background: var(--accent-surface); border: 1px solid var(--line-accent); border-radius: 999px; color: var(--accent-strong, var(--accent)); font-size: 12px; font-weight: 700; margin-left: auto; padding: 3px 9px; white-space: nowrap; }
+      .fix-next { border-top: 1px dashed var(--line); display: grid; gap: 12px; margin-top: 16px; padding-top: 16px; }
+      .projected { color: var(--ink); font-size: 16px; margin: 0; }
+      .projected strong { color: var(--accent); }
+      .prompt-row { align-items: center; display: flex; flex-wrap: wrap; gap: 10px 14px; }
+      .prompt-note { color: var(--ink-muted); font-size: 14px; }
       @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } .measure-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .result-head, .result-body, .result-foot { padding-left: 16px; padding-right: 16px; } .check-form .row { flex-direction: column; } main { padding-top: 32px; } }
     </style>
   </head>
@@ -408,231 +428,7 @@ export function checkHtml(origin) {
       </section>
     </main>
     ${siteFooter(origin)}
-    <script>
-      (function () {
-        const form = document.getElementById("check-form");
-        const urlInput = document.getElementById("url-input");
-        const button = document.getElementById("check-button");
-        const result = document.getElementById("result");
-
-        function el(tag, text, className) {
-          const node = document.createElement(tag);
-          if (text !== undefined && text !== null && text !== "") node.textContent = String(text);
-          if (className) node.className = className;
-          return node;
-        }
-
-        // Mirrors the server-side public URL rule (shared/audit-engine.js
-        // publicAuditUrlStatus): scheme-less entries are allowed, but a
-        // single-label hostname (no dot, no IPv6 colons) is never a public
-        // website. Checking here stops typos before they consume a browser
-        // render or rate-limit quota and before a raw net:: error comes back.
-        function publicUrlError(value) {
-          const trimmed = String(value || "").trim();
-          if (!trimmed) return "Enter a valid public website URL.";
-          // This page is built as a template literal, so the regex escape
-          // must be written with doubled backslashes here: a single
-          // backslash-slash would collapse to a slash-slash comment marker
-          // in the served JS and break the whole line.
-          const withProtocol = /^[a-z][a-z0-9+.-]*:\\/\\//i.test(trimmed) ? trimmed : "https://" + trimmed;
-          let parsed = null;
-          try {
-            parsed = new URL(withProtocol);
-          } catch {
-            return "Enter a valid public website URL.";
-          }
-          if (!["http:", "https:"].includes(parsed.protocol)) return "Enter a valid public website URL.";
-          const host = parsed.hostname.toLowerCase();
-          if (!host.includes(".") && !host.includes(":")) return "Enter a valid public website URL.";
-          return "";
-        }
-
-        function hostOf(value) {
-          try {
-            return new URL(value).hostname.replace(/^www\\./, "");
-          } catch {
-            return value;
-          }
-        }
-
-        function count(value) {
-          return typeof value === "number" ? value.toLocaleString("en-US") : value;
-        }
-
-        function plural(n, word) {
-          return n + " " + word + (n === 1 ? "" : "s");
-        }
-
-        function measure(label, value, big) {
-          const box = el("div", "", "measure");
-          box.appendChild(el("div", label, "label"));
-          const shown = value === null || value === undefined || value === "" ? "Not found" : value;
-          box.appendChild(el("div", shown, "value" + (big ? " big" : "")));
-          return box;
-        }
-
-        function copyButton(text) {
-          const button = el("button", "Copy", "copy");
-          button.type = "button";
-          button.setAttribute("aria-label", "Copy markup");
-          button.addEventListener("click", async () => {
-            try {
-              await navigator.clipboard.writeText(text);
-              button.textContent = "Copied";
-            } catch {
-              button.textContent = "Select and copy";
-            }
-            setTimeout(() => (button.textContent = "Copy"), 1600);
-          });
-          return button;
-        }
-
-        function findingNode(finding) {
-          const box = el("article", "", "finding " + finding.severity);
-          const top = el("div", "", "finding-top");
-          top.appendChild(el("span", finding.severity === "guard" ? "Ruled out" : finding.severity, "sev " + finding.severity));
-          top.appendChild(el("h4", finding.title));
-          box.appendChild(top);
-          if (finding.evidence) box.appendChild(el("p", "Evidence: " + finding.evidence));
-          if (finding.why) box.appendChild(el("p", finding.why));
-          if (finding.fix) box.appendChild(el("p", "Fix: " + finding.fix, "fix"));
-          if (finding.proposedMarkup) {
-            box.appendChild(el("p", "Suggested markup. Generated for this page, not copied from it", "snippet-label"));
-            const wrap = el("div", "", "snippet-wrap");
-            wrap.appendChild(el("code", finding.proposedMarkup, "snippet box-min"));
-            wrap.appendChild(copyButton(finding.proposedMarkup));
-            box.appendChild(wrap);
-          }
-          return box;
-        }
-
-        function block(title) {
-          const section = el("section");
-          section.appendChild(el("h3", title));
-          return section;
-        }
-
-        function renderResult(payload) {
-          const measured = payload.measured || {};
-          const findings = payload.findings || [];
-          const guards = payload.guards || [];
-          const card = el("div", "", "result-card");
-
-          const head = el("div", "", "result-head");
-          const titleBox = el("div", "", "box-min");
-          titleBox.appendChild(el("h2", hostOf(payload.finalUrl || payload.checkedUrl)));
-          const rendered = payload.finalUrl && payload.finalUrl !== payload.checkedUrl ? " (rendered at " + payload.finalUrl + ")" : "";
-          titleBox.appendChild(el("p", "Checked: " + payload.checkedUrl + rendered, "result-meta"));
-          head.appendChild(titleBox);
-          const tally = el("div", "", "result-tally");
-          tally.appendChild(el("span", findings.length ? plural(findings.length, "problem") + " to fix" : "No problems found", "tally " + (findings.length ? "bad" : "good")));
-          tally.appendChild(el("span", plural(guards.length, "false alarm") + " ruled out", "tally good"));
-          head.appendChild(tally);
-          card.appendChild(head);
-
-          const body = el("div", "", "result-body");
-
-          const problems = block("Problems to fix");
-          if (findings.length === 0) problems.appendChild(el("p", "No problems found on this page in this check.", "empty-note"));
-          for (const finding of findings) problems.appendChild(findingNode(finding));
-          body.appendChild(problems);
-
-          const proof = block("Rendered proof");
-          const grid = el("div", "", "measure-grid");
-          const words = el("div", "", "measure");
-          words.appendChild(el("div", "Words (raw HTML → browser)", "label"));
-          const wordValue = el("div", "", "value big");
-          if (typeof measured.staticWordCount === "number") wordValue.appendChild(el("span", count(measured.staticWordCount) + " → ", "from"));
-          wordValue.appendChild(document.createTextNode(typeof measured.renderedWordCount === "number" ? count(measured.renderedWordCount) : "Not found"));
-          words.appendChild(wordValue);
-          grid.appendChild(words);
-          grid.appendChild(measure("Internal links", count(measured.renderedInternalLinkCount), true));
-          grid.appendChild(measure("Main heading (H1)", measured.renderedH1));
-          grid.appendChild(measure("Title", measured.renderedTitle));
-          proof.appendChild(grid);
-          body.appendChild(proof);
-
-          const ruledOut = block("False alarms ruled out");
-          if (guards.length === 0) ruledOut.appendChild(el("p", "No false alarms to rule out on this page."));
-          for (const guard of guards) ruledOut.appendChild(findingNode({ ...guard, severity: "guard" }));
-          body.appendChild(ruledOut);
-          card.appendChild(body);
-
-          const foot = el("div", "", "result-foot");
-          const text = el("p");
-          text.appendChild(el("strong", payload.nextStep || "Create a free account to audit the whole site."));
-          if (payload.boundary) text.appendChild(el("span", payload.boundary));
-          foot.appendChild(text);
-          const cta = el("a", "Create a free account", "cta");
-          cta.href = "${origin}/beta";
-          foot.appendChild(cta);
-          card.appendChild(foot);
-          return card;
-        }
-
-        function loadingCard(url) {
-          const card = el("div", "", "loading-card");
-          card.setAttribute("role", "status");
-          card.appendChild(el("span", "", "spinner"));
-          const text = el("div");
-          const step = el("p", "Opening " + url + " in a real browser…", "step");
-          text.appendChild(step);
-          text.appendChild(el("p", "We compare it with the raw HTML. This can take up to a minute.", "sub"));
-          card.appendChild(text);
-          const steps = ["Waiting for the page to finish loading…", "Comparing the rendered page with the raw HTML…", "Checking each problem against the real page…"];
-          let index = 0;
-          const timer = setInterval(() => {
-            if (!card.isConnected || index >= steps.length) return clearInterval(timer);
-            step.textContent = steps[index++];
-          }, 4000);
-          return card;
-        }
-
-        form.addEventListener("submit", async (event) => {
-          event.preventDefault();
-          const url = urlInput.value.trim();
-          if (!url) return;
-          result.classList.remove("show");
-          result.replaceChildren();
-          const validationError = publicUrlError(url);
-          if (validationError) {
-            result.appendChild(el("div", validationError, "error-box"));
-            result.classList.add("show");
-            return;
-          }
-          button.disabled = true;
-          button.textContent = "Checking…";
-          result.replaceChildren(loadingCard(url));
-          result.classList.add("show");
-          try {
-            const response = await fetch("${origin}/api/public-check", {
-              method: "POST",
-              headers: { "content-type": "application/json" },
-              body: JSON.stringify({ url })
-            });
-            const payload = await response.json().catch(() => ({}));
-            if (!response.ok || !payload.ok) {
-              result.replaceChildren(el("div", payload.error || "The check failed. Try another public URL.", "error-box"));
-              return;
-            }
-            result.replaceChildren(renderResult(payload));
-          } catch (error) {
-            result.replaceChildren(el("div", "Could not reach the check service. Check your connection and try again.", "error-box"));
-          } finally {
-            button.disabled = false;
-            button.textContent = "Check this page";
-          }
-        });
-
-        // Arriving from the homepage (or a shared link) as /check?url=...:
-        // fill the field and run the check straight away.
-        const requested = new URLSearchParams(location.search).get("url");
-        if (requested) {
-          urlInput.value = requested.trim();
-          form.requestSubmit();
-        }
-      })();
-    </script>
+    <script type="module" src="${origin}/check.js"></script>
   </body>
 </html>`;
 }

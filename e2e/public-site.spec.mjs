@@ -189,6 +189,9 @@ test.describe("free page check", () => {
           finalUrl: "https://example.com/",
           engineVersion: "e2e",
           scannedAt: "2026-10-12T00:00:00.000Z",
+          score: 72,
+          projectedScore: { fixes: 1, from: 72, to: 84 },
+          fixPrompt: "You are a senior web developer and SEO expert. My website is https://example.com/.",
           measured: {
             staticWordCount: 41,
             renderedWordCount: 1284,
@@ -209,6 +212,7 @@ test.describe("free page check", () => {
               title: "Social preview image missing",
               why: "Shared links show no image.",
               fix: "Add an og:image tag.",
+              scoreGain: 12,
               proposedMarkup: '<meta property="og:image" content="https://example.com/og.png" />'
             }
           ],
@@ -225,6 +229,10 @@ test.describe("free page check", () => {
     await expect(page.locator("#result").getByText("1 false alarm ruled out")).toBeVisible();
     await expect(page.getByText("41 → 1,284")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Social preview image missing" })).toBeVisible();
+    await expect(page.getByLabel("Score 72 out of 100")).toBeVisible();
+    await expect(page.locator("#result").getByText("+12 pts")).toBeVisible();
+    await expect(page.locator("#result").getByText("this page could score about 84")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Copy AI fix prompt" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "“Missing H1” is a false alarm" })).toBeVisible();
     await expect(page.locator("#result").getByRole("link", { name: "Create a free account" })).toHaveAttribute(
       "href",

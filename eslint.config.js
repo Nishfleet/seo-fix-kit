@@ -112,8 +112,8 @@ export default [
     }
   },
   {
-    // The free tools' browser entry, bundled by Vite to /tools.js.
-    files: ["shared/free-tools/client.js"],
+    // Browser entries for Worker-rendered pages, bundled by Vite to /tools.js and /check.js.
+    files: ["shared/free-tools/client.js", "shared/public-check/client.js"],
     languageOptions: {
       globals: { ...globals.browser }
     }

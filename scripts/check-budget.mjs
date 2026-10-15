@@ -11,7 +11,8 @@ const BUDGETS = [
   { label: "Entry CSS", match: /^assets\/index-[\w-]+\.css$/, kb: 22 },
   { label: "Signed-in app JavaScript", match: /^assets\/BetaApp-[\w-]+\.js$/, kb: 50 },
   { label: "Not-found page", match: /^404\.html$/, kb: 4 },
-  { label: "Free tools script", match: /^tools\.js$/, kb: 28 }
+  { label: "Free tools script", match: /^tools\.js$/, kb: 28 },
+  { label: "Free page check script", match: /^check\.js$/, kb: 6 }
 ];
 
 function files(dir, prefix = "") {
