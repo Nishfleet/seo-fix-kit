@@ -288,6 +288,8 @@ Migration `0004_audit_usage.sql` adds the private beta quota table. Migration `0
 
 The protected admin APIs require the `ADMIN_EXPORT_TOKEN` Worker secret. Browser admin use exchanges the token for a short-lived HttpOnly admin session cookie; scripts may still use `Authorization: Bearer ...`. The private beta login uses invite codes or self-serve email links; `BETA_ACCESS_PASSWORD` remains as a founder override only.
 
+Error reporting is off unless the `SENTRY_DSN` Worker secret is set. With it, uncaught errors from the fetch, cron and queue handlers, errors caught by the app's error handler, and failed cron tasks are sent to Sentry with request bodies, cookies, auth headers, query strings and email addresses removed; tracing stays off. Without it the handlers run unwrapped. `SENTRY_ENVIRONMENT` optionally overrides the default `production` label.
+
 Large rendered crawls are expensive and separately entitlement-gated. Founder override sessions can create them locally; non-founder beta/API sessions require `SEOFIXKIT_LARGE_CRAWL_ENABLED=true` until plan billing is wired to account entitlements.
 
 Large-crawl browser workers are also opt-in. Set `SEOFIXKIT_LARGE_CRAWL_WORKERS_ENABLED=true` to let the scheduled Worker process queued batches through Browser Run. `SEOFIXKIT_LARGE_CRAWL_WORKER_BATCHES` and `SEOFIXKIT_LARGE_CRAWL_WORKER_URLS` cap each scheduled tick.
