@@ -24,6 +24,7 @@ import {
   getScoreBadgeForReport,
   revokeScoreBadge,
   serveBadgeSvg,
+  serveScoreCard,
   showScorePage
 } from "./routes/badges.js";
 import {
@@ -370,6 +371,7 @@ app.get("/api/reports/:id/badge", badgeRoute(getScoreBadgeForReport));
 app.post("/api/reports/:id/badge", badgeRoute(createScoreBadge));
 app.delete("/api/badges/:id", badgeRoute(revokeScoreBadge));
 app.get("/badge/:file{[a-f0-9]+\\.svg}", badgeRoute(serveBadgeSvg));
+app.get("/score/:id/card.png", badgeRoute(serveScoreCard));
 app.get("/score/:id", badgeRoute(showScorePage));
 app.get("/api/widget", badgeRoute(getAuditWidget));
 app.post("/api/widget", badgeRoute(createAuditWidget));

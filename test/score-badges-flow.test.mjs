@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash, randomBytes } from "node:crypto";
 import test from "node:test";
+import { scoreCardHtml } from "../worker/routes/badges.js";
 import { app } from "../worker/index.js";
 import { createTestD1 } from "./support/d1.mjs";
 
@@ -55,7 +56,7 @@ function seed(db) {
   );
 }
 
-const call = (db, path, { method = "GET", session } = {}) =>
+const call = (db, path, { method = "GET", session, env = {} } = {}) =>
   app.fetch(
     new Request(`${ORIGIN}${path}`, {
       method,
@@ -64,7 +65,7 @@ const call = (db, path, { method = "GET", session } = {}) =>
         ...(method === "GET" ? {} : { origin: ORIGIN, "content-type": "application/json" })
       }
     }),
-    { WAITLIST_DB: db },
+    { WAITLIST_DB: db, ...env },
     ctx
   );
 
@@ -98,6 +99,48 @@ test("an owner turns on a badge that shows their latest score and progress publi
   assert.match(html, /\+27 since/);
   assert.match(html, /noindex, follow/);
   assert.match(html, /Check your site free/);
+  assert.match(html, new RegExp(`og:image" content="${ORIGIN}/score/${created.badge.id}/card\\.png\\?v=`));
+  assert.match(html, /x\.com\/intent\/post\?text=example\.com%20went%20up%2027%20points%20to%2091%2F100/);
+  assert.match(html, /linkedin\.com\/sharing\/share-offsite/);
+});
+
+test("the score share card is cached per score and falls back to the site image without a browser", async () => {
+  const db = createTestD1();
+  seed(db);
+  const session = signIn(db);
+  const { badge } = await (await call(db, "/api/reports/rep-1/badge", { method: "POST", session })).json();
+
+  const fallback = await call(db, `/score/${badge.id}/card.png`);
+  assert.equal(fallback.status, 302);
+  assert.equal(fallback.headers.get("location"), `${ORIGIN}/og-image.png`);
+
+  const stored = new Map();
+  const asked = [];
+  const REPORTS = {
+    async get(key) {
+      asked.push(key);
+      return stored.has(key) ? { body: stored.get(key) } : null;
+    }
+  };
+  assert.equal((await call(db, `/score/${badge.id}/card.png`, { env: { REPORTS } })).status, 302);
+  assert.match(asked[0], new RegExp(`^score-cards/${badge.id}-\\d{8}T\\d+Z\\.png$`), "keyed by the latest score time");
+  stored.set(asked[0], "PNG");
+  const cached = await call(db, `/score/${badge.id}/card.png`, { env: { REPORTS } });
+  assert.equal(cached.status, 200);
+  assert.equal(cached.headers.get("content-type"), "image/png");
+  assert.equal(await cached.text(), "PNG");
+  assert.equal((await call(db, "/score/00000000000000000000/card.png")).status, 404);
+
+  const card = scoreCardHtml({
+    host: "example.com",
+    points: [
+      { score: 64, created_at: iso(60) },
+      { score: 91, created_at: iso(1) }
+    ]
+  });
+  assert.match(card, /<span class="score">91<\/span>/);
+  assert.match(card, /\+27 points/);
+  assert.match(card, /seofixkit\.com/);
 });
 
 test("badges stay private to their owner and stop working once turned off", async () => {
