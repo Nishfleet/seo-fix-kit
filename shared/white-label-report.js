@@ -60,7 +60,7 @@ export function buildWhiteLabelReportHtml({
   error = "",
   includeDraftBriefs = false
 } = {}) {
-  const cleanBrand = normalizeBrandingInput(branding);
+  const cleanBrand = withAbsoluteLogo(normalizeBrandingInput(branding), origin);
   const host = safeHost(report.url || report.origin || "");
   const renderedCrawlScale = report.renderedCrawlScale || report.rendered_crawl_scale || null;
   const title = locked
@@ -433,6 +433,11 @@ function fullHtml({ title, branding, body }) {
     ${body}
   </body>
 </html>`;
+}
+
+function withAbsoluteLogo(branding, origin) {
+  if (!origin || !branding.logoUrl?.startsWith("/") || branding.logoUrl.startsWith("//")) return branding;
+  return { ...branding, logoUrl: `${origin.replace(/\/+$/, "")}${branding.logoUrl}` };
 }
 
 function brandHeader(branding) {
@@ -934,15 +939,15 @@ function pagesTable(pages) {
   return `
     <table>
       <thead>
-        <tr><th>Page</th><th>Score</th><th>Problems</th><th>Title</th><th>H1</th></tr>
+        <tr><th>Page</th><th>Status</th><th>Score</th><th>Problems</th><th>Title</th><th>H1</th></tr>
       </thead>
       <tbody>
         ${pages
-          .slice(0, 30)
           .map(
             (page) => `
           <tr>
             <td>${escapeHtml(page.url || "")}</td>
+            <td>${escapeHtml(String(page.status ?? ""))}</td>
             <td>${escapeHtml(String(page.score ?? ""))}</td>
             <td>${escapeHtml(String(pageProblemCount(page)))}</td>
             <td>${escapeHtml(page.rendered?.title || page.title || "")}</td>

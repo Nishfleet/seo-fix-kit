@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash, randomBytes } from "node:crypto";
 import test from "node:test";
+import { buildWhiteLabelReportHtml } from "../shared/white-label-report.js";
 import { app } from "../worker/index.js";
 import { createTestD1 } from "./support/d1.mjs";
 
@@ -33,7 +34,15 @@ function seed(db) {
     ],
     pageSummaries: [
       { url: "https://example.com/", score: 88, critical: 0, warnings: 1, notices: 0, title: "Example", h1: "Hi" },
-      { url: "https://example.com/pricing", score: 61, critical: 1, warnings: 0, notices: 0, title: "Pricing" }
+      {
+        url: "https://example.com/pricing",
+        status: 200,
+        score: 61,
+        critical: 1,
+        warnings: 0,
+        notices: 0,
+        title: "Pricing"
+      }
     ]
   };
   db.insert("audit_reports", {
@@ -79,8 +88,23 @@ test("an unbranded client link carries SEO Fix Kit branding and every checked pa
   assert.equal(page.status, 200);
   const html = await page.text();
   assert.match(html, /SEO Fix Kit/);
-  assert.match(html, /src="\/brand\/mark\.svg"/, "the default logo is the SEO Fix Kit mark");
+  assert.match(
+    html,
+    /src="https:\/\/seofixkit\.com\/brand\/mark\.svg"/,
+    "the default logo is the SEO Fix Kit mark, absolute so PDFs load it"
+  );
   assert.doesNotMatch(html, /Gmail SEO/, "the agency name is never guessed from a webmail address");
   assert.doesNotMatch(html, /no per-page results/);
-  assert.match(html, /https:\/\/example\.com\/pricing<\/td>\s*<td>61<\/td>\s*<td>1<\/td>/);
+  assert.match(html, /https:\/\/example\.com\/pricing<\/td>\s*<td>200<\/td>\s*<td>61<\/td>\s*<td>1<\/td>/);
+});
+
+test("the pages table lists every summary and keeps the HTTP status of older reports", () => {
+  const pageSummaries = Array.from({ length: 35 }, (_, i) => ({ url: `https://example.com/p${i}`, score: 90 }));
+  const many = buildWhiteLabelReportHtml({ report: { url: "https://example.com/", pageSummaries } });
+  assert.match(many, /https:\/\/example\.com\/p34<\/td>/);
+
+  const legacy = buildWhiteLabelReportHtml({
+    report: { url: "https://example.com/", pages: [{ url: "https://example.com/gone", status: 404 }] }
+  });
+  assert.match(legacy, /https:\/\/example\.com\/gone<\/td>\s*<td>404<\/td>/);
 });
