@@ -943,53 +943,6 @@ a {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.agency-workspace-strip {
-  align-items: center;
-  background: rgba(7, 13, 10, 0.58);
-  border: 1px solid rgba(214, 177, 95, 0.24);
-  border-radius: 8px;
-  display: grid;
-  gap: 14px;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  padding: 14px;
-}
-
-.agency-workspace-strip.active {
-  border-color: rgba(152, 240, 204, 0.26);
-}
-
-.agency-workspace-strip strong {
-  color: var(--gold);
-  display: block;
-  font-size: 14px;
-  margin-top: 8px;
-}
-
-.agency-workspace-strip p {
-  color: var(--ink-soft);
-  font-size: 14px;
-  line-height: 1.5;
-  margin: 0;
-}
-
-.agency-limit-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  justify-content: flex-end;
-}
-
-.agency-limit-list span {
-  background: rgba(251, 248, 239, 0.06);
-  border: 1px solid rgba(251, 248, 239, 0.08);
-  border-radius: 999px;
-  color: var(--ink-muted);
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1;
-  padding: 7px 8px;
-}
-
 .client-report-card,
 .team-member-card,
 .issue-board-card {
@@ -3066,7 +3019,6 @@ a {
   .client-report-grid,
   .team-collab-grid,
   .client-share-row,
-  .agency-workspace-strip,
   .domain-row,
   .benchmark-grid,
   .benchmark-site,
@@ -3172,7 +3124,6 @@ a {
   .queue-summary,
   .proposal-summary,
   .proposal-actions,
-  .agency-limit-list,
   .queue-links,
   .client-share-actions {
     justify-content: flex-start;

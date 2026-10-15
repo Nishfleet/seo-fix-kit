@@ -85,9 +85,7 @@ export function TeamRepairBoard({ report }) {
       ? "Loading repair queue…"
       : board.isError
         ? board.error?.message || "The repair queue didn’t load. Reload the page to try again."
-        : board.isSuccess
-          ? "Repair queue ready."
-          : "");
+        : "");
 
   function setIssues(update) {
     queryClient.setQueryData(boardKey, (current = { members: [], issues: [] }) => ({

@@ -586,6 +586,6 @@ test("a report whose repair queue has items with no agent action still renders",
   const { page, pageErrors } = await openApp(t, reportHandlers(report));
   page.setDefaultTimeout(3_000);
   await page.goto(`${baseUrl}/beta/reports/${report.id}#repair`);
-  await visible(repairBoard(page).getByText("Repair queue ready."));
+  await visible(repairBoard(page).getByRole("heading", { name: "Missing title on home" }));
   assert.deepEqual(pageErrors, []);
 });

@@ -489,7 +489,7 @@ async function reportBrandingForOwner(env, ownerEmail) {
   )
     .bind(ownerEmail)
     .first();
-  return normalizeBrandingInput(reportBrandingFromRow(row), defaultBranding(ownerEmail));
+  return row ? normalizeBrandingInput(reportBrandingFromRow(row), defaultBranding()) : defaultBranding();
 }
 
 async function listReportDomains(request, env) {

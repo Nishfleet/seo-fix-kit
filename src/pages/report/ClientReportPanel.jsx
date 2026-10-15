@@ -40,7 +40,6 @@ async function fetchClientTools(reportId) {
 }
 
 export function ClientReportPanel({ report }) {
-  const agencyWorkspace = report.agencyWorkspace || {};
   const queryClient = useQueryClient();
   const toolsKey = queryKeys.clientTools(report.id);
   const tools = useQuery({
@@ -75,9 +74,7 @@ export function ClientReportPanel({ report }) {
       ? "Loading client links and branding…"
       : tools.isError
         ? tools.error?.message || "Client links and branding didn’t load. Reload the page to try again."
-        : tools.isSuccess
-          ? "Client links and branding loaded."
-          : "");
+        : "");
 
   function updateTools(field, update) {
     queryClient.setQueryData(toolsKey, (current = { branding: {}, shares: [], domains: [] }) => ({
@@ -199,26 +196,9 @@ export function ClientReportPanel({ report }) {
       <div className="section-heading">
         <p className="beta-eyebrow">Client reports</p>
         <h2>Share this report with a client</h2>
+        <p>Send a link or PDF with your own name, logo and colours. Free during the beta.</p>
         <StatusMessage tone={status}>{message}</StatusMessage>
       </div>
-      <div className={`agency-workspace-strip ${agencyWorkspace.status || "beta_allowance"}`}>
-        <div>
-          <span className="status-pill">Agency Workspace</span>
-          <strong>{agencyWorkspace.status === "active" ? "Active" : "Free during the beta"}</strong>
-        </div>
-        <p>
-          {agencyWorkspace.message ||
-            "Your branding, client links, custom domains and teammates are free during the beta. Agency Workspace isn’t on sale yet."}
-        </p>
-        {agencyWorkspace.limits && (
-          <div className="agency-limit-list">
-            <span>{agencyWorkspace.limits.clientLinksPerReport || 10} links per report</span>
-            <span>{agencyWorkspace.limits.teamSeats || 10} seats</span>
-            <span>{agencyWorkspace.limits.reportDomains || 1} domain</span>
-          </div>
-        )}
-      </div>
-
       <div className="client-report-grid">
         <form className="client-report-card" onSubmit={onBrandingSave}>
           <div className="client-report-card-head">
