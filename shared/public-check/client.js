@@ -256,9 +256,12 @@ async function requestCheck(url) {
   }
 }
 
-const problemCount = (p) => (p.issues ? p.issues.critical + p.issues.warnings + p.issues.notices : (p.findings || []).length);
+const problemCount = (p) =>
+  p.issues ? p.issues.critical + p.issues.warnings + p.issues.notices : (p.findings || []).length;
 const crawlersAllowed = (p) =>
-  Array.isArray(p.crawlers) ? `${p.crawlers.filter((bot) => bot.allowed).length} of ${p.crawlers.length}` : "Not checked";
+  Array.isArray(p.crawlers)
+    ? `${p.crawlers.filter((bot) => bot.allowed).length} of ${p.crawlers.length}`
+    : "Not checked";
 
 export function compareRows(mine, theirs) {
   const words = (p) => p.measured?.renderedWordCount;
@@ -268,7 +271,11 @@ export function compareRows(mine, theirs) {
     ["Problems found", problemCount(mine), problemCount(theirs), "low"],
     ["Words on the page", words(mine), words(theirs), "high"],
     ["Internal links", links(mine), links(theirs), "high"],
-    ["Main heading (H1)", mine.measured?.renderedH1 ? "Yes" : "Missing", theirs.measured?.renderedH1 ? "Yes" : "Missing"],
+    [
+      "Main heading (H1)",
+      mine.measured?.renderedH1 ? "Yes" : "Missing",
+      theirs.measured?.renderedH1 ? "Yes" : "Missing"
+    ],
     ["Search and AI crawlers allowed", crawlersAllowed(mine), crawlersAllowed(theirs)]
   ];
   return rows.map(([label, a, b, better]) => {
