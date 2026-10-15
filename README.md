@@ -58,6 +58,7 @@ It is not trying to replace Ahrefs or Semrush keyword and backlink databases. Th
 - Self-serve Developer API keys, `/v1/audits` JSON endpoints, project-style verified sites, safe `repair_queue` issue status, separate approved-action implementation-pack and fixed-proof receipt markdown endpoints, and audit/repair-action lifecycle webhooks.
 - Saved private report URLs backed by D1 `audit_reports`, tied to the beta owner email and invite where available.
 - 30-day report retention with cleanup for expired reports, sessions, and quota buckets.
+- Self-serve account deletion (Billing page, `POST /api/account/delete`) that removes every D1 row and stored R2 report file for the owner, keeps paid Fix Pack and subscription records under a random pseudonym with personal fields cleared, and writes a personal-data-free `account-deleted` entry to `admin_audit_log`. Support completes emailed requests with `POST /admin/account-deletions`, which runs the same code.
 - D1-backed abuse controls across access links, login, waitlist, network, session, daily, and target-site audit buckets.
 - `/beta/admin` ops dashboard for waitlist, invites, audits, repeated issue patterns, and fix requests.
 - Dodo-backed SEO Fix Pack checkout CTA inside reports when real fixes exist.

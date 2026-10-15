@@ -517,6 +517,17 @@ export function BetaApp({ mountKey }) {
     navigate("/beta", { replace: true });
   }
 
+  function accountDeleted() {
+    queryClient.clear();
+    markSignedOut();
+    setLoginEmail("");
+    setInviteCode("");
+    setLoginStatus("success");
+    setLoginMessage("Your account and its data were deleted.");
+    // Keep this mount so the message survives the move to the sign-in screen.
+    replaceUrl("/beta");
+  }
+
   const shell = (children) => (
     <AppShell
       onSignOut={signOut}
@@ -571,7 +582,7 @@ export function BetaApp({ mountKey }) {
   }
 
   if (isBillingRoute) {
-    return shell(<BillingPortal />);
+    return shell(<BillingPortal ownerEmail={ownerEmail} onAccountDeleted={accountDeleted} />);
   }
 
   if (section === "report") {
