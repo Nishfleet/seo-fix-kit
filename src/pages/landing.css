@@ -136,19 +136,25 @@
 }
 
 .landing .hero-title {
-  font-size: clamp(36px, 4.6vw, 58px);
+  font-size: clamp(40px, 5.6vw, 72px);
+  max-width: 13ch;
   font-weight: var(--weight-semibold);
   letter-spacing: -0.035em;
   line-height: 1.06;
   text-wrap: pretty;
 }
 
-.hero-title-soft {
-  color: #5d6c66;
+.hero-lede {
+  color: var(--ink-soft);
+  font-size: clamp(17px, 1.5vw, 20px);
+  line-height: 1.55;
+  margin: 24px 0 0;
+  max-width: 34rem;
+  text-wrap: pretty;
 }
 
 .hero .landing-form {
-  margin: 40px 0 0;
+  margin: 32px 0 0;
 }
 
 .platforms {

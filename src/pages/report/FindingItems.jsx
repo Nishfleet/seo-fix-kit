@@ -85,28 +85,6 @@ export function FindingItem({ finding, plan, report, compact = false, collapsibl
   );
 }
 
-export function FixItem({ fix }) {
-  return (
-    <article className="fix-item">
-      <div>
-        <span>#{fix.priority}</span>
-        <h3>{fix.title}</h3>
-      </div>
-      <div className="fix-tags">
-        <small>{fix.estimatedEffort || "15-30 min"}</small>
-        <small>{fix.workType || "review"}</small>
-        <small>{fix.confidence || "verified"}</small>
-        {fix.scoreGain > 0 && <ScoreGain fix={fix} />}
-      </div>
-      <p>{fix.fix}</p>
-      {fix.pageLabel && <p className="proof-line">Page: {fix.pageLabel}</p>}
-      <p className="proof-line">Evidence: {fix.proof}</p>
-      <p className="proof-line">Done when: {fix.acceptance}</p>
-      {fix.snippet && <CodeBlock code={fix.snippet} />}
-    </article>
-  );
-}
-
 export function PageProof({ page }) {
   const facts = page.rendered || {};
   const staticFacts = page.static || {};

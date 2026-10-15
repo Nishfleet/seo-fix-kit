@@ -10,7 +10,7 @@ import { fetchBrief } from "../../lib/requests.js";
 import { AiAnswerReadinessPanel, GrowthOpportunitiesPanel, GeoReadinessPanel } from "./AiReadinessPanels.jsx";
 import { ClientReportPanel } from "./ClientReportPanel.jsx";
 import { CrawlInventoryPanel, RenderedCrawlScalePanel, CrawlIntelligencePanel } from "./CrawlPanels.jsx";
-import { FindingItem, FixItem, PageProof, PageSummaryTable } from "./FindingItems.jsx";
+import { FindingItem, PageProof, PageSummaryTable } from "./FindingItems.jsx";
 import { ReportDeltaPanel, RemediationBriefPanel } from "./HistoryPanels.jsx";
 import {
   CompetitorBenchmarkPanel,
@@ -283,33 +283,22 @@ export function ReportView({ report, onRerun, rerunStatus = "idle", rerunMessage
             </div>
 
             <div className="report-tab-panel" hidden={active !== "repair"} {...tabPanelProps("repair")}>
-              {(report.repairProposals || []).length > 0 && (
-                <RepairProposalPanel
-                  initialProposals={report.repairProposals || []}
-                  repairSprint={report.repairSprint || null}
+              {(report.repairProposals || []).length > 0 &&
+                (report.repairSprint?.checkoutReady || report.repairSprint?.hasPaidRequest) && (
+                  <RepairProposalPanel
+                    initialProposals={report.repairProposals || []}
+                    repairSprint={report.repairSprint || null}
+                    reportId={report.id}
+                  />
+                )}
+              <TeamRepairBoard report={report} />
+              {remediationBrief && (
+                <RemediationBriefPanel
+                  brief={remediationBrief}
+                  developerBrief={report.repairBrief}
                   reportId={report.id}
                 />
               )}
-              <TeamRepairBoard report={report} />
-              {remediationBrief && <RemediationBriefPanel brief={remediationBrief} reportId={report.id} />}
-              <section className="fix-section" aria-labelledby="fix-snippets-title">
-                <div className="section-heading report-section-head">
-                  <h2 id="fix-snippets-title">Fixes to copy</h2>
-                  {report.repairBrief && (
-                    <CopyButton
-                      className="app-button-secondary"
-                      label="Copy developer brief"
-                      value={report.repairBrief}
-                    />
-                  )}
-                </div>
-                <div className="fix-list">
-                  {topFixes.slice(0, 8).map((fix) => (
-                    <FixItem key={`${fix.priority}-${fix.title}`} fix={fix} />
-                  ))}
-                  {!topFixes.length && <p className="quiet-note">No snippets to copy for this report.</p>}
-                </div>
-              </section>
             </div>
 
             <div className="report-tab-panel" hidden={active !== "pages"} {...tabPanelProps("pages")}>

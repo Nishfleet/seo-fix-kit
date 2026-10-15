@@ -1,3 +1,4 @@
+import { CopyButton } from "../../components/CopyButton.jsx";
 import { Metric } from "../../components/Metric.jsx";
 import { signedNumber, safeHostnameLabel } from "../../lib/format.js";
 
@@ -52,14 +53,14 @@ export function ReportDeltaPanel({ delta }) {
   );
 }
 
-export function RemediationBriefPanel({ brief, reportId }) {
+export function RemediationBriefPanel({ brief, developerBrief, reportId }) {
   const queue = brief.priorityQueue || [];
   const history = brief.proofHistory || {};
   return (
     <section className="remediation-brief-panel" aria-label="Repair brief">
       <div className="section-heading">
         <p className="beta-eyebrow">Repair brief</p>
-        <h2>{queue.length ? "What to fix, in order" : "No priority fixes"}</h2>
+        <h2>{queue.length ? "Hand it off" : "No priority fixes"}</h2>
         <p>{brief.support?.safeHandoff || "Check each fix against its evidence before you close it."}</p>
       </div>
       <div className="remediation-brief-grid">
@@ -77,29 +78,17 @@ export function RemediationBriefPanel({ brief, reportId }) {
           <Metric label="Still open" value={history.persistentIssues || 0} />
         </div>
       </div>
-      {queue.length ? (
-        <div className="remediation-queue">
-          {queue.slice(0, 4).map((item) => (
-            <article key={item.id}>
-              <span className={`status-pill ${item.severity}`}>{item.severity}</span>
-              <h3>{item.title}</h3>
-              <p>{item.proof || item.fix}</p>
-              <ul>
-                {(item.acceptanceChecks || []).slice(0, 2).map((check) => (
-                  <li key={check}>{check}</li>
-                ))}
-              </ul>
-            </article>
-          ))}
-        </div>
-      ) : (
-        <p className="quiet-note">Nothing queued. Rerun the audit after you change the site.</p>
-      )}
-      {reportId && (
-        <a className="action-link" href={`/api/reports/${encodeURIComponent(reportId)}/remediation-brief.json`}>
-          Download brief (JSON)
-        </a>
-      )}
+      {!queue.length && <p className="quiet-note">Nothing queued. Rerun the audit after you change the site.</p>}
+      <div className="remediation-brief-actions">
+        {developerBrief && (
+          <CopyButton className="app-button-secondary" label="Copy developer brief" value={developerBrief} />
+        )}
+        {reportId && (
+          <a className="action-link" href={`/api/reports/${encodeURIComponent(reportId)}/remediation-brief.json`}>
+            Download brief (JSON)
+          </a>
+        )}
+      </div>
     </section>
   );
 }
