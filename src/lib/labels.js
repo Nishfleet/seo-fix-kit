@@ -140,7 +140,9 @@ export function teamRoleLabel(role) {
   return labels[role] || "Editor";
 }
 
-export function uptimeDetail(schedule = {}) {
+export function uptimeDetail(schedule = {}, included = true) {
+  if (!included)
+    return "Downtime alerts come with a Fix Pack: we check the site every 15 minutes and email you if it goes down.";
   const uptime = schedule.uptime || {};
   if (uptime.status === "down") {
     const since = uptime.downSince ? ` since ${formatDate(uptime.downSince)}` : "";

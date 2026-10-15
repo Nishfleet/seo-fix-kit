@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { auditScheduleResponse } from "../worker/lib/serializers.js";
-import { runUptimeChecks as runChecks } from "../worker/lib/uptime.js";
+import { runUptimeChecks as runChecks, uptimeAlertsIncluded } from "../worker/lib/uptime.js";
 import { createTestD1 } from "./support/d1.mjs";
 
 const OWNER = "owner@example.com";
@@ -25,8 +25,23 @@ function insertSchedule(db, id, status = "active") {
   });
 }
 
-function setup(status = "active") {
+function payFixPack(db, status = "paid") {
+  db.insert("fix_requests", {
+    id: `fr-${status}`,
+    report_id: "r1",
+    owner_email: OWNER,
+    target_url: "https://www.example.com/",
+    target_host: "www.example.com",
+    status,
+    paid_at: T0,
+    created_at: T0,
+    updated_at: T0
+  });
+}
+
+function setup(status = "active", { paid = true } = {}) {
   const db = createTestD1();
+  if (paid) payFixPack(db);
   db.insert("audit_schedules", {
     id: "s1",
     owner_email: OWNER,
@@ -175,4 +190,24 @@ test("more than one batch of due sites is checked in the same tick", async () =>
   const outcomes = await runUptimeChecks(env, { fetchImpl: answers(200), now: T0 });
   assert.equal(outcomes.length, 31);
   assert.equal(db.rows("SELECT id FROM audit_schedules WHERE uptime_checked_at IS NULL").length, 0);
+});
+
+test("downtime alerts are a paid perk: no Fix Pack, or a refunded one, means no pings", async () => {
+  const unpaid = setup("active", { paid: false });
+  const calls = [];
+  const spy = async (url) => {
+    calls.push(url);
+    return new Response("ok");
+  };
+  assert.equal(await uptimeAlertsIncluded(unpaid.env, OWNER), false);
+  assert.deepEqual(await runUptimeChecks(unpaid.env, { fetchImpl: spy, now: T0 }), []);
+
+  payFixPack(unpaid.db, "refunded");
+  assert.equal(await uptimeAlertsIncluded(unpaid.env, OWNER), false);
+  assert.deepEqual(await runUptimeChecks(unpaid.env, { fetchImpl: spy, now: T0 }), []);
+  assert.equal(calls.length, 0);
+
+  const paid = setup();
+  assert.equal(await uptimeAlertsIncluded(paid.env, OWNER), true);
+  assert.deepEqual(await runUptimeChecks(paid.env, { fetchImpl: spy, now: T0 }), ["up"]);
 });

@@ -15,6 +15,27 @@ const MUTED = "#6b6f6c";
 const GOOD = "#0f7a56";
 const BAD = "#b42318";
 
+// Downtime alerts are a paid perk: owners who bought a Fix Pack (not refunded)
+// or hold an active paid plan. Everyone else keeps weekly checks only.
+const PAID_OWNER_SQL = (owner) => `(
+  EXISTS (SELECT 1 FROM fix_requests f
+          WHERE f.owner_email = ${owner} AND f.paid_at IS NOT NULL AND f.status != 'refunded')
+  OR EXISTS (SELECT 1 FROM offer_entitlements e
+             WHERE e.owner_email = ${owner} AND e.status = 'active' AND e.revoked_at IS NULL)
+)`;
+
+async function uptimeAlertsIncluded(env, ownerEmail) {
+  if (!env.WAITLIST_DB || !ownerEmail) return false;
+  try {
+    const row = await env.WAITLIST_DB.prepare(`SELECT ${PAID_OWNER_SQL("?")} AS included`)
+      .bind(ownerEmail, ownerEmail)
+      .first();
+    return Boolean(row?.included);
+  } catch {
+    return false;
+  }
+}
+
 // Only server errors and no answer at all count as down. A 403 or 404 usually
 // means a bot rule or a moved page, which the weekly audit already reports.
 // Every redirect hop is checked so a public URL can't bounce us to a private one.
@@ -192,6 +213,7 @@ async function runUptimeChecks(
     const rows = await env.WAITLIST_DB.prepare(
       `SELECT * FROM audit_schedules
        WHERE status = 'active' AND (uptime_checked_at IS NULL OR uptime_checked_at <= ?)
+         AND ${PAID_OWNER_SQL("audit_schedules.owner_email")}
        ORDER BY uptime_checked_at IS NOT NULL, uptime_checked_at ASC
        LIMIT ?`
     )
@@ -219,4 +241,4 @@ async function runUptimeChecks(
   return outcomes;
 }
 
-export { buildUptimeEmail, runUptimeChecks };
+export { buildUptimeEmail, runUptimeChecks, uptimeAlertsIncluded };
