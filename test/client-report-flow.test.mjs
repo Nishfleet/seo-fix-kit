@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { createHash, randomBytes } from "node:crypto";
 import test from "node:test";
-import { buildWhiteLabelReportHtml } from "../shared/white-label-report.js";
+import { buildWhiteLabelReportHtml, defaultBranding } from "../shared/white-label-report.js";
 import { app } from "../worker/index.js";
+import { whiteLabelPdfCacheVersion } from "../worker/routes/shares.js";
 import { createTestD1 } from "./support/d1.mjs";
 
 const ORIGIN = "https://seofixkit.com";
@@ -143,4 +144,120 @@ test("an older saved report recomputes its projected score from distinct top fix
   assert.equal(response.status, 200, await response.clone().text());
   const body = await response.json();
   assert.deepEqual((body.report || body).projectedScore, { fixes: 3, from: 70, to: 100 });
+});
+
+// ---------- PDF render caching (each miss launches a paid browser) ----------
+
+function fakeR2() {
+  const objects = new Map();
+  return {
+    objects,
+    async get(key) {
+      const object = objects.get(key);
+      return object ? { body: object.body, customMetadata: object.customMetadata } : null;
+    },
+    async put(key, body, options = {}) {
+      objects.set(key, { body, customMetadata: options.customMetadata || {} });
+    }
+  };
+}
+
+function pdfRequest(env, path, { ip = "203.0.113.7", session } = {}) {
+  return app.fetch(
+    new Request(`${ORIGIN}${path}`, {
+      headers: { "cf-connecting-ip": ip, ...(session ? { cookie: `sfk_beta_session=${session}` } : {}) }
+    }),
+    env,
+    ctx
+  );
+}
+
+async function sharedReport(db) {
+  seed(db);
+  const session = signIn(db);
+  const created = await call(db, "/api/reports/example-com-0123456789ab/share", { method: "POST", session });
+  const { share } = await created.json();
+  const row = db.rows("SELECT * FROM report_share_links WHERE id = ?", share.id)[0];
+  const report = JSON.parse(db.rows("SELECT report_json FROM audit_reports")[0].report_json);
+  const pdfArgs = {
+    report,
+    branding: defaultBranding(),
+    share: {
+      id: row.id,
+      reportId: row.report_id,
+      ownerEmail: row.owner_email,
+      clientName: row.client_name || "",
+      status: row.status,
+      passwordHint: row.password_hint || "",
+      expiresAt: row.expires_at || "",
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      lastViewedAt: row.last_viewed_at || ""
+    },
+    origin: ORIGIN
+  };
+  return { session, share, report, pdfArgs };
+}
+
+test("the public share PDF is served from the R2 cache without launching a browser", async () => {
+  const db = createTestD1();
+  const { share, pdfArgs } = await sharedReport(db);
+  const REPORTS = fakeR2();
+  const cachedPdf = new TextEncoder().encode("%PDF-1.7 cached");
+  REPORTS.objects.set(`report-pdfs/shares/${share.id}.pdf`, {
+    body: cachedPdf,
+    customMetadata: { version: await whiteLabelPdfCacheVersion(pdfArgs) }
+  });
+  const env = { WAITLIST_DB: db, REPORTS };
+
+  for (let i = 0; i < 15; i += 1) {
+    const response = await pdfRequest(env, `/r/${share.id}.pdf`);
+    assert.equal(response.status, 200, await response.clone().text());
+    assert.equal(response.headers.get("content-type"), "application/pdf");
+    assert.equal(await response.text(), "%PDF-1.7 cached");
+  }
+  assert.equal(db.rows("SELECT * FROM audit_usage WHERE bucket LIKE 'report-pdf:%'").length, 0, "hits are free");
+});
+
+test("public share PDF cache misses are rate limited per IP, and a changed report misses the cache", async () => {
+  const db = createTestD1();
+  const { share, pdfArgs } = await sharedReport(db);
+  const REPORTS = fakeR2();
+  REPORTS.objects.set(`report-pdfs/shares/${share.id}.pdf`, {
+    body: new TextEncoder().encode("%PDF stale"),
+    customMetadata: {
+      version: await whiteLabelPdfCacheVersion({ ...pdfArgs, report: { ...pdfArgs.report, score: 1 } })
+    }
+  });
+  // No BROWSER binding: a miss that passes the limit answers 503 instead of rendering.
+  const env = { WAITLIST_DB: db, REPORTS };
+  const statuses = [];
+  for (let i = 0; i < 11; i += 1) statuses.push((await pdfRequest(env, `/r/${share.id}.pdf`)).status);
+  assert.deepEqual(statuses, [...Array(10).fill(503), 429], "stale cache is a miss; the 11th miss is refused");
+  assert.equal((await pdfRequest(env, `/r/${share.id}.pdf`, { ip: "198.51.100.9" })).status, 503, "per IP");
+});
+
+test("the owner PDF export is cached in R2 too", async () => {
+  const db = createTestD1();
+  const { session, report } = await sharedReport(db);
+  const REPORTS = fakeR2();
+  REPORTS.objects.set("report-pdfs/owner/example-com-0123456789ab.pdf", {
+    body: new TextEncoder().encode("%PDF owner"),
+    customMetadata: {
+      version: await whiteLabelPdfCacheVersion({
+        report,
+        branding: defaultBranding(),
+        share: { id: "", clientName: "example.com" },
+        origin: ORIGIN,
+        includeDraftBriefs: true
+      })
+    }
+  });
+  const env = { WAITLIST_DB: db, REPORTS };
+  const hit = await pdfRequest(env, "/api/reports/example-com-0123456789ab/client.pdf", { session });
+  assert.equal(hit.status, 200, await hit.clone().text());
+  assert.equal(await hit.text(), "%PDF owner");
+
+  const miss = await pdfRequest(env, "/api/reports/example-com-0123456789ab/client.pdf?clientName=Acme", { session });
+  assert.equal(miss.status, 503, "a different client name is a different PDF");
 });
