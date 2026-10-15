@@ -139,7 +139,7 @@ async function getAccountSummary(request, env) {
   const offers = await offerCatalogForOwner(env, access.ownerEmail);
   const monitoring = await monitoringAccessForOwner(env, access.ownerEmail, schedules.length);
   const agencyWorkspace = await agencyWorkspaceAccessForOwner(env, access.ownerEmail);
-  const uptimeAlerts = { included: await uptimeAlertsIncluded(env, access.ownerEmail) };
+  const uptimeAlerts = { included: await uptimeAlertsIncluded(env, access.ownerEmail, access) };
 
   return jsonNoStore({
     ok: true,

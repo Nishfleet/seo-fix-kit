@@ -206,7 +206,7 @@ function agencyWorkspaceAccessFromEntitlements(entitlements = [], usage = {}) {
     },
     message: entitlement
       ? "Agency Workspace is active for this workspace."
-      : "The beta includes white-label reports. Agency Workspace isn't on sale yet."
+      : "Branded client reports and the audit widget come with the Fix Pack. Agency Workspace isn't on sale yet."
   };
 }
 

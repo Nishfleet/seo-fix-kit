@@ -99,6 +99,41 @@ test("an unbranded client link carries SEO Fix Kit branding and every checked pa
   assert.match(html, /https:\/\/example\.com\/pricing<\/td>\s*<td>200<\/td>\s*<td>61<\/td>\s*<td>1<\/td>/);
 });
 
+test("custom branding is a Fix Pack feature: free owners stay on SEO Fix Kit branding", async () => {
+  const db = createTestD1();
+  seed(db);
+  const session = signIn(db);
+  const brand = { agencyName: "Bright Agency", brandColor: "#7c3aed", accentColor: "#0f9f6e" };
+
+  const locked = await (await call(db, "/api/branding", { session })).json();
+  assert.equal(locked.unlocked, false);
+  const blocked = await call(db, "/api/branding", { method: "POST", session, body: brand });
+  assert.equal(blocked.status, 402);
+  assert.equal((await blocked.json()).code, "PAID_FEATURE_LOCKED");
+
+  db.insert("fix_requests", {
+    id: "fr-paid",
+    report_id: "example-com-0123456789ab",
+    owner_email: OWNER,
+    target_url: "https://example.com/",
+    target_host: "example.com",
+    status: "paid",
+    created_at: iso(0),
+    updated_at: iso(0)
+  });
+  const saved = await call(db, "/api/branding", { method: "POST", session, body: brand });
+  assert.equal(saved.status, 200, await saved.clone().text());
+  const { share } = await (
+    await call(db, "/api/reports/example-com-0123456789ab/share", { method: "POST", session })
+  ).json();
+  assert.match(await (await call(db, share.sharePath)).text(), /Bright Agency/);
+
+  await db.prepare("UPDATE fix_requests SET status = 'refunded'").run();
+  const after = await (await call(db, share.sharePath)).text();
+  assert.doesNotMatch(after, /Bright Agency/, "a refunded Fix Pack drops the custom branding");
+  assert.match(after, /SEO Fix Kit/);
+});
+
 test("the pages table lists every summary and keeps the HTTP status of older reports", () => {
   const pageSummaries = Array.from({ length: 35 }, (_, i) => ({ url: `https://example.com/p${i}`, score: 90 }));
   const many = buildWhiteLabelReportHtml({ report: { url: "https://example.com/", pageSummaries } });

@@ -25,6 +25,19 @@ function signIn(db, email = OWNER) {
   return token;
 }
 
+function payForFixPack(db, email = OWNER, status = "paid") {
+  db.insert("fix_requests", {
+    id: `fr-${email}`,
+    report_id: "example-com-report01",
+    owner_email: email,
+    target_url: "https://agency.example/",
+    target_host: "agency.example",
+    status,
+    created_at: iso(0),
+    updated_at: iso(0)
+  });
+}
+
 const call = (env, path, { method = "GET", session, body } = {}) =>
   app.fetch(
     new Request(`${ORIGIN}${path}`, {
@@ -70,6 +83,7 @@ test("an owner turns on the widget, a visitor checks a site, and the owner gets 
   const sent = [];
   const env = { WAITLIST_DB: db, EMAIL: { send: async (message) => sent.push(message) } };
   const session = signIn(db);
+  payForFixPack(db);
   db.insert("report_branding", {
     owner_email: OWNER,
     agency_name: "Bright Agency",
@@ -120,6 +134,7 @@ test("bots, bad input and turned-off widgets never reach the audit or store a le
   const db = createTestD1();
   const env = { WAITLIST_DB: db };
   const session = signIn(db);
+  payForFixPack(db);
   const { widget } = await (await call(env, "/api/widget", { method: "POST", session, body: {} })).json();
 
   const bot = await visitorCheck(env, widget.id, { url: "visitor.example", email: "a@b.co", company: "x" });
@@ -165,4 +180,27 @@ test("the cron drops widget leads older than 12 months", async () => {
     db.rows("SELECT email FROM widget_leads").map((row) => row.email),
     ["new@a.example"]
   );
+});
+
+test("the widget is a Fix Pack feature and stops when the Fix Pack is refunded", async () => {
+  const db = createTestD1();
+  const env = { WAITLIST_DB: db };
+  const session = signIn(db);
+
+  const locked = await (await call(env, "/api/widget", { session })).json();
+  assert.equal(locked.unlocked, false);
+  const blocked = await call(env, "/api/widget", { method: "POST", session });
+  assert.equal(blocked.status, 402);
+  assert.equal((await blocked.json()).code, "PAID_FEATURE_LOCKED");
+
+  payForFixPack(db);
+  const created = await (await call(env, "/api/widget", { method: "POST", session })).json();
+  assert.equal(created.unlocked, true);
+  assert.ok(created.widget.id);
+  assert.equal((await call(env, `/embed/${created.widget.id}`)).status, 200);
+
+  await db.prepare("UPDATE fix_requests SET status = 'refunded'").run();
+  assert.equal((await call(env, `/embed/${created.widget.id}`)).status, 404);
+  const check = await visitorCheck(env, created.widget.id, { url: "https://visitor.example/", email: "v@example.com" });
+  assert.equal(check.status, 404);
 });

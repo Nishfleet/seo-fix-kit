@@ -181,6 +181,10 @@ test("an owner turns on a live score badge and its public score page", async ({ 
   await expect(badge).toBeVisible();
   await expect.poll(() => badge.evaluate((img) => img.naturalWidth)).toBeGreaterThan(0);
   await expect(page.getByRole("button", { name: "Copy badge HTML" })).toBeVisible();
+  const clientPanel = page.locator(".client-report-panel");
+  await expect(clientPanel.getByText("Your branding")).toBeVisible();
+  await expect(clientPanel.getByRole("button", { name: "Save branding" })).toHaveCount(0);
+  await expect(clientPanel.getByRole("button", { name: "Create link" })).toBeVisible();
 
   const scorePage = await badge.locator("xpath=..").getAttribute("href");
   await page.goto(scorePage);
@@ -199,6 +203,11 @@ test("an owner embeds the audit widget and a visitor gets a score", async ({ pag
 
   await page.goto("/beta/developers");
   const card = page.locator(".audit-widget-card");
+  await expect(card.getByRole("link", { name: "See what the Fix Pack includes" })).toBeVisible();
+  await expect(card.getByRole("button", { name: "Get the widget" })).toHaveCount(0);
+
+  await request.post("/__e2e/paid-fix-pack", { data: { ownerEmail: email } });
+  await page.reload();
   await card.getByRole("button", { name: "Get the widget" }).click();
   await expect(card.getByRole("button", { name: "Copy embed code" })).toBeVisible();
   await expect(card.getByText("No leads yet.")).toBeVisible();

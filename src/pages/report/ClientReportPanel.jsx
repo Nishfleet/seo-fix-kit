@@ -33,6 +33,7 @@ async function fetchClientTools(reportId) {
     loadReportDomains()
   ]);
   return {
+    unlocked: brandingPayload.unlocked !== false,
     branding: brandingPayload.branding || {},
     shares: sharesPayload.shares || [],
     domains: domainsPayload.domains || []
@@ -51,6 +52,7 @@ export function ClientReportPanel({ report }) {
   const branding = brandingDraft || { ...DEFAULT_BRANDING, ...(tools.data?.branding || {}) };
   const shares = tools.data?.shares || NO_ITEMS;
   const domains = tools.data?.domains || NO_ITEMS;
+  const brandingUnlocked = tools.data?.unlocked !== false;
   const [domainName, setDomainName] = useState("");
   const [clientName, setClientName] = useState(() => safeHostnameLabel(report.url));
   const [password, setPassword] = useState("");
@@ -196,132 +198,154 @@ export function ClientReportPanel({ report }) {
       <div className="section-heading">
         <p className="beta-eyebrow">Client reports</p>
         <h2>Share this report with a client</h2>
-        <p>Send a link or PDF with your own name, logo and colours. Free during the beta.</p>
+        <p>
+          {brandingUnlocked
+            ? "Send a link or PDF with your own name, logo and colours."
+            : "Send a link or PDF branded as SEO Fix Kit. Your own name, logo, colours and domain come with the Fix Pack."}
+        </p>
         <StatusMessage tone={status}>{message}</StatusMessage>
       </div>
       <div className="client-report-grid">
-        <form className="client-report-card" onSubmit={onBrandingSave}>
-          <div className="client-report-card-head">
-            <strong>Branding</strong>
-            <button disabled={status === "loading"} type="submit">
-              Save branding
-            </button>
+        {!brandingUnlocked && (
+          <div className="client-report-card client-report-locked">
+            <div className="client-report-card-head">
+              <strong>Your branding</strong>
+            </div>
+            <p>
+              Put your agency name, logo, colours and your own report domain on every client link and PDF. Included with
+              the Fix Pack: buy one on any report with open problems.
+            </p>
+            <a className="app-button-secondary" href="/pricing#plans">
+              See what the Fix Pack includes
+            </a>
           </div>
-          <label htmlFor="agency-name">Agency name</label>
-          <input
-            id="agency-name"
-            onChange={(event) => updateBranding("agencyName", event.target.value)}
-            required
-            value={branding.agencyName || ""}
-          />
-          <label htmlFor="logo-url">Logo URL</label>
-          <input
-            id="logo-url"
-            inputMode="url"
-            onChange={(event) => updateBranding("logoUrl", event.target.value)}
-            placeholder="https://example.com/logo.png"
-            type="url"
-            value={branding.logoUrl || ""}
-          />
-          <div className="color-row">
-            <label htmlFor="brand-color">
-              Brand color
+        )}
+        {brandingUnlocked && (
+          <>
+            <form className="client-report-card" onSubmit={onBrandingSave}>
+              <div className="client-report-card-head">
+                <strong>Branding</strong>
+                <button disabled={status === "loading"} type="submit">
+                  Save branding
+                </button>
+              </div>
+              <label htmlFor="agency-name">Agency name</label>
               <input
-                id="brand-color"
-                onChange={(event) => updateBranding("brandColor", event.target.value)}
-                type="color"
-                value={branding.brandColor || "#163f5f"}
+                id="agency-name"
+                onChange={(event) => updateBranding("agencyName", event.target.value)}
+                required
+                value={branding.agencyName || ""}
               />
-            </label>
-            <label htmlFor="accent-color">
-              Accent color
+              <label htmlFor="logo-url">Logo URL</label>
               <input
-                id="accent-color"
-                onChange={(event) => updateBranding("accentColor", event.target.value)}
-                type="color"
-                value={branding.accentColor || "#0f9f6e"}
+                id="logo-url"
+                inputMode="url"
+                onChange={(event) => updateBranding("logoUrl", event.target.value)}
+                placeholder="https://example.com/logo.png"
+                type="url"
+                value={branding.logoUrl || ""}
               />
-            </label>
-          </div>
-          <label htmlFor="custom-domain">Display domain</label>
-          <input
-            id="custom-domain"
-            onChange={(event) => updateBranding("customDomain", event.target.value)}
-            placeholder="reports.example.com"
-            value={branding.customDomain || ""}
-          />
-          <label htmlFor="footer-text">Footer text</label>
-          <input
-            id="footer-text"
-            onChange={(event) => updateBranding("footerText", event.target.value)}
-            value={branding.footerText || ""}
-          />
-        </form>
+              <div className="color-row">
+                <label htmlFor="brand-color">
+                  Brand color
+                  <input
+                    id="brand-color"
+                    onChange={(event) => updateBranding("brandColor", event.target.value)}
+                    type="color"
+                    value={branding.brandColor || "#163f5f"}
+                  />
+                </label>
+                <label htmlFor="accent-color">
+                  Accent color
+                  <input
+                    id="accent-color"
+                    onChange={(event) => updateBranding("accentColor", event.target.value)}
+                    type="color"
+                    value={branding.accentColor || "#0f9f6e"}
+                  />
+                </label>
+              </div>
+              <label htmlFor="custom-domain">Display domain</label>
+              <input
+                id="custom-domain"
+                onChange={(event) => updateBranding("customDomain", event.target.value)}
+                placeholder="reports.example.com"
+                value={branding.customDomain || ""}
+              />
+              <label htmlFor="footer-text">Footer text</label>
+              <input
+                id="footer-text"
+                onChange={(event) => updateBranding("footerText", event.target.value)}
+                value={branding.footerText || ""}
+              />
+            </form>
 
-        <form className="client-report-card" onSubmit={onDomainCreate}>
-          <div className="client-report-card-head">
-            <strong>Custom domain</strong>
-            <button disabled={status === "loading"} type="submit">
-              Add domain
-            </button>
-          </div>
-          <label htmlFor="report-domain">Report subdomain</label>
-          <input
-            id="report-domain"
-            onChange={(event) => setDomainName(event.target.value)}
-            placeholder="reports.example.com"
-            required
-            value={domainName}
-          />
-          <div className="domain-list">
-            {domains.map((domain) => (
-              <article className={`domain-row ${domain.status}`} key={domain.id}>
-                <div>
-                  <strong>{domain.domain}</strong>
-                  <span>{domain.status === "verified" ? "Verified" : "Not verified yet"}</span>
-                  {domain.cnameTarget && <code>CNAME {domain.cnameTarget}</code>}
-                  {domain.dnsName ? (
-                    <code>
-                      {domain.dnsType || "TXT"} {domain.dnsName}
-                      {" -> "}
-                      {domain.dnsValue || domain.verificationToken}
-                    </code>
-                  ) : (
-                    <code>
-                      {domain.verificationPath}
-                      {" -> "}
-                      {domain.verificationToken}
-                    </code>
-                  )}
-                  {domain.lastError && <small>{domain.lastError}</small>}
-                </div>
-                <div className="domain-actions">
-                  {domain.status !== "verified" && (
-                    <button
-                      className="text-button accent-text"
-                      disabled={status === "loading"}
-                      onClick={() => onDomainVerify(domain.id)}
-                      type="button"
-                    >
-                      Verify
-                    </button>
-                  )}
-                  <button
-                    className="text-button"
-                    disabled={status === "loading"}
-                    onClick={() => onDomainRevoke(domain.id)}
-                    type="button"
-                  >
-                    Remove
-                  </button>
-                </div>
-              </article>
-            ))}
-            {!domains.length && (
-              <p className="quiet-note">No custom domain yet. Add a subdomain like reports.example.com.</p>
-            )}
-          </div>
-        </form>
+            <form className="client-report-card" onSubmit={onDomainCreate}>
+              <div className="client-report-card-head">
+                <strong>Custom domain</strong>
+                <button disabled={status === "loading"} type="submit">
+                  Add domain
+                </button>
+              </div>
+              <label htmlFor="report-domain">Report subdomain</label>
+              <input
+                id="report-domain"
+                onChange={(event) => setDomainName(event.target.value)}
+                placeholder="reports.example.com"
+                required
+                value={domainName}
+              />
+              <div className="domain-list">
+                {domains.map((domain) => (
+                  <article className={`domain-row ${domain.status}`} key={domain.id}>
+                    <div>
+                      <strong>{domain.domain}</strong>
+                      <span>{domain.status === "verified" ? "Verified" : "Not verified yet"}</span>
+                      {domain.cnameTarget && <code>CNAME {domain.cnameTarget}</code>}
+                      {domain.dnsName ? (
+                        <code>
+                          {domain.dnsType || "TXT"} {domain.dnsName}
+                          {" -> "}
+                          {domain.dnsValue || domain.verificationToken}
+                        </code>
+                      ) : (
+                        <code>
+                          {domain.verificationPath}
+                          {" -> "}
+                          {domain.verificationToken}
+                        </code>
+                      )}
+                      {domain.lastError && <small>{domain.lastError}</small>}
+                    </div>
+                    <div className="domain-actions">
+                      {domain.status !== "verified" && (
+                        <button
+                          className="text-button accent-text"
+                          disabled={status === "loading"}
+                          onClick={() => onDomainVerify(domain.id)}
+                          type="button"
+                        >
+                          Verify
+                        </button>
+                      )}
+                      <button
+                        className="text-button"
+                        disabled={status === "loading"}
+                        onClick={() => onDomainRevoke(domain.id)}
+                        type="button"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </article>
+                ))}
+                {!domains.length && (
+                  <p className="quiet-note">No custom domain yet. Add a subdomain like reports.example.com.</p>
+                )}
+              </div>
+            </form>
+          </>
+        )}
 
         <form className="client-report-card" onSubmit={onShareCreate}>
           <div className="client-report-card-head">
