@@ -6,6 +6,10 @@ const OFFER_KEYS = {
   AGENCY_WORKSPACE: "agency_workspace"
 };
 
+const BETA_MONITOR_LIMIT = 5;
+// A paid monitoring plan must never cover fewer sites than the free beta allowance.
+const PAID_MONITOR_LIMIT = BETA_MONITOR_LIMIT;
+
 const OFFER_CATALOG = [
   {
     key: OFFER_KEYS.FIX_PACK,
@@ -32,7 +36,7 @@ const OFFER_CATALOG = [
     availability:
       "For verified sites. Weekly monitoring is free during the beta. The paid plan is sold only once checkout is turned on.",
     requirements: ["Verified site", "Audit schedules", "Report deltas", "Billing entitlement"],
-    limits: { monitoredSites: 1, cadenceDays: 7 }
+    limits: { monitoredSites: PAID_MONITOR_LIMIT, cadenceDays: 7 }
   },
   {
     key: OFFER_KEYS.REPAIR_SPRINT,
@@ -76,7 +80,6 @@ const OFFER_CATALOG = [
   }
 ];
 
-const BETA_MONITOR_LIMIT = 5;
 const BETA_AGENCY_LIMITS = {
   clientLinksPerReport: 10,
   teamSeats: 10,
@@ -109,12 +112,17 @@ function offerCatalog({
       entitlementStatus: entitlement?.status || "inactive",
       entitlementSource: entitlement?.source || "",
       currentPeriodEnd: entitlement?.current_period_end || entitlement?.currentPeriodEnd || "",
-      limits: {
-        ...offer.limits,
-        ...parseLimits(entitlement?.limits_json || entitlement?.limitsJson)
-      }
+      limits: effectiveOfferLimits(offer, parseLimits(entitlement?.limits_json || entitlement?.limitsJson))
     };
   });
+}
+
+function effectiveOfferLimits(offer, storedLimits) {
+  const limits = { ...offer.limits, ...storedLimits };
+  if (offer.key === OFFER_KEYS.MONITORING) {
+    limits.monitoredSites = Math.max(Number(limits.monitoredSites || 0), PAID_MONITOR_LIMIT);
+  }
+  return limits;
 }
 
 function monitoringAccessFromEntitlements(entitlements = [], activeCount = 0, options = {}) {
@@ -122,7 +130,9 @@ function monitoringAccessFromEntitlements(entitlements = [], activeCount = 0, op
     (row) => (row.offer_key || row.offerKey) === OFFER_KEYS.MONITORING && row.status === "active"
   );
   const limits = parseLimits(entitlement?.limits_json || entitlement?.limitsJson);
-  const limit = entitlement ? Number(limits.monitoredSites || limits.monitors || 1) : BETA_MONITOR_LIMIT;
+  const limit = entitlement
+    ? Math.max(Number(limits.monitoredSites || limits.monitors || 0), PAID_MONITOR_LIMIT)
+    : BETA_MONITOR_LIMIT;
   const checkoutLive = Boolean(options.checkoutLive);
   return {
     offerKey: OFFER_KEYS.MONITORING,
@@ -230,6 +240,7 @@ export {
   OFFER_CATALOG,
   BETA_AGENCY_LIMITS,
   BETA_MONITOR_LIMIT,
+  PAID_MONITOR_LIMIT,
   agencyWorkspaceAccessFromEntitlements,
   offerCatalog,
   monitoringAccessFromEntitlements,

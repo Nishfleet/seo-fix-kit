@@ -51,7 +51,7 @@ import { checkQuotaSet, sha256Hex } from "../lib/security.js";
 import { billingFixRequestResponse, fixRequestResponse } from "../lib/serializers.js";
 import { cleanQueueStatus } from "../../shared/repair-queue.js";
 import { selectFixPackRepair } from "../../shared/fix-pack-repair-selection.js";
-import { OFFER_KEYS, repairSprintEligibilityFromProposals } from "../../shared/offers.js";
+import { OFFER_KEYS, PAID_MONITOR_LIMIT, repairSprintEligibilityFromProposals } from "../../shared/offers.js";
 import {
   cleanText,
   cleanReportDomain,
@@ -2993,7 +2993,7 @@ async function upsertMonitoringEntitlement(env, subscription, ownerEmail, now) {
     subscriptionOnly: true
   });
   const limits = {
-    monitoredSites: 1,
+    monitoredSites: PAID_MONITOR_LIMIT,
     cadenceDays: 7
   };
   if (existing?.id) {
