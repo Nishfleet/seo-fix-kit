@@ -138,8 +138,14 @@ test("with SENTRY_DSN a failing cron task is reported", async () => {
     await Promise.all(ctx.pending);
     const sent = fetchStub.calls.filter((call) => call.url.includes("sentry.invalid"));
     assert.ok(sent.length >= 1, "cron failures reach the DSN");
-    assert.ok(sent.every((call) => /scheduledTask/.test(call.body)), "each event is a task-level report");
-    assert.ok(sent.every((call) => !/Scheduled tasks failed/.test(call.body)), "the summary error is not sent again");
+    assert.ok(
+      sent.every((call) => /scheduledTask/.test(call.body)),
+      "each event is a task-level report"
+    );
+    assert.ok(
+      sent.every((call) => !/Scheduled tasks failed/.test(call.body)),
+      "the summary error is not sent again"
+    );
   } finally {
     fetchStub.restore();
     restoreConsole();
