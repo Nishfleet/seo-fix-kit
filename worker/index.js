@@ -40,6 +40,7 @@ import { isSafeUuid } from "./lib/text.js";
 import { createAdminSession, revokeAdminSession } from "./lib/auth.js";
 import { cleanupExpiredRows } from "./lib/db.js";
 import { sendFirstAuditNudges } from "./lib/activation-emails.js";
+import { runUptimeChecks } from "./lib/uptime.js";
 import {
   aboutHtml,
   aiAnswerReadinessHtml,
@@ -517,6 +518,7 @@ export default {
         )
       );
       ctx.waitUntil(runDueAuditSchedules(env));
+      ctx.waitUntil(runUptimeChecks(env));
       if (String(env.SEOFIXKIT_LARGE_CRAWL_WORKERS_ENABLED || "").toLowerCase() === "true") {
         ctx.waitUntil(runDueLargeRenderedCrawlWorkers(env));
       }

@@ -11,7 +11,7 @@ import { hostKey, formatDate, formatShortDate, safeHostnameLabel } from "../../l
 import { queryKeys } from "../../lib/queries.js";
 import { fetchEmailPreferences, fetchReportsPage, saveEmailPreferences } from "../../lib/requests.js";
 import { AuditWidgetCard } from "./AuditWidgetCard.jsx";
-import { repairStatusLabel, statusLabel, auditJobDetail, auditScheduleDetail } from "../../lib/labels.js";
+import { repairStatusLabel, statusLabel, auditJobDetail, auditScheduleDetail, uptimeDetail } from "../../lib/labels.js";
 
 export function Overview({ accountData, auditPanel, message, status, onRetry }) {
   const metrics = accountData?.metrics || {};
@@ -519,6 +519,7 @@ export function SitesPage({
                     <div className="site-row-title">
                       <h3>{site.host}</h3>
                       <Badge tone={verified ? "good" : "warn"}>{verified ? "Verified" : "Not verified"}</Badge>
+                      {verified && monitor?.uptime?.status === "down" && <Badge tone="bad">Down</Badge>}
                     </div>
                     <p>
                       {verified
@@ -527,6 +528,7 @@ export function SitesPage({
                           : "Weekly checks are off."
                         : "Add one of these to your site, then click Verify. Most people use the homepage tag."}
                     </p>
+                    {verified && monitor && <p className="site-row-uptime">{uptimeDetail(monitor)}</p>}
                   </div>
                   <div className="site-row-actions">
                     {verified ? (
@@ -608,12 +610,14 @@ export function SitesPage({
                   <div className="site-row-title">
                     <h3>{schedule.targetHost || safeHostnameLabel(schedule.targetUrl)}</h3>
                     <Badge tone="good">Weekly check on</Badge>
+                    {schedule.uptime?.status === "down" && <Badge tone="bad">Down</Badge>}
                   </div>
                   <p>
                     {schedule.maxPages > 1
                       ? auditScheduleDetail(schedule)
                       : `Checks ${schedule.targetUrl} every week. Add and verify the site above to check every page.`}
                   </p>
+                  <p className="site-row-uptime">{uptimeDetail(schedule)}</p>
                 </div>
                 <div className="site-row-actions">
                   {schedule.lastReportPath && (

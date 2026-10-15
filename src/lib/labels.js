@@ -137,3 +137,13 @@ export function teamRoleLabel(role) {
   };
   return labels[role] || "Editor";
 }
+
+export function uptimeDetail(schedule = {}) {
+  const uptime = schedule.uptime || {};
+  if (uptime.status === "down") {
+    const since = uptime.downSince ? ` since ${formatDate(uptime.downSince)}` : "";
+    return `Not answering${since}. ${uptime.lastError || ""} We email you when it is back.`.trim();
+  }
+  if (uptime.status === "up") return "Up. We check it answers every 15 minutes and email you if it goes down.";
+  return "We’ll check it answers every 15 minutes and email you if it goes down.";
+}
