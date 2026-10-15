@@ -23,5 +23,6 @@ export const queryKeys = {
   repairBoard: (id) => ["report", id, "repair-board"],
   clientTools: (id) => ["report", id, "client-tools"],
   scoreBadge: (id) => ["report", id, "score-badge"],
+  fixKit: (id) => ["report", id, "fix-kit"],
   auditWidget: ["audit-widget"]
 };
