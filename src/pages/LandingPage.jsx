@@ -34,8 +34,8 @@ const FEATURES = [
   },
   {
     icon: "pulse",
-    title: "Weekly reruns",
-    text: "Verified sites are audited again every week, so a page that breaks shows up within days."
+    title: "Weekly reruns and downtime alerts",
+    text: "Verified sites are audited again every week and pinged every 15 minutes. If a site stops answering, you get an email."
   },
   {
     icon: "sparkle",
