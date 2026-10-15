@@ -158,6 +158,7 @@ test.describe("pricing", () => {
     await expect(plans.nth(2)).toContainText("Everything in Site audit, plus:");
     await expect(plans.nth(2)).toContainText("$99");
     await expect(page.getByRole("table")).toContainText("Rerun that confirms each fix");
+    await expect(page.getByRole("table")).toContainText("AI fix prompt for ChatGPT, Claude or Cursor");
 
     await plans.nth(1).getByRole("link", { name: "Create an account" }).click();
     await expect(page).toHaveURL(/\/#get-started$/);
