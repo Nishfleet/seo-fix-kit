@@ -1286,12 +1286,12 @@ ${pageSocialHead({ origin, title: "Privacy - SEO Fix Kit", description: "What SE
         <li>Fix Pack records store checkout status, Dodo payment identifiers, payment amount and currency, fulfillment notes, final rerun report links, delivery notifications, and admin audit events. We never see or store your card details; Dodo Payments processes payment as merchant of record under its own privacy policy.</li>
         <li>Audit widgets and score badges: when you check a site through an audit widget on someone else's website, we store the email and site address you enter, the score and problem count, and pass them to that widget's owner, who decides how to contact you. Public score badges and score pages show only a site's score, problem count and trend, never the problems themselves. Widget leads are deleted after 12 months.</li>
         <li>Cookies and local browser storage: we set only essential, HttpOnly session cookies (beta login, admin login, and report-unlock state), and the beta dashboard may keep your access email and dashboard state in sessionStorage on your device. No advertising, analytics, or cross-site tracking cookies are set.</li>
-        <li>Processors: Cloudflare (hosting, database, email delivery, browser rendering; data may be processed anywhere on Cloudflare's network) and Dodo Payments (checkout and payment webhooks).</li>
+        <li>Processors: Cloudflare (hosting, database, email delivery, browser rendering; data may be processed anywhere on Cloudflare's network) Dodo Payments (checkout and payment webhooks), and Sentry (Functional Software, Inc., USA; error monitoring: when the service hits an error, a scrubbed error report with the request method, path and stack trace is sent, with request bodies, cookies, query strings and email addresses removed).</li>
         <li>Retention: reports expire after 30 days, except reports tied to a paid Fix Pack, which stay available while we operate the service. To show your progress over time, we keep each report’s page address, score, problem count and date for 12 months. Admin logs, payment records, and notification logs are kept for operating, support, abuse prevention, and payment reconciliation. Rate-limit counters expire automatically.</li>
         <li>We do not sell your personal data and do not send unrelated promotions.</li>
         <li>Deletion and access: email <a href="mailto:support@seofixkit.com">support@seofixkit.com</a> (or reply to any email we send) to request a copy or deletion of your beta data. We honor verified requests within 30 days, except records we must keep for payment reconciliation or abuse prevention.</li>
       </ul>
-      <p>Last updated: October 14, 2026.</p>
+      <p>Last updated: October 15, 2026.</p>
     </main>
     ${siteFooter(origin)}
   </body>
