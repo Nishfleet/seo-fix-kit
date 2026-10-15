@@ -43,6 +43,7 @@ import { cleanupExpiredRows } from "./lib/db.js";
 import { runScheduledTasks } from "./lib/scheduled.js";
 import { sendFirstAuditNudges } from "./lib/activation-emails.js";
 import { runUptimeChecks } from "./lib/uptime.js";
+import { reportError, withErrorReporting } from "./lib/sentry.js";
 import {
   aboutHtml,
   aiAnswerReadinessHtml,
@@ -499,6 +500,7 @@ app.onError((error, c) => {
     return json({ error: "This URL is malformed. Check the address and try again." }, 400);
   }
   console.error(`Unhandled error on ${c.req.method} ${new URL(c.req.url).pathname}`, error);
+  reportError(error);
   return json(
     {
       error:
@@ -512,8 +514,8 @@ app.onError((error, c) => {
 
 export { app };
 
-export default {
-  async scheduled(_event, env, ctx) {
+export default withErrorReporting({
+  async scheduled(_event, env) {
     if (!env.WAITLIST_DB) return;
     const tasks = [
       ["cleanupExpiredRows", cleanupExpiredRows],
@@ -535,7 +537,8 @@ export default {
     if (String(env.SEOFIXKIT_LARGE_CRAWL_WORKERS_ENABLED || "").toLowerCase() === "true") {
       tasks.push(["runDueLargeRenderedCrawlWorkers", runDueLargeRenderedCrawlWorkers]);
     }
-    ctx.waitUntil(runScheduledTasks(env, tasks));
+    // Awaited (not waitUntil) so a failed run fails the cron invocation and reaches error reporting.
+    await runScheduledTasks(env, tasks);
   },
 
   async queue(batch, env) {
@@ -548,10 +551,11 @@ export default {
         message.ack();
       } catch (error) {
         console.error(`Audit queue message ${message.id} failed`, error);
+        reportError(error, { queue: "audit-jobs" });
         message.retry();
       }
     }
   },
 
   fetch: (request, env, ctx) => app.fetch(request, env, ctx)
-};
+});
