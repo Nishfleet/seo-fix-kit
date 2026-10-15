@@ -6,6 +6,7 @@ ALTER TABLE audit_schedules ADD COLUMN uptime_fail_count INTEGER NOT NULL DEFAUL
 ALTER TABLE audit_schedules ADD COLUMN uptime_first_fail_at TEXT;
 ALTER TABLE audit_schedules ADD COLUMN uptime_down_since TEXT;
 ALTER TABLE audit_schedules ADD COLUMN uptime_last_error TEXT;
+ALTER TABLE audit_schedules ADD COLUMN uptime_alerted TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_audit_schedules_uptime
   ON audit_schedules(status, uptime_checked_at);
