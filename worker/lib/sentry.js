@@ -4,7 +4,8 @@ import { captureException, withSentry } from "@sentry/cloudflare";
 // Without it every handler runs exactly as before, with no SDK in the call path.
 
 const EMAIL = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
-const SECRET_PATH = /(\/email\/unsubscribe\/)[^/?#]+/gi;
+// Path segments that work as bearer links: unsubscribe tokens and client report share IDs (/r/<id>).
+const SECRET_PATH = /(\/email\/unsubscribe\/|\/r\/)[^/?#\s"']+/gi;
 const SAFE_HEADERS = new Set(["accept", "content-type", "user-agent"]);
 
 function sentryOptions(env) {
@@ -13,7 +14,7 @@ function sentryOptions(env) {
     environment: env.SENTRY_ENVIRONMENT || "production",
     sendDefaultPii: false,
     tracesSampleRate: 0,
-    beforeSend: scrubEvent,
+    beforeSend: (event, hint) => (hint?.originalException?.alreadyReported ? null : scrubEvent(event)),
     beforeBreadcrumb: (breadcrumb) => scrubValue(breadcrumb)
   };
 }
@@ -45,6 +46,12 @@ function scrubEvent(event) {
   return scrubValue(event);
 }
 
+// Marks an error whose causes were already sent one by one, so the wrapper doesn't send it again.
+function alreadyReported(error) {
+  error.alreadyReported = true;
+  return error;
+}
+
 function reportError(error, tags) {
   captureException(error, tags ? { tags } : undefined);
 }
@@ -58,4 +65,4 @@ function withErrorReporting(handlers) {
   return wrapped;
 }
 
-export { reportError, scrubEvent, sentryOptions, withErrorReporting };
+export { alreadyReported, reportError, scrubEvent, sentryOptions, withErrorReporting };

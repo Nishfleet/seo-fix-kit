@@ -1,5 +1,5 @@
 import { withD1Retry } from "./d1-retry.js";
-import { reportError } from "./sentry.js";
+import { alreadyReported, reportError } from "./sentry.js";
 
 async function runScheduledTasks(env, tasks) {
   const scheduledEnv = { ...env, WAITLIST_DB: withD1Retry(env.WAITLIST_DB) };
@@ -13,7 +13,8 @@ async function runScheduledTasks(env, tasks) {
       failures.push(name);
     }
   }
-  if (failures.length) throw new Error(`Scheduled tasks failed: ${failures.join(", ")}`);
+  // Still thrown so the cron run shows as failed; each task error was already reported above.
+  if (failures.length) throw alreadyReported(new Error(`Scheduled tasks failed: ${failures.join(", ")}`));
 }
 
 export { runScheduledTasks };

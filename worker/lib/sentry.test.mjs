@@ -138,7 +138,8 @@ test("with SENTRY_DSN a failing cron task is reported", async () => {
     await Promise.all(ctx.pending);
     const sent = fetchStub.calls.filter((call) => call.url.includes("sentry.invalid"));
     assert.ok(sent.length >= 1, "cron failures reach the DSN");
-    assert.ok(sent.some((call) => /scheduledTask/.test(call.body)));
+    assert.ok(sent.every((call) => /scheduledTask/.test(call.body)), "each event is a task-level report");
+    assert.ok(sent.every((call) => !/Scheduled tasks failed/.test(call.body)), "the summary error is not sent again");
   } finally {
     fetchStub.restore();
     restoreConsole();
@@ -181,4 +182,14 @@ test("scrubEvent strips bodies, cookies, auth headers, query strings, users and 
   assert.equal(event.request.url, "https://seofixkit.com/email/unsubscribe/[redacted]");
   assert.doesNotMatch(JSON.stringify(event), /jane\.doe|abc123token/);
   assert.equal(event.exception.values[0].value, "No account for [email]");
+});
+
+test("scrubEvent hides client report share links in URLs, messages and breadcrumbs", () => {
+  const event = scrubEvent({
+    message: "Report render failed for https://seofixkit.com/r/share-secret-1 (pdf /r/share-secret-2.pdf)",
+    request: { url: "https://seofixkit.com/r/share-secret-3/unlock" },
+    breadcrumbs: [{ data: { url: "/r/share-secret-4" } }]
+  });
+  assert.equal(event.request.url, "https://seofixkit.com/r/[redacted]/unlock");
+  assert.doesNotMatch(JSON.stringify(event), /share-secret/);
 });
