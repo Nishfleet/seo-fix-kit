@@ -682,7 +682,7 @@ test("competitor comparison marks who leads each measure and explains the score 
   const mine = {
     checkedUrl: "https://mine.example/",
     score: 70,
-    projectedScore: { to: 88 },
+    projectedScore: { fixes: 3, to: 88 },
     issues: { critical: 1, warnings: 2, notices: 0 },
     measured: { renderedWordCount: 1200, renderedInternalLinkCount: 10, renderedH1: "Hi" },
     crawlers: [
@@ -722,7 +722,7 @@ test("competitor comparison marks who leads each measure and explains the score 
   assert.equal(botRow.lead, "mine");
   assert.equal(
     compareVerdict(mine, theirs),
-    "rival.example scores 12 points higher than your page. Fixing the problems above would put you ahead."
+    "rival.example scores 12 points higher than your page. Your top 3 fixes could take you to about 88, which would put you ahead."
   );
   assert.equal(compareVerdict({ ...mine, score: 90 }, theirs), "Your page scores 8 points higher than rival.example.");
   assert.equal(compareVerdict(mine, { ...theirs, score: null }), "");

@@ -265,7 +265,7 @@ test.describe("free page check", () => {
     await page.getByRole("button", { name: "Compare" }).click();
     const compare = page.locator(".compare-table");
     await expect(page.locator("#result")).toContainText(
-      "rival.example scores 8 points higher than your page. Fixing the problems above would put you ahead."
+      "rival.example scores 8 points higher than your page. Your top fix could take you to about 84, which would put you ahead."
     );
     await expect(compare.getByRole("columnheader", { name: "rival.example" })).toBeVisible();
     await expect(compare.getByRole("row", { name: /Words on the page/ })).toContainText("1,284");

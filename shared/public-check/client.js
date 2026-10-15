@@ -306,7 +306,11 @@ export function compareVerdict(mine, theirs) {
   const them = hostOf(theirs.finalUrl || theirs.checkedUrl);
   if (gap > 0) return `Your page scores ${plural(gap, "point")} higher than ${them}.`;
   if (gap < 0) {
-    const fixes = mine.projectedScore?.to > theirs.score ? " Fixing the problems above would put you ahead." : "";
+    const projected = mine.projectedScore;
+    const fixes =
+      projected?.to > theirs.score
+        ? ` Your ${projected.fixes === 1 ? "top fix" : `top ${projected.fixes} fixes`} could take you to about ${projected.to}, which would put you ahead.`
+        : "";
     return `${them} scores ${plural(-gap, "point")} higher than your page.${fixes}`;
   }
   return `You and ${them} have the same score.`;
