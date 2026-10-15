@@ -56,7 +56,7 @@ const FAQ = [
   },
   {
     q: "What does the Fix Pack include?",
-    a: "One repair pass on a saved report, plus one rerun after your fixes ship to confirm them. It costs $99, once. You only see the offer when a report finds real problems."
+    a: "Every fix on a saved report as ready-to-ship files, a guided repair pass, and a rerun after your fixes ship to confirm them. It costs $99 per report, paid once. You only see the offer when a report finds real problems."
   },
   {
     q: "Do you check AI search?",
@@ -79,7 +79,7 @@ const PLANS = [
   {
     name: "Fix Pack",
     price: "$99",
-    text: "One guided repair pass and a rerun that confirms it. Offered when a report finds real problems."
+    text: "Every fix as ready-to-ship files, a guided repair pass and a rerun that confirms it. Per report, offered when it finds real problems."
   }
 ];
 
@@ -260,7 +260,7 @@ export function WaitlistPage() {
         <section className="landing-section" aria-labelledby="pricing-title">
           <header className="landing-section-head reveal">
             <p className="eyebrow">Pricing</p>
-            <h2 id="pricing-title">Audits are free. Fixes are $99, once.</h2>
+            <h2 id="pricing-title">Audits are free. Fixes are $99 per report.</h2>
           </header>
           <div className="landing-plans">
             {PLANS.map((plan) => (

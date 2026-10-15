@@ -21,6 +21,7 @@ import {
   PlatformSeoAuditPanel
 } from "./ImportedDataPanels.jsx";
 import { PerformancePanel, ResourceWaterfallPanel } from "./PerformancePanels.jsx";
+import { FixKitDownload } from "./FixKitPanel.jsx";
 import { FixRequestStatusPanel, RepairProposalPanel, FixQuotePanel } from "./RepairOfferPanels.jsx";
 import { ScoreBadgePanel } from "./ScoreBadgePanel.jsx";
 import { ScoreGain } from "./ScoreGain.jsx";
@@ -170,6 +171,8 @@ export function ReportView({ report, onRerun, rerunStatus = "idle", rerunMessage
       {(checkoutReturned || report.fixRequest) && (
         <FixRequestStatusPanel fixRequest={report.fixRequest} checkoutReturned={checkoutReturned} />
       )}
+
+      {report.fixRequest && <FixKitDownload reportId={report.id} />}
 
       <section className="app-stats report-stats" aria-label="Audit summary">
         <Metric label="Critical" tone="critical" value={report.summary?.critical || 0} />

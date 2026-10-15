@@ -478,3 +478,13 @@ export async function disableAuditWidget() {
     fallbackError: "The widget wasn’t turned off. Try again."
   });
 }
+
+export async function loadFixKit(reportId) {
+  return apiFetch(`/api/reports/${encodeURIComponent(reportId)}/fix-kit`, {
+    fallbackError: "The fix files didn’t load. Try again."
+  });
+}
+
+export function fixKitDownloadUrl(reportId) {
+  return `/api/reports/${encodeURIComponent(reportId)}/fix-kit.zip`;
+}

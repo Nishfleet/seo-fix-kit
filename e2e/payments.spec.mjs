@@ -19,6 +19,9 @@ test("an owner buys a Fix Pack from a report and sees the payment confirmed", as
   await page.goto(`/beta/reports/${id}`);
   const fixPack = page.locator(".paid-panel");
   await expect(fixPack.getByText("$99.00")).toBeVisible();
+  await expect(fixPack.getByText("Download with the Fix Pack")).toBeVisible();
+  await expect(fixPack.getByText("Every fix in one checklist: 2 problems, most important first")).toBeVisible();
+  expect((await page.request.get(`/api/reports/${id}/fix-kit.zip`)).status()).toBe(402);
   await fixPack.getByRole("button", { name: "Buy Fix Pack" }).click();
   await expect(page).toHaveURL(/^https:\/\/test\.dodopayments\.com\/session\/cs_e2e_\d+$/);
   await expect(page.getByRole("heading", { name: "Dodo test checkout" })).toBeVisible();
@@ -28,6 +31,9 @@ test("an owner buys a Fix Pack from a report and sees the payment confirmed", as
 
   await page.goto(`/beta/reports/${id}?checkout=return&fixRequestId=${paid.fixRequestId}`);
   await expect(page.getByText("Payment confirmed").first()).toBeVisible();
+  const download = page.waitForEvent("download");
+  await page.getByRole("link", { name: "Download fix files (.zip)" }).click();
+  expect((await download).suggestedFilename()).toBe("seo-fix-kit-acme-widgets-example.zip");
 
   await page.goto("/beta/billing");
   const fixPacks = page.locator("section", { has: page.getByRole("heading", { name: "Fix Packs" }) });

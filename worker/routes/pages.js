@@ -64,9 +64,8 @@ Live product claims:
 - Developer API issue/report responses include safe repair_queue status. Approved-action implementation packs are fetched from /v1/audits/{audit_id}/repair-actions/{action_id}/implementation.md; fixed-action proof receipts are fetched from /v1/audits/{audit_id}/repair-actions/{action_id}/proof.md; repair-action lifecycle webhooks are supported.
 - Reports include SEO/GEO readiness checks for crawlable answer content, entity clarity, useful schema, internal context, and optional llms.txt boundaries.
 - Dodo is the source of truth for visible Fix Pack pricing and checkout.
-- Paid Fix Pack fulfillment includes owner-approved repair proposals, status, delivery notes, and one rerun after fixes.
+- Paid Fix Pack fulfillment includes a downloadable fix-files bundle (fix checklist, tracker CSV, per-page code, sitemap.xml, robots.txt changes, llms.txt, broken-link list, AI prompt), owner-approved repair proposals, status, delivery notes, and one rerun after fixes.
 - Proof Monitoring checkout is config-gated behind the Dodo subscription product and webhook entitlement sync; access activates from subscription webhooks, not redirects.
-- The private billing portal lists the staged offer ladder for monitoring, Repair Sprint, SEO/GEO repair agent, and agency workspace.
 - Repair Sprint checkout is config-gated behind the Dodo one-time product and opens only from approved executable proposal queues.
 - Agency Workspace features run under beta limits; paid Agency Workspace checkout is not live yet.
 
@@ -479,7 +478,8 @@ const PRICING_PLANS = [
     name: "Fix Pack",
     price: FIX_PACK_PUBLIC_PRICE.replace(/\.00 one-time$/, ""),
     cadence: "One-time, per report",
-    summary: "We go through the confirmed fixes on one report with you, then rerun the audit to show what got fixed.",
+    summary:
+      "Download every fix as ready-to-ship files, go through them with us, then rerun the audit to show what got fixed.",
     cta: { label: "Start with a free audit", href: "/#get-started" }
   }
 ];
@@ -498,6 +498,8 @@ const PRICING_FEATURES = [
   { label: "Client reports with your logo, as link or PDF", plans: ["audit", "fixpack"] },
   { label: "Score badge and share page", plans: ["audit", "fixpack"] },
   { label: "Audit widget for your own site", plans: ["audit", "fixpack"] },
+  { label: "Fix files: code for every page, sitemap, robots.txt, llms.txt", plans: ["fixpack"] },
+  { label: "Fix list as a spreadsheet for Jira, Trello or Asana", plans: ["fixpack"] },
   { label: "Guided repair pass on one report", plans: ["fixpack"] },
   { label: "Rerun that confirms each fix", plans: ["fixpack"] }
 ];
@@ -587,8 +589,8 @@ function pricingHtml(origin) {
     title: "Pricing",
     description: `Free page checks and free site audits during the beta. The ${FIX_PACK_PUBLIC_PRICE} Fix Pack is offered only when a report finds real problems.`,
     eyebrow: "Pricing",
-    heading: "Audits are free. Fixes are $99, once.",
-    lead: "Check a page or audit up to 1,000 pages free during the beta. When a report finds real problems, the Fix Pack covers one repair pass and the rerun that confirms it.",
+    heading: "Audits are free. Fixes are $99 per report.",
+    lead: "Check a page or audit up to 1,000 pages free during the beta. When a report finds real problems, the Fix Pack gives you every fix as ready-to-ship files, a guided repair pass and the rerun that confirms it.",
     body: `
       <section class="plans" id="plans" aria-label="Plans">${cards}
       </section>
