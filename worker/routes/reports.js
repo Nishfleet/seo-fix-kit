@@ -1,4 +1,4 @@
-import { issuePatternKey } from "../../shared/audit-engine.js";
+import { issuePatternKey, projectedScore } from "../../shared/audit-engine.js";
 import { normalizeFixRequestStatus } from "../../shared/fulfillment.js";
 import { dodoRepairSprintCheckoutConfigStatus } from "../../shared/dodo.js";
 import { repairSprintEligibilityFromProposals } from "../../shared/offers.js";
@@ -536,6 +536,10 @@ async function getSavedReport(request, env) {
     return json({ error: "Report not found." }, 404);
   }
   const report = JSON.parse(reportJson);
+  // Reports saved before distinct top fixes kept a projection that could count one problem twice.
+  if (report.projectedScore && Array.isArray(report.repairPlan)) {
+    report.projectedScore = projectedScore(report.repairPlan, report.findings || [], report.projectedScore.from);
+  }
   report.reportUrl = `${url.origin}${report.reportPath || `/beta/reports/${id}`}`;
   if (!row.expires_at && report.retention) {
     report.retention = { ...report.retention, expiresAt: "", preserved: true };
