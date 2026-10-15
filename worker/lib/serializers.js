@@ -50,7 +50,13 @@ function auditScheduleResponse(row = {}) {
     lastError: row.last_error || "",
     createdAt: row.created_at || "",
     updatedAt: row.updated_at || "",
-    pausedAt: row.paused_at || ""
+    pausedAt: row.paused_at || "",
+    uptime: {
+      status: row.uptime_status || "",
+      checkedAt: row.uptime_checked_at || "",
+      downSince: row.uptime_down_since || "",
+      lastError: row.uptime_status === "down" ? row.uptime_last_error || "" : ""
+    }
   };
 }
 
