@@ -221,6 +221,7 @@ export function renderResult(payload) {
   body.appendChild(proof);
 
   body.appendChild(crawlerBlock(payload.crawlers));
+  body.appendChild(compareBlock(payload));
 
   const ruledOut = block("False alarms ruled out");
   if (guards.length === 0) ruledOut.appendChild(el("p", "No false alarms to rule out on this page."));
@@ -238,6 +239,146 @@ export function renderResult(payload) {
   foot.appendChild(cta);
   card.appendChild(foot);
   return card;
+}
+
+async function requestCheck(url) {
+  try {
+    const response = await fetch("/api/public-check", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ url })
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || !payload.ok) return { error: payload.error || "The check failed. Try another public URL." };
+    return { payload };
+  } catch {
+    return { error: "Could not reach the check service. Check your connection and try again." };
+  }
+}
+
+const problemCount = (p) =>
+  p.issues ? p.issues.critical + p.issues.warnings + p.issues.notices : (p.findings || []).length;
+// Training-only bots are left out: blocking them is a choice, not a visibility loss.
+const visibilityBots = (p) =>
+  Array.isArray(p.crawlers) ? p.crawlers.filter((bot) => bot.purpose !== "training") : null;
+
+export function compareRows(mine, theirs) {
+  const words = (p) => p.measured?.renderedWordCount;
+  const links = (p) => p.measured?.renderedInternalLinkCount;
+  const hasH1 = (p) => (p.measured?.renderedH1 ? 1 : 0);
+  const [myBots, theirBots] = [visibilityBots(mine), visibilityBots(theirs)];
+  const allowed = (bots) => bots?.filter((bot) => bot.allowed).length;
+  const botsShown = (bots) => (bots ? `${allowed(bots)} of ${bots.length}` : "Not checked");
+  const botsComparable = myBots && theirBots && myBots.length === theirBots.length;
+  const rows = [
+    ["Score", mine.score, theirs.score, "high"],
+    ["Problems found", problemCount(mine), problemCount(theirs), "low"],
+    ["Words on the page", words(mine), words(theirs), "high"],
+    ["Internal links", links(mine), links(theirs), "high"],
+    [
+      "Main heading (H1)",
+      hasH1(mine) ? "Yes" : "Missing",
+      hasH1(theirs) ? "Yes" : "Missing",
+      "high",
+      [hasH1(mine), hasH1(theirs)]
+    ],
+    [
+      "Search and AI answer tools allowed",
+      botsShown(myBots),
+      botsShown(theirBots),
+      "high",
+      botsComparable ? [allowed(myBots), allowed(theirBots)] : null
+    ]
+  ];
+  return rows.map(([label, a, b, better, ranks = [a, b]]) => {
+    const [x, y] = ranks || [];
+    let lead = "";
+    if (typeof x === "number" && typeof y === "number" && x !== y) {
+      lead = (better === "high" ? x > y : x < y) ? "mine" : "theirs";
+    }
+    return { label, mine: a ?? "Not found", theirs: b ?? "Not found", lead };
+  });
+}
+
+export function compareVerdict(mine, theirs) {
+  if (typeof mine.score !== "number" || typeof theirs.score !== "number") return "";
+  const gap = mine.score - theirs.score;
+  const them = hostOf(theirs.finalUrl || theirs.checkedUrl);
+  if (gap > 0) return `Your page scores ${plural(gap, "point")} higher than ${them}.`;
+  if (gap < 0) {
+    const projected = mine.projectedScore;
+    const fixes =
+      projected?.to > theirs.score
+        ? ` Your ${projected.fixes === 1 ? "top fix" : `top ${projected.fixes} fixes`} could take you to about ${projected.to}, which would put you ahead.`
+        : "";
+    return `${them} scores ${plural(-gap, "point")} higher than your page.${fixes}`;
+  }
+  return `You and ${them} have the same score.`;
+}
+
+function compareTable(mine, theirs) {
+  const wrap = el("div", "", "compare-result");
+  wrap.appendChild(el("p", compareVerdict(mine, theirs), "compare-verdict"));
+  const scroller = el("div", "", "compare-scroll");
+  const table = el("table", "", "compare-table");
+  const cols = el("colgroup");
+  cols.appendChild(el("col", "", "measure-col"));
+  cols.append(el("col"), el("col"));
+  table.appendChild(cols);
+  const head = table.createTHead().insertRow();
+  for (const text of ["", hostOf(mine.finalUrl || mine.checkedUrl), hostOf(theirs.finalUrl || theirs.checkedUrl)]) {
+    const th = el("th", text);
+    th.scope = "col";
+    head.appendChild(th);
+  }
+  const body = table.createTBody();
+  for (const row of compareRows(mine, theirs)) {
+    const tr = body.insertRow();
+    const th = el("th", row.label);
+    th.scope = "row";
+    tr.appendChild(th);
+    tr.appendChild(el("td", count(row.mine), row.lead === "mine" ? "ahead" : ""));
+    tr.appendChild(el("td", count(row.theirs), row.lead === "theirs" ? "ahead" : ""));
+  }
+  scroller.appendChild(table);
+  wrap.appendChild(scroller);
+  return wrap;
+}
+
+function compareBlock(mine) {
+  const section = block("Compare with a competitor");
+  const form = el("form", "", "compare-form");
+  form.noValidate = true;
+  const label = el("label", "Competitor page URL");
+  label.htmlFor = "compare-input";
+  const row = el("div", "", "row");
+  const input = el("input", "", "field");
+  input.id = "compare-input";
+  input.type = "text";
+  input.inputMode = "url";
+  input.autocomplete = "off";
+  input.placeholder = "competitor.com";
+  const button = el("button", "Compare", "btn btn-secondary");
+  button.type = "submit";
+  row.append(input, button);
+  const out = el("div", "", "compare-out");
+  out.setAttribute("aria-live", "polite");
+  form.append(label, row);
+  section.append(form, out);
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const url = input.value.trim();
+    const invalid = publicUrlError(url);
+    if (invalid) return out.replaceChildren(el("div", invalid, "error-box"));
+    button.disabled = true;
+    button.textContent = "Checking…";
+    out.replaceChildren(el("p", `Opening ${url} in a real browser. This can take up to a minute.`, "compare-wait"));
+    const { payload, error } = await requestCheck(url);
+    out.replaceChildren(error ? el("div", error, "error-box") : compareTable(mine, payload));
+    button.disabled = false;
+    button.textContent = "Compare";
+  });
+  return section;
 }
 
 function loadingCard(url) {
@@ -280,26 +421,10 @@ function mount() {
     button.textContent = "Checking…";
     result.replaceChildren(loadingCard(url));
     result.classList.add("show");
-    try {
-      const response = await fetch("/api/public-check", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ url })
-      });
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok || !payload.ok) {
-        result.replaceChildren(el("div", payload.error || "The check failed. Try another public URL.", "error-box"));
-        return;
-      }
-      result.replaceChildren(renderResult(payload));
-    } catch {
-      result.replaceChildren(
-        el("div", "Could not reach the check service. Check your connection and try again.", "error-box")
-      );
-    } finally {
-      button.disabled = false;
-      button.textContent = "Check this page";
-    }
+    const { payload, error } = await requestCheck(url);
+    result.replaceChildren(error ? el("div", error, "error-box") : renderResult(payload));
+    button.disabled = false;
+    button.textContent = "Check this page";
   });
 
   const requested = new URLSearchParams(location.search).get("url");

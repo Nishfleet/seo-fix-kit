@@ -245,6 +245,33 @@ test.describe("free page check", () => {
       "robots.txt blocks ChatGPT search, so those AI tools can't quote this page in answers."
     );
     await expect(page.getByRole("heading", { name: "“Missing H1” is a false alarm" })).toBeVisible();
+
+    await page.unroute("**/api/public-check");
+    await page.route("**/api/public-check", (route) =>
+      route.fulfill({
+        json: {
+          ok: true,
+          checkedUrl: "https://rival.example/",
+          finalUrl: "https://rival.example/",
+          score: 80,
+          crawlers: [{ agent: "Googlebot", product: "Google Search", purpose: "search", allowed: true }],
+          measured: { renderedWordCount: 900, renderedH1: null, renderedInternalLinkCount: 30 },
+          issues: { critical: 0, warnings: 2, notices: 1 },
+          findings: []
+        }
+      })
+    );
+    await page.getByLabel("Competitor page URL").fill("rival.example");
+    await page.getByRole("button", { name: "Compare" }).click();
+    const compare = page.locator(".compare-table");
+    await expect(page.locator("#result")).toContainText(
+      "rival.example scores 8 points higher than your page. Your top fix could take you to about 84, which would put you ahead."
+    );
+    await expect(compare.getByRole("columnheader", { name: "rival.example" })).toBeVisible();
+    await expect(compare.getByRole("row", { name: /Words on the page/ })).toContainText("1,284");
+    await expect(compare.getByRole("row", { name: /Main heading/ })).toContainText("Missing");
+    await expect(compare.getByRole("row", { name: /answer tools allowed/ })).toContainText("1 of 2");
+
     await expect(page.locator("#result").getByRole("link", { name: "Create a free account" })).toHaveAttribute(
       "href",
       /\/beta$/

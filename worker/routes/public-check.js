@@ -333,6 +333,25 @@ export function checkHtml(origin) {
       .crawler-list li.allowed { background: var(--success-surface); border-color: var(--line-accent); color: var(--success); }
       .crawler-list li.blocked { background: var(--error-surface); border-color: var(--error-line); color: var(--error); font-weight: 600; }
       .crawler-note { color: var(--ink-muted); font-size: 14px; margin: 10px 0 0; }
+      .compare-form { display: grid; gap: 8px; }
+      .compare-form label { color: var(--ink); font-size: 14px; font-weight: 600; }
+      .compare-form .row { display: flex; gap: 10px; }
+      .compare-form input { flex: 1; min-width: 0; }
+      .compare-form button { min-height: 44px; padding: 0 18px; }
+      .compare-form button:disabled { cursor: wait; opacity: .6; }
+      .compare-out { margin-top: 14px; }
+      .compare-out:empty { display: none; }
+      .compare-wait { color: var(--ink-muted); font-size: 14px; margin: 0; }
+      .compare-verdict { color: var(--ink); font-size: 16px; font-weight: 600; margin: 0 0 12px; }
+      .compare-scroll { border: 1px solid var(--line); border-radius: var(--radius-lg); overflow-x: auto; }
+      .compare-table { border-collapse: collapse; font-size: 14px; table-layout: fixed; width: 100%; }
+      .compare-table col.measure-col { width: 38%; }
+      .compare-table th, .compare-table td { border-bottom: 1px solid var(--line); overflow-wrap: anywhere; padding: 10px 14px; text-align: left; vertical-align: top; }
+      .compare-table tr:last-child th, .compare-table tr:last-child td { border-bottom: 0; }
+      .compare-table thead th { background: var(--surface-sunken); color: var(--ink); font-weight: 600; overflow-wrap: anywhere; }
+      .compare-table tbody th { color: var(--ink-muted); font-weight: 500; }
+      .compare-table td { color: var(--ink); font-variant-numeric: tabular-nums; }
+      .compare-table td.ahead { color: var(--success); font-weight: 700; }
       .measure-grid { display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--radius-lg); grid-template-columns: repeat(4, minmax(0, 1fr)); overflow: hidden; }
       .measure { background: var(--card-bg); min-width: 0; padding: 14px 16px; }
       .measure .label { color: var(--ink-muted); font-size: 13px; }
@@ -384,7 +403,7 @@ export function checkHtml(origin) {
       .projected strong { color: var(--accent); }
       .prompt-row { align-items: center; display: flex; flex-wrap: wrap; gap: 10px 14px; }
       .prompt-note { color: var(--ink-muted); font-size: 14px; }
-      @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } .measure-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .result-head, .result-body, .result-foot { padding-left: 16px; padding-right: 16px; } .check-form .row { flex-direction: column; } main { padding-top: 32px; } }
+      @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } .measure-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .result-head, .result-body, .result-foot { padding-left: 16px; padding-right: 16px; } .check-form .row, .compare-form .row { flex-direction: column; } .compare-table th, .compare-table td { padding: 9px 10px; } main { padding-top: 32px; } }
     </style>
   </head>
   <body>
