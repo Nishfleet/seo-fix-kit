@@ -105,12 +105,12 @@ export function WaitlistPage() {
           <div className="hero-copy">
             <ProofTicker />
             <h1 className="hero-title enter" id="page-title" style={{ "--enter-delay": "60ms" }}>
-              An SEO audit that checks its own work.{" "}
-              <span className="hero-title-soft">
-                We load every page in a real browser, list only the problems that are actually there, and rerun after
-                you ship to mark each one fixed.
-              </span>
+              An SEO audit that checks its own work.
             </h1>
+            <p className="hero-lede enter" style={{ "--enter-delay": "100ms" }}>
+              We load every page in a real browser, list only the problems that are actually there, and rerun after you
+              ship to mark each one fixed.
+            </p>
             <div className="enter" style={{ "--enter-delay": "140ms" }}>
               <HeroCheckForm />
             </div>

@@ -491,7 +491,7 @@ test("a loaded report shows the remediation brief panel with a JSON download", a
   await page.goto(`${baseUrl}/beta/reports/${report.id}#repair`);
 
   const panel = await visible(page.getByRole("region", { name: "Repair brief" }));
-  await visible(panel.getByRole("heading", { name: "Missing title on home" }));
+  await visible(panel.getByRole("heading", { name: "Hand it off" }));
   const download = await visible(panel.getByRole("link", { name: "Download brief (JSON)" }));
   assert.equal(await download.getAttribute("href"), `/api/reports/${report.id}/remediation-brief.json`);
 });
@@ -529,7 +529,7 @@ test("the repair board status filter shows only items in the chosen status", asy
     let seen = [];
     const deadline = Date.now() + TIMEOUT;
     while (Date.now() < deadline) {
-      seen = (await board.locator("article h3").allInnerTexts()).sort();
+      seen = (await board.locator("details h3").allInnerTexts()).sort();
       if (JSON.stringify(seen) === JSON.stringify([...expected].sort())) return;
       await new Promise((resolve) => setTimeout(resolve, 25));
     }
@@ -563,9 +563,10 @@ test("repair board drafts are saved for review and publish nothing", async (t) =
 
   const card = await visible(
     repairBoard(page)
-      .locator("article")
+      .locator("details")
       .filter({ has: page.getByRole("heading", { name: "Missing title on home" }) })
   );
+  await card.getByRole("heading", { name: "Missing title on home" }).click();
   await visible(card.getByText("Drafts are saved for review. Nothing changes on your site."));
 
   const before = requests.length;

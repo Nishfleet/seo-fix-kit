@@ -80,7 +80,8 @@
     "test:payments-flow": "node --test test/payments-flow.test.mjs",
     "test:core-api-flow": "node --test test/core-api-flow.test.mjs",
     "test:spa": "node --test test/spa.test.mjs",
-    "test:budget": "node scripts/check-budget.mjs"
+    "test:budget": "node scripts/check-budget.mjs",
+    "tour:capture": "node scripts/capture-product-tour.mjs"
   },
   "dependencies": {
     "@cloudflare/puppeteer": "^1.1.0",

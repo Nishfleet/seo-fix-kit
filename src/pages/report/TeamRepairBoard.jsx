@@ -347,232 +347,240 @@ export function TeamRepairBoard({ report }) {
 
         <div className="issue-board-list">
           {visibleIssues.slice(0, 12).map((issue) => (
-            <article className={`issue-board-card ${issue.status}`} key={issue.issueId}>
-              <div className="issue-board-head">
-                <div>
-                  <div className="repair-pill-row">
-                    <span className={`status-pill ${issue.severity}`}>{issue.severity}</span>
-                    <span className={`status-pill ${issue.status}`}>{repairStatusLabel(issue.status)}</span>
-                    {issue.latestAction && (
-                      <span className="status-pill">{repairApprovalLabel(issue.latestAction.approvalState)}</span>
-                    )}
-                  </div>
+            <details className={`issue-board-card ${issue.status}`} key={issue.issueId}>
+              <summary className="issue-board-summary">
+                <span className={`status-pill ${issue.severity}`}>{issue.severity}</span>
+                <span className="issue-board-title">
                   <h3>{issue.title}</h3>
-                  <p>
-                    {issue.pageLabel || safeUrlLabel(issue.pageUrl)}: {issue.fix}
-                  </p>
+                  <small>{issue.pageLabel || safeUrlLabel(issue.pageUrl)}</small>
+                </span>
+                <span className="issue-board-meta">
+                  {issue.assigneeEmail && <small>{teammateLabel(members, issue.assigneeEmail)}</small>}
+                  <span className={`status-pill ${issue.status}`}>{repairStatusLabel(issue.status)}</span>
+                </span>
+              </summary>
+              <div className="issue-board-body">
+                <p className="issue-board-fix">{issue.fix}</p>
+                <div className="repair-proof-block">
+                  <div>
+                    <span>Evidence</span>
+                    <p>{issue.proof || "See this problem in the Problems tab for evidence."}</p>
+                  </div>
+                  <div>
+                    <span>Done when</span>
+                    <p>{issue.acceptance || "A rerun no longer finds this problem."}</p>
+                  </div>
+                  {issue.snippet && <CodeBlock code={issue.snippet} />}
                 </div>
-                <button
-                  className="action-link"
-                  disabled={savingIssueId === issue.issueId || status === "loading"}
-                  onClick={() => onIssueSave(issue)}
-                  type="button"
-                >
-                  Save
-                </button>
-              </div>
-              <div className="repair-proof-block">
-                <div>
-                  <span>Evidence</span>
-                  <p>{issue.proof || "See this problem in the Problems tab for evidence."}</p>
-                </div>
-                <div>
-                  <span>Done when</span>
-                  <p>{issue.acceptance || "A rerun no longer finds this problem."}</p>
-                </div>
-                {issue.snippet && <CodeBlock code={issue.snippet} />}
-              </div>
-              <div className="issue-board-controls">
-                <label>
-                  Status
-                  <select
-                    onChange={(event) =>
-                      updateIssue(issue.issueId, { status: event.target.value || issue.status || "open" })
-                    }
-                    value={manualRepairQueueStatus(issue.status)}
-                  >
-                    <option value="">Set by draft</option>
-                    <option value="open">Open</option>
-                    <option value="in_progress">In progress</option>
-                    <option value="ignored">Ignored</option>
-                  </select>
-                </label>
-                <label>
-                  Who fixes it
-                  <select
-                    onChange={(event) => updateIssue(issue.issueId, { actionMode: event.target.value })}
-                    value={issue.actionMode || "self_serve"}
-                  >
-                    <option value="self_serve">Do it yourself</option>
-                    <option value="teammate">Teammate</option>
-                    <option value="fix_pack">Fix Pack</option>
-                    <option value="cms_draft">CMS draft</option>
-                    <option value="github_pr">GitHub PR (planned)</option>
-                  </select>
-                </label>
-                {issue.sourceKind !== "repair_plan" && (
+                <div className="issue-board-controls">
                   <label>
-                    Assignee
+                    Status
                     <select
-                      onChange={(event) => updateIssue(issue.issueId, { assigneeEmail: event.target.value })}
-                      value={issue.assigneeEmail || ""}
+                      onChange={(event) =>
+                        updateIssue(issue.issueId, { status: event.target.value || issue.status || "open" })
+                      }
+                      value={manualRepairQueueStatus(issue.status)}
                     >
-                      <option value="">Unassigned</option>
-                      {members.map((member) => (
-                        <option key={member.id} value={member.email}>
-                          {member.name || member.email}
-                        </option>
-                      ))}
+                      <option value="">Set by draft</option>
+                      <option value="open">Open</option>
+                      <option value="in_progress">In progress</option>
+                      <option value="ignored">Ignored</option>
                     </select>
                   </label>
-                )}
-                {issue.latestAction?.executionState === "applied" && (
                   <label>
-                    Rerun report ID
-                    <input
-                      onChange={(event) => updateIssue(issue.issueId, { lastRerunReportId: event.target.value })}
-                      placeholder="Paste rerun report ID"
-                      value={issue.lastRerunReportId || ""}
-                    />
-                  </label>
-                )}
-                {issue.sourceKind !== "repair_plan" && (
-                  <label>
-                    Note
-                    <textarea
-                      onChange={(event) => updateIssue(issue.issueId, { note: event.target.value })}
-                      placeholder="Note for your team"
-                      value={issue.note || ""}
-                    />
-                  </label>
-                )}
-              </div>
-              <div className="repair-action-strip">
-                <div>
-                  <strong>{issue.latestAction ? "Latest draft" : "No draft yet"}</strong>
-                  <span>
-                    {issue.latestAction
-                      ? `${repairActionModeLabel(issue.latestAction.actionMode)} · ${repairApprovalLabel(issue.latestAction.approvalState)} · ${repairExecutionLabel(issue.latestAction.executionState)}`
-                      : "Drafts are saved for review. Nothing changes on your site."}
-                  </span>
-                  {issue.latestAction?.proposedChange && <p>{issue.latestAction.proposedChange}</p>}
-                </div>
-                <div className="repair-action-buttons">
-                  {repairActionImplementationPackAvailable(issue.latestAction) && (
-                    <a
-                      className="action-link"
-                      href={repairActionImplementationPackUrl(report.id, issue.latestAction.id)}
-                      rel="noreferrer"
-                      target="_blank"
+                    Who fixes it
+                    <select
+                      onChange={(event) => updateIssue(issue.issueId, { actionMode: event.target.value })}
+                      value={issue.actionMode || "self_serve"}
                     >
-                      Implementation steps
-                    </a>
+                      <option value="self_serve">Do it yourself</option>
+                      <option value="teammate">Teammate</option>
+                      <option value="fix_pack">Fix Pack</option>
+                      <option value="cms_draft">CMS draft</option>
+                      <option value="github_pr">GitHub PR (planned)</option>
+                    </select>
+                  </label>
+                  {issue.sourceKind !== "repair_plan" && (
+                    <label>
+                      Assignee
+                      <select
+                        onChange={(event) => updateIssue(issue.issueId, { assigneeEmail: event.target.value })}
+                        value={issue.assigneeEmail || ""}
+                      >
+                        <option value="">Unassigned</option>
+                        {members.map((member) => (
+                          <option key={member.id} value={member.email}>
+                            {member.name || member.email}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
                   )}
-                  {issue.rerunStatus === "fixed" && repairActionProofReceiptAvailable(issue.latestAction) && (
-                    <a
+                  {issue.latestAction?.executionState === "applied" && (
+                    <label>
+                      Rerun report ID
+                      <input
+                        onChange={(event) => updateIssue(issue.issueId, { lastRerunReportId: event.target.value })}
+                        placeholder="Paste rerun report ID"
+                        value={issue.lastRerunReportId || ""}
+                      />
+                    </label>
+                  )}
+                  {issue.sourceKind !== "repair_plan" && (
+                    <label>
+                      Note
+                      <textarea
+                        onChange={(event) => updateIssue(issue.issueId, { note: event.target.value })}
+                        placeholder="Note for your team"
+                        value={issue.note || ""}
+                      />
+                    </label>
+                  )}
+                </div>
+                <div className="repair-action-strip">
+                  <div>
+                    <strong>{issue.latestAction ? "Latest draft" : "No draft yet"}</strong>
+                    <span>
+                      {issue.latestAction
+                        ? `${repairActionModeLabel(issue.latestAction.actionMode)} · ${repairApprovalLabel(issue.latestAction.approvalState)} · ${repairExecutionLabel(issue.latestAction.executionState)}`
+                        : "Drafts are saved for review. Nothing changes on your site."}
+                    </span>
+                    {issue.latestAction?.proposedChange && <p>{issue.latestAction.proposedChange}</p>}
+                  </div>
+                  <div className="repair-action-buttons">
+                    {repairActionImplementationPackAvailable(issue.latestAction) && (
+                      <a
+                        className="action-link"
+                        href={repairActionImplementationPackUrl(report.id, issue.latestAction.id)}
+                        rel="noreferrer"
+                        target="_blank"
+                      >
+                        Implementation steps
+                      </a>
+                    )}
+                    {issue.rerunStatus === "fixed" && repairActionProofReceiptAvailable(issue.latestAction) && (
+                      <a
+                        className="action-link"
+                        href={repairActionProofReceiptUrl(report.id, issue.latestAction.id)}
+                        rel="noreferrer"
+                        target="_blank"
+                      >
+                        Proof receipt
+                      </a>
+                    )}
+                    <button
                       className="action-link"
-                      href={repairActionProofReceiptUrl(report.id, issue.latestAction.id)}
-                      rel="noreferrer"
-                      target="_blank"
+                      disabled={actingIssueId === issue.issueId || status === "loading"}
+                      onClick={() => onActionDraft(issue)}
+                      type="button"
                     >
-                      Proof receipt
-                    </a>
+                      Draft change
+                    </button>
+                    {issue.latestAction?.approvalState === "drafted" && (
+                      <>
+                        <button
+                          className="action-link paid-action"
+                          disabled={actingIssueId === issue.issueId || status === "loading"}
+                          onClick={() =>
+                            onActionUpdate(issue, repairActionApprovalPatch(), {
+                              pendingMessage: "Approving…",
+                              successMessage: "Draft approved."
+                            })
+                          }
+                          type="button"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          className="text-button"
+                          disabled={actingIssueId === issue.issueId || status === "loading"}
+                          onClick={() =>
+                            onActionUpdate(issue, repairActionIgnorePatch(), {
+                              pendingMessage: "Ignoring…",
+                              successMessage: "Draft ignored."
+                            })
+                          }
+                          type="button"
+                        >
+                          Ignore
+                        </button>
+                      </>
+                    )}
+                    {issue.latestAction?.approvalState === "approved" &&
+                      issue.latestAction?.executionState !== "applied" && (
+                        <button
+                          className="action-link paid-action"
+                          disabled={actingIssueId === issue.issueId || status === "loading"}
+                          onClick={() =>
+                            onActionUpdate(issue, repairActionApplyPatch(), {
+                              pendingMessage: "Marking as applied…",
+                              successMessage: "Marked as applied."
+                            })
+                          }
+                          type="button"
+                        >
+                          Mark applied
+                        </button>
+                      )}
+                    {issue.latestAction?.executionState === "applied" && (
+                      <>
+                        <button
+                          className="action-link paid-action"
+                          disabled={actingIssueId === issue.issueId || status === "loading"}
+                          onClick={() => onActionRerun(issue, "fixed")}
+                          type="button"
+                        >
+                          Mark fixed
+                        </button>
+                        <button
+                          className="text-button"
+                          disabled={actingIssueId === issue.issueId || status === "loading"}
+                          onClick={() => onActionRerun(issue, "still_open")}
+                          type="button"
+                        >
+                          Mark still open
+                        </button>
+                        <button
+                          className="text-button"
+                          disabled={actingIssueId === issue.issueId || status === "loading"}
+                          onClick={() => onActionRerun(issue, "regressed")}
+                          type="button"
+                        >
+                          Mark regressed
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className="issue-board-footer">
+                  {issue.updatedAt ? (
+                    <p className="quiet-note">
+                      Updated {formatDate(issue.updatedAt)}
+                      {issue.updatedByEmail ? ` by ${issue.updatedByEmail}` : ""}
+                    </p>
+                  ) : (
+                    <span />
                   )}
                   <button
-                    className="action-link"
-                    disabled={actingIssueId === issue.issueId || status === "loading"}
-                    onClick={() => onActionDraft(issue)}
+                    className="action-link paid-action"
+                    disabled={savingIssueId === issue.issueId || status === "loading"}
+                    onClick={() => onIssueSave(issue)}
                     type="button"
                   >
-                    Draft change
+                    {savingIssueId === issue.issueId ? "Saving…" : "Save"}
                   </button>
-                  {issue.latestAction?.approvalState === "drafted" && (
-                    <>
-                      <button
-                        className="action-link paid-action"
-                        disabled={actingIssueId === issue.issueId || status === "loading"}
-                        onClick={() =>
-                          onActionUpdate(issue, repairActionApprovalPatch(), {
-                            pendingMessage: "Approving…",
-                            successMessage: "Draft approved."
-                          })
-                        }
-                        type="button"
-                      >
-                        Approve
-                      </button>
-                      <button
-                        className="text-button"
-                        disabled={actingIssueId === issue.issueId || status === "loading"}
-                        onClick={() =>
-                          onActionUpdate(issue, repairActionIgnorePatch(), {
-                            pendingMessage: "Ignoring…",
-                            successMessage: "Draft ignored."
-                          })
-                        }
-                        type="button"
-                      >
-                        Ignore
-                      </button>
-                    </>
-                  )}
-                  {issue.latestAction?.approvalState === "approved" &&
-                    issue.latestAction?.executionState !== "applied" && (
-                      <button
-                        className="action-link paid-action"
-                        disabled={actingIssueId === issue.issueId || status === "loading"}
-                        onClick={() =>
-                          onActionUpdate(issue, repairActionApplyPatch(), {
-                            pendingMessage: "Marking as applied…",
-                            successMessage: "Marked as applied."
-                          })
-                        }
-                        type="button"
-                      >
-                        Mark applied
-                      </button>
-                    )}
-                  {issue.latestAction?.executionState === "applied" && (
-                    <>
-                      <button
-                        className="action-link paid-action"
-                        disabled={actingIssueId === issue.issueId || status === "loading"}
-                        onClick={() => onActionRerun(issue, "fixed")}
-                        type="button"
-                      >
-                        Mark fixed
-                      </button>
-                      <button
-                        className="text-button"
-                        disabled={actingIssueId === issue.issueId || status === "loading"}
-                        onClick={() => onActionRerun(issue, "still_open")}
-                        type="button"
-                      >
-                        Mark still open
-                      </button>
-                      <button
-                        className="text-button"
-                        disabled={actingIssueId === issue.issueId || status === "loading"}
-                        onClick={() => onActionRerun(issue, "regressed")}
-                        type="button"
-                      >
-                        Mark regressed
-                      </button>
-                    </>
-                  )}
                 </div>
               </div>
-              {issue.updatedAt && (
-                <p className="quiet-note">
-                  Updated {formatDate(issue.updatedAt)}
-                  {issue.updatedByEmail ? ` by ${issue.updatedByEmail}` : ""}
-                </p>
-              )}
-            </article>
+            </details>
           ))}
           {!visibleIssues.length && <p className="quiet-note">No fixes with this status.</p>}
         </div>
       </div>
     </section>
   );
+}
+
+function teammateLabel(members, email) {
+  const member = members.find((candidate) => candidate.email === email);
+  return member?.name || email;
 }
