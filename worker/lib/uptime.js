@@ -19,7 +19,8 @@ const BAD = "#b42318";
 // or hold an active paid plan. Everyone else keeps weekly checks only.
 const PAID_OWNER_SQL = (owner) => `(
   EXISTS (SELECT 1 FROM fix_requests f
-          WHERE f.owner_email = ${owner} AND f.paid_at IS NOT NULL AND f.status != 'refunded')
+          WHERE f.owner_email = ${owner} AND f.paid_at IS NOT NULL AND f.status != 'refunded'
+            AND f.is_test = 0)
   OR EXISTS (SELECT 1 FROM offer_entitlements e
              WHERE e.owner_email = ${owner} AND e.status = 'active' AND e.revoked_at IS NULL)
 )`;
@@ -131,7 +132,26 @@ async function sendUptimeEmail(env, schedule, details) {
   }
 }
 
-async function checkSchedule(env, schedule, { fetchImpl, privateAddressResolver, now, appOrigin }) {
+// State older than this came from before a gap in checking (lost paid access,
+// paused checks), so it says nothing about the site now and is dropped.
+const STALE_STATE_MINUTES = 60;
+
+function freshState(schedule, now) {
+  const checkedAt = Date.parse(schedule.uptime_checked_at || "");
+  if (!Number.isFinite(checkedAt) || Date.parse(now) - checkedAt <= STALE_STATE_MINUTES * 60_000) return schedule;
+  return {
+    ...schedule,
+    uptime_status: null,
+    uptime_fail_count: 0,
+    uptime_first_fail_at: null,
+    uptime_down_since: null,
+    uptime_alerted: null,
+    staleState: true
+  };
+}
+
+async function checkSchedule(env, storedSchedule, { fetchImpl, privateAddressResolver, now, appOrigin }) {
+  const schedule = freshState(storedSchedule, now);
   const result = await probe(schedule.target_url, fetchImpl, privateAddressResolver);
   const db = env.WAITLIST_DB;
   // The owner may have paused weekly checks while the probe was in flight.
@@ -163,7 +183,7 @@ async function checkSchedule(env, schedule, { fetchImpl, privateAddressResolver,
 
   // uptime_alerted remembers that the owner was told the site is down. A failed
   // send leaves it unchanged, so the same alert is tried again next tick.
-  let alerted = current.uptime_alerted || null;
+  let alerted = schedule.staleState ? null : current.uptime_alerted || null;
   if (status === "down" && alerted !== "down") {
     const sent = await sendUptimeEmail(env, schedule, { kind: "down", error: result.error, now, appOrigin });
     if (sent !== "failed") alerted = "down";

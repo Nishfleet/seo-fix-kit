@@ -98,10 +98,10 @@ test("a site that stops answering twice in a row is marked down once, and recove
   assert.deepEqual(await runUptimeChecks(env, { fetchImpl: unreachable, now: minutes(45) }), ["down"]);
   assert.equal(sent.length, 1, "no repeat alert while still down");
 
-  assert.deepEqual(await runUptimeChecks(env, { fetchImpl: answers(200), now: minutes(135) }), ["up"]);
+  assert.deepEqual(await runUptimeChecks(env, { fetchImpl: answers(200), now: minutes(60) }), ["up"]);
   assert.equal(sent.length, 2);
   assert.equal(sent[1].subject, "www.example.com is back up");
-  assert.match(sent[1].text, /about 2 hours/);
+  assert.match(sent[1].text, /about 45 minutes/);
   assert.equal(row().uptime_fail_count, 0);
   assert.equal(row().uptime_down_since, null);
 });
@@ -210,4 +210,34 @@ test("downtime alerts are a paid perk: no Fix Pack, or a refunded one, means no 
   const paid = setup();
   assert.equal(await uptimeAlertsIncluded(paid.env, OWNER), true);
   assert.deepEqual(await runUptimeChecks(paid.env, { fetchImpl: spy, now: T0 }), ["up"]);
+});
+
+test("a test payment never unlocks downtime alerts", async () => {
+  const { db, env } = setup("active", { paid: false });
+  db.insert("fix_requests", {
+    id: "fr-test",
+    report_id: "r1",
+    owner_email: OWNER,
+    target_url: "https://www.example.com/",
+    target_host: "www.example.com",
+    status: "paid",
+    paid_at: T0,
+    is_test: 1,
+    created_at: T0,
+    updated_at: T0
+  });
+  assert.equal(await uptimeAlertsIncluded(env, OWNER), false);
+});
+
+test("after a gap in checking, a new outage is alerted even if the old one never cleared", async () => {
+  const { env, sent, row } = setup();
+  await runUptimeChecks(env, { fetchImpl: unreachable, now: T0 });
+  await runUptimeChecks(env, { fetchImpl: unreachable, now: minutes(15) });
+  assert.equal(sent.length, 1);
+  // Checks stop for a day (lost access or paused), then resume during a new outage.
+  await runUptimeChecks(env, { fetchImpl: unreachable, now: minutes(24 * 60) });
+  assert.equal(row().uptime_alerted, null);
+  await runUptimeChecks(env, { fetchImpl: unreachable, now: minutes(24 * 60 + 15) });
+  assert.equal(sent.length, 2);
+  assert.equal(sent[1].subject, "www.example.com is down");
 });
