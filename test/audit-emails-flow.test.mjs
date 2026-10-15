@@ -84,6 +84,24 @@ test("top fixes group a problem across pages and put the worst first", () => {
   );
 });
 
+test("top fixes treat page-named titles of the same problem as one fix", () => {
+  const fixes = topFixes({
+    url: "https://example.com/",
+    findings: [
+      { title: "Missing meta description on home", severity: "warning", pageUrl: "https://example.com/" },
+      { title: "Missing meta description on /about", severity: "warning", pageUrl: "https://example.com/about" },
+      { title: "Missing H1 on /blog", severity: "critical", pageUrl: "https://example.com/blog" }
+    ]
+  });
+  assert.deepEqual(
+    fixes.map((fix) => [fix.title, fix.pageCount]),
+    [
+      ["Missing H1 on /blog", 1],
+      ["Missing meta description", 2]
+    ]
+  );
+});
+
 test("first report email leads with the score and what to fix first", () => {
   const email = buildAuditEmail({
     report: firstReport,

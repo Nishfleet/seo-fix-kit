@@ -1,4 +1,5 @@
 import { emailButton } from "../../shared/email-layout.js";
+import { issuePatternKey } from "../../shared/fix-patterns.js";
 import { escapeHtml } from "../../shared/html.js";
 import { emailSender, sendWorkerEmail } from "./email.js";
 import { normalizeEmail, randomHex } from "./text.js";
@@ -88,8 +89,11 @@ function topFixes(report = {}, limit = 3) {
     if (!finding?.severity || finding.severity === "good") continue;
     const title = String(finding.title || "").trim();
     if (!title) continue;
-    const group = groups.get(title) || {
+    // "Missing H1 on home" and "Missing H1 on /about" are one fix on two pages.
+    const key = issuePatternKey(title);
+    const group = groups.get(key) || {
       title,
+      key,
       severity: finding.severity,
       fix: String(finding.fix || "").trim(),
       pages: new Set()
@@ -98,12 +102,16 @@ function topFixes(report = {}, limit = 3) {
       group.severity = finding.severity;
     }
     group.pages.add(finding.pageUrl || report.url || "");
-    groups.set(title, group);
+    groups.set(key, group);
   }
   return [...groups.values()]
     .sort((a, b) => (SEVERITY_RANK[a.severity] ?? 3) - (SEVERITY_RANK[b.severity] ?? 3) || b.pages.size - a.pages.size)
     .slice(0, limit)
-    .map((group) => ({ ...group, pageCount: group.pages.size }));
+    .map(({ key, ...group }) => ({
+      ...group,
+      title: group.pages.size > 1 ? key : group.title,
+      pageCount: group.pages.size
+    }));
 }
 
 function openIssueCount(report = {}) {
