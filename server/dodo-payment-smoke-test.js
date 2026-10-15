@@ -281,6 +281,18 @@ assert.equal(
   monitoringAccessFromEntitlements([], 0).limit
 );
 assert.equal(
+  offerCatalog({
+    entitlements: [
+      {
+        offer_key: OFFER_KEYS.MONITORING,
+        status: "active",
+        limits_json: JSON.stringify({ monitoredSites: 1, cadenceDays: 7 })
+      }
+    ]
+  }).find((offer) => offer.key === OFFER_KEYS.MONITORING).limits.monitoredSites,
+  monitoringAccessFromEntitlements([], 0).limit
+);
+assert.equal(
   repairSprintEligibilityFromProposals([{ executionMode: "generated_proposal", approvalStatus: "pending" }]).status,
   "needs_owner_approval"
 );

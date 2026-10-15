@@ -112,12 +112,17 @@ function offerCatalog({
       entitlementStatus: entitlement?.status || "inactive",
       entitlementSource: entitlement?.source || "",
       currentPeriodEnd: entitlement?.current_period_end || entitlement?.currentPeriodEnd || "",
-      limits: {
-        ...offer.limits,
-        ...parseLimits(entitlement?.limits_json || entitlement?.limitsJson)
-      }
+      limits: effectiveOfferLimits(offer, parseLimits(entitlement?.limits_json || entitlement?.limitsJson))
     };
   });
+}
+
+function effectiveOfferLimits(offer, storedLimits) {
+  const limits = { ...offer.limits, ...storedLimits };
+  if (offer.key === OFFER_KEYS.MONITORING) {
+    limits.monitoredSites = Math.max(Number(limits.monitoredSites || 0), PAID_MONITOR_LIMIT);
+  }
+  return limits;
 }
 
 function monitoringAccessFromEntitlements(entitlements = [], activeCount = 0, options = {}) {
