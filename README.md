@@ -273,10 +273,11 @@ npm run submit:indexnow          # real submission
 npm run submit:indexnow -- --dry-run   # preview only, no network writes
 ```
 
-The dry-run runs through `scripts/wrangler-dry-run.mjs`, which names any malformed
-ancestor `package.json` (e.g. the recurring zero-byte scaffold debris in `/home/nish`)
-loudly on stderr and, when one is present, executes Wrangler from a shielded scratch
-copy so the canary cannot be broken by a file outside this repo.
+The dry-run runs the stock `wrangler deploy --dry-run`: Wrangler bundles the
+Worker and validates `wrangler.jsonc` without deploying. If it fails after a
+green build with `Unexpected end of file in JSON` naming a `package.json`
+above this repo, a malformed ancestor manifest is breaking Wrangler's esbuild
+step — see ERRORS.md for the host-side fix.
 
 Apply D1 migrations after creating or changing the waitlist schema:
 
