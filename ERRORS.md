@@ -6,7 +6,9 @@ Use this file only when an approach takes more than two attempts, or when a setu
 
 ### Recurring zero-byte ancestor `package.json` breaks Wrangler dry-runs and canaries
 
-**Status:** recurring host contamination, shielded in-repo since 2026-08-10.
+**Status:** recurring host contamination. The in-repo shield that carried this
+since 2026-08-10 was removed 2026-10-23 (issue #304) in favor of the host-side
+fix below.
 
 **Symptom:** `npm run cf:dry-run` fails after a green Vite build with
 `✘ [ERROR] Unexpected end of file in JSON ../../../package.json:1:0` (wrangler log under
@@ -26,14 +28,14 @@ directories it should not touch:
 - 2026-08-10 19:21 IST: `/home/nish/package.json` again (batch in `$HOME`, mtime matches
   the `fleet-sol-sweep` lane-control pass start at 19:21:00; creator still unattributed)
 
-**Fix in repo (durable):** `npm run cf:dry-run` now runs through
-`scripts/wrangler-dry-run.mjs`. It names every malformed ancestor manifest loudly on
-stderr, runs in place when the chain is clean (CI unchanged), and otherwise runs the
-dry-run from a shielded scratch copy under the OS temp dir (real copies + hardlinked
-`node_modules`, wrangler invoked from its own clean copy) so the canary stays green.
-Regression coverage: `npm run test:canary-dry-run`.
+**Fix (2026-10-23, issue #304):** the in-repo shield (`scripts/wrangler-dry-run.mjs`)
+is deleted; `npm run cf:dry-run` runs the stock `wrangler deploy --dry-run` again,
+which fails loudly on a contaminated chain instead of hiding it. The root cause was
+fixed host-side: the zero-byte `/home/nish/package.json` scaffold manifest was
+restored to valid JSON (`{}`, verified 2026-10-23) and no other manifest exists on
+the repo's ancestor chain (`/home/nish/workspaces`, `.../products`,
+`.../agent-worktrees` are manifest-free).
 
-**Host-side hygiene (out of repo scope, still needed):** restoring a confirmed empty
-scaffold manifest to valid JSON without touching non-empty manifests:
-`printf '{}\n' > /home/nish/package.json` (only after `wc -c` confirms size 0).
-Watching for new batches: `ls -la /home/nish | grep 'Aug  '`.
+**If it recurs (host-side fix):** restore a confirmed empty scaffold manifest to
+valid JSON without touching non-empty manifests: `printf '{}\n' > /home/nish/package.json`
+(only after `wc -c` confirms size 0). Watching for new batches: `ls -la /home/nish`.
