@@ -55,15 +55,17 @@ jobs:
           printf 'Authorization: Bearer %s\n' "$CLOUDFLARE_API_TOKEN" >"$RUNNER_TEMP/cf-auth"
           dump="$RUNNER_TEMP/seofixkit-backup-$(date -u +%Y-%m-%d).sql"
           api="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database/$DATABASE_ID/export"
-          started="$(curl -fsS --retry 5 --retry-all-errors --retry-delay 2 -X POST "$api" \
+          started="$(curl --fail-with-body -sS -X POST "$api" \
             -H @"$RUNNER_TEMP/cf-auth" -H 'content-type: application/json' \
-            --data '{"output_format":"polling"}')"
+            --data '{"output_format":"polling"}')" \
+            || { printf 'export request failed: %s\n' "$started" >&2; exit 1; }
           bookmark="$(printf '%s' "$started" | jq -er '.result.at_bookmark')"
           signed_url=""
           for _ in $(seq 1 60); do
-            status="$(curl -fsS --retry 5 --retry-all-errors --retry-delay 2 -X POST "$api" \
+            status="$(curl --fail-with-body -sS --retry 5 --retry-all-errors --retry-delay 2 -X POST "$api" \
               -H @"$RUNNER_TEMP/cf-auth" -H 'content-type: application/json' \
-              --data "$(jq -nc --arg bookmark "$bookmark" '{current_bookmark:$bookmark}')")"
+              --data "$(jq -nc --arg bookmark "$bookmark" '{current_bookmark:$bookmark}')")" \
+              || { printf 'poll request failed: %s\n' "$status" >&2; exit 1; }
             signed_url="$(printf '%s' "$status" | jq -r '.result.signed_url // empty')"
             if [ -n "$signed_url" ]; then break; fi
             sleep 5
