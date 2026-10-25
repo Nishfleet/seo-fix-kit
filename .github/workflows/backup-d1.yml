@@ -18,6 +18,7 @@ on:
   schedule:
     - cron: "30 3 * * 0" # Sundays 03:30 UTC; GitHub schedules are always UTC
   workflow_dispatch: {} # one-off runs, for example right after merging
+  pull_request: {} # PROOF RUN ONLY — not in the deliverable branch
 
 permissions:
   contents: read
