@@ -1,0 +1,89 @@
+name: Weekly D1 backup
+
+# The weekly production export that the retired Mac task
+# seofixkit-weekly-d1-backup used to run, moved here per
+# Nishfleet/fleet-ops#9527. Sunday 03:30 UTC is the slot the old host timer
+# pinned, so the cadence does not change with the scheduler. Wrangler is
+# banned fleet-wide (global-standing-rules.md, 2026-09-28), so the export
+# uses the D1 REST API and the upload uses the cf CLI, authenticated with
+# this repo's CLOUDFLARE_API_TOKEN secret (infra/cloudflare-tokens, key
+# "seo-fix-kit"). ops/RESTORE.md records what this dump is and is not; D1
+# Time Travel stays the primary restore path.
+
+on:
+  schedule:
+    - cron: "30 3 * * 0" # Sundays 03:30 UTC; GitHub schedules are always UTC
+  workflow_dispatch: {} # one-off runs, for example right after merging
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup-d1
+  cancel-in-progress: false # never kill an export mid-flight
+
+jobs:
+  backup:
+    name: export and upload
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      DATABASE_ID: 887316c4-ca9d-4068-a7fa-1f530b479437 # wrangler.jsonc d1_databases[0]
+      BUCKET: seofixkit-backups # the bucket ops/RESTORE.md names
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+      - name: Install the cf CLI
+        run: npm install --global --no-audit --no-fund cf@1.0.0-beta.21
+      - name: Export the database and download the dump
+        run: |
+          set -euo pipefail
+          umask 077
+          # The token must never reach argv: curl reads the header from a
+          # 0600 file, not from the command line.
+          printf 'Authorization: Bearer %s\n' "$CLOUDFLARE_API_TOKEN" >"$RUNNER_TEMP/cf-auth"
+          dump="$RUNNER_TEMP/seofixkit-backup-$(date -u +%Y-%m-%d).sql"
+          api="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database/$DATABASE_ID/export"
+          started="$(curl -fsS --retry 5 --retry-all-errors --retry-delay 2 -X POST "$api" \
+            -H @"$RUNNER_TEMP/cf-auth" -H 'content-type: application/json' \
+            --data '{"output_format":"polling"}')"
+          bookmark="$(printf '%s' "$started" | jq -er '.result.at_bookmark')"
+          signed_url=""
+          for _ in $(seq 1 60); do
+            status="$(curl -fsS --retry 5 --retry-all-errors --retry-delay 2 -X POST "$api" \
+              -H @"$RUNNER_TEMP/cf-auth" -H 'content-type: application/json' \
+              --data "$(jq -nc --arg bookmark "$bookmark" '{current_bookmark:$bookmark}')")"
+            signed_url="$(printf '%s' "$status" | jq -r '.result.signed_url // empty')"
+            if [ -n "$signed_url" ]; then break; fi
+            sleep 5
+          done
+          if [ -z "$signed_url" ]; then
+            printf 'export never became ready: %s\n' "$status" >&2
+            exit 1
+          fi
+          curl -fsS --retry 5 --retry-all-errors --retry-delay 2 -o "$dump" "$signed_url"
+          test -s "$dump"
+          rm -f "$RUNNER_TEMP/cf-auth"
+          printf 'DUMP_PATH=%s\n' "$dump" >>"$GITHUB_ENV"
+          wc -c "$dump"
+      - name: Upload the dump to R2
+        run: |
+          set -euo pipefail
+          cf r2 objects put "d1/$(basename "$DUMP_PATH")" \
+            --bucket-name "$BUCKET" \
+            --file "$DUMP_PATH" \
+            --content-type application/sql
+      - name: Verify the object landed
+        run: |
+          set -euo pipefail
+          cf r2 objects get "d1/$(basename "$DUMP_PATH")" \
+            --bucket-name "$BUCKET" >"$RUNNER_TEMP/round-trip.sql"
+          cmp "$DUMP_PATH" "$RUNNER_TEMP/round-trip.sql"
+          printf 'round-trip verified: %s bytes\n' "$(wc -c <"$DUMP_PATH")"
+          rm -f "$DUMP_PATH" "$RUNNER_TEMP/round-trip.sql" # the dump holds customer rows

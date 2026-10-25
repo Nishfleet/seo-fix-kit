@@ -30,23 +30,32 @@ remember. Bookmarks older than 30 days cannot be used, and a restore
 returns the previous bookmark so the restore itself can be undone.
 Reference: https://developers.cloudflare.com/d1/reference/time-travel/
 
-## Why there is no scheduled SQL dump anymore
+## The weekly SQL dump — secondary copy, not the restore path
 
-The weekly dump (`ops/backup-d1.sh` writing to `r2://seofixkit-backups`,
-run by a host systemd timer) was retired on 2026-10-23 (issue #304). It
-was glue: chained through a temp file, scheduled outside the repo, no
-README entry, no test — and it was never a complete restore. The
-2026-06-12 rehearsal below hit `SQLITE_TOOBIG` on oversized
-`audit_reports.report_json` rows, so a dump import would silently drop
-report bodies, and being weekly it could lose up to a week of writes.
-Time Travel has neither limitation.
+A weekly export runs in this repo's own CI
+(`.github/workflows/backup-d1.yml`, Sundays 03:30 UTC), writing
+`r2://seofixkit-backups/d1/seofixkit-backup-YYYY-MM-DD.sql`. It moved
+here from the retired Mac task on 2026-10-24
+(Nishfleet/fleet-ops#9527) after the host-scheduler copy was retired as
+glue on 2026-10-23 (issue #304). One-off runs: the workflow's Run
+workflow button, or `gh workflow run backup-d1.yml`.
 
-Historical dumps remain in `r2://seofixkit-backups/d1/` for now.
+Everything the retirement recorded about the dump still holds: being
+weekly it can lose up to a week of writes, and the 2026-06-12 rehearsal
+below hit `SQLITE_TOOBIG` on oversized `audit_reports.report_json`
+rows, so a dump import would silently drop report bodies. Time Travel
+has neither limitation and stays primary. The dump adds the two cases
+Time Travel does not cover: restoring after the database itself is
+deleted, and copies older than 30 days. Whether the product needs that
+coverage at all is Nishfleet/seo-fix-kit#308.
 
-If a copy that outlives the 30-day window (or the deletion of the
-database itself) is ever required, do not rebuild the shell glue. The
-stock path is the Cloudflare Workflows export guide, which runs inside
-the Cloudflare account on a schedule with no host scheduler:
+Historical dumps from the host-scheduler era remain in
+`r2://seofixkit-backups/d1/`.
+
+If the CI schedule is ever found unreliable (GitHub disables scheduled
+workflows after 60 days without a repo commit), the stock replacement
+is the Cloudflare Workflows export guide, which runs inside the
+Cloudflare account on a schedule with no host scheduler:
 https://developers.cloudflare.com/workflows/examples/backup-d1/
 
 ## Rehearsal log
