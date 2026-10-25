@@ -19,9 +19,6 @@ on:
     - cron: "30 3 * * 0" # Sundays 03:30 UTC; GitHub schedules are always UTC
   workflow_dispatch: {} # one-off runs, for example right after merging
   pull_request: {} # PROOF RUN ONLY — not in the deliverable branch
-  push:
-    branches:
-      - orch/issue-9527-proof # PROOF RUN ONLY — not in the deliverable branch
 
 permissions:
   contents: read
@@ -49,26 +46,6 @@ jobs:
           node-version-file: .nvmrc
       - name: Install the cf CLI
         run: npm install --global --no-audit --no-fund cf@1.0.0-beta.21
-      - name: Diagnose the export endpoint (temporary, proof branch only)
-        run: |
-          set -euo pipefail
-          umask 077
-          printf 'Authorization: Bearer %s\n' "$CLOUDFLARE_API_TOKEN" >"$RUNNER_TEMP/cf-auth"
-          api="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database/$DATABASE_ID/export"
-          redact='s/"signed_url":"[^"]*"/"signed_url":"REDACTED"/g'
-          for body in '{"output_format":"polling"}' '{"output_format":"polling","dump_options":{}}' '{}'; do
-            printf 'BODY=%s\n' "$body"
-            curl -sS -X POST "$api" -H @"$RUNNER_TEMP/cf-auth" -H 'content-type: application/json' \
-              --data "$body" | sed "$redact"
-            printf '\n----\n'
-          done
-          printf 'QPARAM\n'
-          curl -sS -X POST "$api?output_format=polling" -H @"$RUNNER_TEMP/cf-auth" \
-            -H 'content-type: application/json' --data '{}' | sed "$redact"
-          printf '\n----\nNOPATH-DATABASE-LIST (sanity: token works on D1)\n'
-          curl -sS "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database" \
-            -H @"$RUNNER_TEMP/cf-auth" | jq -c '{success, errors, names: [.result[]? | {name, version: (.version // "n/a"), created_at}]}'
-          rm -f "$RUNNER_TEMP/cf-auth"
       - name: Export the database and download the dump
         run: |
           set -euo pipefail
@@ -85,9 +62,9 @@ jobs:
           bookmark="$(printf '%s' "$started" | jq -er '.result.at_bookmark')"
           signed_url=""
           for _ in $(seq 1 60); do
-            status="$(curl --fail-with-body -sS --retry 5 --retry-all-errors --retry-delay 2 -X POST "$api" \
+            status="$(curl --fail-with-body -sS -X POST "$api" \
               -H @"$RUNNER_TEMP/cf-auth" -H 'content-type: application/json' \
-              --data "$(jq -nc --arg bookmark "$bookmark" '{current_bookmark:$bookmark}')")" \
+              --data "$(jq -nc --arg bookmark "$bookmark" '{output_format:"polling",current_bookmark:$bookmark}')")" \
               || { printf 'poll request failed: %s\n' "$status" >&2; exit 1; }
             signed_url="$(printf '%s' "$status" | jq -r '.result.signed_url // empty')"
             if [ -n "$signed_url" ]; then break; fi
