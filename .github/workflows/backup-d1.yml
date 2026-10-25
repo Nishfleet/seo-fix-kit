@@ -52,31 +52,23 @@ jobs:
           umask 077
           printf 'Authorization: Bearer %s\n' "$CLOUDFLARE_API_TOKEN" >"$RUNNER_TEMP/cf-auth"
           api="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database/$DATABASE_ID/export"
-          redact() { sed -e 's/"signed_url":"[^"]*"/"signed_url":"REDACTED"/g'; }
+          redact() { sed -e 's/"signed_url":"[^"]*"/"signed_url":"REDACTED-\(len-see-next\)"/g'; }
           poll() { curl --fail-with-body -sS -X POST "$api" -H @"$RUNNER_TEMP/cf-auth" \
-            -H 'content-type: application/json' --data "$1" | redact; }
-          printf 'START %s\n' "$(date -u +%H:%M:%S)"
-          printf '%s\n' "$(poll '{"output_format":"polling"}')"
-          printf 'FIRST-POLL-NO-BOOKMARK %s\n' "$(date -u +%H:%M:%S)"
-          first="$(poll '{"output_format":"polling"}')"
-          printf '%s\n' "$first"
-          bm="$(printf '%s' "$first" | jq -r '.result.at_bookmark // empty')"
-          [ -n "$bm" ] || bm="$(printf '%s' "$first" | jq -r '.at_bookmark // empty')"
-          printf 'USING-BOOKMARK=%s\n' "$bm"
-          for i in $(seq 1 90); do
+            -H 'content-type: application/json' --data "$1"; }
+          started="$(poll '{"output_format":"polling"}')"
+          bm="$(printf '%s' "$started" | jq -er '.result.at_bookmark')"
+          printf 'START %s bm=%s\n' "$(date -u +%H:%M:%S)" "$bm"
+          for i in $(seq 1 120); do
             body="$(jq -nc --arg b "$bm" '{output_format:"polling",current_bookmark:$b}')"
             r="$(poll "$body")"
-            printf 'POLL %s %s %s\n' "$(date -u +%H:%M:%S)" "$i" "$r"
-            url="$(printf '%s' "$r" | jq -r '.result.signed_url // empty')"
+            printf 'POLL %s %s: %s\n' "$(date -u +%H:%M:%S)" "$i" "$(printf '%s' "$r" | redact)"
+            url="$(printf '%s' "$r" | jq -r '[.result.signed_url, .signed_url, .result.result.signed_url] | map(select(. != null)) | first // empty')"
             if [ -n "$url" ]; then
+              printf 'GOT-URL %s\n' "$(date -u +%H:%M:%S)"
               curl -fsS -o /tmp/dump-test.sql "$url" && wc -c /tmp/dump-test.sql
               break
             fi
-            case "$r" in
-              *'"complete"'*|*'"error"'*) break ;;
-              *'Not currently exporting'*) printf 'RESTARTING %s\n' "$(date -u +%H:%M:%S)"; poll '{"output_format":"polling"}' ;;
-            esac
-            sleep 3
+            sleep 4
           done
           rm -f "$RUNNER_TEMP/cf-auth"
       - name: Export the database and download the dump
