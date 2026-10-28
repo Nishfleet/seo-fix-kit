@@ -191,12 +191,14 @@ export default [
     rules: { "no-useless-assignment": "warn" }
   },
   {
-    // Comment ban on app code (fleet-ops AGENTS.md, fleet-wide 2026-10-14).
+    // Comment ban on source and test code (fleet-ops AGENTS.md, fleet-wide 2026-10-14).
     // A comment here survives three ways: an eslint disable directive or a
     // `global` declaration, an `upstream:` comment linking the browser quirk,
     // third-party bug or protocol rule that forces the code's shape, or not
     // existing, because the reason moved to a commit, a PR body or a named
-    // test. The backlog was cleared in the PR that added this block.
+    // test. `npm run lint` on this tree returns 0 findings, so the backlog is
+    // cleared. Only config files are exempt, so `files` below excludes the
+    // root configs and `scripts/` only.
     files: NO_COMMENT_FILES,
     plugins: { "no-comments": noComments },
     rules: {
