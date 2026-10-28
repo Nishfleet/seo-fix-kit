@@ -56,6 +56,7 @@ jobs:
           # sees the head commit, which makes every lastmod look stale and
           # fails the gate on every PR regardless of the values committed.
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up Node.js 22 (LTS)
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
