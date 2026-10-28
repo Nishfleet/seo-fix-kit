@@ -1,7 +1,7 @@
 import { isEmailConfigured } from "../../shared/fulfillment.js";
 import { CHECKOUT_URL_TTL_HOURS } from "../routes/billing.js";
 import { recordReportBlobDeletionFailure } from "./report-data.js";
-import { sendWorkerEmail } from "./email.js";
+import { sendWorkerEmail, SUPPORT_EMAIL } from "./email.js";
 import { sha256Hex } from "./security.js";
 import { DELETED_ACCOUNT_PREFIX, cleanText, isoSecondsFromNow, normalizeEmail } from "./text.js";
 
@@ -25,9 +25,11 @@ const REDACTED = "[deleted account]";
 const R2_DELETE_CHUNK = 1000;
 const LATE_WRITE_PASSES = 2;
 
+const WHOLE_ADDRESS_EDGE_PUNCTUATION = ".,;:!?)]}>\"'`";
+
 function wholeAddressMatch(expression, needle) {
   const spaced = (value) => `replace(replace(replace(replace(${value}, '@', ' '), '-', ' '), '_', ' '), '+', ' ')`;
-  return `instr(' ' || ${spaced(expression)} || ' ', ' ' || ${spaced(needle)} || ' ')`;
+  return `instr(' ' || rtrim(${spaced(expression)}, '${WHOLE_ADDRESS_EDGE_PUNCTUATION.replaceAll("'", "''")}') || ' ', ' ' || ${spaced(needle)} || ' ')`;
 }
 const BLOCKER_MESSAGES = {
   invalid_email: "Enter a valid account email.",
@@ -144,7 +146,23 @@ function deletionStatements(env, ownerEmail, pseudonym, now, loginBucketHash) {
       `DELETE FROM repair_proposal_events WHERE proposal_id IN (SELECT id FROM repair_proposals WHERE owner_email = ?)`,
       e
     ),
-    run(`DELETE FROM repair_proposals WHERE owner_email = ?`, e),
+    run(
+      `DELETE FROM audit_report_blob_deletion_failures
+       WHERE blob_key IN (
+         SELECT 'reports/' || id || '.json' FROM audit_reports WHERE owner_email = ?
+         UNION ALL
+         SELECT 'report-pdfs/owner/' || id || '.pdf' FROM audit_reports WHERE owner_email = ?
+         UNION ALL
+         SELECT 'report-pdfs/shares/' || id || '.pdf'
+         FROM report_share_links
+         WHERE owner_email = ? OR report_id IN (SELECT id FROM audit_reports WHERE owner_email = ?)
+       )`,
+      e,
+      e,
+      e,
+      e
+    ),
+    run(`DELETE FROM repair_proposals WHERE owner_email = ? OR report_id IN (${ownedReports})`, e, e),
     run(`DELETE FROM repair_agent_actions WHERE owner_email = ? OR report_id IN (${ownedReports})`, e, e),
     run(`DELETE FROM repair_queue_items WHERE owner_email = ? OR report_id IN (${ownedReports})`, e, e),
     run(`DELETE FROM issue_collaboration WHERE owner_email = ? OR report_id IN (${ownedReports})`, e, e),
@@ -310,8 +328,8 @@ async function deleteBlobs(env, keys) {
       await env.REPORTS.delete(stored.map((entry) => entry.key));
       deleted += stored.length;
       confirmed.push(...stored.map((entry) => entry.key));
-    } catch (error) {
-      const message = cleanText(error?.message || "Report blob deletion failed.", 500);
+    } catch {
+      const message = "Report blob deletion failed.";
       stillPresent.push(...stored.map((entry) => ({ entry, error: message })));
     }
   }
@@ -351,7 +369,7 @@ async function sendDeletionConfirmation(env, ownerEmail, { paymentRecordsKept, s
   if (!isEmailConfigured(env)) return false;
   const kept = paymentRecordsKeptMessage(paymentRecordsKept);
   const files = storedFilesFailed
-    ? `We could not remove ${storedFilesFailed} stored report file(s) just now. We remove them in the background, and we email you if a file stays.`
+    ? `We could not remove ${storedFilesFailed} stored report file(s) just now. Email ${SUPPORT_EMAIL} and we will remove them for you.`
     : "";
   const text = [
     "Your SEO Fix Kit account and its data were deleted: reports, sites, checks, alerts, API keys, settings and sign-in records.",

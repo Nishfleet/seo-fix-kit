@@ -23,7 +23,7 @@ const DELETION_TABLE_EXEMPTIONS = new Map([
   ["admin_sessions", "staff sign-in sessions hold no customer email"],
   [
     "audit_report_blob_deletion_failures",
-    "the retry queue for report files the deletion could not purge, owned by worker/lib/report-data.js"
+    "the queue of report files a deletion could not purge, owned by worker/lib/report-data.js; the deletion purges the stale rows that name the owner's blob keys and leaves the rows this run just queued"
   ],
   ["ops_digest_runs", "internal digest bookkeeping holds no customer email"]
 ]);
@@ -1059,6 +1059,56 @@ test("a report blob that will not delete keeps the site name out of D1", async (
     assert.equal(JSON.stringify(failure).includes("leaver.example"), false);
   }
   assert.deepEqual(rowsMentioning(db, TARGET), []);
+});
+
+test("an admin note that ends with the deleted address is redacted", async () => {
+  const world = makeWorld();
+  const { db, env } = world;
+  signIn(db, TARGET);
+  db.insert("admin_audit_log", {
+    id: "admin-log-period",
+    action: "create-invite",
+    success: 1,
+    actor_email: ADMIN_TOKEN,
+    detail: `Created an invite for ${TARGET}.`,
+    created_at: NOW
+  });
+
+  assert.equal((await deleteAccount(env, TARGET, { actor: ADMIN_TOKEN })).ok, true);
+  assert.deepEqual(
+    db.rows("SELECT detail FROM admin_audit_log WHERE action = 'create-invite'").map((row) => row.detail),
+    [REDACTED]
+  );
+});
+
+test("a queued report blob failure from an earlier deletion is purged", async () => {
+  const { db, env, REPORTS } = makeWorld();
+  seedReport(db, REPORTS, "rpt-leaver-000002", TARGET);
+  db.insert("audit_report_blob_deletion_failures", {
+    blob_key: "reports/rpt-leaver-000002.json",
+    report_id: "rpt-leaver-000002",
+    error: "Report blob deletion failed.",
+    retry_count: 1,
+    status: "pending",
+    created_at: NOW,
+    updated_at: NOW
+  });
+  db.insert("audit_report_blob_deletion_failures", {
+    blob_key: "reports/rpt-stayer-000003.json",
+    report_id: "rpt-stayer-000003",
+    error: "Report blob deletion failed.",
+    retry_count: 1,
+    status: "pending",
+    created_at: NOW,
+    updated_at: NOW
+  });
+
+  assert.equal((await deleteAccount(env, TARGET, { actor: ADMIN_TOKEN })).ok, true);
+  assert.deepEqual(
+    db.rows("SELECT blob_key FROM audit_report_blob_deletion_failures").map((row) => row.blob_key),
+    ["reports/rpt-stayer-000003.json"]
+  );
+  assert.deepEqual(rowsMentioning(db, "leaver.example"), []);
 });
 
 const JOB_ID = "22222222-2222-4222-8222-222222222222";
