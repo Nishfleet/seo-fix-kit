@@ -120,6 +120,7 @@ export default [
   {
     files: [
       "shared/audit-engine.js",
+      "shared/public-page-fingerprints.js",
       "server/**/*.js",
       "server/**/*.mjs",
       "test/**/*.mjs",

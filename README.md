@@ -131,7 +131,7 @@ sign-out, pricing, the free check and the 404 page. CI runs it after
 `playwright-report` artifact.
 
 `npm run test:budget` (the last step of `npm run check`) fails when a built
-file passes its gzip budget in `test/budget.test.mjs`: the prerendered
+file exceeds its gzip budget in `test/budget.test.mjs`: the prerendered
 homepage, `/tokens.css`, the entry JS and CSS, the signed-in app bundle and
 the 404 page. Raise a budget deliberately in review, never to get CI green.
 

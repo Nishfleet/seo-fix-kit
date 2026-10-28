@@ -85,8 +85,11 @@ jobs:
       - name: Regrowth gate - helper-script dirs must stay empty
         # The repo keeps logic in app source and tests; helper-script dirs
         # (scripts/ bin/ tools/ ops/ .specify/ and any *.sh) must never
-        # regrow. Fails the required check if any file appears there.
-        run: test -z "$(git ls-files scripts bin tools ops .specify '*.sh')"
+        # regrow. Fails the required check if any file appears there; the
+        # matched paths are printed on failure so a red step names the file.
+        run: |
+          regrew="$(git ls-files scripts bin tools ops .specify '*.sh')"
+          test -z "$regrew" || { echo "::error::Helper-script files regrew:"; echo "$regrew"; exit 1; }
 
       - name: Check formatting (Prettier)
         # Fails if any file differs from Prettier's output. Fix locally with
