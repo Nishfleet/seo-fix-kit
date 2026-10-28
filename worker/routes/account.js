@@ -430,10 +430,11 @@ async function deleteOwnAccount(request, env) {
   }
   const parsed = await parseJsonBody(request, DeleteAccountBody);
   if (parsed.error) return jsonNoStore(parsed.error, 400);
-  if (normalizeEmail(parsed.data.confirmEmail) !== access.ownerEmail) {
+  const ownerEmail = normalizeEmail(access.ownerEmail);
+  if (normalizeEmail(parsed.data.confirmEmail) !== ownerEmail) {
     return jsonNoStore({ error: "Type your account email exactly to confirm." }, 400);
   }
-  const result = await deleteAccount(env, access.ownerEmail);
+  const result = await deleteAccount(env, ownerEmail);
   if (!result.ok)
     return jsonNoStore({ error: deletionBlockedMessage(result.blockers), blockers: result.blockers }, 409);
   const response = jsonNoStore({

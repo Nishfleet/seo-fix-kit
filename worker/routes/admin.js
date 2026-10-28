@@ -928,10 +928,11 @@ async function deleteAccountAdmin(request, env) {
   if (!env.WAITLIST_DB) return jsonNoStore({ error: "Account storage is not set up on this server." }, 503);
   const parsed = await parseJsonBody(request, AccountDeletionBody);
   if (parsed.error) return jsonNoStore(parsed.error, 400);
-  if (normalizeEmail(parsed.data.confirmEmail) !== normalizeEmail(parsed.data.email)) {
+  const ownerEmail = normalizeEmail(parsed.data.email);
+  if (normalizeEmail(parsed.data.confirmEmail) !== ownerEmail) {
     return jsonNoStore({ error: "Type the account email exactly to confirm." }, 400);
   }
-  const result = await deleteAccount(env, parsed.data.email, { actor: admin.actorEmail });
+  const result = await deleteAccount(env, ownerEmail, { actor: admin.actorEmail });
   if (!result.ok)
     return jsonNoStore({ error: deletionBlockedMessage(result.blockers), blockers: result.blockers }, 409);
   await logAdminAction(request, env, "delete-account", true, admin.actorEmail, result.deletionId);
