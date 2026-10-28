@@ -536,6 +536,24 @@ test("Deploy surface serves a real 404 page instead of the single-page-applicati
   assert.doesNotMatch(notFoundPage, /min-width:\s*320px/, "the 404 page must not ship the 320px floor");
 });
 
+test("Deploy surface binds the stock D1 backup workflow and the R2 bucket that receives its export", () => {
+  const config = unstable_readConfig({ config: fileURLToPath(new URL("../wrangler.jsonc", import.meta.url)) });
+
+  const workflow = config.workflows?.find((entry) => entry.binding === "BACKUP_WORKFLOW");
+  assert.ok(workflow, "wrangler.jsonc must bind the D1 backup workflow");
+  assert.equal(workflow.name, "d1-backup-workflow");
+  assert.equal(workflow.class_name, "D1BackupWorkflow");
+  assert.deepEqual(workflow.schedules, ["0 0 * * *"]);
+
+  const backupBucket = config.r2_buckets?.find((entry) => entry.binding === "BACKUP_BUCKET");
+  assert.ok(backupBucket, "wrangler.jsonc must bind the R2 bucket that receives D1 exports");
+  assert.equal(backupBucket.bucket_name, "seofixkit-backups");
+
+  assert.match(config.vars.ACCOUNT_ID, /^[0-9a-f]{32}$/);
+  const database = config.d1_databases.find((entry) => entry.binding === "WAITLIST_DB");
+  assert.equal(config.vars.DATABASE_ID, database.database_id, "the export target must match the bound database");
+});
+
 test("404 page reflows at narrow viewports without horizontal overflow", async () => {
   const { chromium } = await import("playwright");
   const notFoundPage = notFoundHtml();
