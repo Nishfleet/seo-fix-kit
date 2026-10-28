@@ -4,7 +4,7 @@ import {
   FINGERPRINTS_FILE,
   currentPublicPageFingerprints,
   recordedPublicPageFingerprints
-} from "./public-page-fingerprints.mjs";
+} from "../shared/public-page-fingerprints.js";
 
 const AUDIT_ENGINE = new URL("../shared/audit-engine.js", import.meta.url);
 const SITEMAP = new URL("../public/sitemap.xml", import.meta.url);
