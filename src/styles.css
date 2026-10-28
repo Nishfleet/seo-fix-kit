@@ -4461,6 +4461,12 @@ a.app-table-row:hover {
   color: #ffb4a9;
 }
 
+.app-page .audit-row button.danger-button {
+  background: #ffb4a9;
+  box-shadow: none;
+  color: #2b0b06;
+}
+
 .site-list {
   display: grid;
   list-style: none;

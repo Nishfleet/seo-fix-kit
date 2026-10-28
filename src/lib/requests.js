@@ -346,6 +346,13 @@ export async function patchRepairProposalApproval(reportId, proposalId, body) {
   }
 }
 
+export async function deleteOwnAccount(confirmEmail) {
+  return apiFetch("/api/account/delete", {
+    body: { confirmEmail },
+    fallbackError: "Your account could not be deleted. Try again, or email support@seofixkit.com."
+  });
+}
+
 export async function fetchBillingSummary() {
   return apiFetch("/api/billing/summary", { fallbackError: "Billing details didn’t load. Try again." });
 }

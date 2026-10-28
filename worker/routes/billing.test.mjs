@@ -3,6 +3,7 @@ import { createHmac } from "node:crypto";
 import test from "node:test";
 import {
   getBillingSummary,
+  fixRequestNotificationRecipients,
   handleDodoWebhook,
   processDodoPaymentWebhook,
   processDodoSubscriptionWebhook,
@@ -4534,3 +4535,16 @@ function run(sql, values, env) {
   }
   throw new Error(`Unexpected run SQL: ${sql}`);
 }
+
+test("a Fix Pack notification never goes to a deleted account's pseudonym", () => {
+  const env = { SEOFIXKIT_ADMIN_EMAIL: "admin@example.com" };
+  const pseudonym = "deleted-account:3f7c1b2e-4a5d-4e6f-8a9b-0c1d2e3f4a5b";
+
+  assert.deepEqual(fixRequestNotificationRecipients(env, { owner_email: pseudonym }), [
+    { type: "admin", email: "admin@example.com" }
+  ]);
+  assert.deepEqual(fixRequestNotificationRecipients(env, { owner_email: "Leaver@Example.com" }), [
+    { type: "owner", email: "leaver@example.com" },
+    { type: "admin", email: "admin@example.com" }
+  ]);
+});
