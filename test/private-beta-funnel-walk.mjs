@@ -20,7 +20,6 @@ export const WALK_VIEWPORTS = [
   }
 ];
 
-// Playwright silently ignores unknown top-level context options, so width and height must sit under `viewport`.
 export function buildContextOptions({ width, height, isMobile = false, hasTouch = false, userAgent = "" } = {}) {
   const options = {
     viewport: { width, height },
@@ -231,7 +230,6 @@ async function walkStop({ baseUrl, stop, page, timeoutMs, viewport, appliedViewp
       const anchors = Array.from(document.querySelectorAll("a[href]"))
         .map((anchor) => anchor.getAttribute("href"))
         .filter((href) => href && !href.startsWith("#") && !/^(mailto:|tel:|javascript:)/i.test(href));
-      // Mobile browsers inflate window.innerWidth to the overflowing content width, so compare against the layout viewport.
       const scrollWidth = document.documentElement.scrollWidth;
       const clientWidth = document.documentElement.clientWidth;
       const innerWidth = window.innerWidth;

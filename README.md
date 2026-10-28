@@ -131,7 +131,7 @@ sign-out, pricing, the free check and the 404 page. CI runs it after
 `playwright-report` artifact.
 
 `npm run test:budget` (the last step of `npm run check`) fails when a built
-file passes its gzip budget in `scripts/check-budget.mjs`: the prerendered
+file exceeds its gzip budget in `test/budget.test.mjs`: the prerendered
 homepage, `/tokens.css`, the entry JS and CSS, the signed-in app bundle and
 the 404 page. Raise a budget deliberately in review, never to get CI green.
 
@@ -139,7 +139,7 @@ Design tokens (colour, type, spacing, radius, elevation, motion) live in
 `src/design/tokens.css`; shared marketing components in `src/design/site.css`.
 The React app imports them directly and the build bundles them into
 `/tokens.css` for the Worker-rendered pages, so the two surfaces share one
-system. The homepage is prerendered at build time (`scripts/prerender.mjs`) so
+system. The homepage is prerendered at build time (`server/prerender.mjs`) so
 its content is in the raw HTML.
 
 `npm run test:audit` runs offline against a local fixture site. To audit a live

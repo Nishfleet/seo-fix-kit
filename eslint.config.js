@@ -38,10 +38,9 @@ const WORKAROUND_TERMS = [
 
 // The comment ban covers every source tree and every test tree. Config files
 // at the repo root (eslint.config.js, vite.config.js, playwright.config.mjs)
-// and the one-off scripts under scripts/ sit outside this list on purpose, so
-// the gate never fights a config comment or a drill script. Tests are inside
-// it: only config files are exempt from the comment rules (0509#7469,
-// Nish 2026-10-14).
+// and the trees outside the app sit outside this list on purpose, so the gate
+// never fights a config comment. Tests are inside it: only the root configs
+// and the non-app trees are exempt (0509#7469, Nish 2026-10-14).
 const NO_COMMENT_FILES = [
   "src/**/*.{js,jsx,mjs}",
   "worker/**/*.{js,mjs}",
@@ -79,7 +78,6 @@ export default [
       "public/**",
       "docs/**",
       "specs/**",
-      "ops/**",
       ".lane/**",
       "migrations/**",
       "prototype-context/**",
@@ -89,8 +87,8 @@ export default [
   },
   js.configs.recommended,
   {
-    // Default for every JS file: modern ESM, Node globals (server/, scripts/,
-    // config files, and *.test.mjs suites all run under Node).
+    // Default for every JS file: modern ESM, Node globals (server/, config
+    // files, and *.test.mjs suites all run under Node).
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "module",
@@ -140,7 +138,7 @@ export default [
     }
   },
   {
-    // shared/ is imported by both the Worker and the Node server/scripts.
+    // shared/ is imported by both the Worker and the Node server and tests.
     files: ["shared/**/*.js"],
     languageOptions: {
       globals: { ...globals.node, ...globals.serviceworker }
@@ -156,8 +154,10 @@ export default [
   {
     files: [
       "shared/audit-engine.js",
+      "shared/public-page-fingerprints.js",
       "server/**/*.js",
-      "scripts/**/*.mjs",
+      "server/**/*.mjs",
+      "test/**/*.mjs",
       "**/*.test.mjs",
       "e2e/**/*.mjs",
       "playwright.config.mjs"
@@ -197,8 +197,8 @@ export default [
     // third-party bug or protocol rule that forces the code's shape, or not
     // existing, because the reason moved to a commit, a PR body or a named
     // test. `npm run lint` on this tree returns 0 findings, so the backlog is
-    // cleared. Only config files are exempt, so `files` below excludes the
-    // root configs and `scripts/` only.
+    // cleared. Only the root configs and the non-app trees are exempt, so
+    // `files` below lists the five app and test trees.
     files: NO_COMMENT_FILES,
     plugins: { "no-comments": noComments },
     rules: {

@@ -2465,7 +2465,7 @@ test("README pricing page claim keeps Proof Monitoring off sale and the no-ranki
 });
 
 test("README anonymous-check claim keeps the deployed copy locked to the live spot-check", () => {
-  const spotCheck = readFileSync(new URL("../scripts/live-promise-spot-check.mjs", import.meta.url), "utf8");
+  const spotCheck = readFileSync(new URL("../test/live-promise-spot-check.mjs", import.meta.url), "utf8");
   for (const surface of [
     { path: "/check", copy: "Free SEO Page Check" },
     { path: "/check", copy: "No account, no email, no stored report" },
