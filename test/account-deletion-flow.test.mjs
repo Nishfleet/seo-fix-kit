@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import test from "node:test";
 import worker from "../worker/index.js";
-import { deleteAccount } from "../worker/lib/account-deletion.js";
+import { accountDeletionBlockers, deleteAccount } from "../worker/lib/account-deletion.js";
 import { processAuditJob } from "../worker/routes/audits.js";
 import { createTestD1 } from "./support/d1.mjs";
 
@@ -12,6 +12,7 @@ const OTHER = "stayer@example.com";
 const ADMIN_TOKEN = "admin-token-for-deletion-tests";
 const NOW = "2026-10-01T00:00:00.000Z";
 const LATER = "2099-01-01T00:00:00.000Z";
+const REDACTED = "[deleted account]";
 
 // Tables whose email columns only ever hold staff addresses, never a customer's.
 const STAFF_ONLY_TABLES = new Set(["admin_sessions"]);
@@ -103,6 +104,76 @@ function seedQueueItem(db, id, reportId, owner, updatedBy = owner) {
     created_at: NOW,
     updated_at: NOW,
     updated_by_email: updatedBy
+  });
+}
+
+// The rows the deletion redacts rather than deletes: a paid Fix Pack, the rate-limit
+// buckets keyed on the address, and an admin note that names it.
+function seedRedactionTargets(db, owner) {
+  const slug = owner.replace(/[^a-z0-9]/g, "");
+  db.insert("fix_requests", {
+    id: `fix-${slug}`,
+    report_id: `rpt-${slug}`,
+    owner_email: owner,
+    target_url: "https://leaver.example/",
+    target_host: "leaver.example",
+    status: "delivered",
+    payment_id: `pay-${slug}`,
+    paid_at: NOW,
+    payment_amount: 9900,
+    payment_currency: "USD",
+    delivered_at: NOW,
+    created_at: NOW,
+    updated_at: NOW
+  });
+  db.insert("fix_request_events", {
+    id: `event-${slug}`,
+    fix_request_id: `fix-${slug}`,
+    event: "status_changed",
+    actor_type: "dodo",
+    created_at: NOW
+  });
+  db.insert("fix_request_notifications", {
+    id: `notification-${slug}`,
+    fix_request_id: `fix-${slug}`,
+    event: "payment",
+    recipient_type: "customer",
+    recipient_email: owner,
+    status: "sent",
+    created_at: NOW
+  });
+  db.insert("dodo_webhook_events", {
+    webhook_id: `wh-${slug}`,
+    event_type: "payment.succeeded",
+    payment_id: `pay-${slug}`,
+    fix_request_id: `fix-${slug}`,
+    status: "processed",
+    payload_hash: "payload-hash",
+    payload_json: JSON.stringify({ data: { customer: { email: owner, name: "Lee" } } }),
+    first_received_at: NOW,
+    last_received_at: NOW,
+    created_at: NOW,
+    updated_at: NOW
+  });
+  db.insert("audit_usage", {
+    bucket: `checkout:fix_pack:2026-10-01:${owner}`,
+    count: 1,
+    window_start: NOW,
+    updated_at: NOW
+  });
+  db.insert("audit_usage", {
+    bucket: `login:email:2026-10-01:${sha256(owner)}`,
+    count: 1,
+    window_start: NOW,
+    updated_at: NOW
+  });
+  db.insert("admin_audit_log", {
+    id: `audit-note-${slug}`,
+    action: "create-invite",
+    success: 1,
+    actor_email: "admin@example.com",
+    detail: `Created an invite for ${owner}`,
+    created_at: NOW
   });
 }
 
@@ -888,9 +959,17 @@ test("support completes an emailed deletion request with the same code", async (
   });
   assert.equal(invalid.status, 400);
 
+  const mismatched = await call(env, "/admin/account-deletions", {
+    method: "POST",
+    body: { email: TARGET.toUpperCase(), confirmEmail: OTHER },
+    headers: { authorization: `Bearer ${ADMIN_TOKEN}` }
+  });
+  assert.equal(mismatched.status, 400);
+  assert.equal(rowsMentioning(db, TARGET).length > 0, true);
+
   const response = await call(env, "/admin/account-deletions", {
     method: "POST",
-    body: { email: TARGET.toUpperCase() },
+    body: { email: TARGET.toUpperCase(), confirmEmail: TARGET },
     headers: { authorization: `Bearer ${ADMIN_TOKEN}` }
   });
   assert.equal(response.status, 200, JSON.stringify(response.json));
@@ -901,6 +980,90 @@ test("support completes an emailed deletion request with the same code", async (
   assert.equal(audit.length, 1);
   assert.equal(audit[0].id, response.json.deletionId);
   assert.equal(sent.length, 1);
+});
+
+// One account's address can sit inside another account's address, inside a rate-limit
+// bucket key, or inside an admin note, and a substring match on any of them takes the
+// other account's row with it.
+test("an address that contains the deleted one is left whole", async () => {
+  const world = makeWorld();
+  const { db, env } = world;
+  const NEIGHBOUR = "leaver@example.com.au";
+  for (const owner of [TARGET, NEIGHBOUR]) seedRedactionTargets(db, owner);
+
+  const result = await deleteAccount(env, TARGET, { actor: ADMIN_TOKEN });
+  assert.equal(result.ok, true);
+
+  // Buckets are keyed on the address, so only the leaver's two go.
+  assert.deepEqual(
+    db.rows("SELECT bucket FROM audit_usage ORDER BY bucket").map((row) => row.bucket),
+    [`checkout:fix_pack:2026-10-01:${NEIGHBOUR}`, `login:email:2026-10-01:${sha256(NEIGHBOUR)}`]
+  );
+  // Both webhook rows survive as accounting records; the neighbour's keeps its
+  // payload, only the leaver's is cleared.
+  const webhooks = db.rows("SELECT * FROM dodo_webhook_events ORDER BY webhook_id");
+  assert.equal(webhooks.length, 2);
+  assert.equal(webhooks[0].payload_json, null);
+  assert.equal(JSON.parse(webhooks[1].payload_json).data.customer.email, NEIGHBOUR);
+  // The neighbour's note is neither redacted nor cut in half.
+  const notes = db.rows("SELECT detail FROM admin_audit_log WHERE action = 'create-invite' ORDER BY id");
+  assert.deepEqual(
+    notes.map((row) => row.detail),
+    [REDACTED, `Created an invite for ${NEIGHBOUR}`]
+  );
+  // Every mention of the leaver's address that survives sits inside the neighbour's own
+  // address, which belongs to a different account.
+  for (const { table, row } of rowsMentioning(db, TARGET)) {
+    assert.equal(JSON.stringify(row).includes(NEIGHBOUR), true, `${table}: ${JSON.stringify(row)}`);
+  }
+});
+
+// A Fix Pack paid while the deletion batch runs is no longer a never-paid request by the
+// time the batch reads it, so it must be kept and anonymised instead of deleted.
+test("a Fix Pack paid while the deletion runs is kept", async () => {
+  const world = makeWorld();
+  const { db, env } = world;
+  seedFixRequest(db, "fix-race");
+  assert.deepEqual(await accountDeletionBlockers(env, TARGET), []);
+
+  const payment = db
+    .prepare(
+      `INSERT INTO fix_request_payments
+         (payment_id, fix_request_id, role, status, amount, currency, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .bind("pay_race", "fix-race", "fix_pack", "succeeded", 9900, "USD", NOW, NOW);
+  await db.batch([payment]);
+
+  const result = await deleteAccount(env, TARGET, { actor: ADMIN_TOKEN });
+  assert.equal(result.ok, true);
+  const [kept] = db.rows("SELECT * FROM fix_requests WHERE id = 'fix-race'");
+  assert.ok(kept);
+  assert.match(kept.owner_email, /^deleted-account:[0-9a-f-]{36}$/);
+  assert.equal(db.rows("SELECT * FROM fix_request_payments WHERE fix_request_id = 'fix-race'").length, 1);
+});
+
+// A report file that will not delete is recorded by a hash of its key, not by report id
+// or key, because both of those start with the customer's host.
+test("a report blob that will not delete keeps the site name out of D1", async () => {
+  const world = makeWorld();
+  const { db, env, REPORTS } = world;
+  seedReport(db, REPORTS, "rpt-leaver-000001", TARGET);
+  REPORTS.delete = async () => {
+    throw new Error("R2 is down");
+  };
+
+  const result = await deleteAccount(env, TARGET, { actor: ADMIN_TOKEN });
+  assert.equal(result.ok, true);
+  assert.equal(result.storedFilesFailed, 1);
+  const failures = db.rows("SELECT * FROM audit_report_blob_deletion_failures");
+  assert.equal(failures.length, 1);
+  for (const failure of failures) {
+    assert.equal(failure.report_id, "");
+    assert.match(failure.blob_key, /^deleted:[0-9a-f]{64}$/);
+    assert.equal(JSON.stringify(failure).includes("leaver.example"), false);
+  }
+  assert.deepEqual(rowsMentioning(db, TARGET), []);
 });
 
 // --- Audits that finish while the account is being deleted ---
@@ -1092,7 +1255,9 @@ test("only Fix Packs where money moved are kept; never-paid ones go with their c
 
   const result = await deleteAccount(env, TARGET, { notify: false });
   assert.equal(result.ok, true, JSON.stringify(result));
-  const keptIds = ["fix-delivered", "fix-payment-row", "fix-refund-only"];
+  // A request the customer took to a payment page is kept and anonymised, because a
+  // payment can still land on it; only the one that never reached a checkout is deleted.
+  const keptIds = ["fix-abandoned", "fix-delivered", "fix-failed", "fix-payment-row", "fix-refund-only"];
   assert.equal(result.paymentRecordsKept, keptIds.length);
   assert.deepEqual(
     db.rows("SELECT id FROM fix_requests ORDER BY id").map((row) => row.id),
@@ -1183,7 +1348,7 @@ for (const [name, seed] of Object.entries(LIVE_CHECKOUTS)) {
   });
 }
 
-test("expired or already-subscribed checkouts do not block deletion and are removed", async () => {
+test("expired or already-subscribed checkouts do not block deletion", async () => {
   const { db, env } = makeWorld();
   db.insert("fix_requests", {
     id: "fix-expired",
@@ -1222,7 +1387,12 @@ test("expired or already-subscribed checkouts do not block deletion and are remo
 
   const result = await deleteAccount(env, TARGET, { notify: false });
   assert.equal(result.ok, true, JSON.stringify(result));
-  assert.equal(db.rows("SELECT * FROM fix_requests").length, 0);
+  // The expired checkout does not block, and the request it belongs to is kept and
+  // anonymised rather than deleted, so a payment that lands on it is still fulfilled.
   assert.equal(db.rows("SELECT * FROM monitoring_checkout_sessions").length, 0);
+  const [kept] = db.rows("SELECT * FROM fix_requests");
+  assert.match(kept.owner_email, /^deleted-account:[0-9a-f-]{36}$/);
+  assert.equal(kept.checkout_url, null);
+  assert.equal(kept.checkout_session_id, "cs_expired");
   assert.deepEqual(rowsMentioning(db, TARGET), []);
 });

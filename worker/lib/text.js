@@ -180,7 +180,15 @@ function isSafeReportId(value) {
   return reportIdSchema.safeParse(value).success;
 }
 
+// The owner email a Fix Pack carries once its account has been deleted.
+const DELETED_ACCOUNT_PREFIX = "deleted-account:";
+
+function isDeletedAccountEmail(value) {
+  return String(value || "").startsWith(DELETED_ACCOUNT_PREFIX);
+}
+
 export {
+  DELETED_ACCOUNT_PREFIX,
   claimHostFromInput,
   clampScheduleInterval,
   cleanAccessMode,
@@ -192,6 +200,7 @@ export {
   cleanUrlText,
   dayWindow,
   hourWindow,
+  isDeletedAccountEmail,
   isSafeReportId,
   isSafeUuid,
   isoDaysFromDate,

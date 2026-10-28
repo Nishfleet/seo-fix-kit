@@ -56,6 +56,7 @@ import {
   cleanText,
   cleanReportDomain,
   hourWindow,
+  isDeletedAccountEmail,
   isSafeReportId,
   isoDaysFromNow,
   isoSecondsFromNow,
@@ -3444,10 +3445,7 @@ async function notifyPaymentSucceeded(env, fixRequest, payment, options = {}) {
   const appOrigin = String(env.SEOFIXKIT_APP_ORIGIN || "https://seofixkit.com").replace(/\/+$/, "");
   const report = await reportForNotification(env, fixRequest.report_id);
   const offerKey = options.offerKey || OFFER_KEYS.FIX_PACK;
-  const recipients = [
-    { type: "owner", email: normalizeEmail(fixRequest.owner_email) },
-    { type: "admin", email: adminNotificationEmail(env) }
-  ];
+  const recipients = fixRequestNotificationRecipients(env, fixRequest);
   const results = [];
 
   for (const recipient of recipients) {
@@ -3578,15 +3576,23 @@ async function sendFixPackPaymentEmail({
   }
 }
 
+// The owner of a Fix Pack whose account was deleted is a random pseudonym, so the owner
+// notification is skipped instead of being sent to an address that cannot exist. The admin
+// notification still goes out, because the money and the delivery still need a human.
+function fixRequestNotificationRecipients(env, fixRequest) {
+  const ownerEmail = normalizeEmail(fixRequest.owner_email);
+  const recipients = [];
+  if (ownerEmail && !isDeletedAccountEmail(ownerEmail)) recipients.push({ type: "owner", email: ownerEmail });
+  recipients.push({ type: "admin", email: adminNotificationEmail(env) });
+  return recipients;
+}
+
 async function notifyFixRequestStatus(env, fixRequest, status) {
   const appOrigin = String(env.SEOFIXKIT_APP_ORIGIN || "https://seofixkit.com").replace(/\/+$/, "");
   const report = await reportForNotification(env, fixRequest.report_id);
   const event = status === "delivered" ? "delivery_ready" : "repair_started";
   const beforeAfter = parseJson(fixRequest.before_after_summary_json, null);
-  const recipients = [
-    { type: "owner", email: normalizeEmail(fixRequest.owner_email) },
-    { type: "admin", email: adminNotificationEmail(env) }
-  ];
+  const recipients = fixRequestNotificationRecipients(env, fixRequest);
   const results = [];
 
   for (const recipient of recipients) {

@@ -3,7 +3,7 @@ import { CHECKOUT_URL_TTL_HOURS } from "../routes/billing.js";
 import { recordReportBlobDeletionFailure } from "./report-data.js";
 import { sendWorkerEmail } from "./email.js";
 import { sha256Hex } from "./security.js";
-import { cleanText, isoSecondsFromNow, normalizeEmail } from "./text.js";
+import { DELETED_ACCOUNT_PREFIX, cleanText, isoSecondsFromNow, normalizeEmail } from "./text.js";
 
 // Deletes one account and everything stored for it. Payment records the merchant
 // of record and tax law need for reconciliation are kept with only the accounting
@@ -23,15 +23,33 @@ const UNPAID_FIX_REQUEST = `paid_at IS NULL
   AND COALESCE(dispute_event, '') = ''
   AND NOT EXISTS (SELECT 1 FROM fix_request_payments p WHERE p.fix_request_id = fix_requests.id)`;
 
+// A never-paid request the customer actually took to a payment page can still be paid on,
+// whenever that payment lands, so it is kept and anonymised like a paid one instead of
+// being deleted. Only a request that never reached a checkout goes with the account, so
+// the deletion does not depend on when a payment provider expires a checkout session.
+const DELETABLE_FIX_REQUEST = `${UNPAID_FIX_REQUEST}
+  AND COALESCE(checkout_session_id, '') = ''`;
+
 // A checkout opened within the window the app itself treats as live (it reuses the
-// checkout URL for CHECKOUT_URL_TTL_HOURS) can still be paid, so it blocks deletion;
-// an older one has been abandoned and is deleted with the account.
+// checkout URL for CHECKOUT_URL_TTL_HOURS) blocks deletion, because the customer can
+// still pay on it. An older one does not block; its request row is kept and anonymised
+// rather than deleted, so a payment that lands on it later is still fulfilled.
 function liveCheckoutCutoff() {
   return isoSecondsFromNow(-CHECKOUT_URL_TTL_HOURS * 60 * 60);
 }
 
 const REDACTED = "[deleted account]";
 const R2_DELETE_CHUNK = 1000;
+
+// SQL that finds `needle` only where it stands on its own inside `expression`. `@`,
+// `-`, `_` and `+` are the characters that can join two addresses together, so they are
+// turned into spaces in both the haystack and the needle and the needle is then looked
+// for between two spaces. The dot stays: it is what keeps `leaver@example.com` from
+// matching inside `leaver@example.com.au`.
+function wholeAddressMatch(expression, needle) {
+  const spaced = (value) => `replace(replace(replace(replace(${value}, '@', ' '), '-', ' '), '_', ' '), '+', ' ')`;
+  return `instr(' ' || ${spaced(expression)} || ' ', ' ' || ${spaced(needle)} || ' ')`;
+}
 
 const BLOCKER_MESSAGES = {
   invalid_email: "Enter a valid account email.",
@@ -112,10 +130,10 @@ async function accountDeletionBlockers(env, ownerEmail) {
 function reportBlobKeys(reportRows = [], shareRows = []) {
   const keys = [];
   for (const row of reportRows) {
-    if (row.blob_key) keys.push({ reportId: row.id, key: row.blob_key });
-    keys.push({ reportId: row.id, key: `report-pdfs/owner/${row.id}.pdf` });
+    if (row.blob_key) keys.push(row.blob_key);
+    keys.push(`report-pdfs/owner/${row.id}.pdf`);
   }
-  for (const row of shareRows) keys.push({ reportId: "", key: `report-pdfs/shares/${row.id}.pdf` });
+  for (const row of shareRows) keys.push(`report-pdfs/shares/${row.id}.pdf`);
   return keys;
 }
 
@@ -124,7 +142,10 @@ function deletionStatements(env, ownerEmail, pseudonym, now, loginBucketHash) {
   const run = (sql, ...values) => db.prepare(sql).bind(...values);
   const ownedReports = "SELECT id FROM audit_reports WHERE owner_email = ?";
   const ownedFixRequests = "SELECT id FROM fix_requests WHERE owner_email = ?";
-  const unpaidFixRequests = `SELECT id FROM fix_requests WHERE owner_email = ? AND ${UNPAID_FIX_REQUEST}`;
+  // Scoped to the requests that already existed when the deletion was prepared. A
+  // checkout that opens, or a payment that lands, while the batch runs keeps its row and
+  // is anonymised instead of deleted, so money is never taken for a request that is gone.
+  const unpaidFixRequests = `SELECT id FROM fix_requests WHERE owner_email = ? AND ${DELETABLE_FIX_REQUEST} AND created_at <= ?`;
   const ownedCrawls = "SELECT id FROM large_crawl_jobs WHERE owner_email = ?";
   const e = ownerEmail;
   const shareLinks = run(
@@ -193,10 +214,10 @@ function deletionStatements(env, ownerEmail, pseudonym, now, loginBucketHash) {
 
     // Payments: requests without payment evidence go with their children; paid ones
     // keep only their accounting fields.
-    run(`DELETE FROM fix_request_events WHERE fix_request_id IN (${unpaidFixRequests})`, e),
-    run(`DELETE FROM fix_request_notifications WHERE fix_request_id IN (${unpaidFixRequests})`, e),
-    run(`DELETE FROM dodo_webhook_events WHERE fix_request_id IN (${unpaidFixRequests})`, e),
-    run(`DELETE FROM fix_requests WHERE owner_email = ? AND ${UNPAID_FIX_REQUEST}`, e),
+    run(`DELETE FROM fix_request_events WHERE fix_request_id IN (${unpaidFixRequests})`, e, now),
+    run(`DELETE FROM fix_request_notifications WHERE fix_request_id IN (${unpaidFixRequests})`, e, now),
+    run(`DELETE FROM dodo_webhook_events WHERE fix_request_id IN (${unpaidFixRequests})`, e, now),
+    run(`DELETE FROM fix_requests WHERE owner_email = ? AND ${DELETABLE_FIX_REQUEST} AND created_at <= ?`, e, now),
     run(
       `UPDATE fix_request_events
        SET actor_email = NULL, detail_json = NULL, reason = NULL
@@ -214,7 +235,9 @@ function deletionStatements(env, ownerEmail, pseudonym, now, loginBucketHash) {
     run(
       `UPDATE dodo_webhook_events
        SET payload_json = NULL, error = NULL, updated_at = ?
-       WHERE fix_request_id IN (${ownedFixRequests}) OR instr(lower(COALESCE(payload_json, '')), ?) > 0`,
+       WHERE fix_request_id IN (${ownedFixRequests})
+          OR (COALESCE(fix_request_id, '') = ''
+              AND instr(lower(COALESCE(payload_json, '')), '"' || lower(?) || '"') > 0)`,
       now,
       e,
       e
@@ -269,8 +292,22 @@ function deletionStatements(env, ownerEmail, pseudonym, now, loginBucketHash) {
     run(`DELETE FROM beta_sessions WHERE owner_email = ?`, e),
     run(`DELETE FROM beta_invites WHERE owner_email = ?`, e),
     run(`DELETE FROM waitlist_leads WHERE email = ?`, e),
-    run(`DELETE FROM audit_usage WHERE instr(bucket, ?) > 0 OR instr(bucket, ?) > 0`, `:${e}`, `:${loginBucketHash}`),
-    run(`UPDATE admin_audit_log SET detail = REPLACE(detail, ?, '${REDACTED}') WHERE instr(detail, ?) > 0`, e, e),
+    // The email is the last segment of every rate-limit bucket that holds one, so the
+    // match is on that suffix: a substring would also hit another account's bucket.
+    run(
+      `DELETE FROM audit_usage
+       WHERE substr(bucket, -length(?)) = ? OR substr(bucket, -length(?)) = ?`,
+      `:${e}`,
+      `:${e}`,
+      `:${loginBucketHash}`,
+      `:${loginBucketHash}`
+    ),
+    // An address is redacted only when it stands on its own in the note. `.`, `@`,
+    // `-`, `_` and `+` are the characters that extend one address into another, so both
+    // the note and the address are searched with those turned into spaces: a plain
+    // substring would take another account's note with it, because `leaver@example.com`
+    // sits inside `leaver@example.com.au`.
+    run(`UPDATE admin_audit_log SET detail = '${REDACTED}' WHERE ${wholeAddressMatch("detail", "?")} > 0`, e),
     run(`UPDATE admin_audit_log SET actor_email = NULL WHERE actor_email = ?`, e),
 
     // The reports themselves go last: the statements above select through them.
@@ -285,12 +322,19 @@ async function deleteBlobs(env, keys) {
   for (let index = 0; index < keys.length; index += R2_DELETE_CHUNK) {
     const chunk = keys.slice(index, index + R2_DELETE_CHUNK);
     try {
-      await env.REPORTS.delete(chunk.map((entry) => entry.key));
+      await env.REPORTS.delete(chunk);
     } catch (error) {
       failed += chunk.length;
       const message = cleanText(error?.message || "Report blob deletion failed.", 500);
-      for (const entry of chunk) {
-        await recordReportBlobDeletionFailure(env, { reportId: entry.reportId, key: entry.key, error: message });
+      for (const key of chunk) {
+        // The blob key starts with the customer's host, so the failure row is keyed by a
+        // hash of it instead: an operator can still match it against an R2 listing, but
+        // the site name does not survive in D1.
+        await recordReportBlobDeletionFailure(env, {
+          reportId: "",
+          key: `deleted:${await sha256Hex(key)}`,
+          error: message
+        });
       }
     }
   }
@@ -351,7 +395,7 @@ async function deleteAccount(env, rawEmail, { actor = "account-owner", notify = 
   if (blockers.length) return { ok: false, blockers };
 
   const deletionId = crypto.randomUUID();
-  const pseudonym = `deleted-account:${deletionId}`;
+  const pseudonym = `${DELETED_ACCOUNT_PREFIX}${deletionId}`;
   const now = new Date().toISOString();
   const { statements, shareLinks, reports } = deletionStatements(
     env,
@@ -387,4 +431,10 @@ async function deleteAccount(env, rawEmail, { actor = "account-owner", notify = 
   return { ok: true, deletionId, deletedAt: now, confirmationSent, ...summary };
 }
 
-export { OPEN_FIX_REQUEST_STATUSES, accountDeletionBlockers, deleteAccount, deletionBlockedMessage };
+export {
+  DELETED_ACCOUNT_PREFIX,
+  OPEN_FIX_REQUEST_STATUSES,
+  accountDeletionBlockers,
+  deleteAccount,
+  deletionBlockedMessage
+};

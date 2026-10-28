@@ -19,6 +19,7 @@ import {
   isSafeUuid,
   isoDaysFromNow,
   isoSecondsFromNow,
+  normalizeEmail,
   parseJson
 } from "../lib/text.js";
 import { body, email, isoDateSchema, number, optionalEmail, parseJsonBody, text, z } from "../lib/validation.js";
@@ -42,7 +43,7 @@ import {
 
 const blankToUndefined = (value) => (value === "" || value === null ? undefined : value);
 
-const AccountDeletionBody = body({ email: email() });
+const AccountDeletionBody = body({ email: email(), confirmEmail: text(254) });
 
 const AdminBetaSessionBody = body({ ownerEmail: optionalEmail() }, { email: "ownerEmail" });
 
@@ -922,13 +923,17 @@ async function sendDailyOpsDigest(env) {
 }
 
 // Completes a deletion request that came in by email, with the same code as the
-// in-app "Delete account" button. Support confirms the sender owns the address first.
+// in-app "Delete account" button. Support confirms the sender owns the address first, and
+// types the address being deleted so a wrong paste cannot erase the wrong account.
 async function deleteAccountAdmin(request, env) {
   const admin = await adminAccessStatus(request, env, "delete-account");
   if (!admin.ok) return adminDeniedJson(admin);
   if (!env.WAITLIST_DB) return jsonNoStore({ error: "Account storage is not set up on this server." }, 503);
   const parsed = await parseJsonBody(request, AccountDeletionBody);
   if (parsed.error) return jsonNoStore(parsed.error, 400);
+  if (normalizeEmail(parsed.data.confirmEmail) !== normalizeEmail(parsed.data.email)) {
+    return jsonNoStore({ error: "Type the account email exactly to confirm." }, 400);
+  }
   const result = await deleteAccount(env, parsed.data.email, { actor: admin.actorEmail });
   if (!result.ok)
     return jsonNoStore({ error: deletionBlockedMessage(result.blockers), blockers: result.blockers }, 409);
