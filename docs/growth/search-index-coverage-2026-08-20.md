@@ -18,7 +18,8 @@ so future page edits cannot ship without refreshing the matching lastmod.
 ## Re-verified 2026-08-20 (lane-1 run) — current live state
 
 - **IndexNow path intact:** `shared/index-now.js`,
-  `scripts/submit-indexnow.mjs`, `scripts/submit-indexnow.test.mjs`, the
+  `server/submit-index-now.js`,
+  `test/submit-index-now.test.mjs`, the
   Worker key-file routes at `/{key}.txt` and `/.well-known/{key}.txt`
   (apex-only, `x-robots-tag: noindex`), and `npm run submit:indexnow`
   (verifies key file live, then POSTs to `api.indexnow.org` +
@@ -126,7 +127,7 @@ Both are one-time, copy-paste steps that materially accelerate the outcome:
    returns the key text (not the SPA HTML), and
    `curl -s https://seofixkit.com/sitemap.xml` returns the refreshed
    lastmods for the 12 URLs.
-2. `node scripts/submit-indexnow.mjs` — verify 2x "key matches",
+2. `node server/submit-index-now.js` — verify 2x "key matches",
    12 URLs listed, ACCEPTED on both endpoints. Bing crawls on its
    schedule (typically minutes to hours); DDG follows from Bing's
    index.

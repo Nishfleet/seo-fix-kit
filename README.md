@@ -132,7 +132,7 @@ sign-out, pricing, the free check and the 404 page. CI runs it after
 `playwright-report` artifact.
 
 `npm run test:budget` (the last step of `npm run check`) fails when a built
-file passes its gzip budget in `scripts/check-budget.mjs`: the prerendered
+file exceeds its gzip budget in `test/budget.test.mjs`: the prerendered
 homepage, `/tokens.css`, the entry JS and CSS, the signed-in app bundle and
 the 404 page. Raise a budget deliberately in review, never to get CI green.
 
@@ -140,7 +140,7 @@ Design tokens (colour, type, spacing, radius, elevation, motion) live in
 `src/design/tokens.css`; shared marketing components in `src/design/site.css`.
 The React app imports them directly and the build bundles them into
 `/tokens.css` for the Worker-rendered pages, so the two surfaces share one
-system. The homepage is prerendered at build time (`scripts/prerender.mjs`) so
+system. The homepage is prerendered at build time (`server/prerender.mjs`) so
 its content is in the raw HTML.
 
 `npm run test:audit` runs offline against a local fixture site. To audit a live
@@ -274,10 +274,11 @@ npm run submit:indexnow          # real submission
 npm run submit:indexnow -- --dry-run   # preview only, no network writes
 ```
 
-The dry-run runs through `scripts/wrangler-dry-run.mjs`, which names any malformed
-ancestor `package.json` (e.g. the recurring zero-byte scaffold debris in `/home/nish`)
-loudly on stderr and, when one is present, executes Wrangler from a shielded scratch
-copy so the canary cannot be broken by a file outside this repo.
+The dry-run runs the stock `wrangler deploy --dry-run`: Wrangler bundles the
+Worker and validates `wrangler.jsonc` without deploying. If it fails after a
+green build with `Unexpected end of file in JSON` naming a `package.json`
+above this repo, a malformed ancestor manifest is breaking Wrangler's esbuild
+step — see ERRORS.md for the host-side fix.
 
 Apply D1 migrations after creating or changing the waitlist schema:
 
