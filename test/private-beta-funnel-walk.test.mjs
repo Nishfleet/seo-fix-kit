@@ -9,7 +9,7 @@ import {
   evaluateStopEvidence,
   funnelWalkSummary,
   samePathname
-} from "./run-private-beta-funnel-walk.mjs";
+} from "./private-beta-funnel-walk.mjs";
 
 const origin = "https://seofixkit.com";
 
