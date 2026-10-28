@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import worker from "../worker/index.js";
-import { deleteAccount } from "../worker/lib/account-deletion.js";
+import { accountDeletionBlockers, deleteAccount } from "../worker/lib/account-deletion.js";
 import { processAuditJob } from "../worker/routes/audits.js";
 import { createTestD1 } from "./support/d1.mjs";
 
@@ -13,6 +13,7 @@ const OTHER = "stayer@example.com";
 const ADMIN_TOKEN = "admin-token-for-deletion-tests";
 const NOW = "2026-10-01T00:00:00.000Z";
 const LATER = "2099-01-01T00:00:00.000Z";
+const REDACTED = "[deleted account]";
 
 const DELETION_SOURCE = readFileSync(new URL("../worker/lib/account-deletion.js", import.meta.url), "utf8");
 const DELETED_TABLES = new Set(
@@ -117,6 +118,74 @@ function seedQueueItem(db, id, reportId, owner, updatedBy = owner) {
     created_at: NOW,
     updated_at: NOW,
     updated_by_email: updatedBy
+  });
+}
+
+function seedRedactionTargets(db, owner) {
+  const slug = owner.replace(/[^a-z0-9]/g, "");
+  db.insert("fix_requests", {
+    id: `fix-${slug}`,
+    report_id: `rpt-${slug}`,
+    owner_email: owner,
+    target_url: "https://leaver.example/",
+    target_host: "leaver.example",
+    status: "delivered",
+    payment_id: `pay-${slug}`,
+    paid_at: NOW,
+    payment_amount: 9900,
+    payment_currency: "USD",
+    delivered_at: NOW,
+    created_at: NOW,
+    updated_at: NOW
+  });
+  db.insert("fix_request_events", {
+    id: `event-${slug}`,
+    fix_request_id: `fix-${slug}`,
+    event: "status_changed",
+    actor_type: "dodo",
+    created_at: NOW
+  });
+  db.insert("fix_request_notifications", {
+    id: `notification-${slug}`,
+    fix_request_id: `fix-${slug}`,
+    event: "payment",
+    recipient_type: "customer",
+    recipient_email: owner,
+    status: "sent",
+    created_at: NOW
+  });
+  db.insert("dodo_webhook_events", {
+    webhook_id: `wh-${slug}`,
+    event_type: "payment.succeeded",
+    payment_id: `pay-${slug}`,
+    fix_request_id: `fix-${slug}`,
+    status: "processed",
+    payload_hash: "payload-hash",
+    payload_json: JSON.stringify({ data: { customer: { email: owner, name: "Lee" } } }),
+    first_received_at: NOW,
+    last_received_at: NOW,
+    created_at: NOW,
+    updated_at: NOW
+  });
+  db.insert("audit_usage", {
+    bucket: `checkout:fix_pack:2026-10-01:${owner}`,
+    count: 1,
+    window_start: NOW,
+    updated_at: NOW
+  });
+  db.insert("audit_usage", {
+    bucket: `login:email:2026-10-01:${sha256(owner)}`,
+    count: 1,
+    window_start: NOW,
+    updated_at: NOW
+  });
+  db.insert("admin_audit_log", {
+    id: `audit-note-${slug}`,
+    action: "create-invite",
+    success: 1,
+    actor_email: "admin@example.com",
+    detail: `Created an invite for ${owner}`,
+    created_at: NOW
   });
 }
 
@@ -898,9 +967,17 @@ test("support completes an emailed deletion request with the same code", async (
   });
   assert.equal(invalid.status, 400);
 
+  const mismatched = await call(env, "/admin/account-deletions", {
+    method: "POST",
+    body: { email: TARGET.toUpperCase(), confirmEmail: OTHER },
+    headers: { authorization: `Bearer ${ADMIN_TOKEN}` }
+  });
+  assert.equal(mismatched.status, 400);
+  assert.equal(rowsMentioning(db, TARGET).length > 0, true);
+
   const response = await call(env, "/admin/account-deletions", {
     method: "POST",
-    body: { email: TARGET.toUpperCase() },
+    body: { email: TARGET.toUpperCase(), confirmEmail: TARGET },
     headers: { authorization: `Bearer ${ADMIN_TOKEN}` }
   });
   assert.equal(response.status, 200, JSON.stringify(response.json));
@@ -911,6 +988,77 @@ test("support completes an emailed deletion request with the same code", async (
   assert.equal(audit.length, 1);
   assert.equal(audit[0].id, response.json.deletionId);
   assert.equal(sent.length, 1);
+});
+
+test("an address that contains the deleted one is left whole", async () => {
+  const world = makeWorld();
+  const { db, env } = world;
+  const NEIGHBOUR = "leaver@example.com.au";
+  for (const owner of [TARGET, NEIGHBOUR]) seedRedactionTargets(db, owner);
+
+  const result = await deleteAccount(env, TARGET, { actor: ADMIN_TOKEN });
+  assert.equal(result.ok, true);
+
+  assert.deepEqual(
+    db.rows("SELECT bucket FROM audit_usage ORDER BY bucket").map((row) => row.bucket),
+    [`checkout:fix_pack:2026-10-01:${NEIGHBOUR}`, `login:email:2026-10-01:${sha256(NEIGHBOUR)}`]
+  );
+  const webhooks = db.rows("SELECT * FROM dodo_webhook_events ORDER BY webhook_id");
+  assert.equal(webhooks.length, 2);
+  assert.equal(webhooks[0].payload_json, null);
+  assert.equal(JSON.parse(webhooks[1].payload_json).data.customer.email, NEIGHBOUR);
+  const notes = db.rows("SELECT detail FROM admin_audit_log WHERE action = 'create-invite' ORDER BY id");
+  assert.deepEqual(
+    notes.map((row) => row.detail),
+    [REDACTED, `Created an invite for ${NEIGHBOUR}`]
+  );
+  for (const { table, row } of rowsMentioning(db, TARGET)) {
+    assert.equal(JSON.stringify(row).includes(NEIGHBOUR), true, `${table}: ${JSON.stringify(row)}`);
+  }
+});
+
+test("a Fix Pack paid while the deletion runs is kept", async () => {
+  const world = makeWorld();
+  const { db, env } = world;
+  seedFixRequest(db, "fix-race");
+  assert.deepEqual(await accountDeletionBlockers(env, TARGET), []);
+
+  const payment = db
+    .prepare(
+      `INSERT INTO fix_request_payments
+         (payment_id, fix_request_id, role, status, amount, currency, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .bind("pay_race", "fix-race", "fix_pack", "succeeded", 9900, "USD", NOW, NOW);
+  await db.batch([payment]);
+
+  const result = await deleteAccount(env, TARGET, { actor: ADMIN_TOKEN });
+  assert.equal(result.ok, true);
+  const [kept] = db.rows("SELECT * FROM fix_requests WHERE id = 'fix-race'");
+  assert.ok(kept);
+  assert.match(kept.owner_email, /^deleted-account:[0-9a-f-]{36}$/);
+  assert.equal(db.rows("SELECT * FROM fix_request_payments WHERE fix_request_id = 'fix-race'").length, 1);
+});
+
+test("a report blob that will not delete keeps the site name out of D1", async () => {
+  const world = makeWorld();
+  const { db, env, REPORTS } = world;
+  seedReport(db, REPORTS, "rpt-leaver-000001", TARGET, { inR2: true });
+  REPORTS.delete = async () => {
+    throw new Error("R2 is down");
+  };
+
+  const result = await deleteAccount(env, TARGET, { actor: ADMIN_TOKEN });
+  assert.equal(result.ok, true);
+  assert.equal(result.storedFilesFailed, 1);
+  const failures = db.rows("SELECT * FROM audit_report_blob_deletion_failures");
+  assert.equal(failures.length, 1);
+  for (const failure of failures) {
+    assert.equal(failure.report_id, "");
+    assert.match(failure.blob_key, /^deleted:[0-9a-f]{64}$/);
+    assert.equal(JSON.stringify(failure).includes("leaver.example"), false);
+  }
+  assert.deepEqual(rowsMentioning(db, TARGET), []);
 });
 
 const JOB_ID = "22222222-2222-4222-8222-222222222222";
@@ -1049,7 +1197,7 @@ function seedFixRequest(db, id, fields = {}) {
   });
 }
 
-test("only Fix Packs where money moved are kept; never-paid ones go with their children", async () => {
+test("only Fix Packs where money moved are kept; a request that reached a checkout is kept and anonymised", async () => {
   const { db, env } = makeWorld();
   const stale = isoHoursAgo(48);
   seedFixRequest(db, "fix-new");
@@ -1096,7 +1244,7 @@ test("only Fix Packs where money moved are kept; never-paid ones go with their c
 
   const result = await deleteAccount(env, TARGET, { notify: false });
   assert.equal(result.ok, true, JSON.stringify(result));
-  const keptIds = ["fix-delivered", "fix-payment-row", "fix-refund-only"];
+  const keptIds = ["fix-abandoned", "fix-delivered", "fix-failed", "fix-payment-row", "fix-refund-only"];
   assert.equal(result.paymentRecordsKept, keptIds.length);
   assert.deepEqual(
     db.rows("SELECT id FROM fix_requests ORDER BY id").map((row) => row.id),
@@ -1187,7 +1335,7 @@ for (const [name, seed] of Object.entries(LIVE_CHECKOUTS)) {
   });
 }
 
-test("expired or already-subscribed checkouts do not block deletion and are removed", async () => {
+test("an expired or already-subscribed checkout does not block deletion and its request is kept anonymised", async () => {
   const { db, env } = makeWorld();
   db.insert("fix_requests", {
     id: "fix-expired",
@@ -1225,8 +1373,11 @@ test("expired or already-subscribed checkouts do not block deletion and are remo
 
   const result = await deleteAccount(env, TARGET, { notify: false });
   assert.equal(result.ok, true, JSON.stringify(result));
-  assert.equal(db.rows("SELECT * FROM fix_requests").length, 0);
   assert.equal(db.rows("SELECT * FROM monitoring_checkout_sessions").length, 0);
+  const [kept] = db.rows("SELECT * FROM fix_requests");
+  assert.match(kept.owner_email, /^deleted-account:[0-9a-f-]{36}$/);
+  assert.equal(kept.checkout_url, null);
+  assert.equal(kept.checkout_session_id, "cs_expired");
   assert.deepEqual(rowsMentioning(db, TARGET), []);
 });
 
@@ -1270,7 +1421,7 @@ test("a stored file that cannot be removed is reported and named in the confirma
   assert.equal(
     db.rows(
       "SELECT status FROM audit_report_blob_deletion_failures WHERE blob_key = ?",
-      "reports/rpt-leaver-blob.json"
+      `deleted:${sha256("reports/rpt-leaver-blob.json")}`
     )[0].status,
     "pending"
   );

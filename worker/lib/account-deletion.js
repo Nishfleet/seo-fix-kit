@@ -3,7 +3,7 @@ import { CHECKOUT_URL_TTL_HOURS } from "../routes/billing.js";
 import { recordReportBlobDeletionFailure } from "./report-data.js";
 import { sendWorkerEmail } from "./email.js";
 import { sha256Hex } from "./security.js";
-import { cleanText, isoSecondsFromNow, normalizeEmail } from "./text.js";
+import { DELETED_ACCOUNT_PREFIX, cleanText, isoSecondsFromNow, normalizeEmail } from "./text.js";
 
 const OPEN_FIX_REQUEST_STATUSES = ["paid", "in_progress", "refund_failed", "disputed"];
 
@@ -14,6 +14,9 @@ const UNPAID_FIX_REQUEST = `paid_at IS NULL
   AND COALESCE(dispute_event, '') = ''
   AND NOT EXISTS (SELECT 1 FROM fix_request_payments p WHERE p.fix_request_id = fix_requests.id)`;
 
+const DELETABLE_FIX_REQUEST = `${UNPAID_FIX_REQUEST}
+  AND COALESCE(checkout_session_id, '') = ''`;
+
 function liveCheckoutCutoff() {
   return isoSecondsFromNow(-CHECKOUT_URL_TTL_HOURS * 60 * 60);
 }
@@ -22,6 +25,10 @@ const REDACTED = "[deleted account]";
 const R2_DELETE_CHUNK = 1000;
 const LATE_WRITE_PASSES = 2;
 
+function wholeAddressMatch(expression, needle) {
+  const spaced = (value) => `replace(replace(replace(replace(${value}, '@', ' '), '-', ' '), '_', ' '), '+', ' ')`;
+  return `instr(' ' || ${spaced(expression)} || ' ', ' ' || ${spaced(needle)} || ' ')`;
+}
 const BLOCKER_MESSAGES = {
   invalid_email: "Enter a valid account email.",
   no_account: "We found no account for that address. Check the address, or email support@seofixkit.com.",
@@ -109,7 +116,7 @@ function deletionStatements(env, ownerEmail, pseudonym, now, loginBucketHash) {
   const run = (sql, ...values) => db.prepare(sql).bind(...values);
   const ownedReports = "SELECT id FROM audit_reports WHERE owner_email = ?";
   const ownedFixRequests = "SELECT id FROM fix_requests WHERE owner_email = ?";
-  const unpaidFixRequests = `SELECT id FROM fix_requests WHERE owner_email = ? AND ${UNPAID_FIX_REQUEST}`;
+  const unpaidFixRequests = `SELECT id FROM fix_requests WHERE owner_email = ? AND ${DELETABLE_FIX_REQUEST} AND created_at <= ?`;
   const ownedCrawls = "SELECT id FROM large_crawl_jobs WHERE owner_email = ?";
   const e = ownerEmail;
   const shareLinks = run(
@@ -172,10 +179,10 @@ function deletionStatements(env, ownerEmail, pseudonym, now, loginBucketHash) {
     run(`DELETE FROM api_webhooks WHERE owner_email = ?`, e),
     run(`DELETE FROM api_tokens WHERE owner_email = ?`, e),
 
-    run(`DELETE FROM fix_request_events WHERE fix_request_id IN (${unpaidFixRequests})`, e),
-    run(`DELETE FROM fix_request_notifications WHERE fix_request_id IN (${unpaidFixRequests})`, e),
-    run(`DELETE FROM dodo_webhook_events WHERE fix_request_id IN (${unpaidFixRequests})`, e),
-    run(`DELETE FROM fix_requests WHERE owner_email = ? AND ${UNPAID_FIX_REQUEST}`, e),
+    run(`DELETE FROM fix_request_events WHERE fix_request_id IN (${unpaidFixRequests})`, e, now),
+    run(`DELETE FROM fix_request_notifications WHERE fix_request_id IN (${unpaidFixRequests})`, e, now),
+    run(`DELETE FROM dodo_webhook_events WHERE fix_request_id IN (${unpaidFixRequests})`, e, now),
+    run(`DELETE FROM fix_requests WHERE owner_email = ? AND ${DELETABLE_FIX_REQUEST} AND created_at <= ?`, e, now),
     run(
       `UPDATE fix_request_events
        SET actor_email = NULL, detail_json = NULL, reason = NULL
@@ -198,7 +205,9 @@ function deletionStatements(env, ownerEmail, pseudonym, now, loginBucketHash) {
     run(
       `UPDATE dodo_webhook_events
        SET payload_json = NULL, error = NULL, updated_at = ?
-       WHERE fix_request_id IN (${ownedFixRequests}) OR instr(lower(COALESCE(payload_json, '')), ?) > 0`,
+       WHERE fix_request_id IN (${ownedFixRequests})
+          OR (COALESCE(fix_request_id, '') = ''
+              AND instr(lower(COALESCE(payload_json, '')), '"' || lower(?) || '"') > 0)`,
       now,
       e,
       e
@@ -251,8 +260,15 @@ function deletionStatements(env, ownerEmail, pseudonym, now, loginBucketHash) {
     run(`DELETE FROM beta_sessions WHERE owner_email = ?`, e),
     run(`DELETE FROM beta_invites WHERE owner_email = ?`, e),
     run(`DELETE FROM waitlist_leads WHERE email = ?`, e),
-    run(`DELETE FROM audit_usage WHERE instr(bucket, ?) > 0 OR instr(bucket, ?) > 0`, `:${e}`, `:${loginBucketHash}`),
-    run(`UPDATE admin_audit_log SET detail = REPLACE(detail, ?, '${REDACTED}') WHERE instr(detail, ?) > 0`, e, e),
+    run(
+      `DELETE FROM audit_usage
+       WHERE substr(bucket, -length(?)) = ? OR substr(bucket, -length(?)) = ?`,
+      `:${e}`,
+      `:${e}`,
+      `:${loginBucketHash}`,
+      `:${loginBucketHash}`
+    ),
+    run(`UPDATE admin_audit_log SET detail = '${REDACTED}' WHERE ${wholeAddressMatch("detail", "?")} > 0`, e),
     run(`UPDATE admin_audit_log SET actor_email = NULL WHERE actor_email = ?`, e),
 
     reports
@@ -300,7 +316,11 @@ async function deleteBlobs(env, keys) {
     }
   }
   for (const { entry, error } of stillPresent) {
-    await recordReportBlobDeletionFailure(env, { reportId: entry.reportId, key: entry.key, error });
+    await recordReportBlobDeletionFailure(env, {
+      reportId: "",
+      key: `deleted:${await sha256Hex(entry.key)}`,
+      error
+    });
   }
   await clearReportBlobDeletionFailures(env, confirmed);
   return { deleted, failed: stillPresent.length };
@@ -407,7 +427,7 @@ async function deleteAccount(env, rawEmail, { actor = "account-owner", notify = 
   if (!Number(known?.count || 0)) return { ok: false, blockers: ["no_account"] };
 
   const deletionId = crypto.randomUUID();
-  const pseudonym = `deleted-account:${deletionId}`;
+  const pseudonym = `${DELETED_ACCOUNT_PREFIX}${deletionId}`;
   const now = new Date().toISOString();
   const { statements, shareLinks, reports } = deletionStatements(
     env,
@@ -457,4 +477,10 @@ async function deleteAccount(env, rawEmail, { actor = "account-owner", notify = 
   return { ok: true, deletionId, deletedAt: now, confirmationSent, auditRecorded, ...summary };
 }
 
-export { OPEN_FIX_REQUEST_STATUSES, accountDeletionBlockers, deleteAccount, deletionBlockedMessage };
+export {
+  DELETED_ACCOUNT_PREFIX,
+  OPEN_FIX_REQUEST_STATUSES,
+  accountDeletionBlockers,
+  deleteAccount,
+  deletionBlockedMessage
+};

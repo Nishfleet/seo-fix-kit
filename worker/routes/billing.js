@@ -56,6 +56,7 @@ import {
   cleanText,
   cleanReportDomain,
   hourWindow,
+  isDeletedAccountEmail,
   isSafeReportId,
   isoDaysFromNow,
   isoSecondsFromNow,
@@ -3418,10 +3419,7 @@ async function notifyPaymentSucceeded(env, fixRequest, payment, options = {}) {
   const appOrigin = String(env.SEOFIXKIT_APP_ORIGIN || "https://seofixkit.com").replace(/\/+$/, "");
   const report = await reportForNotification(env, fixRequest.report_id);
   const offerKey = options.offerKey || OFFER_KEYS.FIX_PACK;
-  const recipients = [
-    { type: "owner", email: normalizeEmail(fixRequest.owner_email) },
-    { type: "admin", email: adminNotificationEmail(env) }
-  ];
+  const recipients = fixRequestNotificationRecipients(env, fixRequest);
   const results = [];
 
   for (const recipient of recipients) {
@@ -3552,15 +3550,20 @@ async function sendFixPackPaymentEmail({
   }
 }
 
+function fixRequestNotificationRecipients(env, fixRequest) {
+  const ownerEmail = normalizeEmail(fixRequest.owner_email);
+  const recipients = [];
+  if (ownerEmail && !isDeletedAccountEmail(ownerEmail)) recipients.push({ type: "owner", email: ownerEmail });
+  recipients.push({ type: "admin", email: adminNotificationEmail(env) });
+  return recipients;
+}
+
 async function notifyFixRequestStatus(env, fixRequest, status) {
   const appOrigin = String(env.SEOFIXKIT_APP_ORIGIN || "https://seofixkit.com").replace(/\/+$/, "");
   const report = await reportForNotification(env, fixRequest.report_id);
   const event = status === "delivered" ? "delivery_ready" : "repair_started";
   const beforeAfter = parseJson(fixRequest.before_after_summary_json, null);
-  const recipients = [
-    { type: "owner", email: normalizeEmail(fixRequest.owner_email) },
-    { type: "admin", email: adminNotificationEmail(env) }
-  ];
+  const recipients = fixRequestNotificationRecipients(env, fixRequest);
   const results = [];
 
   for (const recipient of recipients) {
@@ -3794,6 +3797,7 @@ export {
   fetchDodoJson,
   findFixRequestForPayment,
   findMonitoringEntitlement,
+  fixRequestNotificationRecipients,
   formatMinorCurrency,
   getBillingSummary,
   getFixPackPricingPreview,
