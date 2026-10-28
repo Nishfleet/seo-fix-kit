@@ -29,11 +29,11 @@ on:
   workflow_dispatch:
     inputs:
       issue:
-        description: 'Issue number to dispatch, overrides the sweep and its claim-PR append'
+        description: "Issue number to dispatch, overrides the sweep and its claim-PR append"
         required: false
         type: string
       task:
-        description: 'miss-review to replay a miss on issue, orchestrate to hand a parked issue to the orchestrator, empty for a normal sweep'
+        description: "miss-review to replay a miss on issue, orchestrate to hand a parked issue to the orchestrator, empty for a normal sweep"
         required: false
         type: string
   # All nine PR events the fleet's review and merge gates listen for:
@@ -48,12 +48,23 @@ on:
   # verdict and stops), and it reads the head as a git diff, never running
   # its code. No PR-event job checks out or runs the head.
   pull_request_target:
-    types: [dequeued, auto_merge_disabled, closed, auto_merge_enabled, synchronize, labeled, opened, reopened, ready_for_review]
+    types:
+      [
+        dequeued,
+        auto_merge_disabled,
+        closed,
+        auto_merge_enabled,
+        synchronize,
+        labeled,
+        opened,
+        reopened,
+        ready_for_review
+      ]
   workflow_run:
     workflows: ["PR check"]
     types: [completed]
   schedule:
-    - cron: '17 */6 * * *'
+    - cron: "17 */6 * * *"
 # One running and one pending run per commented issue, and per PR and PR
 # action; GitHub replaces the pending run, so a burst of comments, pushes or
 # labels cannot fan out. Actions get separate groups on purpose: a new
