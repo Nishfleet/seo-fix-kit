@@ -8,7 +8,7 @@ funnel** (bootstrap 2026-08-08, risk: green).
   mobile horizontal scroll; defects filed as fresh items.
 - Verify clause: walk JSON summarized in journal (this ledger is the journal;
   the walk JSON for each run is recorded verbatim below).
-- Runner: `scripts/run-private-beta-funnel-walk.mjs` via
+- Runner: `test/private-beta-funnel-walk.mjs` via
   `npm run audit:funnel-walk` (real-browser Playwright Chromium walk, desktop
   + iPhone-13 mobile viewport; the access request form is inspected in
   observe mode only and never submitted, so no waitlist lead or access token

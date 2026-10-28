@@ -1,6 +1,8 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { gzipSync } from "node:zlib";
+import assert from "node:assert/strict";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { gzipSync } from "node:zlib";
+import test from "node:test";
 
 const dist = new URL("../dist/", import.meta.url).pathname;
 
@@ -21,25 +23,18 @@ function files(dir, prefix = "") {
   );
 }
 
-const shipped = files(dist);
-let failed = false;
-
-for (const budget of BUDGETS) {
-  const matches = shipped.filter((file) => budget.match.test(file));
-  if (matches.length === 0) {
-    console.error(`✗ ${budget.label}: no file matched ${budget.match}`);
-    failed = true;
-    continue;
+test("no shipped file exceeds its performance budget", () => {
+  if (!existsSync(dist)) throw new Error("dist/ is missing; npm run build must run before npm run test:budget");
+  const shipped = files(dist);
+  for (const budget of BUDGETS) {
+    const matches = shipped.filter((file) => budget.match.test(file));
+    assert.ok(matches.length > 0, `${budget.label}: no dist file matched ${budget.match}`);
+    for (const file of matches) {
+      const kb = gzipSync(readFileSync(join(dist, file))).length / 1024;
+      assert.ok(
+        kb <= budget.kb,
+        `${budget.label} (${file}): ${kb.toFixed(1)} KB gzip exceeds the ${budget.kb} KB budget; trim the change or raise the budget deliberately in review`
+      );
+    }
   }
-  for (const file of matches) {
-    const kb = gzipSync(readFileSync(join(dist, file))).length / 1024;
-    const ok = kb <= budget.kb;
-    if (!ok) failed = true;
-    console.log(`${ok ? "✓" : "✗"} ${budget.label} (${file}): ${kb.toFixed(1)} KB gzip, budget ${budget.kb} KB`);
-  }
-}
-
-if (failed) {
-  console.error("\nPerformance budget exceeded. Trim the change or raise the budget deliberately in review.");
-  process.exit(1);
-}
+});
