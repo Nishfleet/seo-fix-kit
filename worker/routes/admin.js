@@ -9,6 +9,7 @@ import {
 } from "../../shared/fulfillment.js";
 import { escapeHtml } from "../../shared/audit-engine.js";
 import { emailButton } from "../../shared/email-layout.js";
+import { D1_MAX_CONCURRENCY, runBounded } from "../lib/bounded.js";
 import { shouldSkipOwnedInternalEmail, sendWorkerEmail } from "../lib/email.js";
 import { json, jsonNoStore } from "../lib/http.js";
 import { csvCell, sha256Hex } from "../lib/security.js";
@@ -720,12 +721,15 @@ function groupEventsByFixRequest(rows) {
   return groups;
 }
 
+const DIGEST_QUERY_CONCURRENCY = D1_MAX_CONCURRENCY;
+
 async function buildOpsSnapshot(env, options = {}) {
   const now = new Date().toISOString();
   const today = now.slice(0, 10);
   const fixWhere = options.includeTest ? "" : "is_test = 0";
   const openWhere = `${fixWhere ? `${fixWhere} AND ` : ""}status IN ('paid', 'in_progress')`;
   const dayAgo = isoSecondsFromNow(-24 * 60 * 60);
+  const hourAgo = isoSecondsFromNow(-60 * 60);
   const [
     openPaid,
     inProgress,
@@ -739,26 +743,33 @@ async function buildOpsSnapshot(env, options = {}) {
     queuedJobs,
     failedJobs24h,
     overdueSchedules
-  ] = await Promise.all([
-    countRows(env, "fix_requests", openWhere),
-    countRows(env, "fix_requests", `${fixWhere ? `${fixWhere} AND ` : ""}status = 'in_progress'`),
-    countRows(env, "fix_requests", `${openWhere} AND due_at IS NOT NULL AND due_at < ?`, [now]),
-    countRows(env, "fix_requests", `${fixWhere ? `${fixWhere} AND ` : ""}delivered_at >= ?`, [
-      `${today}T00:00:00.000Z`
-    ]),
-    countRows(env, "dodo_webhook_events", "status = 'error'"),
-    countRows(env, "fix_request_notifications", "status = 'error'"),
-    env.WAITLIST_DB.prepare(
-      `SELECT created_at FROM fix_requests WHERE ${openWhere} ORDER BY created_at ASC LIMIT 1`
-    ).first(),
-    env.WAITLIST_DB.prepare(
-      `SELECT digest_key, status, sent_at, error FROM ops_digest_runs ORDER BY created_at DESC LIMIT 1`
-    ).first(),
-    countRows(env, "audit_jobs", "status = 'running'"),
-    countRows(env, "audit_jobs", "status = 'queued'"),
-    countRows(env, "audit_jobs", "status = 'failed' AND completed_at >= ?", [dayAgo]),
-    countRows(env, "audit_schedules", "status = 'active' AND next_run_at < ?", [isoSecondsFromNow(-60 * 60)])
-  ]);
+  ] = await runBounded(
+    [
+      () => countRows(env, "fix_requests", openWhere),
+      () => countRows(env, "fix_requests", `${fixWhere ? `${fixWhere} AND ` : ""}status = 'in_progress'`),
+      () => countRows(env, "fix_requests", `${openWhere} AND due_at IS NOT NULL AND due_at < ?`, [now]),
+      () =>
+        countRows(env, "fix_requests", `${fixWhere ? `${fixWhere} AND ` : ""}delivered_at >= ?`, [
+          `${today}T00:00:00.000Z`
+        ]),
+      () => countRows(env, "dodo_webhook_events", "status = 'error'"),
+      () => countRows(env, "fix_request_notifications", "status = 'error'"),
+      () =>
+        env.WAITLIST_DB.prepare(
+          `SELECT created_at FROM fix_requests WHERE ${openWhere} ORDER BY created_at ASC LIMIT 1`
+        ).first(),
+      () =>
+        env.WAITLIST_DB.prepare(
+          `SELECT digest_key, status, sent_at, error FROM ops_digest_runs ORDER BY created_at DESC LIMIT 1`
+        ).first(),
+      () => countRows(env, "audit_jobs", "status = 'running'"),
+      () => countRows(env, "audit_jobs", "status = 'queued'"),
+      () => countRows(env, "audit_jobs", "status = 'failed' AND completed_at >= ?", [dayAgo]),
+      () => countRows(env, "audit_schedules", "status = 'active' AND next_run_at < ?", [hourAgo])
+    ],
+    DIGEST_QUERY_CONCURRENCY,
+    (query) => query()
+  );
   return {
     openPaid,
     inProgress,

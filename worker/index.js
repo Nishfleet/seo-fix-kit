@@ -8,8 +8,6 @@ import {
   exportLeadsCsv,
   getAdminSummary,
   getFunnelSummary,
-  sendDailyOpsDigest,
-  sendUrgentOpsAlerts,
   updateFixRequestAdmin
 } from "./routes/admin.js";
 import { getAccountSummary, listReports } from "./routes/account.js";
@@ -39,10 +37,7 @@ import { json, secureHeaders, withPrivateHeaders, withSecurityHeaders } from "./
 import { getDeepHealth } from "./routes/health.js";
 import { isSafeUuid } from "./lib/text.js";
 import { createAdminSession, revokeAdminSession } from "./lib/auth.js";
-import { cleanupExpiredRows } from "./lib/db.js";
-import { runScheduledTasks } from "./lib/scheduled.js";
-import { sendFirstAuditNudges } from "./lib/activation-emails.js";
-import { runUptimeChecks } from "./lib/uptime.js";
+import { runScheduledTasks, scheduledTasks } from "./lib/scheduled.js";
 import {
   aboutHtml,
   aiAnswerReadinessHtml,
@@ -95,13 +90,10 @@ import {
 import {
   createAuditSchedule,
   deleteAuditSchedule,
-  failStaleRunningAuditJobs,
   getAuditJob,
   listAuditSchedules,
   processAuditJob,
   renderedFixture,
-  resumeStaleQueuedAuditJobs,
-  runDueAuditSchedules,
   runPrivateAudit,
   runPrivateDemoAudit
 } from "./routes/audits.js";
@@ -167,7 +159,6 @@ import {
   markLargeRenderedCrawlReadyToMerge,
   processLargeRenderedCrawlBatch,
   retryLargeRenderedCrawl,
-  runDueLargeRenderedCrawlWorkers,
   saveLargeRenderedCrawlBatchProof
 } from "./routes/large-crawls.js";
 
@@ -515,27 +506,7 @@ export { app };
 export default {
   async scheduled(_event, env, ctx) {
     if (!env.WAITLIST_DB) return;
-    const tasks = [
-      ["cleanupExpiredRows", cleanupExpiredRows],
-      [
-        "auditJobs",
-        async (scheduledEnv) => {
-          await failStaleRunningAuditJobs(scheduledEnv);
-          await resumeStaleQueuedAuditJobs(scheduledEnv, { appOrigin: "https://seofixkit.com" });
-        }
-      ],
-      ["runDueAuditSchedules", runDueAuditSchedules],
-      ["runUptimeChecks", runUptimeChecks]
-    ];
-    tasks.push(
-      ["sendFirstAuditNudges", sendFirstAuditNudges],
-      ["sendDailyOpsDigest", sendDailyOpsDigest],
-      ["sendUrgentOpsAlerts", sendUrgentOpsAlerts]
-    );
-    if (String(env.SEOFIXKIT_LARGE_CRAWL_WORKERS_ENABLED || "").toLowerCase() === "true") {
-      tasks.push(["runDueLargeRenderedCrawlWorkers", runDueLargeRenderedCrawlWorkers]);
-    }
-    ctx.waitUntil(runScheduledTasks(env, tasks));
+    ctx.waitUntil(runScheduledTasks(env, scheduledTasks(env)));
   },
 
   async queue(batch, env) {

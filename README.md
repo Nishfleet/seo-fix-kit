@@ -293,6 +293,14 @@ Large rendered crawls are expensive and separately entitlement-gated. Founder ov
 
 Large-crawl browser workers are also opt-in. Set `SEOFIXKIT_LARGE_CRAWL_WORKERS_ENABLED=true` to let the scheduled Worker process queued batches through Browser Run. `SEOFIXKIT_LARGE_CRAWL_WORKER_BATCHES` and `SEOFIXKIT_LARGE_CRAWL_WORKER_URLS` cap each scheduled tick.
 
+### Scheduled run and D1 load
+
+The Worker's cron tick (`worker/lib/scheduled.js`) runs its tasks one after another. D1 answers "DB is overloaded. Requests queued for too long." and drops the connection when one tick holds too many queries at once, so the two tasks that fan out over a list — the uptime sweep and the ops digest — run their work through `worker/lib/bounded.js`, which holds at most eight D1 calls in flight. `D1_MAX_CONCURRENCY` in that file is the ceiling both of them read.
+
+Both tasks used to break it. The uptime sweep started all 25 due sites at once, and the ops digest started all 12 of its count queries at once. PR #289 added a retry on top of both, which hid the errors but left the cause in place.
+
+`test/scheduled-d1-load.test.mjs` runs the real tick through `runScheduledTasks`, records each task's statement count, peak in-flight calls and largest batch on a local D1 with the real migrations applied, and fails when a task passes the ceiling or when `D1_MAX_CONCURRENCY` moves away from the ceiling the test holds. Run it with `npm run test:scheduled-d1-load`; it runs inside `npm run check`.
+
 ## Dodo checkout
 
 The paid repair CTA uses a hosted Dodo checkout session. The product is `SEO Fix Pack`, mapped through `DODO_SEOFIXKIT_PRODUCT_FIX_PACK_ID`; customer-facing copy must stay limited to one proof-backed repair pass plus one rerun, with no ranking promise.

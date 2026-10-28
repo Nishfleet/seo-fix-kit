@@ -1,12 +1,14 @@
 import { emailButton } from "../../shared/email-layout.js";
 import { escapeHtml } from "../../shared/html.js";
 import { fetchPublicUrl, resolvesToPrivateAddress } from "../../shared/url-safety.js";
+import { D1_MAX_CONCURRENCY, runBounded } from "./bounded.js";
 import { emailPreferencesFor } from "./audit-emails.js";
 import { emailSender, sendWorkerEmail } from "./email.js";
 import { hasPaidFixPack, PAID_FIX_PACK_STATUSES } from "./paid-features.js";
 
 const CHECK_EVERY_MINUTES = 14;
 const CHECK_BATCH = 25;
+const CHECK_CONCURRENCY = D1_MAX_CONCURRENCY;
 const MAX_BATCHES_PER_TICK = 4;
 const CHECK_TIMEOUT_MS = 10_000;
 const FAILS_BEFORE_DOWN = 2;
@@ -247,21 +249,16 @@ async function runUptimeChecks(
       .all();
     const due = rows.results || [];
     if (!due.length) break;
-    const results = await Promise.allSettled(
-      due.map((schedule) => checkSchedule(env, schedule, { fetchImpl, privateAddressResolver, now, appOrigin }))
+    const results = await runBounded(due, CHECK_CONCURRENCY, (schedule) =>
+      checkSchedule(env, schedule, { fetchImpl, privateAddressResolver, now, appOrigin }).catch(async () => {
+        await env.WAITLIST_DB.prepare("UPDATE audit_schedules SET uptime_checked_at = ? WHERE id = ?")
+          .bind(now, schedule.id)
+          .run()
+          .catch(() => {});
+        return "error";
+      })
     );
-    for (const [index, result] of results.entries()) {
-      if (result.status === "fulfilled") {
-        outcomes.push(result.value);
-        continue;
-      }
-      outcomes.push("error");
-      // Mark it checked anyway so one broken row can't stall the batch loop.
-      await env.WAITLIST_DB.prepare(`UPDATE audit_schedules SET uptime_checked_at = ? WHERE id = ?`)
-        .bind(now, due[index].id)
-        .run()
-        .catch(() => {});
-    }
+    outcomes.push(...results);
     if (due.length < CHECK_BATCH) break;
   }
   return outcomes;
