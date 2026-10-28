@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import worker from "../worker/index.js";
 import { accountDeletionBlockers, deleteAccount } from "../worker/lib/account-deletion.js";
@@ -14,8 +15,18 @@ const NOW = "2026-10-01T00:00:00.000Z";
 const LATER = "2099-01-01T00:00:00.000Z";
 const REDACTED = "[deleted account]";
 
-// Tables whose email columns only ever hold staff addresses, never a customer's.
-const STAFF_ONLY_TABLES = new Set(["admin_sessions"]);
+const DELETION_SOURCE = readFileSync(new URL("../worker/lib/account-deletion.js", import.meta.url), "utf8");
+const DELETED_TABLES = new Set(
+  [...DELETION_SOURCE.matchAll(/\b(?:FROM|INTO|UPDATE)\s+([a-z][a-z0-9_]*)/g)].map((match) => match[1])
+);
+const DELETION_TABLE_EXEMPTIONS = new Map([
+  ["admin_sessions", "staff sign-in sessions hold no customer email"],
+  [
+    "audit_report_blob_deletion_failures",
+    "the retry queue for report files the deletion could not purge, owned by worker/lib/report-data.js"
+  ],
+  ["ops_digest_runs", "internal digest bookkeeping holds no customer email"]
+]);
 
 function sha256(value) {
   return createHash("sha256").update(String(value)).digest("hex");
@@ -29,6 +40,9 @@ function fakeR2() {
     deleted,
     async put(key, value) {
       objects.set(key, value);
+    },
+    async head(key) {
+      return objects.has(key) ? { key } : null;
     },
     async get(key) {
       return objects.has(key) ? { text: async () => objects.get(key), body: objects.get(key) } : null;
@@ -107,8 +121,6 @@ function seedQueueItem(db, id, reportId, owner, updatedBy = owner) {
   });
 }
 
-// The rows the deletion redacts rather than deletes: a paid Fix Pack, the rate-limit
-// buckets keyed on the address, and an admin note that names it.
 function seedRedactionTargets(db, owner) {
   const slug = owner.replace(/[^a-z0-9]/g, "");
   db.insert("fix_requests", {
@@ -177,8 +189,6 @@ function seedRedactionTargets(db, owner) {
   });
 }
 
-// One row in every customer table, for the account being deleted, plus rows for a
-// second account that must survive and rows elsewhere that mention the first one.
 function seedEverything(world) {
   const { db, REPORTS } = world;
   const e = TARGET;
@@ -269,7 +279,6 @@ function seedEverything(world) {
     updated_at: NOW
   });
 
-  // Team: the leaver owns a team, and is also a member of the stayer's team.
   db.insert("team_members", {
     id: "team-leaver-owns",
     owner_email: e,
@@ -304,7 +313,6 @@ function seedEverything(world) {
     updated_by_email: e
   });
 
-  // Repair work, on the leaver's report and on the stayer's report.
   seedQueueItem(db, "queue-leaver", "rpt-leaver-000001", e);
   seedQueueItem(db, "queue-stayer", "rpt-stayer-000001", OTHER, e);
   db.insert("repair_agent_actions", {
@@ -362,7 +370,6 @@ function seedEverything(world) {
     created_at: NOW
   });
 
-  // Large crawl with every child table.
   db.insert("large_crawl_jobs", {
     id: "crawl-leaver",
     owner_email: e,
@@ -464,7 +471,6 @@ function seedEverything(world) {
     created_at: NOW
   });
 
-  // Payments: one delivered Fix Pack (kept, anonymised) and one never-paid request (deleted).
   db.insert("fix_requests", {
     id: "fix-paid-leaver",
     report_id: "rpt-leaver-000001",
@@ -589,7 +595,6 @@ function seedEverything(world) {
   }
   db.insert("monitoring_checkout_sessions", { owner_email: e, target_host: host, updated_at: NOW });
 
-  // Settings, emails, history, widgets, funnel and rate-limit records.
   db.insert("email_preferences", {
     owner_email: e,
     unsubscribe_token: "unsub-token",
@@ -656,7 +661,6 @@ function seedEverything(world) {
     created_at: NOW
   });
 
-  // The stayer's own account.
   seedQueueItem(db, "queue-stayer-own", "rpt-stayer-000001", OTHER);
   db.insert("site_claims", {
     id: "claim-stayer",
@@ -668,8 +672,6 @@ function seedEverything(world) {
   });
 }
 
-// What a retained Fix Pack may still hold after its owner is deleted: money, dates,
-// provider ids and status. Everything else must be NULL or empty.
 const FIX_REQUEST_ACCOUNTING_COLUMNS = [
   "id",
   "report_id",
@@ -749,20 +751,28 @@ async function call(env, path, { method = "GET", body, cookie, headers = {} } = 
   return { status: response.status, headers: response.headers, json: text ? JSON.parse(text) : null };
 }
 
-test("the seed covers every table that can hold a customer's email", () => {
+test("the deletion names every table that can hold a customer's data", () => {
   const world = makeWorld();
   seedEverything(world);
   signIn(world.db, TARGET);
+  const uncovered = tables(world.db).filter(
+    (table) => !DELETED_TABLES.has(table) && !DELETION_TABLE_EXEMPTIONS.has(table)
+  );
+  assert.deepEqual(
+    uncovered,
+    [],
+    `${uncovered.join(", ")}: cover the table in worker/lib/account-deletion.js, or record why it cannot hold a customer's data in DELETION_TABLE_EXEMPTIONS`
+  );
   const seededTables = new Set(rowsMentioning(world.db, TARGET).map((hit) => hit.table));
-  for (const table of tables(world.db)) {
-    if (STAFF_ONLY_TABLES.has(table)) continue;
-    const emailColumns = world.db.rows(`PRAGMA table_info(${table})`).filter((column) => /email/.test(column.name));
-    if (!emailColumns.length) continue;
-    assert.ok(
-      seededTables.has(table),
-      `${table} has an email column: seed it here and cover it in worker/lib/account-deletion.js`
-    );
-  }
+  const unseeded = tables(world.db)
+    .filter((table) => !DELETION_TABLE_EXEMPTIONS.has(table))
+    .filter((table) => world.db.rows(`PRAGMA table_info(${table})`).some((column) => /email/.test(column.name)))
+    .filter((table) => !seededTables.has(table));
+  assert.deepEqual(
+    unseeded,
+    [],
+    `${unseeded.join(", ")} has an email column: seed it here so the deletion scan covers it`
+  );
 });
 
 test("a signed-in user deletes their account and every trace of it, keeping anonymised payment records", async () => {
@@ -781,7 +791,10 @@ test("a signed-in user deletes their account and every trace of it, keeping anon
   });
   assert.equal(response.status, 200, JSON.stringify(response.json));
   assert.equal(response.json.ok, true);
-  assert.equal(response.json.paymentRecordsKept, 1);
+  assert.equal(response.json.paymentRecordsKept, 2);
+  assert.equal(response.json.storedFilesDeleted, 3);
+  assert.equal(response.json.storedFilesFailed, 0);
+  assert.equal(response.json.auditRecorded, true);
   assert.match(response.headers.get("set-cookie") || "", /sfk_beta_session=;.*Max-Age=0/i);
 
   assert.deepEqual(rowsMentioning(db, TARGET), [], "no row anywhere may still hold the deleted email");
@@ -789,7 +802,6 @@ test("a signed-in user deletes their account and every trace of it, keeping anon
   assert.deepEqual(rowsMentioning(db, "leaver.example"), [], "the deleted account's site must be gone");
   assert.deepEqual(rowsMentioning(db, "Lee Leaver"), [], "payment payloads must not keep the customer's name");
 
-  // Stored report files and generated PDFs are deleted; the stayer's report file stays.
   for (const key of [
     "reports/rpt-leaver-000001.json",
     "report-pdfs/owner/rpt-leaver-000001.pdf",
@@ -800,7 +812,6 @@ test("a signed-in user deletes their account and every trace of it, keeping anon
   }
   assert.ok(REPORTS.objects.has("reports/rpt-stayer-000001.json"));
 
-  // The paid Fix Pack keeps its money trail under a pseudonym; the unpaid one is gone.
   const [kept] = db.rows("SELECT * FROM fix_requests");
   assert.equal(db.rows("SELECT id FROM fix_requests").length, 1);
   assert.equal(kept.id, "fix-paid-leaver");
@@ -849,7 +860,6 @@ test("a signed-in user deletes their account and every trace of it, keeping anon
   );
   assert.equal(db.rows("SELECT owner_email FROM offer_entitlements")[0].owner_email, kept.owner_email);
 
-  // The stayer's account is untouched apart from the leaver's name being removed.
   assert.equal(db.rows("SELECT * FROM audit_reports WHERE owner_email = ?", OTHER).length, 1);
   assert.equal(db.rows("SELECT * FROM repair_queue_items WHERE owner_email = ?", OTHER).length, stayerQueueItems);
   assert.equal(db.rows("SELECT * FROM site_claims WHERE owner_email = ?", OTHER).length, 1);
@@ -859,16 +869,14 @@ test("a signed-in user deletes their account and every trace of it, keeping anon
   assert.equal(db.rows("SELECT * FROM repair_proposals WHERE id = 'proposal-stayer'")[0].approved_by_email, null);
   assert.equal(db.rows("SELECT * FROM audit_usage").length, 1);
 
-  // One audit entry, with no personal data.
   const audit = db.rows("SELECT * FROM admin_audit_log WHERE action = 'account-deleted'");
   assert.equal(audit.length, 1);
   assert.equal(audit[0].actor_email, "account-owner");
   assert.equal(audit[0].ip_hash, "");
   const detail = JSON.parse(audit[0].detail);
   assert.equal(detail.reports, 2);
-  assert.equal(detail.paymentRecordsKept, 1);
+  assert.equal(detail.paymentRecordsKept, 2);
 
-  // A confirmation goes to the address, and the old session no longer works.
   assert.equal(sent.length, 1);
   assert.equal(sent[0].to, TARGET);
   assert.match(sent[0].subject, /deleted/);
@@ -974,7 +982,7 @@ test("support completes an emailed deletion request with the same code", async (
   });
   assert.equal(response.status, 200, JSON.stringify(response.json));
   assert.equal(response.json.ok, true);
-  assert.equal(response.json.paymentRecordsKept, 1);
+  assert.equal(response.json.paymentRecordsKept, 2);
   assert.deepEqual(rowsMentioning(db, TARGET), []);
   const audit = db.rows("SELECT * FROM admin_audit_log WHERE action = 'account-deleted'");
   assert.equal(audit.length, 1);
@@ -982,9 +990,6 @@ test("support completes an emailed deletion request with the same code", async (
   assert.equal(sent.length, 1);
 });
 
-// One account's address can sit inside another account's address, inside a rate-limit
-// bucket key, or inside an admin note, and a substring match on any of them takes the
-// other account's row with it.
 test("an address that contains the deleted one is left whole", async () => {
   const world = makeWorld();
   const { db, env } = world;
@@ -994,32 +999,24 @@ test("an address that contains the deleted one is left whole", async () => {
   const result = await deleteAccount(env, TARGET, { actor: ADMIN_TOKEN });
   assert.equal(result.ok, true);
 
-  // Buckets are keyed on the address, so only the leaver's two go.
   assert.deepEqual(
     db.rows("SELECT bucket FROM audit_usage ORDER BY bucket").map((row) => row.bucket),
     [`checkout:fix_pack:2026-10-01:${NEIGHBOUR}`, `login:email:2026-10-01:${sha256(NEIGHBOUR)}`]
   );
-  // Both webhook rows survive as accounting records; the neighbour's keeps its
-  // payload, only the leaver's is cleared.
   const webhooks = db.rows("SELECT * FROM dodo_webhook_events ORDER BY webhook_id");
   assert.equal(webhooks.length, 2);
   assert.equal(webhooks[0].payload_json, null);
   assert.equal(JSON.parse(webhooks[1].payload_json).data.customer.email, NEIGHBOUR);
-  // The neighbour's note is neither redacted nor cut in half.
   const notes = db.rows("SELECT detail FROM admin_audit_log WHERE action = 'create-invite' ORDER BY id");
   assert.deepEqual(
     notes.map((row) => row.detail),
     [REDACTED, `Created an invite for ${NEIGHBOUR}`]
   );
-  // Every mention of the leaver's address that survives sits inside the neighbour's own
-  // address, which belongs to a different account.
   for (const { table, row } of rowsMentioning(db, TARGET)) {
     assert.equal(JSON.stringify(row).includes(NEIGHBOUR), true, `${table}: ${JSON.stringify(row)}`);
   }
 });
 
-// A Fix Pack paid while the deletion batch runs is no longer a never-paid request by the
-// time the batch reads it, so it must be kept and anonymised instead of deleted.
 test("a Fix Pack paid while the deletion runs is kept", async () => {
   const world = makeWorld();
   const { db, env } = world;
@@ -1043,12 +1040,10 @@ test("a Fix Pack paid while the deletion runs is kept", async () => {
   assert.equal(db.rows("SELECT * FROM fix_request_payments WHERE fix_request_id = 'fix-race'").length, 1);
 });
 
-// A report file that will not delete is recorded by a hash of its key, not by report id
-// or key, because both of those start with the customer's host.
 test("a report blob that will not delete keeps the site name out of D1", async () => {
   const world = makeWorld();
   const { db, env, REPORTS } = world;
-  seedReport(db, REPORTS, "rpt-leaver-000001", TARGET);
+  seedReport(db, REPORTS, "rpt-leaver-000001", TARGET, { inR2: true });
   REPORTS.delete = async () => {
     throw new Error("R2 is down");
   };
@@ -1066,11 +1061,8 @@ test("a report blob that will not delete keeps the site name out of D1", async (
   assert.deepEqual(rowsMentioning(db, TARGET), []);
 });
 
-// --- Audits that finish while the account is being deleted ---
-
 const JOB_ID = "22222222-2222-4222-8222-222222222222";
 
-// Stands in for the browser crawl: a finished one-page audit of the leaver's site.
 async function fakeAudit(url) {
   const origin = new URL(url).origin;
   return {
@@ -1098,7 +1090,6 @@ function seedRunningAudit(db) {
   });
 }
 
-// Runs `action` just before the first statement whose SQL contains `marker` executes.
 function beforeStatement(db, marker, action) {
   const prepare = db.prepare.bind(db);
   let fired = false;
@@ -1160,8 +1151,6 @@ for (const [moment, marker] of [
     );
   });
 }
-
-// --- Which Fix Packs are kept, and which checkouts block deletion ---
 
 function isoHoursAgo(hours) {
   return new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
@@ -1363,7 +1352,6 @@ test("expired or already-subscribed checkouts do not block deletion", async () =
     created_at: NOW,
     updated_at: NOW
   });
-  // Opened an hour ago, then paid and cancelled: the subscription record is newer.
   db.insert("monitoring_checkout_sessions", {
     owner_email: TARGET,
     target_host: "leaver.example",
@@ -1395,4 +1383,136 @@ test("expired or already-subscribed checkouts do not block deletion", async () =
   assert.equal(kept.checkout_url, null);
   assert.equal(kept.checkout_session_id, "cs_expired");
   assert.deepEqual(rowsMentioning(db, TARGET), []);
+});
+
+test("a cancelled subscription is counted as a payment record the account keeps", async () => {
+  const { db, env, sent } = makeWorld();
+  signIn(db, TARGET);
+  db.insert("offer_entitlements", {
+    id: "entitlement-subscription-only",
+    owner_email: TARGET,
+    offer_key: "proof_monitoring",
+    status: "cancelled",
+    source: "dodo_subscription",
+    provider: "dodo",
+    subscription_id: "sub_only",
+    created_at: NOW,
+    updated_at: NOW,
+    revoked_at: NOW
+  });
+  const result = await deleteAccount(env, TARGET, { notify: false });
+  assert.equal(result.ok, true, JSON.stringify(result));
+  assert.equal(result.paymentRecordsKept, 1);
+  assert.equal(sent.length, 0);
+  assert.match(db.rows("SELECT owner_email FROM offer_entitlements")[0].owner_email, /^deleted-account:/);
+});
+
+test("a stored file that cannot be removed is reported and named in the confirmation", async () => {
+  const { db, env, sent, REPORTS } = makeWorld();
+  signIn(db, TARGET);
+  seedReport(db, REPORTS, "rpt-leaver-blob", TARGET, { inR2: true });
+  REPORTS.objects.set("report-pdfs/owner/rpt-leaver-blob.pdf", "pdf");
+  REPORTS.delete = async () => {
+    throw new Error("R2 is unavailable");
+  };
+  const result = await deleteAccount(env, TARGET);
+  assert.equal(result.ok, true, JSON.stringify(result));
+  assert.equal(result.storedFilesDeleted, 0);
+  assert.equal(result.storedFilesFailed, 2);
+  assert.equal(result.auditRecorded, true);
+  assert.equal(sent.length, 1);
+  assert.match(sent[0].text, /could not remove 2 stored report file/);
+  assert.equal(
+    db.rows(
+      "SELECT status FROM audit_report_blob_deletion_failures WHERE blob_key = ?",
+      `deleted:${sha256("reports/rpt-leaver-blob.json")}`
+    )[0].status,
+    "pending"
+  );
+});
+
+test("an address with no account is refused, with no audit row and no email", async () => {
+  const { db, env, sent } = makeWorld();
+  signIn(db, OTHER);
+  const result = await deleteAccount(env, TARGET, { notify: false });
+  assert.equal(result.ok, false, JSON.stringify(result));
+  assert.deepEqual(result.blockers, ["no_account"]);
+  assert.equal(db.rows("SELECT * FROM admin_audit_log WHERE action = 'account-deleted'").length, 0);
+  assert.equal(sent.length, 0);
+});
+
+test("an audit write that fails is reported instead of swallowed", async () => {
+  const { db, env } = makeWorld();
+  signIn(db, TARGET);
+  const prepare = db.prepare.bind(db);
+  db.prepare = (sql) => {
+    if (sql.includes("INSERT INTO admin_audit_log")) {
+      return {
+        bind: () => ({
+          run: async () => {
+            throw new Error("audit log is read-only");
+          }
+        })
+      };
+    }
+    return prepare(sql);
+  };
+  const result = await deleteAccount(env, TARGET, { notify: false });
+  assert.equal(result.ok, true, JSON.stringify(result));
+  assert.equal(result.auditRecorded, false);
+});
+
+test("an event the deleted account acted on inside another account loses its details", async () => {
+  const { db, env } = makeWorld();
+  signIn(db, TARGET);
+  db.insert("fix_requests", {
+    id: "fix-stayer",
+    report_id: "rpt-stayer",
+    owner_email: OTHER,
+    status: "new",
+    target_url: "https://stayer.example/",
+    target_host: "stayer.example",
+    created_at: NOW,
+    updated_at: NOW
+  });
+  db.insert("fix_request_events", {
+    id: "event-stayer-by-leaver",
+    fix_request_id: "fix-stayer",
+    event: "status_changed",
+    actor_type: "staff",
+    actor_email: TARGET,
+    reason: "Lee Leaver asked for a change",
+    detail_json: JSON.stringify({ email: TARGET, name: "Lee Leaver" }),
+    created_at: NOW
+  });
+  const result = await deleteAccount(env, TARGET, { notify: false });
+  assert.equal(result.ok, true, JSON.stringify(result));
+  const [event] = db.rows("SELECT * FROM fix_request_events WHERE id = ?", "event-stayer-by-leaver");
+  assert.equal(event.actor_email, null);
+  assert.equal(event.reason, null);
+  assert.equal(event.detail_json, null);
+  assert.equal(db.rows("SELECT * FROM fix_requests WHERE owner_email = ?", OTHER).length, 1);
+  assert.deepEqual(rowsMentioning(db, "Lee Leaver"), []);
+});
+
+test("a report written after the deletion batch is still removed", async () => {
+  const { db, env, REPORTS } = makeWorld();
+  signIn(db, TARGET);
+  seedReport(db, REPORTS, "rpt-leaver-first", TARGET, { inR2: true });
+  let late = false;
+  const remove = REPORTS.delete.bind(REPORTS);
+  REPORTS.delete = async (keys) => {
+    if (!late) {
+      late = true;
+      seedReport(db, REPORTS, "rpt-leaver-late", TARGET, { inR2: true });
+    }
+    return remove(keys);
+  };
+  const result = await deleteAccount(env, TARGET, { notify: false });
+  assert.equal(result.ok, true, JSON.stringify(result));
+  assert.equal(result.reports, 2);
+  assert.equal(result.storedFilesDeleted, 2);
+  assert.equal(result.storedFilesFailed, 0);
+  assert.equal(db.rows("SELECT * FROM audit_reports WHERE owner_email = ?", TARGET).length, 0);
+  assert.equal(REPORTS.objects.has("reports/rpt-leaver-late.json"), false);
 });

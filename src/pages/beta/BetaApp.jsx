@@ -524,7 +524,6 @@ export function BetaApp({ mountKey }) {
     setInviteCode("");
     setLoginStatus("success");
     setLoginMessage("Your account and its data were deleted.");
-    // Keep this mount so the message survives the move to the sign-in screen.
     replaceUrl("/beta");
   }
 

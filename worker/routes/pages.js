@@ -1329,7 +1329,7 @@ function supportHtml(origin) {
 
       <h2>Ownership and deletion</h2>
       <p>SEO Fix Kit is for sites you own or are authorized to audit. We may pause audits, delete reports or revoke access when ownership is unclear, the target looks abusive, or a crawl could overload someone else’s site. To delete your account and its data, use Delete account under Billing in your account. To get a copy of your data, email us from your account address or reply to an SEO Fix Kit email so we can confirm it is you.</p>
-      <p>Last updated: June 19, 2026.</p>
+      <p>Last updated: October 28, 2026.</p>
     `
   });
 }

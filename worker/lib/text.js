@@ -180,7 +180,6 @@ function isSafeReportId(value) {
   return reportIdSchema.safeParse(value).success;
 }
 
-// The owner email a Fix Pack carries once its account has been deleted.
 const DELETED_ACCOUNT_PREFIX = "deleted-account:";
 
 function isDeletedAccountEmail(value) {
