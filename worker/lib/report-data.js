@@ -424,7 +424,7 @@ async function recordReportBlobDeletionFailure(env, failure = {}) {
   } catch {}
 }
 
-// D1 rejects rows near its ~2MB value limit.
+// upstream: https://developers.cloudflare.com/d1/platform/limits/ — D1 rejects a value near its row-size limit.
 const REPORT_STORAGE_MAX_BYTES = 1_500_000;
 
 function fitReportForStorage(storageReport) {

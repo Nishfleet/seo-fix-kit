@@ -1,7 +1,6 @@
 import { parse as parseCookie } from "cookie";
 
 function cookieValue(request, name) {
-  // `cookie.parse` returns the raw value for malformed percent-encoding instead of throwing.
   return parseCookie(request.headers.get("cookie") || "")[name] || "";
 }
 

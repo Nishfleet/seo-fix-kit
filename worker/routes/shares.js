@@ -30,7 +30,6 @@ import { reportIdFromSuffixPath } from "./reports.js";
 
 const REPORT_SHARE_PASSWORD_MIN_LENGTH = 10;
 
-// Fresh PDF renders (cache misses) allowed per IP (share links) or per account (owner export).
 const REPORT_PDF_RENDERS_PER_HOUR = 10;
 
 const passwordField = z
@@ -490,7 +489,6 @@ async function unlockClientReport(request, env) {
   return clientReportLockedResponse(request, branding, shareToCamel(share), 401, "Password did not match.", report);
 }
 
-// Client reports carry the owner's branding only while they have a paid Fix Pack.
 async function reportBrandingForOwner(env, ownerEmail) {
   if (!(await hasPaidFixPack(env, ownerEmail))) return defaultBranding();
   return savedBrandingForOwner(env, ownerEmail);
@@ -972,8 +970,6 @@ function clientReportLockedResponse(request, branding, share, status = 401, erro
   );
 }
 
-// Version of a rendered PDF: the hash of the exact HTML the browser would print, so any
-// change to the report, branding or share copy renders a fresh PDF.
 async function whiteLabelPdfVersionForHtml(html) {
   return (await sha256Hex(`white-label-pdf:v1:${html}`)).slice(0, 32);
 }
@@ -991,8 +987,6 @@ function whiteLabelPdfResponse(body, { report, branding, share }) {
   return new Response(body, { headers });
 }
 
-// Launching a browser costs money, so a rendered PDF is kept in R2 (REPORTS) under
-// `cacheKey` and served from there while its version matches. `missQuota` limits renders.
 async function renderWorkerWhiteLabelPdf(
   env,
   { report, branding, share, origin, includeDraftBriefs = false, cacheKey = "", missQuota = null }

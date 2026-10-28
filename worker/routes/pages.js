@@ -5,7 +5,6 @@ import { DEMO_PROOF, DEMO_FIXTURE_PATH, demoProofSnippet } from "./demo-proof.js
 
 const FIX_PACK_PUBLIC_PRICE = "$99.00 one-time";
 
-// Social platforms ignore SVG share images.
 const SOCIAL_IMAGE_PATH = "/og-image.png";
 const SOCIAL_IMAGE_WIDTH = 1200;
 const SOCIAL_IMAGE_HEIGHT = 630;
@@ -1414,7 +1413,7 @@ ${pageSocialHead({ origin, title: `${title} - SEO Fix Kit`, description, path })
 </html>`;
 }
 
-// Cloudflare serves dist/404.html for unknown paths ("not_found_handling": "404-page").
+// upstream: https://developers.cloudflare.com/workers/static-assets/routing/ — Cloudflare serves dist/404.html for unknown paths when the asset router is set to "404-page".
 function notFoundHtml(origin = "") {
   const description =
     "This page does not exist on SEO Fix Kit. Go to the homepage, check a page for free, or contact support.";

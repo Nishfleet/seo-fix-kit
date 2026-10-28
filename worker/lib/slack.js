@@ -7,8 +7,7 @@ export function isSlackWebhookUrl(value) {
   }
 }
 
-// Slack mrkdwn: escape the three control characters, and keep link labels
-// from breaking out of <url|label>.
+// upstream: https://api.slack.com/reference/surfaces/formatting — Slack mrkdwn needs the three control characters escaped, and a link label must not break out of <url|label>.
 function esc(value) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")

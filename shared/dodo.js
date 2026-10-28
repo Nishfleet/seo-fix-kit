@@ -20,7 +20,6 @@ export const DODO_DISPUTE_EVENTS = new Set([
   "dispute.lost"
 ]);
 
-// The merchant won, or the customer withdrew: the payment stands again.
 export const DODO_DISPUTE_RESOLVED_EVENTS = new Set(["dispute.won", "dispute.cancelled", "dispute.expired"]);
 
 export const DODO_SUBSCRIPTION_ACTIVE_EVENTS = new Set([
@@ -140,7 +139,7 @@ export function hasDodoRepairSprintCheckoutConfig(env = {}) {
   return dodoRepairSprintCheckoutConfigStatus(env).checkoutReady;
 }
 
-// Standard Webhooks spec (https://www.standardwebhooks.com): signature over `id.timestamp.body`, 5-minute replay tolerance.
+// upstream: https://www.standardwebhooks.com — the signature covers id.timestamp.body, with a 5-minute replay tolerance.
 export async function verifyDodoWebhookSignature({ payload, webhookId, webhookTimestamp, webhookSignature, secret }) {
   if (!payload || !webhookId || !webhookTimestamp || !webhookSignature || !secret) return false;
   try {

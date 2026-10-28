@@ -13,7 +13,34 @@ import react from "eslint-plugin-react";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import jsxA11y from "eslint-plugin-jsx-a11y";
+import noComments from "eslint-plugin-no-comments";
 import prettier from "eslint-config-prettier";
+
+// Vocabulary that marks a comment as an excuse for a workaround rather than an
+// explanation of the code. Agents copy what exists, so one of these becomes
+// house style and the workaround spreads with it.
+const WORKAROUND_TERMS = [
+  "todo",
+  "fixme",
+  "xxx",
+  "hack",
+  "workaround",
+  "work around",
+  "for now",
+  "temporary",
+  "temporarily",
+  "not ideal",
+  "should be",
+  "ideally",
+  "revisit",
+  "later"
+];
+
+// App code: the modules that ship to a browser or to the Worker runtime.
+// Config files (eslint.config.js, vite.config.js, playwright.config.mjs) and
+// tests (*.test.mjs, *smoke-test.js) are outside this block on purpose, so the
+// gate never fights a config comment or a test's fixture note.
+const APP_CODE = ["src/**/*.{js,jsx}", "worker/**/*.js", "server/**/*.js", "shared/**/*.js"];
 
 // Recommended rules with a pre-existing backlog, downgraded to warnings.
 const backlogWarnings = {
@@ -154,5 +181,30 @@ export default [
     // carve-out once it is fixed.
     files: ["shared/promise-audit.test.mjs"],
     rules: { "no-useless-assignment": "warn" }
+  },
+  {
+    // Comment ban on app code (fleet-ops AGENTS.md, fleet-wide 2026-10-14).
+    //
+    // Every comment in these files must earn its place. The three ways a
+    // comment survives here:
+    //
+    //   1. It starts with `eslint` (a disable directive) or `global`.
+    //   2. It starts with `upstream:` and carries a link to the browser quirk,
+    //      third-party bug or protocol rule that forces the code's shape. That
+    //      prefix is the allow-list entry below, so a kept comment is visible
+    //      in the diff instead of hiding among ordinary prose.
+    //   3. It does not exist: the reason moves to the commit message, the PR
+    //      body or an issue, and the constraint itself becomes a named test.
+    //
+    // The backlog was cleared in the PR that added this block; each kept
+    // comment is listed there with its reason.
+    files: APP_CODE,
+    ignores: ["**/*.test.mjs", "**/*smoke-test.js"],
+    plugins: { "no-comments": noComments },
+    rules: {
+      "no-comments/disallowComments": ["error", { allow: ["eslint", "global", "upstream:"] }],
+      "no-inline-comments": "error",
+      "no-warning-comments": ["error", { terms: WORKAROUND_TERMS, location: "anywhere" }]
+    }
   }
 ];

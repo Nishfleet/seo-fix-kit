@@ -27,7 +27,6 @@ function wrapPage(page) {
       }),
     route: (pattern, handler) => page.route(pattern, handler),
     evaluate: (pageFunction, ...args) => page.evaluate(pageFunction, ...args),
-    // puppeteer-only; playwright sets the user agent at context creation.
     setUserAgent: async () => {},
     close: () => page.close()
   };
