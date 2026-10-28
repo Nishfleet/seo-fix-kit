@@ -868,7 +868,6 @@ async function processAuditJob(env, jobId, context = {}) {
     if (await resolvesToPrivateAddress(new URL(row.target_url).hostname)) {
       throw new Error("This URL points at a private or internal address and cannot be audited.");
     }
-    // `context.runAudit` lets tests supply the crawl result without a browser.
     const report = await (context.runAudit || auditUrl)(row.target_url, env, {
       maxPages: clampPageLimit(row.max_pages || 10),
       appOrigin: context.appOrigin || "https://seofixkit.com",
@@ -878,8 +877,6 @@ async function processAuditJob(env, jobId, context = {}) {
       keywordRows: parseJson(row.keyword_rows_json, []),
       renderedCrawlTarget: row.rendered_crawl_target || 0
     });
-    // The owner may have deleted their account while the audit ran. Skip the save when
-    // the job is already gone; the save itself only inserts while the job still exists.
     const stillWanted = await env.WAITLIST_DB.prepare(`SELECT id FROM audit_jobs WHERE id = ? LIMIT 1`)
       .bind(jobId)
       .first();
@@ -905,7 +902,6 @@ async function processAuditJob(env, jobId, context = {}) {
     )
       .bind(saved.id, completedAt, completedAt, jobId)
       .run();
-    // Deleted between the save and here: account deletion removed the report, so send nothing.
     if (Number(completed?.meta?.changes || 0) !== 1) return;
     if (row.schedule_id) {
       const schedule = await env.WAITLIST_DB.prepare(`SELECT interval_days FROM audit_schedules WHERE id = ? LIMIT 1`)

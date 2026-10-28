@@ -145,9 +145,6 @@ async function saveAuditReport(report, request, env, access) {
   return saveAuditReportWithContext(report, env, access, origin);
 }
 
-// With `jobId`, the report is only stored while that queued job still exists for the
-// owner, so an audit that finishes after its account was deleted saves nothing and
-// returns null.
 async function saveAuditReportWithContext(report, env, access, origin, { jobId = "" } = {}) {
   const id = makePrivateReportId(report.url);
   const now = new Date().toISOString();
@@ -241,7 +238,6 @@ const SCORE_HISTORY_DAYS = 366;
 async function recordScoreHistory(env, row) {
   if (!row.ownerEmail) return;
   try {
-    // Only while the report row exists: an account deleted mid-save leaves no history behind.
     await env.WAITLIST_DB.prepare(
       `INSERT OR IGNORE INTO score_history (owner_email, report_id, url, target_host, score, total_findings, created_at)
        SELECT ?, ?, ?, ?, ?, ?, ?
@@ -445,8 +441,6 @@ async function recordReportBlobDeletionFailure(env, failure = {}) {
   } catch {}
 }
 
-// A report file written for a save that then found its job gone: remove it, or record
-// the failure like any other report-file deletion that did not go through.
 async function deleteOrphanedReportBlob(env, reportId) {
   const key = reportR2Key(reportId);
   try {

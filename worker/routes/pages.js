@@ -1292,7 +1292,7 @@ ${pageSocialHead({ origin, title: "Privacy - SEO Fix Kit", description: "What SE
         <li>Deletion: delete your account yourself under Billing in your account (sign in with an email link first, even if you only joined the waitlist). It takes effect right away and removes your reports and stored report files, sites, checks, alerts, API keys, team, widget and badge data, settings, sign-in records and waitlist signup, and your email from other accounts' teams and repair boards. We keep only the payment records accounting and tax rules require (amounts, dates, payment, refund and dispute IDs), with your email, site and notes removed; Dodo Payments keeps its own records as merchant of record. If a Fix Pack is paid but not delivered, or a refund, dispute or subscription is still open, deletion waits until it settles. Deletion requests sent to <a href="mailto:support@seofixkit.com">support@seofixkit.com</a> run through the same process once we confirm the address is yours.</li>
         <li>Access: email <a href="mailto:support@seofixkit.com">support@seofixkit.com</a> (or reply to any email we send) for a copy of your data. We answer verified requests within 30 days.</li>
       </ul>
-      <p>Last updated: October 14, 2026.</p>
+      <p>Last updated: October 28, 2026.</p>
     </main>
     ${siteFooter(origin)}
   </body>
@@ -1329,7 +1329,7 @@ function supportHtml(origin) {
 
       <h2>Ownership and deletion</h2>
       <p>SEO Fix Kit is for sites you own or are authorized to audit. We may pause audits, delete reports or revoke access when ownership is unclear, the target looks abusive, or a crawl could overload someone else’s site. To delete your account and its data, use Delete account under Billing in your account. To get a copy of your data, email us from your account address or reply to an SEO Fix Kit email so we can confirm it is you.</p>
-      <p>Last updated: June 19, 2026.</p>
+      <p>Last updated: October 28, 2026.</p>
     `
   });
 }

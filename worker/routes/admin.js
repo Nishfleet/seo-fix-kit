@@ -921,8 +921,6 @@ async function sendDailyOpsDigest(env) {
   }
 }
 
-// Completes a deletion request that came in by email, with the same code as the
-// in-app "Delete account" button. Support confirms the sender owns the address first.
 async function deleteAccountAdmin(request, env) {
   const admin = await adminAccessStatus(request, env, "delete-account");
   if (!admin.ok) return adminDeniedJson(admin);

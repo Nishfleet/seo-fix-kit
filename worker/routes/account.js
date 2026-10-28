@@ -439,7 +439,10 @@ async function deleteOwnAccount(request, env) {
   const response = jsonNoStore({
     ok: true,
     deletedAt: result.deletedAt,
-    paymentRecordsKept: result.paymentRecordsKept
+    paymentRecordsKept: result.paymentRecordsKept,
+    storedFilesDeleted: result.storedFilesDeleted || 0,
+    storedFilesFailed: result.storedFilesFailed || 0,
+    auditRecorded: result.auditRecorded !== false
   });
   response.headers.append("set-cookie", clearSessionCookie(request));
   return response;
