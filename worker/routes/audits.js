@@ -938,7 +938,7 @@ async function processAuditJob(env, jobId, context = {}) {
       report: apiReportResponse(saved)
     });
   } catch (error) {
-    // Browser Run concurrency limits are transient: requeue instead of failing.
+    // upstream: https://developers.cloudflare.com/browser-run/limits/ — Cloudflare's browser concurrency limits are transient, so requeue instead of failing.
     if (error?.code === "BROWSER_BUSY" && row.created_at && row.created_at > isoSecondsFromNow(-2 * 60 * 60)) {
       await env.WAITLIST_DB.prepare(
         `UPDATE audit_jobs

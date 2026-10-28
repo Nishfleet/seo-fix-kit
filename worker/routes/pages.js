@@ -5,7 +5,6 @@ import { DEMO_PROOF, DEMO_FIXTURE_PATH, demoProofSnippet } from "./demo-proof.js
 
 const FIX_PACK_PUBLIC_PRICE = "$99.00 one-time";
 
-// Social platforms ignore SVG share images.
 const SOCIAL_IMAGE_PATH = "/og-image.png";
 const SOCIAL_IMAGE_WIDTH = 1200;
 const SOCIAL_IMAGE_HEIGHT = 630;
@@ -1286,7 +1285,7 @@ ${pageSocialHead({ origin, title: "Privacy - SEO Fix Kit", description: "What SE
         <li>Fix Pack records store checkout status, Dodo payment identifiers, payment amount and currency, fulfillment notes, final rerun report links, delivery notifications, and admin audit events. We never see or store your card details; Dodo Payments processes payment as merchant of record under its own privacy policy.</li>
         <li>Audit widgets and score badges: when you check a site through an audit widget on someone else's website, we store the email and site address you enter, the score and problem count, and pass them to that widget's owner, who decides how to contact you. Public score badges and score pages show only a site's score, problem count and trend, never the problems themselves. Widget leads are deleted after 12 months.</li>
         <li>Cookies and local browser storage: we set only essential, HttpOnly session cookies (beta login, admin login, and report-unlock state), and the beta dashboard may keep your access email and dashboard state in sessionStorage on your device. No advertising, analytics, or cross-site tracking cookies are set.</li>
-        <li>Processors: Cloudflare (hosting, database, email delivery, browser rendering; data may be processed anywhere on Cloudflare's network) and Dodo Payments (checkout and payment webhooks).</li>
+        <li>Processors: Cloudflare (hosting, database, email delivery, browser rendering; data may be processed anywhere on Cloudflare's network), Dodo Payments (checkout and payment webhooks), and Sentry (Functional Software, Inc., USA; error monitoring: when the service hits an error, a scrubbed error report with the request method, path and stack trace is sent, with request bodies, cookies, query strings and email addresses removed).</li>
         <li>Retention: reports expire after 30 days, except reports tied to a paid Fix Pack, which stay available while we operate the service. To show your progress over time, we keep each report’s page address, score, problem count and date for 12 months. Admin logs, payment records, and notification logs are kept for operating, support, abuse prevention, and payment reconciliation. Rate-limit counters expire automatically.</li>
         <li>We do not sell your personal data and do not send unrelated promotions.</li>
         <li>Deletion: delete your account yourself under Billing in your account (sign in with an email link first, even if you only joined the waitlist). It takes effect right away and removes your reports and stored report files, sites, checks, alerts, API keys, team, widget and badge data, settings, sign-in records and waitlist signup, and your email from other accounts' teams and repair boards. We keep only the payment records accounting and tax rules require (amounts, dates, payment, refund and dispute IDs), with your email, site and notes removed; Dodo Payments keeps its own records as merchant of record. If a Fix Pack is paid but not delivered, or a refund, dispute or subscription is still open, deletion waits until it settles. Deletion requests sent to <a href="mailto:support@seofixkit.com">support@seofixkit.com</a> run through the same process once we confirm the address is yours.</li>
@@ -1415,7 +1414,7 @@ ${pageSocialHead({ origin, title: `${title} - SEO Fix Kit`, description, path })
 </html>`;
 }
 
-// Cloudflare serves dist/404.html for unknown paths ("not_found_handling": "404-page").
+// upstream: https://developers.cloudflare.com/workers/static-assets/routing/ — Cloudflare serves dist/404.html for unknown paths when "not_found_handling" is "404-page".
 function notFoundHtml(origin = "") {
   const description =
     "This page does not exist on SEO Fix Kit. Go to the homepage, check a page for free, or contact support.";

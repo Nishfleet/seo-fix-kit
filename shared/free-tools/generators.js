@@ -1,7 +1,6 @@
 const AVERAGE_WPM_READING = 238;
 const AVERAGE_WPM_SPEAKING = 150;
 
-// Google truncates by rendered width, not characters; these are approximate desktop limits.
 export const SERP_LIMITS = {
   titlePx: 600,
   descriptionPxDesktop: 920,
@@ -656,7 +655,7 @@ export function robotsTest(values) {
   } catch {}
   if (!path.startsWith("/")) path = `/${path}`;
   const token = agent.toLowerCase();
-  // RFC 9309 (https://www.rfc-editor.org/rfc/rfc9309): the longest matching user-agent group wins; "*" is the fallback.
+  // upstream: https://www.rfc-editor.org/rfc/rfc9309 — the longest matching user-agent group wins; "*" is the fallback.
   let best = 0;
   let rules = [];
   let matchedAgent = "";

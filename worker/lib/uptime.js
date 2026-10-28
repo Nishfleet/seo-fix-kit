@@ -16,9 +16,6 @@ const MUTED = "#6b6f6c";
 const GOOD = "#0f7a56";
 const BAD = "#b42318";
 
-// Downtime alerts are a paid perk: owners who bought a Fix Pack (not refunded or
-// disputed) or hold an active paid plan. Everyone else keeps weekly checks only.
-// Matches hasPaidFixPack, minus founder override, which SQL can't see.
 const PAID_STATUS_SQL = PAID_FIX_PACK_STATUSES.map((status) => `'${status}'`).join(", ");
 const PAID_OWNER_SQL = (owner) => `(
   EXISTS (SELECT 1 FROM fix_requests f
@@ -43,9 +40,6 @@ async function uptimeAlertsIncluded(env, ownerEmail, access = null) {
   }
 }
 
-// Only server errors and no answer at all count as down. A 403 or 404 usually
-// means a bot rule or a moved page, which the weekly audit already reports.
-// Every redirect hop is checked so a public URL can't bounce us to a private one.
 async function probe(url, fetchImpl, privateAddressResolver) {
   let response;
   try {
@@ -118,7 +112,6 @@ function buildUptimeEmail({ kind, host, url, error = "", since = "", now, appOri
   return { subject, html, text, preheader: headline, tag: down ? "uptime-down" : "uptime-up" };
 }
 
-// "skipped" means the owner opted out: that counts as handled. "failed" is retried next tick.
 async function sendUptimeEmail(env, schedule, details) {
   if (!env.EMAIL || !emailSender(env)) return "skipped";
   try {
@@ -138,8 +131,6 @@ async function sendUptimeEmail(env, schedule, details) {
   }
 }
 
-// State older than this came from before a gap in checking (lost paid access,
-// paused checks), so it says nothing about the site now and is dropped.
 const STALE_STATE_MINUTES = 60;
 
 function freshState(schedule, now) {
@@ -160,7 +151,6 @@ async function checkSchedule(env, storedSchedule, { fetchImpl, privateAddressRes
   const schedule = freshState(storedSchedule, now);
   const result = await probe(schedule.target_url, fetchImpl, privateAddressResolver);
   const db = env.WAITLIST_DB;
-  // The owner may have paused weekly checks while the probe was in flight.
   const current = await db
     .prepare(`SELECT status, uptime_alerted FROM audit_schedules WHERE id = ? LIMIT 1`)
     .bind(schedule.id)
@@ -187,8 +177,6 @@ async function checkSchedule(env, storedSchedule, { fetchImpl, privateAddressRes
     downSince = status === "down" ? schedule.uptime_down_since || firstFailAt : null;
   }
 
-  // uptime_alerted remembers that the owner was told the site is down. A failed
-  // send leaves it unchanged, so the same alert is tried again next tick.
   let alerted = schedule.staleState ? null : current.uptime_alerted || null;
   if (status === "down" && alerted !== "down") {
     const sent = await sendUptimeEmail(env, schedule, { kind: "down", error: result.error, now, appOrigin });
@@ -199,6 +187,8 @@ async function checkSchedule(env, storedSchedule, { fetchImpl, privateAddressRes
     if (sent !== "failed") alerted = null;
   }
 
+  const outageStart = status === "up" && alerted === "down" ? schedule.uptime_down_since : downSince;
+
   await db
     .prepare(
       `UPDATE audit_schedules
@@ -206,17 +196,7 @@ async function checkSchedule(env, storedSchedule, { fetchImpl, privateAddressRes
            uptime_down_since = ?, uptime_last_error = ?, uptime_alerted = ?
        WHERE id = ? AND status = 'active'`
     )
-    .bind(
-      status,
-      now,
-      fails,
-      firstFailAt,
-      // Keep the outage start until the back-up email goes out.
-      status === "up" && alerted === "down" ? schedule.uptime_down_since : downSince,
-      result.up ? null : result.error,
-      alerted,
-      schedule.id
-    )
+    .bind(status, now, fails, firstFailAt, outageStart, result.up ? null : result.error, alerted, schedule.id)
     .run();
   if (!result.up) return status === "down" ? "down" : "failing";
   return "up";
@@ -234,7 +214,6 @@ async function runUptimeChecks(
   const cutoff = new Date(Date.parse(now) - CHECK_EVERY_MINUTES * 60_000).toISOString();
   const appOrigin = String(env.SEOFIXKIT_APP_ORIGIN || "https://seofixkit.com");
   const outcomes = [];
-  // Work through everything due in batches, so a growing list still fits in one tick.
   for (let batch = 0; batch < MAX_BATCHES_PER_TICK; batch += 1) {
     const rows = await env.WAITLIST_DB.prepare(
       `SELECT * FROM audit_schedules
@@ -256,7 +235,6 @@ async function runUptimeChecks(
         continue;
       }
       outcomes.push("error");
-      // Mark it checked anyway so one broken row can't stall the batch loop.
       await env.WAITLIST_DB.prepare(`UPDATE audit_schedules SET uptime_checked_at = ? WHERE id = ?`)
         .bind(now, due[index].id)
         .run()

@@ -3,7 +3,7 @@ import { createHash, randomBytes } from "node:crypto";
 import fs from "node:fs";
 import test from "node:test";
 import { withScoreGains } from "../shared/audit-engine.js";
-import { buildFixKitFiles, fixKitManifest, groupedFixes } from "../shared/fix-kit-files.js";
+import { buildFixKitFiles, fixKitFilename, fixKitManifest, groupedFixes } from "../shared/fix-kit-files.js";
 import { crc32, zipFiles } from "../shared/zip.js";
 import { app } from "../worker/index.js";
 import { createTestD1 } from "./support/d1.mjs";
@@ -64,6 +64,15 @@ test("zip writer produces a valid archive with correct checksums", () => {
   assert.equal(view.getUint32(0, true), 0x04034b50);
   assert.equal(view.getUint32(zip.length - 22, true), 0x06054b50);
   assert.equal(view.getUint16(zip.length - 22 + 10, true), 1);
+});
+
+test("the fix kit download is named after the report host, and falls back to site for an unusable one", () => {
+  assert.equal(
+    fixKitFilename({ url: "https://acme-widgets.example.com/report/1" }),
+    "seo-fix-kit-acme-widgets-example-com.zip"
+  );
+  assert.equal(fixKitFilename({ url: "not a url" }), "seo-fix-kit-site.zip");
+  assert.equal(fixKitFilename({}), "seo-fix-kit-site.zip");
 });
 
 test("fix kit groups each problem once and makes the site files", () => {

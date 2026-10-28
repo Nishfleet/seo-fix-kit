@@ -89,7 +89,6 @@ test("context options builder maps the mobile descriptor to a true 390x844 mobil
 });
 
 test("context options never leak descriptor label or bare size keys Playwright would silently ignore", () => {
-  // Regression lock: passing the descriptor straight to newContext() used to
   for (const descriptor of WALK_VIEWPORTS) {
     const options = buildContextOptions(descriptor);
     assert.equal("name" in options, false, "descriptor label must not leak into context options");
@@ -216,7 +215,6 @@ test("walk fails on mobile when the page scrolls horizontally", () => {
 });
 
 test("walk flags horizontal overflow even when innerWidth inflates to the overflowing width", () => {
-  // Regression lock for the funnel-walk false negative the scout caught on
   const evidence = passingStopEvidence(FUNNEL_STOPS[1], "mobile");
   evidence.horizontalOverflow = { scrollWidth: 451, clientWidth: 390, innerWidth: 451, overflow: true };
   const failures = evaluateStopEvidence(evidence);

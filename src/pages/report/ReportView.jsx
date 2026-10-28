@@ -369,7 +369,6 @@ const SEVERITY_FILTERS = [
   { key: "notice", label: "Notices" }
 ];
 
-// A fix that covers several pages is named once, without the first page's suffix.
 function fixTitle(fix) {
   return fix.sameIssueCount > 1 ? issuePatternKey(fix.title) : fix.title;
 }

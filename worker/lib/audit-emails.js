@@ -89,7 +89,6 @@ function topFixes(report = {}, limit = 3) {
     if (!finding?.severity || finding.severity === "good") continue;
     const title = String(finding.title || "").trim();
     if (!title) continue;
-    // "Missing H1 on home" and "Missing H1 on /about" are one fix on two pages.
     const key = issuePatternKey(title);
     const group = groups.get(key) || {
       title,

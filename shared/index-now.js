@@ -1,4 +1,4 @@
-// IndexNow (Bing/Naver/Seznam/Yandex instant indexing); the key file must be publicly fetchable: https://www.indexnow.org/documentation
+// upstream: https://www.indexnow.org/documentation — the key file must be publicly fetchable at the host root and the .well-known alias.
 export const INDEX_NOW_KEY = "3219d564f9f914772e178f33ae543e60";
 
 export const INDEX_NOW_ENDPOINTS = ["https://api.indexnow.org/indexnow", "https://www.bing.com/indexnow"];

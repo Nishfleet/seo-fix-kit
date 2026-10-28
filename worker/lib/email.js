@@ -52,7 +52,6 @@ function shouldSkipOwnedInternalEmail(env, { to, tag }) {
 }
 
 async function sendWorkerEmail(env, { to, subject, text, html, preheader = "", tag }) {
-  // Email Service rejects Reply-To as a custom header; use the binding's replyTo field.
   const from = emailSender(env);
   const replyTo = normalizeEmail(env.SEOFIXKIT_REPLY_TO || "");
   const headers = {};

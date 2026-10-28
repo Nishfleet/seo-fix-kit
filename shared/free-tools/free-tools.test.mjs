@@ -125,7 +125,6 @@ test("robots.txt tester follows RFC 9309: most specific group, longest rule, all
   assert.equal(check("Bingbot", "/private/ok/page"), true);
   assert.equal(check("Bingbot", "/files/a.pdf"), false);
   assert.equal(check("Bingbot", "/files/a.pdf?x=1"), true);
-  // Googlebot has its own group, so the * rules don't apply to it.
   assert.equal(check("Googlebot", "/private/page"), true);
   assert.equal(check("Googlebot", "/nogoogle"), false);
   assert.equal(check("GPTBot", "/"), false);

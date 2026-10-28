@@ -183,7 +183,6 @@ function canonicalOrigin(url) {
 }
 
 function executionContext(c) {
-  // Hono's getter throws when the runtime passed no ExecutionContext.
   try {
     return c.executionCtx;
   } catch {
@@ -405,7 +404,7 @@ app.get("/fixture/sitemap.xml", (c) =>
 app.get("/robots.txt", (c) =>
   textResponse(`User-agent: *\nAllow: /\n\nSitemap: ${originOf(c)}/sitemap.xml\n`, "text/plain; charset=utf-8")
 );
-// IndexNow key file: served at the spec root and the .well-known alias (https://www.indexnow.org/documentation).
+// upstream: https://www.indexnow.org/documentation — the key file is served at the spec root and at the .well-known alias.
 for (const keyPath of indexNowKeyFilePaths()) {
   app.get(keyPath, () =>
     textResponse(indexNowKeyFileBody(), "text/plain; charset=utf-8", {
