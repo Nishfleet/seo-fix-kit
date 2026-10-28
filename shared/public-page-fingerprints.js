@@ -1,9 +1,9 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { ROOT_PUBLIC_PATHS } from "../shared/audit-engine.js";
+import { ROOT_PUBLIC_PATHS } from "./audit-engine.js";
 import worker from "../worker/index.js";
 
-export const FINGERPRINTS_FILE = new URL("../shared/public-page-fingerprints.json", import.meta.url);
+export const FINGERPRINTS_FILE = new URL("./public-page-fingerprints.json", import.meta.url);
 const ORIGIN = "https://seofixkit.com";
 const SPA_LANDING_FILES = [
   "src/pages/LandingPage.jsx",

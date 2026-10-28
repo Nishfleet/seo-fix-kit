@@ -6,7 +6,7 @@ import { auditUrl } from "../../server/audit/engine.js";
 import {
   currentPublicPageFingerprints,
   recordedPublicPageFingerprints
-} from "../../scripts/public-page-fingerprints.mjs";
+} from "../../shared/public-page-fingerprints.js";
 import { ROOT_PUBLIC_LASTMODS, ROOT_PUBLIC_PATHS, escapeHtml, rootSitemap } from "../../shared/audit-engine.js";
 import { DEMO_PROOF, DEMO_FIXTURE_PATH, demoProofSnippet } from "./demo-proof.js";
 import { renderedFixture } from "./audits.js";

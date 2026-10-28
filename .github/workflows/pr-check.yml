@@ -78,9 +78,15 @@ jobs:
         # Fails the job on any ESLint error; warnings (the pre-existing
         # backlog downgraded in eslint.config.js) are reported but do not
         # fail. Kept out of the `npm run check` chain on purpose: that chain
-        # is the test inventory guarded by scripts/check-chain-inventory.test.mjs.
+        # is the test inventory guarded by test/check-chain-inventory.test.mjs.
         # Runs before the browser install so lint failures surface fast.
         run: npm run lint
+
+      - name: Regrowth gate - helper-script dirs must stay empty
+        # The repo keeps logic in app source and tests; helper-script dirs
+        # (scripts/ bin/ tools/ ops/ .specify/ and any *.sh) must never
+        # regrow. Fails the required check if any file appears there.
+        run: test -z "$(git ls-files scripts bin tools ops .specify '*.sh')"
 
       - name: Check formatting (Prettier)
         # Fails if any file differs from Prettier's output. Fix locally with

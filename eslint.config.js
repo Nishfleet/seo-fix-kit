@@ -44,7 +44,6 @@ export default [
       "public/**",
       "docs/**",
       "specs/**",
-      "ops/**",
       ".lane/**",
       "migrations/**",
       "prototype-context/**",
@@ -54,8 +53,8 @@ export default [
   },
   js.configs.recommended,
   {
-    // Default for every JS file: modern ESM, Node globals (server/, scripts/,
-    // config files, and *.test.mjs suites all run under Node).
+    // Default for every JS file: modern ESM, Node globals (server/, config
+    // files, and *.test.mjs suites all run under Node).
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "module",
@@ -122,7 +121,8 @@ export default [
     files: [
       "shared/audit-engine.js",
       "server/**/*.js",
-      "scripts/**/*.mjs",
+      "server/**/*.mjs",
+      "test/**/*.mjs",
       "**/*.test.mjs",
       "e2e/**/*.mjs",
       "playwright.config.mjs"
