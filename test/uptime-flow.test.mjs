@@ -79,7 +79,6 @@ test("a site that stops answering twice in a row is marked down once, and recove
   assert.deepEqual(await runUptimeChecks(env, { fetchImpl: answers(200), now: T0 }), ["up"]);
   assert.equal(row().uptime_status, "up");
 
-  // Checked too recently: skipped.
   assert.deepEqual(await runUptimeChecks(env, { fetchImpl: unreachable, now: minutes(5) }), []);
 
   assert.deepEqual(await runUptimeChecks(env, { fetchImpl: unreachable, now: minutes(15) }), ["failing"]);
@@ -150,6 +149,7 @@ test("a down alert that fails to send is retried on the next check", async () =>
   assert.equal(row().uptime_status, "down");
   assert.equal(sent.length, 0);
   assert.equal(row().uptime_alerted, null);
+  assert.equal(row().uptime_down_since, T0);
 
   await runUptimeChecks(env, { fetchImpl: unreachable, now: minutes(30) });
   assert.equal(sent.length, 1);
@@ -234,7 +234,6 @@ test("after a gap in checking, a new outage is alerted even if the old one never
   await runUptimeChecks(env, { fetchImpl: unreachable, now: T0 });
   await runUptimeChecks(env, { fetchImpl: unreachable, now: minutes(15) });
   assert.equal(sent.length, 1);
-  // Checks stop for a day (lost access or paused), then resume during a new outage.
   await runUptimeChecks(env, { fetchImpl: unreachable, now: minutes(24 * 60) });
   assert.equal(row().uptime_alerted, null);
   await runUptimeChecks(env, { fetchImpl: unreachable, now: minutes(24 * 60 + 15) });

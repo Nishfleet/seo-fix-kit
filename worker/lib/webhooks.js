@@ -173,7 +173,6 @@ async function deliverApiWebhook(env, webhook, eventType, body, options = {}) {
             "content-type": "application/json",
             "user-agent": "SEO Fix Kit Webhooks",
             "x-seofixkit-event": eventType,
-            // Slack ignores custom headers, so its messages go unsigned.
             ...(options.unsigned
               ? {}
               : {

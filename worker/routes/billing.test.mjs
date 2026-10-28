@@ -923,7 +923,6 @@ test("Dodo payment still validates customer email when checkout repair target ma
   const result = await processDodoPaymentWebhook(env, "payment.succeeded", payment, "wh_email_mismatch");
 
   assert.equal(result.ok, false);
-  // The customer was charged without getting access: flagged for the admin, never silently ignored.
   assert.equal(result.status, "error");
   assert.equal(result.alertReason, "customer_email_mismatch");
   assert.equal(result.adminAlert.reason, "customer_email_mismatch");
@@ -3325,7 +3324,6 @@ test("signed refund and dispute webhooks with mismatched payment identity mutate
     assert.equal(fixRequest.dispute_event, undefined, eventType);
     const rejectedEvent = env.events.find((event) => event.event === "payment_identity_rejected");
     assert.equal(rejectedEvent.reason, "payment_id_mismatch", eventType);
-    // Unmatched refunds and disputes stay visible and retryable instead of being swallowed.
     assert.equal(env.dodoWebhookEvents.at(-1).status, "error", eventType);
     assert.match(env.dodoWebhookEvents.at(-1).error, /payment_id_mismatch/, eventType);
   }

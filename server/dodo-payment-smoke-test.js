@@ -266,7 +266,6 @@ assert.equal(
   ).limit,
   10
 );
-// A paid plan never covers fewer sites than the free beta allowance.
 assert.equal(
   monitoringAccessFromEntitlements(
     [

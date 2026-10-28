@@ -82,6 +82,21 @@ test("external fix pack customer emails do not carry the internal inbox marker",
   );
 });
 
+test("a configured reply-to goes on the binding field, never on a Reply-To header", async () => {
+  const { env, sent } = fakeEmailEnv({ SEOFIXKIT_REPLY_TO: "help@seofixkit.com" });
+
+  await sendWorkerEmail(env, {
+    to: "customer@example.com",
+    subject: "Payment received: Fix Pack for example.com",
+    text: "Payment confirmed.",
+    html: "<p>Payment confirmed.</p>",
+    tag: "fix-pack-payment"
+  });
+
+  assert.equal(sent[0].replyTo, "help@seofixkit.com");
+  assert.equal(sent[0].headers?.["Reply-To"], undefined);
+});
+
 test("sent HTML is wrapped in the shared layout with preheader, button fallback, and footer", async () => {
   const { env, sent } = fakeEmailEnv();
 

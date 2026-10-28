@@ -1,4 +1,4 @@
-// Email clients ignore <style> blocks and external CSS unevenly, so this layout is table-based with inline styles.
+// upstream: https://www.campaignmonitor.com/css/ — email clients ignore <style> blocks and external CSS unevenly, so this layout is table-based with inline styles.
 import { escapeHtml } from "./html.js";
 
 const SUPPORT_EMAIL = "support@seofixkit.com";

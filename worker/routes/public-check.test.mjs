@@ -160,7 +160,6 @@ test("public check route returns 429 from an exhausted audit_usage bucket with z
         bind() {
           return {
             async run() {
-              // Exactly what D1 returns when the ON CONFLICT ... WHERE
               return { meta: { changes: 0 } };
             }
           };

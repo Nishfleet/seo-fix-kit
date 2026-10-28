@@ -774,7 +774,7 @@ async function extractRenderedFacts(browser, url, options = {}) {
   try {
     await installRenderRequestGuard(page, options);
 
-    // networkidle0 never settles on pages with analytics beacons, polling or websockets.
+    // upstream: https://pptr.dev/api/puppeteer.page.goto — networkidle0 waits for zero in-flight requests, so a page with analytics beacons, polling or websockets never settles.
     const navigationTimeoutMs = Number(options.navigationTimeoutMs) > 0 ? Number(options.navigationTimeoutMs) : 25_000;
     let loadSettled = true;
     let response;
@@ -2616,10 +2616,8 @@ function dedupeHreflangIssues(issues) {
   });
 }
 
-// 429 and 503 mean "ask again later"; Google backs off on them rather than dropping the URL.
 const THROTTLED_STATUSES = new Set([408, 425, 429, 503]);
 
-// Cloudflare 520-526 are edge errors for an unreachable origin; Google retries 5xx rather than treating the URL as dead.
 const CLOUDFLARE_ORIGIN_ERRORS = new Set([520, 521, 522, 523, 524, 525, 526]);
 
 export function isThrottledResource(check) {

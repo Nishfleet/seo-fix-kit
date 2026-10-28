@@ -161,7 +161,7 @@ function writeTicks(ticks) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify([...ticks]));
   } catch {
-    // Private windows can refuse storage; ticks then last for this visit only.
+    // upstream: https://developer.mozilla.org/en-US/docs/Web/API/Storage_API#private_browsing_incognito_mode — private windows can refuse storage, so ticks then last for this visit only.
   }
 }
 
