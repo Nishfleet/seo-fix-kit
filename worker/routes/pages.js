@@ -1291,7 +1291,7 @@ ${pageSocialHead({ origin, title: "Privacy - SEO Fix Kit", description: "What SE
         <li>We do not sell your personal data and do not send unrelated promotions.</li>
         <li>Deletion and access: email <a href="mailto:support@seofixkit.com">support@seofixkit.com</a> (or reply to any email we send) to request a copy or deletion of your beta data. We honor verified requests within 30 days, except records we must keep for payment reconciliation or abuse prevention.</li>
       </ul>
-      <p>Last updated: October 15, 2026.</p>
+      <p>Last updated: October 28, 2026.</p>
     </main>
     ${siteFooter(origin)}
   </body>
