@@ -78,6 +78,7 @@
     "test:storage": "node --test src/storage.test.mjs",
     "test:d1-support": "node --test test/support/d1.test.mjs",
     "test:auth-flow": "node --test test/auth-flow.test.mjs",
+    "test:account-deletion": "node --test test/account-deletion-flow.test.mjs",
     "test:payments-flow": "node --test test/payments-flow.test.mjs",
     "test:core-api-flow": "node --test test/core-api-flow.test.mjs",
     "test:spa": "node --test test/spa.test.mjs",
