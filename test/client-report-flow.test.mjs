@@ -181,8 +181,6 @@ test("an older saved report recomputes its projected score from distinct top fix
   assert.deepEqual((body.report || body).projectedScore, { fixes: 3, from: 70, to: 100 });
 });
 
-// ---------- PDF render caching (each miss launches a paid browser) ----------
-
 function fakeR2() {
   const objects = new Map();
   return {
@@ -264,7 +262,6 @@ test("public share PDF cache misses are rate limited per IP, and a changed repor
       version: await whiteLabelPdfCacheVersion({ ...pdfArgs, report: { ...pdfArgs.report, score: 1 } })
     }
   });
-  // No BROWSER binding: a miss that passes the limit answers 503 instead of rendering.
   const env = { WAITLIST_DB: db, REPORTS };
   const statuses = [];
   for (let i = 0; i < 11; i += 1) statuses.push((await pdfRequest(env, `/r/${share.id}.pdf`)).status);

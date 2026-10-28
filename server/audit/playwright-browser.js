@@ -27,7 +27,6 @@ function wrapPage(page) {
       }),
     route: (pattern, handler) => page.route(pattern, handler),
     evaluate: (pageFunction, ...args) => page.evaluate(pageFunction, ...args),
-    setUserAgent: async () => {},
     close: () => page.close()
   };
 }

@@ -139,7 +139,7 @@ export function hasDodoRepairSprintCheckoutConfig(env = {}) {
   return dodoRepairSprintCheckoutConfigStatus(env).checkoutReady;
 }
 
-// upstream: https://www.standardwebhooks.com — the signature covers id.timestamp.body, with a 5-minute replay tolerance.
+// upstream: https://www.standardwebhooks.com — the Standard Webhooks spec signs id.timestamp.body and allows a 5-minute replay tolerance.
 export async function verifyDodoWebhookSignature({ payload, webhookId, webhookTimestamp, webhookSignature, secret }) {
   if (!payload || !webhookId || !webhookTimestamp || !webhookSignature || !secret) return false;
   try {

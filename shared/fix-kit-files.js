@@ -278,10 +278,14 @@ export function fixKitManifest(report = {}) {
   };
 }
 
-export function fixKitFilename(report = {}) {
-  let host = "site";
+function reportHostname(report) {
   try {
-    host = new URL(report.url || report.origin).hostname;
-  } catch {}
-  return `seo-fix-kit-${slug(host, "site")}.zip`;
+    return new URL(report.url || report.origin).hostname;
+  } catch {
+    return "";
+  }
+}
+
+export function fixKitFilename(report = {}) {
+  return `seo-fix-kit-${slug(reportHostname(report), "site")}.zip`;
 }

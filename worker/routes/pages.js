@@ -1413,7 +1413,7 @@ ${pageSocialHead({ origin, title: `${title} - SEO Fix Kit`, description, path })
 </html>`;
 }
 
-// upstream: https://developers.cloudflare.com/workers/static-assets/routing/ — Cloudflare serves dist/404.html for unknown paths when the asset router is set to "404-page".
+// upstream: https://developers.cloudflare.com/workers/static-assets/routing/ — Cloudflare serves dist/404.html for unknown paths when "not_found_handling" is "404-page".
 function notFoundHtml(origin = "") {
   const description =
     "This page does not exist on SEO Fix Kit. Go to the homepage, check a page for free, or contact support.";

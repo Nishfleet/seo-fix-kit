@@ -94,7 +94,7 @@ test("a configured reply-to goes on the binding field, never on a Reply-To heade
   });
 
   assert.equal(sent[0].replyTo, "help@seofixkit.com");
-  assert.equal(sent[0].headers["Reply-To"], undefined);
+  assert.equal(sent[0].headers?.["Reply-To"], undefined);
 });
 
 test("sent HTML is wrapped in the shared layout with preheader, button fallback, and footer", async () => {

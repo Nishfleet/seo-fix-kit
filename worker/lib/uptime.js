@@ -187,6 +187,8 @@ async function checkSchedule(env, storedSchedule, { fetchImpl, privateAddressRes
     if (sent !== "failed") alerted = null;
   }
 
+  const outageStart = status === "up" && alerted === "down" ? schedule.uptime_down_since : downSince;
+
   await db
     .prepare(
       `UPDATE audit_schedules
@@ -194,16 +196,7 @@ async function checkSchedule(env, storedSchedule, { fetchImpl, privateAddressRes
            uptime_down_since = ?, uptime_last_error = ?, uptime_alerted = ?
        WHERE id = ? AND status = 'active'`
     )
-    .bind(
-      status,
-      now,
-      fails,
-      firstFailAt,
-      status === "up" && alerted === "down" ? schedule.uptime_down_since : downSince,
-      result.up ? null : result.error,
-      alerted,
-      schedule.id
-    )
+    .bind(status, now, fails, firstFailAt, outageStart, result.up ? null : result.error, alerted, schedule.id)
     .run();
   if (!result.up) return status === "down" ? "down" : "failing";
   return "up";
