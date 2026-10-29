@@ -4,7 +4,18 @@ Use this file for durable project truth Codex cannot reliably infer from code al
 
 ## Decisions
 
-- _No durable decisions logged yet._
+- 2026-10-28 (issue #308): the production D1 database keeps an off-site copy beyond
+  Time Travel. Reason: paying customers' email addresses and their
+  payment/refund/dispute records live in `seofixkit_waitlist`, Time Travel cannot
+  restore a deleted database, and its 30-day bookmark window is shorter than a
+  payment dispute or a tax record. Shipped as the stock Cloudflare Workflows D1
+  export in `worker/d1-backup-workflow.js`, running daily at 00:00 UTC into
+  `r2://seofixkit-backups/d1/`; the runbook is `docs/restore-runbook.md`. The one remaining
+  manual step is the long-lived `D1_REST_API_TOKEN` Worker secret: mint it through
+  a reviewed `infra/cloudflare-tokens` PR, then
+  `npx wrangler secret put D1_REST_API_TOKEN`. Decision path: the fleet's
+  typed-decision judge returned p=0.82, and one jailed final-say review chose
+  build over wontfix.
 
 ## Rejected Paths
 

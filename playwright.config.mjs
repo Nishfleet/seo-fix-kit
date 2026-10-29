@@ -23,7 +23,7 @@ export default defineConfig({
     { name: "mobile", use: { ...devices["Pixel 7"] } }
   ],
   webServer: {
-    command: "node e2e/server.mjs",
+    command: "node --import ./test/cloudflare-workers-hooks.mjs e2e/server.mjs",
     url: `http://127.0.0.1:${PORT}/api/health`,
     reuseExistingServer: !process.env.CI,
     env: { E2E_PORT: String(PORT) },

@@ -513,6 +513,7 @@ app.onError((error, c) => {
 });
 
 export { app };
+export { D1BackupWorkflow } from "./d1-backup-workflow.js";
 
 export default {
   async scheduled(_event, env, ctx) {

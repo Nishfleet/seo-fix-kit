@@ -27,7 +27,9 @@
     "DODO_SEOFIXKIT_PRODUCT_FIX_PACK_ID": "pdt_0NfFwlntrooPljJUYoXK8",
     "DODO_SEOFIXKIT_ENVIRONMENT": "live",
     "DODO_SEOFIXKIT_ADAPTIVE_CURRENCY_FEES_INCLUSIVE": "true",
-    "INTERNAL_EMAIL_DOMAINS": "0509.io,0509.in,inish.in,aiconverter.app,siterep.net,tinystudio.io,tinystudio.in,seofixkit.com"
+    "INTERNAL_EMAIL_DOMAINS": "0509.io,0509.in,inish.in,aiconverter.app,siterep.net,tinystudio.io,tinystudio.in,seofixkit.com",
+    "ACCOUNT_ID": "f670a698e17bf160c8e4679823e68916",
+    "DATABASE_ID": "887316c4-ca9d-4068-a7fa-1f530b479437"
   },
   "assets": {
     "directory": "./.cloudflare/output/v0/workers/default/assets",
@@ -45,6 +47,18 @@
     {
       "binding": "REPORTS",
       "bucket_name": "seofixkit-reports"
+    },
+    {
+      "binding": "BACKUP_BUCKET",
+      "bucket_name": "seofixkit-backups"
+    }
+  ],
+  "workflows": [
+    {
+      "name": "d1-backup-workflow",
+      "binding": "BACKUP_WORKFLOW",
+      "class_name": "D1BackupWorkflow",
+      "schedules": ["0 0 * * *"]
     }
   ],
   "queues": {
