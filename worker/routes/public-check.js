@@ -375,6 +375,8 @@ export function checkHtml(origin) {
       .copy:hover { background: var(--surface-hover); }
       .finding .snippet-label { color: var(--ink-muted); font-size: 12px; font-weight: 600; letter-spacing: .04em; margin: 6px 0 0; text-transform: uppercase; }
       .empty-note { background: var(--success-surface); border: 1px solid var(--line-accent); border-radius: var(--radius-lg); color: var(--success); font-size: 15px; margin: 0; padding: 14px 16px; }
+      .result-next { align-items: center; background: var(--surface-sunken); border-bottom: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 12px 16px; justify-content: space-between; padding: 16px 24px; }
+      .result-next p { color: var(--ink); font-size: 16px; font-weight: 600; margin: 0; }
       .result-foot { align-items: center; background: var(--accent-surface); border-top: 1px solid var(--line-accent); display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; padding: 20px 24px; }
       .result-foot p { margin: 0; }
       .result-foot strong { color: var(--ink); display: block; font-size: 17px; }
@@ -403,7 +405,7 @@ export function checkHtml(origin) {
       .projected strong { color: var(--accent); }
       .prompt-row { align-items: center; display: flex; flex-wrap: wrap; gap: 10px 14px; }
       .prompt-note { color: var(--ink-muted); font-size: 14px; }
-      @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } .measure-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .result-head, .result-body, .result-foot { padding-left: 16px; padding-right: 16px; } .check-form .row, .compare-form .row { flex-direction: column; } .compare-table th, .compare-table td { padding: 9px 10px; } main { padding-top: 32px; } }
+      @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } .measure-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .result-head, .result-next, .result-body, .result-foot { padding-left: 16px; padding-right: 16px; } .check-form .row, .compare-form .row { flex-direction: column; } .compare-table th, .compare-table td { padding: 9px 10px; } main { padding-top: 32px; } }
     </style>
   </head>
   <body>

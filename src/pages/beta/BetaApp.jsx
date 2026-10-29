@@ -8,7 +8,8 @@ import { storageGet, storageRemove, storageSet } from "../../storage.js";
 import { AppShell, PageHeader } from "../../components/AppShell.jsx";
 import { LoadingAuditState, ErrorAuditState } from "../../components/AuditStates.jsx";
 import { reportIdFromPath, readOrCreateFunnelKey } from "../../lib/browser.js";
-import { BETA_SESSION_KEY, BETA_EMAIL_KEY, FUNNEL_KEY } from "../../lib/constants.js";
+import { handoffPageUrl } from "../../../shared/public-check/check-handoff.js";
+import { BETA_SESSION_KEY, BETA_EMAIL_KEY, CHECK_URL_KEY, FUNNEL_KEY } from "../../lib/constants.js";
 import { sectionFromPath } from "../../lib/app-sections.js";
 import { queryKeys } from "../../lib/queries.js";
 import { formatCount, safeHostnameLabel } from "../../lib/format.js";
@@ -129,7 +130,7 @@ export function BetaApp({ mountKey }) {
       : loginStatus === "idle" && accessQuery.isError
         ? accessQuery.error?.message || "This sign-in link expired or was already used. Send yourself a new one below."
         : loginMessage;
-  const [targetUrl, setTargetUrl] = useState("");
+  const [targetUrl, setTargetUrl] = useState(() => handoffPageUrl(location.search, storageGet(CHECK_URL_KEY)));
   const [maxPages, setMaxPages] = useState(String(DEFAULT_CRAWL_PAGES));
   const [renderedCrawlTarget, setRenderedCrawlTarget] = useState("0");
   const [competitorUrls, setCompetitorUrls] = useState("");
@@ -227,6 +228,11 @@ export function BetaApp({ mountKey }) {
       state: { betaMountKey: mountKey }
     });
   }, [hasInviteParam, navigate, mountKey]);
+
+  useEffect(() => {
+    const checkedPage = handoffPageUrl(location.search, "");
+    if (checkedPage) storageSet(CHECK_URL_KEY, checkedPage);
+  }, [location.search]);
 
   const auditPollRef = useRef(null);
   useEffect(() => () => auditPollRef.current?.abort(), []);
@@ -439,6 +445,7 @@ export function BetaApp({ mountKey }) {
         requireOkFlag: false,
         fallbackError: "The audit didn’t finish. Try again."
       });
+      storageRemove(CHECK_URL_KEY);
       if (payload.mode === "queued" && (payload.jobId || payload.job?.id)) {
         const jobId = payload.jobId || payload.job.id;
         setAuditMessage("Audit queued. Waiting to start…");

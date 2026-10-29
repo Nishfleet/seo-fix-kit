@@ -1,3 +1,5 @@
+import { checkHandoffHref } from "./check-handoff.js";
+
 const INVALID_URL = "Enter a valid public website URL.";
 const STEPS = [
   "Waiting for the page to finish loading…",
@@ -168,6 +170,16 @@ export function renderResult(payload) {
   head.appendChild(tally);
   card.appendChild(head);
 
+  const handoff = checkHandoffHref(payload.finalUrl || payload.checkedUrl);
+  const nextStep = el("div", "", "result-next");
+  nextStep.appendChild(
+    el("p", `Next: turn this check into a saved report for ${hostOf(payload.finalUrl || payload.checkedUrl)}.`)
+  );
+  const nextCta = el("a", `Get the full report for ${hostOf(payload.finalUrl || payload.checkedUrl)}`, "cta");
+  nextCta.href = handoff;
+  nextStep.appendChild(nextCta);
+  card.appendChild(nextStep);
+
   const body = el("div", "", "result-body");
 
   const problems = block("Problems to fix");
@@ -235,7 +247,7 @@ export function renderResult(payload) {
   if (payload.boundary) text.appendChild(el("span", payload.boundary));
   foot.appendChild(text);
   const cta = el("a", "Create a free account", "cta");
-  cta.href = "/beta";
+  cta.href = handoff;
   foot.appendChild(cta);
   card.appendChild(foot);
   return card;
