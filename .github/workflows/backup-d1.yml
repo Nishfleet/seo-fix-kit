@@ -1,19 +1,55 @@
 name: Weekly D1 backup
 
-# The weekly production export that the retired Mac task
-# seofixkit-weekly-d1-backup used to run, moved here per
-# Nishfleet/fleet-ops#9527. Sunday 03:30 UTC is the slot the old host timer
-# pinned, so the cadence does not change with the scheduler. Wrangler is
-# banned fleet-wide (global-standing-rules.md, 2026-09-28), so the export
-# uses the D1 REST API and the upload uses the cf CLI, authenticated with
-# this repo's CLOUDFLARE_API_TOKEN secret (infra/cloudflare-tokens, key
-# "seo-fix-kit"). ops/RESTORE.md records what this dump is and is not; D1
-# Time Travel stays the primary restore path.
+# The weekly production export of `seofixkit_waitlist`, which the retired Mac
+# task `seofixkit-weekly-d1-backup` used to run from a host scheduler
+# (Nishfleet/fleet-ops#9527). The scheduler is gone, so the cadence lives here,
+# in this repository's own CI, on the Cloudflare token this repository already
+# holds. Sunday 03:30 UTC is the slot the old host timer pinned, so the weekly
+# cadence does not move with the scheduler.
+#
+# This is a secondary copy, not the restore path. `docs/restore-runbook.md`
+# keeps stock D1 Time Travel as the restore: it is always on, has no
+# statement-size limits, and needs nothing scheduled or remembered. The dump
+# adds only the two cases Time Travel does not cover, a copy that outlives 30
+# days and a copy that survives the database itself being deleted. Whether the
+# product needs that coverage at all is Nishfleet/seo-fix-kit#308.
+#
+# The dump lands as an age-sealed GitHub artifact, not in object storage, for
+# two reasons that are properties of this repository rather than preferences.
+# First, the Cloudflare token this repository holds carries Workers Scripts
+# Write, D1 Write, Queues Write and Account Settings Read on the account and
+# Zone Read and Workers Routes Write on the zone (infra/cloudflare-tokens,
+# `main.tf`, key "seo-fix-kit"), and no object-storage permission, so the
+# retired script's `r2://seofixkit-backups/d1/` target is not reachable from
+# here. Second, that target is inside the same Cloudflare account as the
+# database, which is the same weakness the retired dump was recorded as having.
+# An artifact is on GitHub's storage, outside both.
+#
+# The dump is sealed with age before anything ships: this repository is public,
+# so its workflow artifacts are downloadable by anyone who can read it, and the
+# plaintext dump holds customer rows. Only the ciphertext leaves the runner and
+# the plaintext dies with the runner's temp. AGE_RECIPIENT is the fleet backup
+# key's public half, never a secret and never the private key, which stays on
+# the fleet host. It is a literal rather than a repository variable so this
+# backup needs no GitHub settings change to start (fleet-ops#10829), and
+# rotating the key is a one-line edit here. A run without a recipient fails
+# loud on purpose: a backup that quietly shipped plaintext, or quietly shipped
+# nothing, is the invisibility this job exists to end. The age release itself is
+# digest-pinned.
+#
+# The dump is one stock command, `wrangler d1 export --remote`. It starts the
+# D1 export API, follows the returned bookmark to the finished dump, downloads
+# the signed URL and writes the SQL file. That replaces the retired shell glue,
+# which chained the same steps through a temp file and a hand-built poll loop
+# outside the repository. Wrangler is the fleet's last-resort Cloudflare tool,
+# and `wrangler d1 export` is the one command approved for the weekly D1
+# backups; the job authenticates with this repository's API token, not with the
+# OAuth login the Mac task used.
 
 on:
   schedule:
     - cron: "30 3 * * 0" # Sundays 03:30 UTC; GitHub schedules are always UTC
-  workflow_dispatch: {} # one-off runs, for example right after merging
+  workflow_dispatch: {} # one-off runs, for example a restore drill
 
 permissions:
   contents: read
@@ -24,66 +60,63 @@ concurrency:
 
 jobs:
   backup:
-    name: export and upload
+    name: export and seal
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_ACCOUNT_ID: 89cff4c60995911834c7f9c6d1778341 # the fleet account
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      DATABASE_ID: 887316c4-ca9d-4068-a7fa-1f530b479437 # wrangler.jsonc d1_databases[0]
-      BUCKET: seofixkit-backups # the bucket ops/RESTORE.md names
+      AGE_RECIPIENT: age1650j6pxe55udk93gv3qsjeugfrdkhazc3ynpydjm64qm8k7fvvjqc093e4
+      DB_NAME: seofixkit_waitlist # wrangler.jsonc d1_databases[0]
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
+          # .nvmrc is the single source of truth, shared with pr-check.yml and
+          # deploy-production.yml, so the dump runs on the same major that
+          # ships.
           node-version-file: .nvmrc
-      - name: Install the cf CLI
-        run: npm install --global --no-audit --no-fund cf@1.0.0-beta.21
-      - name: Export the database and download the dump
+          cache: npm
+      # Wrangler comes from the committed lockfile (4.149.0), not a floating
+      # `npx` tag.
+      - run: npm ci
+      - name: Install age, pinned by digest
+        env:
+          AGE_VERSION: v1.3.2
+          AGE_LINUX_AMD64_SHA256: cbe24006683f8eb669266162894b9a522a1af52f2665fbc63a4bb032ed26ac10
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/age.tar.gz" "https://github.com/FiloSottile/age/releases/download/$AGE_VERSION/age-$AGE_VERSION-linux-amd64.tar.gz"
+          echo "$AGE_LINUX_AMD64_SHA256  $RUNNER_TEMP/age.tar.gz" | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/age-bin"
+          tar -xzf "$RUNNER_TEMP/age.tar.gz" -C "$RUNNER_TEMP/age-bin" --strip-components=1 age/age
+          test -x "$RUNNER_TEMP/age-bin/age"
+      - name: Export the database and seal the dump
         run: |
           set -euo pipefail
           umask 077
-          # The token must never reach argv: curl reads the header from a
-          # 0600 file, not from the command line.
-          printf 'Authorization: Bearer %s\n' "$CLOUDFLARE_API_TOKEN" >"$RUNNER_TEMP/cf-auth"
-          dump="$RUNNER_TEMP/seofixkit-backup-$(date -u +%Y-%m-%d).sql"
-          api="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database/$DATABASE_ID/export"
-          started="$(curl -fsS --retry 5 --retry-all-errors --retry-delay 2 -X POST "$api" \
-            -H @"$RUNNER_TEMP/cf-auth" -H 'content-type: application/json' \
-            --data '{"output_format":"polling"}')"
-          bookmark="$(printf '%s' "$started" | jq -er '.result.at_bookmark')"
-          signed_url=""
-          for _ in $(seq 1 60); do
-            status="$(curl -fsS --retry 5 --retry-all-errors --retry-delay 2 -X POST "$api" \
-              -H @"$RUNNER_TEMP/cf-auth" -H 'content-type: application/json' \
-              --data "$(jq -nc --arg bookmark "$bookmark" '{current_bookmark:$bookmark}')")"
-            signed_url="$(printf '%s' "$status" | jq -r '.result.signed_url // empty')"
-            if [ -n "$signed_url" ]; then break; fi
-            sleep 5
-          done
-          if [ -z "$signed_url" ]; then
-            printf 'export never became ready: %s\n' "$status" >&2
-            exit 1
-          fi
-          curl -fsS --retry 5 --retry-all-errors --retry-delay 2 -o "$dump" "$signed_url"
-          test -s "$dump"
-          rm -f "$RUNNER_TEMP/cf-auth"
-          printf 'DUMP_PATH=%s\n' "$dump" >>"$GITHUB_ENV"
-          wc -c "$dump"
-      - name: Upload the dump to R2
-        run: |
-          set -euo pipefail
-          cf r2 objects put "d1/$(basename "$DUMP_PATH")" \
-            --bucket-name "$BUCKET" \
-            --file "$DUMP_PATH" \
-            --content-type application/sql
-      - name: Verify the object landed
-        run: |
-          set -euo pipefail
-          cf r2 objects get "d1/$(basename "$DUMP_PATH")" \
-            --bucket-name "$BUCKET" >"$RUNNER_TEMP/round-trip.sql"
-          cmp "$DUMP_PATH" "$RUNNER_TEMP/round-trip.sql"
-          printf 'round-trip verified: %s bytes\n' "$(wc -c <"$DUMP_PATH")"
-          rm -f "$DUMP_PATH" "$RUNNER_TEMP/round-trip.sql" # the dump holds customer rows
+          test -n "$AGE_RECIPIENT" || { echo "::error::the age recipient is unset: AGE_RECIPIENT in .github/workflows/backup-d1.yml must be the fleet backup key's public key — the backup refuses to ship plaintext dumps"; exit 1; }
+          mkdir -p "$RUNNER_TEMP/d1-backup"
+          file="$RUNNER_TEMP/d1-backup/seofixkit-backup-$(date -u +%Y-%m-%d).sql"
+          # `-y` skips wrangler's interactive "this locks the database" prompt,
+          # which no runner can answer.
+          npx wrangler d1 export "$DB_NAME" --remote -y --output "$file" \
+            || { echo "::error::$DB_NAME export: wrangler d1 export failed"; exit 1; }
+          test -s "$file" || { echo "::error::$DB_NAME export: the dump is empty"; exit 1; }
+          echo "exported $DB_NAME -> ${file##*/} ($(wc -c < "$file") bytes, sha256 $(sha256sum "$file" | cut -d' ' -f1))"
+          # Sealed before anything ships: only the .age ciphertext reaches the
+          # artifact, and the plaintext dies with the runner's temp.
+          "$RUNNER_TEMP/age-bin/age" -r "$AGE_RECIPIENT" -o "$file.age" "$file" \
+            || { echo "::error::$DB_NAME export: the age encryption failed"; exit 1; }
+          rm -f "$file"
+          sha256sum "$RUNNER_TEMP/d1-backup/"*.sql.age
+      - name: Upload the sealed dump off Cloudflare
+        # A job whose dump failed never reaches this step, so a failure is the
+        # dump's own red run and never a silently empty artifact.
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: d1-backup-${{ env.DB_NAME }}
+          path: ${{ runner.temp }}/d1-backup/*.sql.age
+          retention-days: 90 # 13 weekly points
+          if-no-files-found: error

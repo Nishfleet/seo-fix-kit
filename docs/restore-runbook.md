@@ -33,12 +33,33 @@ Reference: https://developers.cloudflare.com/d1/reference/time-travel/
 ## The weekly SQL dump — secondary copy, not the restore path
 
 A weekly export runs in this repo's own CI
-(`.github/workflows/backup-d1.yml`, Sundays 03:30 UTC), writing
-`r2://seofixkit-backups/d1/seofixkit-backup-YYYY-MM-DD.sql`. It moved
-here from the retired Mac task on 2026-10-24
-(Nishfleet/fleet-ops#9527) after the host-scheduler copy was retired as
-glue on 2026-10-23 (issue #304). One-off runs: the workflow's Run
-workflow button, or `gh workflow run backup-d1.yml`.
+(`.github/workflows/backup-d1.yml`, Sundays 03:30 UTC), landing as an
+age-sealed GitHub Actions artifact named `d1-backup-seofixkit_waitlist`
+and kept 90 days, which is 13 weekly points. It moved here from the
+retired Mac task on 2026-10-24 (Nishfleet/fleet-ops#9527) after the
+host-scheduler copy was retired as glue on 2026-10-23 (issue #304).
+One-off runs: the workflow's Run workflow button, or
+`gh workflow run backup-d1.yml`.
+
+To restore from a dump, download the artifact from the run, unseal it with
+the fleet backup key's private half (it lives on the fleet host, at
+`~/.config/drive/d1-backup-key.txt`, and never in this repository), and
+import the SQL file:
+
+```bash
+gh run download <run-id> -n d1-backup-seofixkit_waitlist -D /tmp/d1-backup
+age -d -i ~/.config/drive/d1-backup-key.txt \
+  -o /tmp/d1-backup/seofixkit-backup-YYYY-MM-DD.sql \
+  /tmp/d1-backup/seofixkit-backup-YYYY-MM-DD.sql.age
+```
+
+The dump does not land in object storage: the Cloudflare token this
+repository holds carries no object-storage permission
+(`infra/cloudflare-tokens`, `main.tf`, key "seo-fix-kit"), and the bucket
+the retired script wrote to is inside the same Cloudflare account as the
+database itself. An artifact is outside both. The dump is sealed with age
+before it leaves the runner because this repository is public and the
+plaintext dump holds customer rows.
 
 Everything the retirement recorded about the dump still holds: being
 weekly it can lose up to a week of writes, and the 2026-06-12 rehearsal
@@ -63,3 +84,7 @@ https://developers.cloudflare.com/workflows/examples/backup-d1/
 - 2026-06-12 — bucket created, first export uploaded, scratch-DB restore
   attempted: schema/small tables import; oversized report rows hit
   SQLITE_TOOBIG (see above). Scratch DB deleted.
+- 2026-10-29 — the export moved off the Mac task into
+  `.github/workflows/backup-d1.yml` and off object storage onto a sealed
+  GitHub artifact (Nishfleet/fleet-ops#9527). No dump import has been
+  rehearsed against the new path yet.
