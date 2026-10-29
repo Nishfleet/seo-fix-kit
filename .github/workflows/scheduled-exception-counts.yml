@@ -97,10 +97,31 @@ jobs:
           day_ago="$(date -u -d '24 hours ago' +%Y-%m-%dT%H:%M:%SZ)"
           printf 'last 24 hours  %s .. %s : ' "$day_ago" "$now"
           scheduled "$day_ago" "$now"
-          printf 'last week      2026-10-22 .. now         : '
-          scheduled '2026-10-22T00:00:00Z' "$now"
+          # The analytics API refuses a range wider than one week, so every
+          # window below stays inside that limit.
+          printf 'the cut-over   2026-10-12 .. 2026-10-15 : '
+          scheduled '2026-10-12T00:00:00Z' '2026-10-15T00:00:00Z'
           printf 'before #289    2026-10-09 .. 2026-10-12 : '
           scheduled '2026-10-09T00:00:00Z' '2026-10-12T00:00:00Z'
+
+      - name: List the observability keys this worker writes
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="${RUNNER_TEMP:?}/cfcounts"
+          jq -nc '{datasets: [], limit: 200}' > "$work/kq.json"
+          curl --silent --show-error --location -H "@$work/headers" --output "$work/kr.json" \
+            --data @"$work/kq.json" \
+            "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT/workers/observability/telemetry/keys"
+          printf 'keys that name a trigger, a level or a message : '
+          jq -c '{success, errors: [.errors[]?.message],
+                  keys: [(.result // [])[]
+                         | select(.key | test("trigger|service|level|message|error|script|outcome|status"; "i"))
+                         | .key]}' "$work/kr.json" > "$work/out.txt"
+          head -c 1500 "$work/out.txt"
+          echo
+          printf 'keys returned : '
+          jq -r '(.result // []) | length' "$work/kr.json"
 
       - name: Read the cron invocations from Workers Observability
         shell: bash
@@ -116,11 +137,15 @@ jobs:
               --data @"$work/tq.json" \
               "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT/workers/observability/telemetry/query"
             printf '%s : ' "$label"
-            jq -c '{success, errors: [.errors[]?.message],
+            jq -c '{success, errors: [.errors[]?.message], messages: [.messages[]?.message],
                     counts: [.result.calculations[]? | (.aggregates[]?
                              | {groups: [.groups[]? | "\(.key)=\(.value)"], count})],
                     events: (.result.events // [] | length)}' "$work/tr.json" > "$work/out.txt"
             head -c 1500 "$work/out.txt"
+            if ! jq -e '.success == true' "$work/tr.json" > /dev/null 2>&1; then
+              printf '\n%s rejected, raw response : ' "$label"
+              head -c 600 "$work/tr.json"
+            fi
             echo
           }
           printf 'window %s .. %s (unix ms)\n' "$from_ms" "$to_ms"
