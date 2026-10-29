@@ -7,7 +7,6 @@ const OFFER_KEYS = {
 };
 
 const BETA_MONITOR_LIMIT = 5;
-// A paid monitoring plan must never cover fewer sites than the free beta allowance.
 const PAID_MONITOR_LIMIT = BETA_MONITOR_LIMIT;
 
 const OFFER_CATALOG = [

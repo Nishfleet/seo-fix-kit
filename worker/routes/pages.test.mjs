@@ -6,7 +6,7 @@ import { auditUrl } from "../../server/audit/engine.js";
 import {
   currentPublicPageFingerprints,
   recordedPublicPageFingerprints
-} from "../../scripts/public-page-fingerprints.mjs";
+} from "../../shared/public-page-fingerprints.js";
 import { ROOT_PUBLIC_LASTMODS, ROOT_PUBLIC_PATHS, escapeHtml, rootSitemap } from "../../shared/audit-engine.js";
 import { DEMO_PROOF, DEMO_FIXTURE_PATH, demoProofSnippet } from "./demo-proof.js";
 import { renderedFixture } from "./audits.js";
@@ -546,6 +546,36 @@ test("policy pages cross-link each other and the live anonymous check", () => {
   }
   assert.match(privacy, new RegExp(`href="${origin}/methodology"`), "the privacy page must not be a dead end");
   assert.match(privacy, new RegExp(`href="${origin}/pricing"`), "the privacy page must reach pricing");
+});
+
+const POLICY_LAST_UPDATED_PATHS = ["/privacy", "/support"];
+const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December"
+];
+
+test("a policy page's printed Last updated date matches its sitemap lastmod", () => {
+  for (const path of POLICY_LAST_UPDATED_PATHS) {
+    const html = { "/privacy": privacyHtml, "/support": supportHtml }[path](origin);
+    const printed = html.match(/Last updated: ([A-Z][a-z]+ \d{1,2}, \d{4})\./);
+    assert.ok(printed, `${path} must print a Last updated date`);
+    const [year, month, day] = ROOT_PUBLIC_LASTMODS[path].slice(0, 10).split("-");
+    assert.equal(
+      printed[1],
+      `${MONTH_NAMES[Number(month) - 1]} ${Number(day)}, ${year}`,
+      `${path} prints ${printed[1]} but its sitemap lastmod is ${ROOT_PUBLIC_LASTMODS[path]} (run npm run sitemap:refresh)`
+    );
+  }
 });
 
 test("public demo and support pages carry enough buyer-facing detail", () => {

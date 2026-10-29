@@ -62,7 +62,6 @@ test("pasting the meta tag into the homepage verifies the site", async (t) => {
   assert.equal(before.verified, false);
   assert.match(before.message, /couldn’t find the tag/);
 
-  // Site builders rewrite tags: attribute order and quoting change.
   const token = tag.match(/content="([^"]+)"/)[1];
   homepage = `<html><head><meta content='${token}' name='seofixkit-site-verification'><title>Shop</title></head></html>`;
   const after = await call(db, session, "/api/sites/verify", { id: claimed.site.id });

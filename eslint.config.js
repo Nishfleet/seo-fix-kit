@@ -13,7 +13,41 @@ import react from "eslint-plugin-react";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import jsxA11y from "eslint-plugin-jsx-a11y";
+import noComments from "eslint-plugin-no-comments";
 import prettier from "eslint-config-prettier";
+
+// Vocabulary that marks a comment as an excuse for a workaround rather than an
+// explanation of the code. Agents copy what exists, so one of these becomes
+// house style and the workaround spreads with it.
+const WORKAROUND_TERMS = [
+  "todo",
+  "fixme",
+  "xxx",
+  "hack",
+  "workaround",
+  "work around",
+  "for now",
+  "temporary",
+  "temporarily",
+  "not ideal",
+  "should be",
+  "ideally",
+  "revisit",
+  "later"
+];
+
+// The comment ban covers every source tree and every test tree. Config files
+// at the repo root (eslint.config.js, vite.config.js, playwright.config.mjs)
+// and the trees outside the app sit outside this list on purpose, so the gate
+// never fights a config comment. Tests are inside it: only the root configs
+// and the non-app trees are exempt (0509#7469, Nish 2026-10-14).
+const NO_COMMENT_FILES = [
+  "src/**/*.{js,jsx,mjs}",
+  "worker/**/*.{js,mjs}",
+  "server/**/*.{js,mjs}",
+  "shared/**/*.{js,mjs}",
+  "test/**/*.{js,mjs}"
+];
 
 // Recommended rules with a pre-existing backlog, downgraded to warnings.
 const backlogWarnings = {
@@ -40,11 +74,11 @@ export default [
   {
     ignores: [
       "dist/**",
+      ".cloudflare/**",
       "node_modules/**",
       "public/**",
       "docs/**",
       "specs/**",
-      "ops/**",
       ".lane/**",
       "migrations/**",
       "prototype-context/**",
@@ -54,8 +88,8 @@ export default [
   },
   js.configs.recommended,
   {
-    // Default for every JS file: modern ESM, Node globals (server/, scripts/,
-    // config files, and *.test.mjs suites all run under Node).
+    // Default for every JS file: modern ESM, Node globals (server/, config
+    // files, and *.test.mjs suites all run under Node).
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "module",
@@ -105,7 +139,7 @@ export default [
     }
   },
   {
-    // shared/ is imported by both the Worker and the Node server/scripts.
+    // shared/ is imported by both the Worker and the Node server and tests.
     files: ["shared/**/*.js"],
     languageOptions: {
       globals: { ...globals.node, ...globals.serviceworker }
@@ -121,8 +155,10 @@ export default [
   {
     files: [
       "shared/audit-engine.js",
+      "shared/public-page-fingerprints.js",
       "server/**/*.js",
-      "scripts/**/*.mjs",
+      "server/**/*.mjs",
+      "test/**/*.mjs",
       "**/*.test.mjs",
       "e2e/**/*.mjs",
       "playwright.config.mjs"
@@ -154,5 +190,22 @@ export default [
     // carve-out once it is fixed.
     files: ["shared/promise-audit.test.mjs"],
     rules: { "no-useless-assignment": "warn" }
+  },
+  {
+    // Comment ban on source and test code (fleet-ops AGENTS.md, fleet-wide 2026-10-14).
+    // A comment here survives three ways: an eslint disable directive or a
+    // `global` declaration, an `upstream:` comment linking the browser quirk,
+    // third-party bug or protocol rule that forces the code's shape, or not
+    // existing, because the reason moved to a commit, a PR body or a named
+    // test. `npm run lint` on this tree returns 0 findings, so the backlog is
+    // cleared. Only the root configs and the non-app trees are exempt, so
+    // `files` below lists the five app and test trees.
+    files: NO_COMMENT_FILES,
+    plugins: { "no-comments": noComments },
+    rules: {
+      "no-comments/disallowComments": ["error", { allow: ["eslint", "global", "upstream:", "@vite-ignore"] }],
+      "no-inline-comments": ["error", { ignorePattern: "@vite-ignore" }],
+      "no-warning-comments": ["error", { terms: WORKAROUND_TERMS, location: "anywhere" }]
+    }
   }
 ];

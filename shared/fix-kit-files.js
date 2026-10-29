@@ -37,7 +37,6 @@ function csv(rows) {
   return `${rows.map((row) => row.map(csvCell).join(",")).join("\n")}\n`;
 }
 
-// One entry per distinct problem, with every page it appears on.
 export function groupedFixes(report = {}) {
   const groups = new Map();
   for (const item of report.repairPlan || []) {
@@ -265,7 +264,6 @@ export function buildFixKitFiles(report = {}) {
   return files;
 }
 
-// What a buyer can see before paying: file names and counts, no contents.
 export function fixKitManifest(report = {}) {
   const files = buildFixKitFiles(report);
   const groups = groupedFixes(report);
@@ -280,12 +278,14 @@ export function fixKitManifest(report = {}) {
   };
 }
 
-export function fixKitFilename(report = {}) {
-  let host = "site";
+function reportHostname(report) {
   try {
-    host = new URL(report.url || report.origin).hostname;
+    return new URL(report.url || report.origin).hostname;
   } catch {
-    // keep the fallback
+    return "";
   }
-  return `seo-fix-kit-${slug(host, "site")}.zip`;
+}
+
+export function fixKitFilename(report = {}) {
+  return `seo-fix-kit-${slug(reportHostname(report), "site")}.zip`;
 }

@@ -30,7 +30,7 @@
     "INTERNAL_EMAIL_DOMAINS": "0509.io,0509.in,inish.in,aiconverter.app,siterep.net,tinystudio.io,tinystudio.in,seofixkit.com"
   },
   "assets": {
-    "directory": "./dist",
+    "directory": "./.cloudflare/output/v0/workers/default/assets",
     "binding": "ASSETS",
     "not_found_handling": "404-page",
     // Every request must run the Worker first (not just the listed routes) so

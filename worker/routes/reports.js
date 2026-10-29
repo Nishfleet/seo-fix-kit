@@ -536,7 +536,6 @@ async function getSavedReport(request, env) {
     return json({ error: "Report not found." }, 404);
   }
   const report = JSON.parse(reportJson);
-  // Reports saved before distinct top fixes kept a projection that could count one problem twice.
   if (report.projectedScore && Array.isArray(report.repairPlan)) {
     report.projectedScore = projectedScore(report.repairPlan, report.findings || [], report.projectedScore.from);
   }

@@ -8,7 +8,6 @@ const MIGRATIONS = readdirSync(MIGRATIONS_DIR)
   .map((file) => readFileSync(new URL(file, MIGRATIONS_DIR), "utf8"));
 
 function toSqliteValue(value) {
-  // D1 rejects undefined bindings; surface the same bug here.
   if (value === undefined) throw new TypeError("D1_TYPE_ERROR: Type 'undefined' not supported for value 'undefined'");
   if (typeof value === "boolean") return value ? 1 : 0;
   return value;
@@ -76,7 +75,7 @@ class TestD1Statement {
 export class TestD1 {
   constructor() {
     this.sqlite = new DatabaseSync(":memory:");
-    // D1 always enforces foreign keys.
+    // upstream: https://developers.cloudflare.com/d1/sql-api/foreign-keys/ — D1's foreign key enforcement is equivalent to SQLite's PRAGMA foreign_keys = on, so this fake runs it too.
     this.sqlite.exec("PRAGMA foreign_keys = ON");
     for (const migration of MIGRATIONS) this.sqlite.exec(migration);
   }

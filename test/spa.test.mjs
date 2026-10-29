@@ -2,12 +2,11 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import http from "node:http";
-import os from "node:os";
 import path from "node:path";
 import { after, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
-import { build } from "vite";
+import { createBuilder } from "vite";
 import { buildRemediationBrief } from "../shared/remediation-brief.js";
 import { deriveRepairQueueItems } from "../shared/repair-queue.js";
 import { auditJobResponse, auditScheduleResponse, siteClaimResponse } from "../worker/lib/serializers.js";
@@ -35,18 +34,18 @@ let baseUrl;
 let browser;
 
 before(async () => {
-  outDir = fs.mkdtempSync(path.join(os.tmpdir(), "seofixkit-spa-"));
-  await build({
+  outDir = path.join(ROOT, ".cloudflare/output/v0/workers/default/assets");
+  const builder = await createBuilder({
     root: ROOT,
     configFile: path.join(ROOT, "vite.config.js"),
-    logLevel: "silent",
-    build: { outDir, emptyOutDir: true }
+    logLevel: "silent"
   });
+  await builder.buildApp();
   server = http.createServer((request, response) => {
     const pathname = decodeURIComponent(new URL(request.url, "http://localhost").pathname);
     const file = path.join(outDir, path.normalize(pathname));
     const servable = file.startsWith(outDir) && fs.existsSync(file) && fs.statSync(file).isFile();
-    const target = servable ? file : path.join(outDir, "index.html");
+    const target = servable ? file : path.join(outDir, pathname === "/" ? "index.html" : "beta-shell.html");
     response.writeHead(200, {
       "content-type": CONTENT_TYPES[path.extname(target)] || "application/octet-stream"
     });
@@ -60,7 +59,6 @@ before(async () => {
 after(async () => {
   await browser?.close();
   await new Promise((resolve) => (server ? server.close(resolve) : resolve()));
-  if (outDir) fs.rmSync(outDir, { recursive: true, force: true });
 });
 
 async function openApp(t, handlers = {}) {

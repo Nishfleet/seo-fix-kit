@@ -30,7 +30,6 @@ export function widgetEmbedCode(origin, id) {
   return `<iframe src="${origin}/embed/${id}" title="Free SEO check" width="100%" height="480" loading="lazy" style="border:0;max-width:640px;width:100%"></iframe>`;
 }
 
-// A widget only runs while its owner has a paid Fix Pack.
 async function activeWidget(env, id) {
   if (!WIDGET_ID.test(id || "") || !env.WAITLIST_DB) return null;
   const widget = await env.WAITLIST_DB.prepare(

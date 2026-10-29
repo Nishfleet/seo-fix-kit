@@ -868,7 +868,7 @@ async function processAuditJob(env, jobId, context = {}) {
     if (await resolvesToPrivateAddress(new URL(row.target_url).hostname)) {
       throw new Error("This URL points at a private or internal address and cannot be audited.");
     }
-    const report = await auditUrl(row.target_url, env, {
+    const report = await (context.runAudit || auditUrl)(row.target_url, env, {
       maxPages: clampPageLimit(row.max_pages || 10),
       appOrigin: context.appOrigin || "https://seofixkit.com",
       competitorUrls: parseJson(row.competitor_urls_json, []),
@@ -877,6 +877,10 @@ async function processAuditJob(env, jobId, context = {}) {
       keywordRows: parseJson(row.keyword_rows_json, []),
       renderedCrawlTarget: row.rendered_crawl_target || 0
     });
+    const stillWanted = await env.WAITLIST_DB.prepare(`SELECT id FROM audit_jobs WHERE id = ? LIMIT 1`)
+      .bind(jobId)
+      .first();
+    if (!stillWanted?.id) return;
     const saved = await saveAuditReportWithContext(
       report,
       env,
@@ -886,16 +890,19 @@ async function processAuditJob(env, jobId, context = {}) {
         inviteId: row.owner_invite_id || null,
         accessMode: row.access_mode || "invite"
       },
-      context.appOrigin || "https://seofixkit.com"
+      context.appOrigin || "https://seofixkit.com",
+      { jobId }
     );
+    if (!saved) return;
     const completedAt = new Date().toISOString();
-    await env.WAITLIST_DB.prepare(
+    const completed = await env.WAITLIST_DB.prepare(
       `UPDATE audit_jobs
        SET status = 'completed', report_id = ?, error = NULL, completed_at = ?, updated_at = ?
        WHERE id = ?`
     )
       .bind(saved.id, completedAt, completedAt, jobId)
       .run();
+    if (Number(completed?.meta?.changes || 0) !== 1) return;
     if (row.schedule_id) {
       const schedule = await env.WAITLIST_DB.prepare(`SELECT interval_days FROM audit_schedules WHERE id = ? LIMIT 1`)
         .bind(row.schedule_id)
@@ -931,7 +938,7 @@ async function processAuditJob(env, jobId, context = {}) {
       report: apiReportResponse(saved)
     });
   } catch (error) {
-    // Browser Run concurrency limits are transient: requeue instead of failing.
+    // upstream: https://developers.cloudflare.com/browser-run/limits/ — Cloudflare's browser concurrency limits are transient, so requeue instead of failing.
     if (error?.code === "BROWSER_BUSY" && row.created_at && row.created_at > isoSecondsFromNow(-2 * 60 * 60)) {
       await env.WAITLIST_DB.prepare(
         `UPDATE audit_jobs

@@ -204,3 +204,17 @@ test("the widget is a Fix Pack feature and stops when the Fix Pack is refunded",
   const check = await visitorCheck(env, created.widget.id, { url: "https://visitor.example/", email: "v@example.com" });
   assert.equal(check.status, 404);
 });
+
+test("a test payment never unlocks a paid feature", async () => {
+  const db = createTestD1();
+  const env = { WAITLIST_DB: db };
+  const session = signIn(db);
+
+  payForFixPack(db);
+  await db.prepare("UPDATE fix_requests SET is_test = 1").run();
+
+  const blocked = await call(env, "/api/widget", { method: "POST", session });
+  assert.equal(blocked.status, 402);
+  assert.equal((await blocked.json()).code, "PAID_FEATURE_LOCKED");
+  assert.equal((await (await call(env, "/api/widget", { session })).json()).unlocked, false);
+});

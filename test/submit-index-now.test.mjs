@@ -8,7 +8,13 @@ import {
   indexNowKeyFilePaths
 } from "../shared/index-now.js";
 import { ROOT_PUBLIC_PATHS } from "../shared/audit-engine.js";
-import { fetchSitemapUrls, main, parseSitemapLocs, submitUrlList, verifyKeyFileLive } from "./submit-indexnow.mjs";
+import {
+  fetchSitemapUrls,
+  main,
+  parseSitemapLocs,
+  submitUrlList,
+  verifyKeyFileLive
+} from "../server/submit-index-now.js";
 
 function xmlSitemap(locs) {
   return `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${locs
