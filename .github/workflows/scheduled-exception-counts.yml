@@ -108,67 +108,6 @@ jobs:
           printf 'three days ago 2026-10-25 .. 2026-10-27 : '
           scheduled '2026-10-25T00:00:00Z' '2026-10-27T00:00:00Z'
 
-      - name: Probe the analytics API for a dimension that names the trigger
-        shell: bash
-        run: |
-          set -euo pipefail
-          work="${RUNNER_TEMP:?}/cfcounts"
-          now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          day_ago="$(date -u -d '24 hours ago' +%Y-%m-%dT%H:%M:%SZ)"
-          filt="scriptName: \"$CF_SCRIPT\", datetime_geq: \"$day_ago\", datetime_leq: \"$now\""
-          for dim in trigger entrypoint dispatchNamespace outcome; do
-            jq -nc --arg q "{ viewer { accounts(filter: {accountTag: \"$CF_ACCOUNT\"}) { workersInvocationsAdaptive(limit: 100, filter: {$filt}) { dimensions { status $dim } sum { requests } } } } }" \
-              '{query: $q}' > "$work/q.json"
-            curl --silent --show-error --location -H "@$work/headers" --output "$work/r.json" \
-              --data @"$work/q.json" https://api.cloudflare.com/client/v4/graphql
-            printf 'dimension %-18s : ' "$dim"
-            jq -c --arg d "$dim" '{errors: [.errors[]?.message],
-                    rows: [.data.viewer.accounts[0].workersInvocationsAdaptive[]?
-                           | "\(.dimensions.status)/\(.dimensions[$d]) requests=\(.sum.requests)"]}' \
-              "$work/r.json" > "$work/out.txt"
-            head -c 1200 "$work/out.txt"
-            echo
-          done
-
-      - name: Ask the analytics API which invocation dimensions it has
-        shell: bash
-        run: |
-          set -euo pipefail
-          work="${RUNNER_TEMP:?}/cfcounts"
-          # An unknown field makes the API list the fields it does have, which
-          # is how the trigger dimension is found without a doc lookup.
-          jq -nc --arg q "{ viewer { accounts(filter: {accountTag: \"$CF_ACCOUNT\"}) { workersInvocationsAdaptive(limit: 1, filter: {scriptName: \"$CF_SCRIPT\"}) { dimensions { status triggername } } } } }" \
-            '{query: $q}' > "$work/q.json"
-          curl --silent --show-error --location -H "@$work/headers" --output "$work/r.json" \
-            --data @"$work/q.json" https://api.cloudflare.com/client/v4/graphql
-          printf 'the API says : '
-          if jq -c '{errors: [.errors[]?.message]}' "$work/r.json" > "$work/out.txt" 2>/dev/null; then
-            head -c 2000 "$work/out.txt"
-          else
-            printf 'not json, raw response : '
-            head -c 2000 "$work/r.json"
-          fi
-          echo
-
-      - name: List the observability keys this worker writes
-        shell: bash
-        run: |
-          set -euo pipefail
-          work="${RUNNER_TEMP:?}/cfcounts"
-          jq -nc '{datasets: [], limit: 200}' > "$work/kq.json"
-          curl --silent --show-error --location -H "@$work/headers" --output "$work/kr.json" \
-            --data @"$work/kq.json" \
-            "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT/workers/observability/telemetry/keys"
-          printf 'keys that name a trigger, a level or a message : '
-          jq -c '{success, errors: [.errors[]?.message],
-                  keys: [(.result // [])[]
-                         | select(.key | test("trigger|service|level|message|error|script|outcome|status"; "i"))
-                         | .key]}' "$work/kr.json" > "$work/out.txt"
-          head -c 1500 "$work/out.txt"
-          echo
-          printf 'keys returned : '
-          jq -r '(.result // []) | length' "$work/kr.json"
-
       - name: Read the cron invocations from Workers Observability
         shell: bash
         run: |
@@ -202,13 +141,6 @@ jobs:
                            groupBys: [{type: "string", value: "$metadata.trigger"},
                                       {type: "string", value: "$metadata.level"}]},
               limit: 50}')" 'events by trigger and level, last 24 h'
-          ask "$(jq -nc --arg svc "$CF_SCRIPT" --argjson f "$from_ms" --argjson t "$to_ms" \
-            '{view: "calculations", timeframe: {from: $f, to: $t},
-              parameters: {filters: [{key: "$metadata.service", operation: "eq", type: "string", value: $svc},
-                                     {key: "$metadata.trigger", operation: "eq", type: "string", value: "scheduled"}],
-                           calculations: [{operator: "count"}],
-                           groupBys: [{type: "string", value: "$metadata.level"}]},
-              limit: 50}')" 'events for the scheduled trigger only, last 24 h'
           ask "$(jq -nc --arg svc "$CF_SCRIPT" --argjson f "$from_ms" --argjson t "$to_ms" \
             '{view: "events", timeframe: {from: $f, to: $t},
               parameters: {filters: [{key: "$metadata.service", operation: "eq", type: "string", value: $svc},
