@@ -64,7 +64,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      CLOUDFLARE_ACCOUNT_ID: 89cff4c60995911834c7f9c6d1778341 # the fleet account
+      # This repository's own Cloudflare account and API token, the same
+      # pair deploy-production.yml authenticates with, so the dump and the
+      # deploy share one credential's scope rather than a second one.
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       AGE_RECIPIENT: age1650j6pxe55udk93gv3qsjeugfrdkhazc3ynpydjm64qm8k7fvvjqc093e4
       DB_NAME: seofixkit_waitlist # wrangler.jsonc d1_databases[0]
