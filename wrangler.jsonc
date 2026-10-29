@@ -32,7 +32,7 @@
     "DATABASE_ID": "887316c4-ca9d-4068-a7fa-1f530b479437"
   },
   "assets": {
-    "directory": "./dist",
+    "directory": "./.cloudflare/output/v0/workers/default/assets",
     "binding": "ASSETS",
     "not_found_handling": "404-page",
     // Every request must run the Worker first (not just the listed routes) so

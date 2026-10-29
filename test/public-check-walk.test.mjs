@@ -7,7 +7,7 @@ import {
   runPublicCheckWalk,
   validateWalkPayload,
   walkRecord
-} from "./run-public-check-walk.mjs";
+} from "./public-check-walk.mjs";
 
 const origin = "https://seofixkit.com";
 

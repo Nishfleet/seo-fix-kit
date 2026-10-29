@@ -1,4 +1,3 @@
-// The same problem on several pages ("Missing H1 on home", "Missing H1 on /about") is one fix.
 export function issuePatternKey(title) {
   return String(title || "Unknown issue")
     .replace(/\son\s(home|\/[^\s]+)/i, "")

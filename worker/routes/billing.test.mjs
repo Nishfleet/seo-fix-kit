@@ -3,6 +3,7 @@ import { createHmac } from "node:crypto";
 import test from "node:test";
 import {
   getBillingSummary,
+  fixRequestNotificationRecipients,
   handleDodoWebhook,
   processDodoPaymentWebhook,
   processDodoSubscriptionWebhook,
@@ -923,7 +924,6 @@ test("Dodo payment still validates customer email when checkout repair target ma
   const result = await processDodoPaymentWebhook(env, "payment.succeeded", payment, "wh_email_mismatch");
 
   assert.equal(result.ok, false);
-  // The customer was charged without getting access: flagged for the admin, never silently ignored.
   assert.equal(result.status, "error");
   assert.equal(result.alertReason, "customer_email_mismatch");
   assert.equal(result.adminAlert.reason, "customer_email_mismatch");
@@ -3325,7 +3325,6 @@ test("signed refund and dispute webhooks with mismatched payment identity mutate
     assert.equal(fixRequest.dispute_event, undefined, eventType);
     const rejectedEvent = env.events.find((event) => event.event === "payment_identity_rejected");
     assert.equal(rejectedEvent.reason, "payment_id_mismatch", eventType);
-    // Unmatched refunds and disputes stay visible and retryable instead of being swallowed.
     assert.equal(env.dodoWebhookEvents.at(-1).status, "error", eventType);
     assert.match(env.dodoWebhookEvents.at(-1).error, /payment_id_mismatch/, eventType);
   }
@@ -4536,3 +4535,16 @@ function run(sql, values, env) {
   }
   throw new Error(`Unexpected run SQL: ${sql}`);
 }
+
+test("a Fix Pack notification never goes to a deleted account's pseudonym", () => {
+  const env = { SEOFIXKIT_ADMIN_EMAIL: "admin@example.com" };
+  const pseudonym = "deleted-account:3f7c1b2e-4a5d-4e6f-8a9b-0c1d2e3f4a5b";
+
+  assert.deepEqual(fixRequestNotificationRecipients(env, { owner_email: pseudonym }), [
+    { type: "admin", email: "admin@example.com" }
+  ]);
+  assert.deepEqual(fixRequestNotificationRecipients(env, { owner_email: "Leaver@Example.com" }), [
+    { type: "owner", email: "leaver@example.com" },
+    { type: "admin", email: "admin@example.com" }
+  ]);
+});

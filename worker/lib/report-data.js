@@ -145,7 +145,7 @@ async function saveAuditReport(report, request, env, access) {
   return saveAuditReportWithContext(report, env, access, origin);
 }
 
-async function saveAuditReportWithContext(report, env, access, origin) {
+async function saveAuditReportWithContext(report, env, access, origin, { jobId = "" } = {}) {
   const id = makePrivateReportId(report.url);
   const now = new Date().toISOString();
   const expiresAt = isoDaysFromNow(REPORT_RETENTION_DAYS);
@@ -173,38 +173,53 @@ async function saveAuditReportWithContext(report, env, access, origin) {
   const storageReport = fitted.report;
 
   let storedReportJson = fitted.json;
+  let storedInR2 = false;
   if (env.REPORTS) {
     try {
       await env.REPORTS.put(reportR2Key(id), fitted.json, {
         httpMetadata: { contentType: "application/json" }
       });
       storedReportJson = `${R2_REPORT_MARKER}${reportR2Key(id)}`;
+      storedInR2 = true;
     } catch {
       storedReportJson = fitted.json;
     }
   }
 
-  await env.WAITLIST_DB.prepare(
-    `INSERT INTO audit_reports
-      (id, url, origin, score, summary_json, report_json, created_at, updated_at, owner_email, owner_session_hash, target_host, expires_at, owner_invite_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  )
-    .bind(
-      id,
-      saved.url,
-      saved.origin,
-      saved.score,
-      JSON.stringify(saved.summary || {}),
-      storedReportJson,
-      now,
-      now,
-      access.ownerEmail,
-      access.sessionHash,
-      targetHost,
-      expiresAt,
-      access.inviteId || null
-    )
-    .run();
+  const values = [
+    id,
+    saved.url,
+    saved.origin,
+    saved.score,
+    JSON.stringify(saved.summary || {}),
+    storedReportJson,
+    now,
+    now,
+    access.ownerEmail,
+    access.sessionHash,
+    targetHost,
+    expiresAt,
+    access.inviteId || null
+  ];
+  const columns =
+    "(id, url, origin, score, summary_json, report_json, created_at, updated_at, owner_email, owner_session_hash, target_host, expires_at, owner_invite_id)";
+  const inserted = jobId
+    ? await env.WAITLIST_DB.prepare(
+        `INSERT INTO audit_reports ${columns}
+         SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+         WHERE EXISTS (SELECT 1 FROM audit_jobs WHERE id = ? AND owner_email = ?)`
+      )
+        .bind(...values, jobId, access.ownerEmail)
+        .run()
+    : await env.WAITLIST_DB.prepare(
+        `INSERT INTO audit_reports ${columns} VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+        .bind(...values)
+        .run();
+  if (jobId && Number(inserted?.meta?.changes || 0) !== 1) {
+    if (storedInR2) await deleteOrphanedReportBlob(env, id);
+    return null;
+  }
   await recordScoreHistory(env, {
     ownerEmail: access.ownerEmail,
     reportId: id,
@@ -225,7 +240,8 @@ async function recordScoreHistory(env, row) {
   try {
     await env.WAITLIST_DB.prepare(
       `INSERT OR IGNORE INTO score_history (owner_email, report_id, url, target_host, score, total_findings, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
+       SELECT ?, ?, ?, ?, ?, ?, ?
+       WHERE EXISTS (SELECT 1 FROM audit_reports WHERE id = ?)`
     )
       .bind(
         row.ownerEmail,
@@ -234,7 +250,8 @@ async function recordScoreHistory(env, row) {
         row.targetHost || "",
         Math.round(Number(row.score) || 0),
         Math.round(Number(row.totalFindings) || 0),
-        row.createdAt
+        row.createdAt,
+        row.reportId
       )
       .run();
   } catch (error) {
@@ -424,7 +441,20 @@ async function recordReportBlobDeletionFailure(env, failure = {}) {
   } catch {}
 }
 
-// D1 rejects rows near its ~2MB value limit.
+// upstream: https://developers.cloudflare.com/d1/platform/limits/ — D1 rejects a value near its row-size limit.
+async function deleteOrphanedReportBlob(env, reportId) {
+  const key = reportR2Key(reportId);
+  try {
+    await env.REPORTS.delete(key);
+  } catch (error) {
+    await recordReportBlobDeletionFailure(env, {
+      reportId,
+      key,
+      error: String(error?.message || "Report blob deletion failed.").slice(0, 500)
+    });
+  }
+}
+
 const REPORT_STORAGE_MAX_BYTES = 1_500_000;
 
 function fitReportForStorage(storageReport) {
@@ -586,6 +616,7 @@ export {
   latestSavedReportForDelta,
   makePrivateReportId,
   ownerReportRow,
+  recordReportBlobDeletionFailure,
   preserveReportIds,
   preserveProtectedFixRequestReport,
   preserveFixRequestReports,

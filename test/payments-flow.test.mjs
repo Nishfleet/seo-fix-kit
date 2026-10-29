@@ -798,8 +798,6 @@ test("Proof Monitoring checkout fails closed without a Dodo call when the produc
   assert.deepEqual(after, before);
 });
 
-// ---------- Money safety regressions ----------
-
 const ADMIN = "admin@ops.test";
 
 function createAlertingWorld() {
@@ -838,7 +836,6 @@ async function paidFixPack(world, token, overrides = {}) {
   return { fixRequest, item };
 }
 
-// A Dodo fake that answers slowly and hands out a new session per call, so overlapping requests overlap.
 async function withSlowDodo(callback) {
   const calls = [];
   const originalFetch = globalThis.fetch;
@@ -931,7 +928,6 @@ test("a second distinct payment keeps the original, is recorded for refund, and 
   ]);
   assert.equal(adminAlerts(world, "duplicate_payment_needs_refund").length, 1);
 
-  // Refunding the extra payment (no metadata) is matched and leaves the Fix Pack paid.
   const refundB = await withDodo(() => send(world.env, webhookRequest(refundEvent("pay_B", "ref_B"), "wh_ref_B")));
   assert.equal(refundB.body.duplicatePayment, true);
   assert.equal(webhookRow(world.db, "wh_ref_B").status, "processed");
@@ -941,7 +937,6 @@ test("a second distinct payment keeps the original, is recorded for refund, and 
     "refunded"
   );
 
-  // Refunding the original still refunds the Fix Pack.
   await withDodo(() => send(world.env, webhookRequest(refundEvent("pay_A", "ref_A"), "wh_ref_A")));
   row = fixRequestRow(world.db);
   assert.equal(row.status, "refunded");

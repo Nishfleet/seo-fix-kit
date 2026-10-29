@@ -54,7 +54,6 @@ export function findingFixPrompt(finding = {}, report = {}, plan = null) {
 
 export function reportFixPrompt(report = {}, { limit = 5 } = {}) {
   const findings = report.findings || [];
-  // The same problem on several pages is one fix, so it takes one slot and lists its pages.
   const groups = new Map();
   for (const plan of report.repairPlan || []) {
     const key = issuePatternKey(plan.title);

@@ -48,7 +48,9 @@ The one manual step is the long-lived export token, which stays Nish's call:
 
 Until that secret exists, each run fails fast with "D1 backup needs ACCOUNT_ID,
 DATABASE_ID and D1_REST_API_TOKEN" instead of looping on a 401. The account and
-database ids are plain vars in wrangler.jsonc.
+database ids are plain vars in wrangler.jsonc, which `npx wrangler deploy` reads,
+and cloudflare.config.ts, which `cf deploy` reads. A test in
+worker/index.test.mjs fails when the two configs stop agreeing.
 
 Check it, and run it on demand:
 

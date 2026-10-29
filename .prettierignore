@@ -1,9 +1,9 @@
 dist/
+.cloudflare/
 node_modules/
 package-lock.json
 docs/
 specs/
-ops/
 .lane/
 migrations/
 public/

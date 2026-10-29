@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link } from "react-router";
 import { apiErrorMessage, apiRequest } from "../../api.js";
@@ -14,7 +14,7 @@ import { Badge, EmptyState, LoadError, SkeletonRows } from "../../components/App
 import { formatDate } from "../../lib/format.js";
 import { statusLabel } from "../../lib/labels.js";
 import { queryKeys } from "../../lib/queries.js";
-import { fetchBillingSummary } from "../../lib/requests.js";
+import { deleteOwnAccount, fetchBillingSummary } from "../../lib/requests.js";
 
 const PAYMENT_TONES = { payment: "good", refund: "neutral", dispute: "bad", failed_payment: "bad" };
 
@@ -23,7 +23,52 @@ function paymentTypeLabel(type = "") {
   return text ? text[0].toUpperCase() + text.slice(1) : "Payment";
 }
 
-export function BillingPortal() {
+function DeleteAccountCard({ ownerEmail, onDeleted }) {
+  const [confirmEmail, setConfirmEmail] = useState("");
+  const remove = useMutation({ mutationFn: deleteOwnAccount, onSuccess: onDeleted });
+  const typed = confirmEmail.trim().toLowerCase();
+  const matches = Boolean(typed) && typed === String(ownerEmail || "").toLowerCase();
+  return (
+    <section className="app-card" aria-labelledby="delete-account-title">
+      <div className="app-card-head">
+        <div>
+          <h2 id="delete-account-title">Delete account</h2>
+          <p className="app-card-subtle">
+            Deletes your reports, sites, checks, alerts, API keys, settings and sign-in right away. Payment records we
+            must keep for accounting and tax stay, with your email, site and notes removed. This can’t be undone.
+          </p>
+        </div>
+      </div>
+      <form
+        className="developer-webhook-form"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (matches) remove.mutate(confirmEmail.trim());
+        }}
+      >
+        <label htmlFor="delete-account-email">Type your email to confirm</label>
+        <div className="audit-row">
+          <input
+            autoCapitalize="none"
+            autoComplete="off"
+            id="delete-account-email"
+            inputMode="email"
+            onChange={(event) => setConfirmEmail(event.target.value)}
+            spellCheck={false}
+            type="email"
+            value={confirmEmail}
+          />
+          <button className="danger-button" disabled={!matches || remove.isPending} type="submit">
+            {remove.isPending ? "Deleting…" : "Delete account"}
+          </button>
+        </div>
+      </form>
+      {remove.isError && <StatusMessage tone="error">{remove.error.message}</StatusMessage>}
+    </section>
+  );
+}
+
+export function BillingPortal({ ownerEmail = "", onAccountDeleted = () => {} }) {
   const billingQuery = useQuery({ queryKey: queryKeys.billing, queryFn: fetchBillingSummary });
   const billing = billingQuery.data || null;
   const [monitoringCheckoutStatus, setMonitoringCheckoutStatus] = useState("idle");
@@ -245,6 +290,7 @@ export function BillingPortal() {
           </section>
         </>
       )}
+      <DeleteAccountCard ownerEmail={ownerEmail} onDeleted={onAccountDeleted} />
     </div>
   );
 }

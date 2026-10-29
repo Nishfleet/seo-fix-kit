@@ -258,7 +258,6 @@ async function requestCheck(url) {
 
 const problemCount = (p) =>
   p.issues ? p.issues.critical + p.issues.warnings + p.issues.notices : (p.findings || []).length;
-// Training-only bots are left out: blocking them is a choice, not a visibility loss.
 const visibilityBots = (p) =>
   Array.isArray(p.crawlers) ? p.crawlers.filter((bot) => bot.purpose !== "training") : null;
 

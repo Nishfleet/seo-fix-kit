@@ -10,7 +10,7 @@ Use this file for durable project truth Codex cannot reliably infer from code al
   restore a deleted database, and its 30-day bookmark window is shorter than a
   payment dispute or a tax record. Shipped as the stock Cloudflare Workflows D1
   export in `worker/d1-backup-workflow.js`, running daily at 00:00 UTC into
-  `r2://seofixkit-backups/d1/`; the runbook is `ops/RESTORE.md`. The one remaining
+  `r2://seofixkit-backups/d1/`; the runbook is `docs/restore-runbook.md`. The one remaining
   manual step is the long-lived `D1_REST_API_TOKEN` Worker secret: mint it through
   a reviewed `infra/cloudflare-tokens` PR, then
   `npx wrangler secret put D1_REST_API_TOKEN`. Decision path: the fleet's
