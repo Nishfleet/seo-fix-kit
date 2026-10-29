@@ -61,6 +61,12 @@ database itself. An artifact is outside both. The dump is sealed with age
 before it leaves the runner because this repository is public and the
 plaintext dump holds customer rows.
 
+Retention is a policy decision, not a technical one. The 90 days outlast
+Time Travel's 30-day restore window, which is what makes a dump worth
+making at all, but it also means a customer deletion that only reaches
+the live database is not yet gone from these sealed copies. Whether the
+product keeps this copy at all is Nishfleet/seo-fix-kit#308.
+
 Everything the retirement recorded about the dump still holds: being
 weekly it can lose up to a week of writes, and the 2026-06-12 rehearsal
 below hit `SQLITE_TOOBIG` on oversized `audit_reports.report_json`
@@ -73,10 +79,15 @@ coverage at all is Nishfleet/seo-fix-kit#308.
 Historical dumps from the host-scheduler era remain in
 `r2://seofixkit-backups/d1/`.
 
-If the CI schedule is ever found unreliable (GitHub disables scheduled
-workflows after 60 days without a repo commit), the stock replacement
-is the Cloudflare Workflows export guide, which runs inside the
-Cloudflare account on a schedule with no host scheduler:
+Nothing watches this job beyond GitHub's own failure email, which goes to
+the last person who edited the workflow, and GitHub turns a scheduled
+workflow off after 60 days with no commit in the repository. The check
+that it still runs is a restore drill: download a recent artifact, unseal
+it and import it. That is also the only thing that proves the decrypt
+path, which the 2026-10-29 rehearsal below did not cover. If the schedule
+itself is ever found unreliable, the stock replacement is the Cloudflare
+Workflows export guide, which runs inside the Cloudflare account on a
+schedule with no host scheduler:
 https://developers.cloudflare.com/workflows/examples/backup-d1/
 
 ## Rehearsal log
@@ -86,5 +97,6 @@ https://developers.cloudflare.com/workflows/examples/backup-d1/
   SQLITE_TOOBIG (see above). Scratch DB deleted.
 - 2026-10-29 — the export moved off the Mac task into
   `.github/workflows/backup-d1.yml` and off object storage onto a sealed
-  GitHub artifact (Nishfleet/fleet-ops#9527). No dump import has been
+  GitHub artifact (Nishfleet/fleet-ops#9527). One real CI run proved the
+  export, the age seal and the artifact upload; no dump import has been
   rehearsed against the new path yet.
