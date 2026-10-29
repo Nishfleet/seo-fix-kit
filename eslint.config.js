@@ -74,6 +74,7 @@ export default [
   {
     ignores: [
       "dist/**",
+      ".cloudflare/**",
       "node_modules/**",
       "public/**",
       "docs/**",

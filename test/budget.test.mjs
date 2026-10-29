@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { gzipSync } from "node:zlib";
 import test from "node:test";
 
-const dist = new URL("../dist/", import.meta.url).pathname;
+const dist = new URL("../.cloudflare/output/v0/workers/default/assets/", import.meta.url).pathname;
 
 const BUDGETS = [
   { label: "Homepage HTML (prerendered)", match: /^index\.html$/, kb: 10 },
@@ -24,11 +24,12 @@ function files(dir, prefix = "") {
 }
 
 test("no shipped file exceeds its performance budget", () => {
-  if (!existsSync(dist)) throw new Error("dist/ is missing; npm run build must run before npm run test:budget");
+  if (!existsSync(dist))
+    throw new Error("the built assets are missing; npm run build must run before npm run test:budget");
   const shipped = files(dist);
   for (const budget of BUDGETS) {
     const matches = shipped.filter((file) => budget.match.test(file));
-    assert.ok(matches.length > 0, `${budget.label}: no dist file matched ${budget.match}`);
+    assert.ok(matches.length > 0, `${budget.label}: no built file matched ${budget.match}`);
     for (const file of matches) {
       const kb = gzipSync(readFileSync(join(dist, file))).length / 1024;
       assert.ok(
