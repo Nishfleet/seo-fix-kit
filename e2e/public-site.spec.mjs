@@ -272,9 +272,12 @@ test.describe("free page check", () => {
     await expect(compare.getByRole("row", { name: /Main heading/ })).toContainText("Missing");
     await expect(compare.getByRole("row", { name: /answer tools allowed/ })).toContainText("1 of 2");
 
+    await expect(
+      page.locator("#result").getByRole("link", { name: "Get the full report for example.com" })
+    ).toHaveAttribute("href", "/beta?url=https%3A%2F%2Fexample.com%2F");
     await expect(page.locator("#result").getByRole("link", { name: "Create a free account" })).toHaveAttribute(
       "href",
-      /\/beta$/
+      "/beta?url=https%3A%2F%2Fexample.com%2F"
     );
   });
 });
