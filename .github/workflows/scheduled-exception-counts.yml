@@ -103,6 +103,30 @@ jobs:
           scheduled '2026-10-12T00:00:00Z' '2026-10-15T00:00:00Z'
           printf 'before #289    2026-10-09 .. 2026-10-12 : '
           scheduled '2026-10-09T00:00:00Z' '2026-10-12T00:00:00Z'
+          printf 'inside the gap 2026-10-18 .. 2026-10-22 : '
+          scheduled '2026-10-18T00:00:00Z' '2026-10-22T00:00:00Z'
+          printf 'three days ago 2026-10-25 .. 2026-10-27 : '
+          scheduled '2026-10-25T00:00:00Z' '2026-10-27T00:00:00Z'
+
+      - name: Ask the analytics API which invocation dimensions it has
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="${RUNNER_TEMP:?}/cfcounts"
+          # An unknown field makes the API list the fields it does have, which
+          # is how the trigger dimension is found without a doc lookup.
+          jq -nc --arg q "{ viewer { accounts(filter: {accountTag: \"$CF_ACCOUNT\"}) { workersInvocationsAdaptive(limit: 1, filter: {scriptName: \"$CF_SCRIPT\"}) { dimensions { status triggername } } } } }" \
+            '{query: $q}' > "$work/q.json"
+          curl --silent --show-error --location -H "@$work/headers" --output "$work/r.json" \
+            --data @"$work/q.json" https://api.cloudflare.com/client/v4/graphql
+          printf 'the API says : '
+          if jq -c '{errors: [.errors[]?.message]}' "$work/r.json" > "$work/out.txt" 2>/dev/null; then
+            head -c 2000 "$work/out.txt"
+          else
+            printf 'not json, raw response : '
+            head -c 2000 "$work/r.json"
+          fi
+          echo
 
       - name: List the observability keys this worker writes
         shell: bash
