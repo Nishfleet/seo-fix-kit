@@ -52,6 +52,9 @@ on:
   schedule:
     - cron: "30 3 * * 0" # Sundays 03:30 UTC; GitHub schedules are always UTC
   workflow_dispatch: {} # one-off runs, for example a restore drill
+  pull_request:
+    paths:
+      - ".github/workflows/backup-d1.yml" # PROOF RUN ONLY, not in the deliverable branch
 
 permissions:
   contents: read
