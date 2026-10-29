@@ -58,6 +58,7 @@ It is not trying to replace Ahrefs or Semrush keyword and backlink databases. Th
 - Self-serve Developer API keys, `/v1/audits` JSON endpoints, project-style verified sites, safe `repair_queue` issue status, separate approved-action implementation-pack and fixed-proof receipt markdown endpoints, and audit/repair-action lifecycle webhooks.
 - Saved private report URLs backed by D1 `audit_reports`, tied to the beta owner email and invite where available.
 - 30-day report retention with cleanup for expired reports, sessions, and quota buckets.
+- Self-serve account deletion (Billing page, `POST /api/account/delete`) that removes the owner's D1 rows and stored R2 report files, keeps paid Fix Pack and subscription records under a random pseudonym with personal fields cleared, and writes a personal-data-free `account-deleted` entry to `admin_audit_log`. Rows the fleet must keep for accounting and tax (a paid Fix Pack, an active subscription) stay, with the email, site, notes and report ids removed. Support completes emailed requests with `POST /admin/account-deletions`, which runs the same code.
 - D1-backed abuse controls across access links, login, waitlist, network, session, daily, and target-site audit buckets.
 - `/beta/admin` ops dashboard for waitlist, invites, audits, repeated issue patterns, and fix requests.
 - Dodo-backed SEO Fix Pack checkout CTA inside reports when real fixes exist.
@@ -76,7 +77,7 @@ npm run dev
 Open `http://127.0.0.1:5173`.
 
 There is one backend: the Cloudflare Worker in `worker/index.js`. `npm run dev`
-builds `dist/` (the Worker's static-asset directory), applies the D1 migrations to
+builds `.cloudflare/output/v0/workers/default/assets` (the Worker's static-asset directory), applies the D1 migrations to
 a local database (`npm run db:migrate:local`, i.e.
 `wrangler d1 migrations apply WAITLIST_DB --local`), then runs the Worker with
 `wrangler dev --local` on `http://127.0.0.1:8787` next to the Vite dev server on
@@ -122,8 +123,8 @@ npm run check   # all test suites + build + performance budget: the protected CI
 npm run test:e2e  # Playwright, desktop + phone, against the real Worker and database
 ```
 
-`npm run test:e2e` builds `dist/`, starts `e2e/server.mjs` (the Worker on Node
-with a real SQLite D1 and `dist/` as its assets) and runs `e2e/*.spec.mjs` on a
+`npm run test:e2e` builds the assets, starts `e2e/server.mjs` (the Worker on Node
+with a real SQLite D1 and `.cloudflare/output/v0/workers/default/assets` as its assets) and runs `e2e/*.spec.mjs` on a
 desktop and a phone viewport: every sitemap page, the header and phone menu,
 the homepage without JavaScript, sign-up by emailed link, every app section,
 sign-out, pricing, the free check and the 404 page. CI runs it after
@@ -139,8 +140,8 @@ Design tokens (colour, type, spacing, radius, elevation, motion) live in
 `src/design/tokens.css`; shared marketing components in `src/design/site.css`.
 The React app imports them directly and the build bundles them into
 `/tokens.css` for the Worker-rendered pages, so the two surfaces share one
-system. The homepage is prerendered at build time (`server/prerender.mjs`) so
-its content is in the raw HTML.
+system. The homepage is prerendered at build time (`server/prerender.mjs`, run by
+`vite build` and `cf build` alike) so its content is in the raw HTML.
 
 `npm run test:audit` runs offline against a local fixture site. To audit a live
 URL instead, set `TEST_URL`, e.g. `TEST_URL=https://seofixkit.com/ npm run test:audit`.
@@ -213,7 +214,7 @@ invitation copy, both prepared 2026-08-12) lives at
 
 The Worker in `worker/index.js` is the only backend, locally and in production. The deployable path is:
 
-- React UI served by Workers Static Assets from `dist/`
+- React UI served by Workers Static Assets from `.cloudflare/output/v0/workers/default/assets`, which `npm run build` and `cf build` write
 - Public `/check`, `/demo`, `/methodology`, `/pricing`, `/proof`, `/small-business-seo-audit`, `/rendered-vs-static-seo-audit`, `/ai-answer-readiness`, `/privacy`, `/support`, `/terms`, `/sitemap.xml`, and `/llms.txt` stay served by the Worker/public asset path
 - `/api/health` is a shallow public runtime check; `/api/deep-health` is a public-safe readiness check for bindings, D1 schema, Dodo checkout/webhook config, and self-serve repair capabilities without exposing secrets, provider ids, checkout URLs, customer data, or table counts
 - `/api/public-check` runs the anonymous one-page URL check for any visitor: one public page rendered in a real browser, proof fields and guarded false positives from the shared audit engine, findings when present, per-network and per-site rate limits with hashed, short-lived counters, and no stored report; `/check` is the indexable public entry page

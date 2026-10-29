@@ -5,12 +5,13 @@ import { indexNowKeyFileBody, indexNowKeyFilePaths } from "../shared/index-now.j
 import {
   createAdminBetaSession,
   createInvite,
+  deleteAccountAdmin,
   exportLeadsCsv,
   getAdminSummary,
   getFunnelSummary,
   updateFixRequestAdmin
 } from "./routes/admin.js";
-import { getAccountSummary, listReports } from "./routes/account.js";
+import { deleteOwnAccount, getAccountSummary, listReports } from "./routes/account.js";
 import {
   confirmUnsubscribe,
   getEmailPreferences,
@@ -173,7 +174,6 @@ function canonicalOrigin(url) {
 }
 
 function executionContext(c) {
-  // Hono's getter throws when the runtime passed no ExecutionContext.
   try {
     return c.executionCtx;
   } catch {
@@ -268,6 +268,7 @@ app.get("/api/billing/summary", route(getBillingSummary));
 app.post("/api/webhooks/dodo", route(handleDodoWebhook));
 
 app.get("/api/account/summary", route(getAccountSummary));
+app.post("/api/account/delete", route(deleteOwnAccount));
 app.get("/api/reports", route(listReports));
 app.get("/api/developer", route(getDeveloperApiSummary));
 app.post("/api/developer/tokens", route(createDeveloperApiToken));
@@ -354,6 +355,7 @@ app.get("/admin/funnel", route(getFunnelSummary));
 app.get("/admin/leads.csv", route(exportLeadsCsv));
 app.post("/admin/invites", route(createInvite));
 app.patch("/admin/fix-requests/:id", route(updateFixRequestAdmin));
+app.post("/admin/account-deletions", route(deleteAccountAdmin));
 
 app.get("/.well-known/seofixkit-report-domain.txt", route(getReportDomainChallenge));
 app.post("/r/:id/unlock", route(unlockClientReport));
@@ -393,7 +395,7 @@ app.get("/fixture/sitemap.xml", (c) =>
 app.get("/robots.txt", (c) =>
   textResponse(`User-agent: *\nAllow: /\n\nSitemap: ${originOf(c)}/sitemap.xml\n`, "text/plain; charset=utf-8")
 );
-// IndexNow key file: served at the spec root and the .well-known alias (https://www.indexnow.org/documentation).
+// upstream: https://www.indexnow.org/documentation — the key file is served at the spec root and at the .well-known alias.
 for (const keyPath of indexNowKeyFilePaths()) {
   app.get(keyPath, () =>
     textResponse(indexNowKeyFileBody(), "text/plain; charset=utf-8", {

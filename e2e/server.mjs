@@ -8,7 +8,7 @@ import { createTestD1 } from "../test/support/d1.mjs";
 import { projectedScore, withScoreGains } from "../shared/audit-engine.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const DIST = path.join(ROOT, "dist");
+const DIST = path.join(ROOT, ".cloudflare/output/v0/workers/default/assets");
 const PORT = Number(process.env.E2E_PORT || 4321);
 const ORIGIN = `http://127.0.0.1:${PORT}`;
 
@@ -25,7 +25,7 @@ const CONTENT_TYPES = {
 };
 
 if (!fs.existsSync(path.join(DIST, "index.html"))) {
-  throw new Error("dist/ is missing: run `npm run build` before the e2e server");
+  throw new Error("the built assets are missing: run `npm run build` before the e2e server");
 }
 
 function assetFile(pathname) {

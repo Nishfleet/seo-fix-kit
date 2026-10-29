@@ -215,6 +215,30 @@ test("deliverApiWebhooks signs each delivery with a verifiable t=,v1= HMAC heade
   assert.equal(match[2], await hmacSha256Hex(secret, `${match[1]}.${requests[0].body}`));
 });
 
+test("deliverApiWebhooks leaves Slack webhook URLs unsigned", async () => {
+  const env = fakeWebhookEnv();
+  env.webhooks = [{ ...fakeWebhook(), url: "https://hooks.slack.com/services/T0001/B0002/slacktoken" }];
+  const requests = [];
+  await deliverApiWebhooks(
+    env,
+    "owner@example.com",
+    "audit.completed",
+    { audit: { audit_id: "audit-1" } },
+    {
+      fetcher: async (_url, options = {}) => {
+        requests.push(options);
+        return new Response(null, { status: 204 });
+      },
+      resolvesToPrivateAddress: async () => false,
+      sleep: async () => {}
+    }
+  );
+
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].headers["x-seofixkit-event"], "audit.completed");
+  assert.ok(!("x-seofixkit-signature" in requests[0].headers), "Slack deliveries must not carry a signature header");
+});
+
 function fakeWebhook() {
   return {
     id: "webhook-1",

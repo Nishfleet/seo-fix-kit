@@ -1,4 +1,3 @@
-// Minimal ZIP writer (stored, no compression) for small text bundles.
 const CRC_TABLE = (() => {
   const table = new Uint32Array(256);
   for (let n = 0; n < 256; n += 1) {

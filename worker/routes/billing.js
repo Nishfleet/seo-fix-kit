@@ -56,6 +56,7 @@ import {
   cleanText,
   cleanReportDomain,
   hourWindow,
+  isDeletedAccountEmail,
   isSafeReportId,
   isoDaysFromNow,
   isoSecondsFromNow,
@@ -117,8 +118,6 @@ const REPAIR_SPRINT_BLOCKED_FIX_REQUEST_STATUSES = new Set(REBUY_BLOCKED_FIX_REQ
 
 const CHECKOUT_URL_TTL_HOURS = 24;
 
-// A paid payment rejected for one of these reasons means a customer was charged
-// without getting access: the webhook is recorded as `error` and the admin is alerted.
 const UNATTRIBUTABLE_PAYMENT_IDENTITY_REASONS = new Set([
   "checkout_product_mismatch",
   "repair_sprint_checkout_target_missing",
@@ -128,12 +127,10 @@ const UNATTRIBUTABLE_PAYMENT_IDENTITY_REASONS = new Set([
   "product_quantity_mismatch"
 ]);
 
-// Lease taken on a fix request (or monitoring owner) while a Dodo checkout is being created.
 const CHECKOUT_LOCK_SECONDS = 30;
 
 const CHECKOUT_HOURLY_LIMIT = 10;
 
-// Only flag clearly wrong amounts: tax and adaptive-currency fees move the total a little.
 const MIN_EXPECTED_AMOUNT_RATIO = 0.5;
 
 function isRefundOrDisputeEvent(eventType) {
@@ -379,7 +376,6 @@ async function requestFixPack(request, env) {
     );
   }
 
-  // Claim the request before calling Dodo so concurrent clicks cannot each mint a session.
   if (!(await claimFixRequestCheckoutLock(env, fixRequest.id))) {
     const current = await fixRequestById(env, fixRequest.id);
     return (
@@ -758,8 +754,6 @@ async function requestMonitoringCheckout(request, env) {
       target: monitoringCheckoutTargetResponse(context)
     });
 
-  // Reuse the owner's open subscription checkout, and lock while creating one,
-  // so repeat clicks cannot start several Dodo subscriptions.
   let lock;
   try {
     lock = await claimMonitoringCheckout(env, access.ownerEmail, context.targetHost);
@@ -841,7 +835,6 @@ async function claimMonitoringCheckout(env, ownerEmail, targetHost) {
     .bind(ownerEmail, isoSecondsFromNow(CHECKOUT_LOCK_SECONDS), now, now)
     .run();
   const claimed = Number(result?.meta?.changes || 0) === 1;
-  // Another click may have finished creating a session while this one waited.
   const raced = freshMonitoringCheckoutUrl(await monitoringCheckoutRow(env, ownerEmail), targetHost);
   if (raced) {
     if (claimed) await releaseMonitoringCheckoutLock(env, ownerEmail);
@@ -1786,7 +1779,6 @@ async function createDodoFixPackCheckout(request, env, reportRow, fixRequest, ac
     product_cart: [{ product_id: dodoProductId(env), quantity: 1 }],
     return_url: returnUrl.toString(),
     adaptive_currency_fees_inclusive: dodoAdaptiveCurrencyFeesInclusive(env),
-    // Dodo docs: feature_flags.allow_discount_code shows the discount-code field; keep it off.
     feature_flags: { allow_discount_code: false },
     customer: { email: access.ownerEmail },
     metadata: {
@@ -1847,7 +1839,6 @@ async function createDodoMonitoringCheckout(request, env, access, context) {
     product_cart: [{ product_id: dodoMonitoringProductId(env), quantity: 1 }],
     return_url: returnUrl.toString(),
     adaptive_currency_fees_inclusive: dodoAdaptiveCurrencyFeesInclusive(env),
-    // Dodo docs: feature_flags.allow_discount_code shows the discount-code field; keep it off.
     feature_flags: { allow_discount_code: false },
     customer: { email: access.ownerEmail },
     metadata: {
@@ -1905,7 +1896,6 @@ async function createDodoRepairSprintCheckout(request, env, reportRow, fixReques
     product_cart: [{ product_id: dodoRepairSprintProductId(env), quantity: 1 }],
     return_url: returnUrl.toString(),
     adaptive_currency_fees_inclusive: dodoAdaptiveCurrencyFeesInclusive(env),
-    // Dodo docs: feature_flags.allow_discount_code shows the discount-code field; keep it off.
     feature_flags: { allow_discount_code: false },
     customer: { email: access.ownerEmail },
     metadata: {
@@ -2255,8 +2245,6 @@ async function processDodoPaymentWebhook(env, eventType, payment, webhookId = ""
 
   const fixRequest = await findFixRequestForPayment(env, payment);
   if (!fixRequest?.id) {
-    // A refund or dispute we cannot match yet (for example one that arrives before
-    // payment.succeeded) stays `error`: it is visible, retried, and replayed once the payment lands.
     return {
       ok: false,
       ignored: !moneyBackEvent,
@@ -2398,8 +2386,6 @@ async function processDodoPaymentWebhook(env, eventType, payment, webhookId = ""
     const refundedAlready = updated.status === "refunded";
     return {
       ok: true,
-      // The payment is recorded and access is granted either way; a clearly wrong
-      // amount only flags the webhook for the admin.
       status: amountIssue ? "error" : "processed",
       errorText: amountIssue ? `amount_mismatch: ${amountIssue}` : "",
       reason: amountIssue ? "amount_mismatch" : refundedAlready ? "refund_recorded_before_payment" : "",
@@ -2457,7 +2443,6 @@ async function processDodoPaymentWebhook(env, eventType, payment, webhookId = ""
 
   if (DODO_REFUND_SUCCESS_EVENTS.has(eventType)) {
     if (isPartialRefund(fixRequest, payment)) {
-      // A partial refund keeps the Fix Pack: record how much went back and why.
       await env.WAITLIST_DB.prepare(
         `UPDATE fix_requests
          SET refund_id = ?,
@@ -2578,7 +2563,6 @@ async function processDodoPaymentWebhook(env, eventType, payment, webhookId = ""
   }
 
   if (DODO_DISPUTE_RESOLVED_EVENTS.has(eventType)) {
-    // Won or withdrawn: the payment stands, so the request goes back to where it was.
     await env.WAITLIST_DB.prepare(
       `UPDATE fix_requests
        SET status = CASE
@@ -2705,8 +2689,6 @@ async function fixRequestPaymentRecord(env, paymentId, fixRequestId = "") {
   }
 }
 
-// A second distinct payment for a request that is already paid: keep the original
-// payment, record the extra one, and flag it for a refund.
 async function recordDuplicatePayment(env, eventType, payment, fixRequest, webhookId, now) {
   await recordFixRequestPayment(env, { fixRequestId: fixRequest.id, payment, role: "duplicate", webhookId, now });
   await logFixRequestEvent(env, {
@@ -2752,7 +2734,6 @@ async function recordDuplicatePayment(env, eventType, payment, fixRequest, webho
   };
 }
 
-// Refunds and disputes of an extra payment touch only that payment's record.
 async function processDuplicatePaymentMoneyEvent(env, eventType, payment, fixRequest, webhookId, now) {
   let status = "paid";
   if (DODO_REFUND_SUCCESS_EVENTS.has(eventType)) status = payment.isPartialRefund ? "partially_refunded" : "refunded";
@@ -2783,8 +2764,6 @@ async function processDuplicatePaymentMoneyEvent(env, eventType, payment, fixReq
   };
 }
 
-// Refund or dispute webhooks that arrived before their payment were stored as `error`;
-// once the payment is recorded, apply them in arrival order.
 async function replayPendingMoneyEvents(env, paymentId, currentWebhookId = "") {
   if (!paymentId) return;
   const rows = await env.WAITLIST_DB.prepare(
@@ -2902,7 +2881,6 @@ async function processDodoSubscriptionWebhook(env, eventType, subscription, webh
   });
 
   if (result.reason === "active_entitlement_exists") {
-    // A second subscription went live while one is active: the customer is billed twice.
     return {
       ok: false,
       status: "error",
@@ -3209,7 +3187,6 @@ async function findFixRequestForPayment(env, payment) {
       .bind(payment.paymentId)
       .first();
     if (row?.id) return row;
-    // Extra payments recorded against a request (refunds and disputes of them must still match).
     const record = await fixRequestPaymentRecord(env, payment.paymentId);
     if (record?.fix_request_id) return fixRequestById(env, record.fix_request_id);
   }
@@ -3388,8 +3365,6 @@ async function markDodoWebhookProcessed(env, webhookId, status, error = "", fixR
     .run();
 }
 
-// Emails the admin about a billing problem that needs a human (refund, cancel, review).
-// The webhook row is already `error`, so this is best effort and never throws.
 async function notifyAdminBillingAlert(
   env,
   { reason, fixRequest = null, ownerEmail = "", detail = {}, eventType, webhookId }
@@ -3444,10 +3419,7 @@ async function notifyPaymentSucceeded(env, fixRequest, payment, options = {}) {
   const appOrigin = String(env.SEOFIXKIT_APP_ORIGIN || "https://seofixkit.com").replace(/\/+$/, "");
   const report = await reportForNotification(env, fixRequest.report_id);
   const offerKey = options.offerKey || OFFER_KEYS.FIX_PACK;
-  const recipients = [
-    { type: "owner", email: normalizeEmail(fixRequest.owner_email) },
-    { type: "admin", email: adminNotificationEmail(env) }
-  ];
+  const recipients = fixRequestNotificationRecipients(env, fixRequest);
   const results = [];
 
   for (const recipient of recipients) {
@@ -3578,15 +3550,20 @@ async function sendFixPackPaymentEmail({
   }
 }
 
+function fixRequestNotificationRecipients(env, fixRequest) {
+  const ownerEmail = normalizeEmail(fixRequest.owner_email);
+  const recipients = [];
+  if (ownerEmail && !isDeletedAccountEmail(ownerEmail)) recipients.push({ type: "owner", email: ownerEmail });
+  recipients.push({ type: "admin", email: adminNotificationEmail(env) });
+  return recipients;
+}
+
 async function notifyFixRequestStatus(env, fixRequest, status) {
   const appOrigin = String(env.SEOFIXKIT_APP_ORIGIN || "https://seofixkit.com").replace(/\/+$/, "");
   const report = await reportForNotification(env, fixRequest.report_id);
   const event = status === "delivered" ? "delivery_ready" : "repair_started";
   const beforeAfter = parseJson(fixRequest.before_after_summary_json, null);
-  const recipients = [
-    { type: "owner", email: normalizeEmail(fixRequest.owner_email) },
-    { type: "admin", email: adminNotificationEmail(env) }
-  ];
+  const recipients = fixRequestNotificationRecipients(env, fixRequest);
   const results = [];
 
   for (const recipient of recipients) {
@@ -3820,6 +3797,7 @@ export {
   fetchDodoJson,
   findFixRequestForPayment,
   findMonitoringEntitlement,
+  fixRequestNotificationRecipients,
   formatMinorCurrency,
   getBillingSummary,
   getFixPackPricingPreview,

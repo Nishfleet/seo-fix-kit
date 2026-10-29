@@ -26,7 +26,6 @@ function BetaRoute() {
   );
 }
 
-// Library-mode BrowserRouter has no scroll restoration.
 function ScrollToTopOnPush() {
   const { pathname } = useLocation();
   const navigationType = useNavigationType();
