@@ -62,16 +62,22 @@ jobs:
           set -euo pipefail
           work="${RUNNER_TEMP:?}/cfcounts"
           by_status() {
-            local from="$1" to="$2"
+            local from="$1" to="$2" out
             local filt="scriptName: \"$CF_SCRIPT\", datetime_geq: \"$from\", datetime_leq: \"$to\""
             jq -nc --arg q "{ viewer { accounts(filter: {accountTag: \"$CF_ACCOUNT\"}) { workersInvocationsAdaptive(limit: 5000, filter: {$filt}) { sum { requests errors } dimensions { status } } } } }" \
               '{query: $q}' > "$work/q.json"
             curl --silent --show-error --location -H "@$work/headers" --output "$work/r.json" \
               --data @"$work/q.json" https://api.cloudflare.com/client/v4/graphql
-            jq -c '{errors: [.errors[]?.message], byStatus: [.data.viewer.accounts[0].workersInvocationsAdaptive[]? | "\(.dimensions.status) requests=\(.sum.requests) errors=\(.sum.errors)"]}' "$work/r.json"
+            out="$(jq -c '{errors: [.errors[]?.message], byStatus: [.data.viewer.accounts[0].workersInvocationsAdaptive[]? | "\(.dimensions.status) requests=\(.sum.requests) errors=\(.sum.errors)"]}' "$work/r.json")"
+            printf '%s\n' "$out"
+            if [ "$(printf '%s' "$out" | jq -r '.errors | length')" != "0" ]; then
+              printf 'the invocations dataset refused this read\n' >&2
+              return 1
+            fi
           }
           now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           day_ago="$(date -u -d '24 hours ago' +%Y-%m-%dT%H:%M:%SZ)"
+          week_ago="$(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%SZ)"
           printf 'last 24 hours  %s .. %s : ' "$day_ago" "$now"
           by_status "$day_ago" "$now"
           # The analytics API refuses a range wider than one week, so every
@@ -80,8 +86,8 @@ jobs:
           by_status '2026-10-09T00:00:00Z' '2026-10-12T00:00:00Z'
           printf 'around #289   2026-10-13 .. 2026-10-17 : '
           by_status '2026-10-13T00:00:00Z' '2026-10-17T00:00:00Z'
-          printf 'last week      2026-10-22 .. now         : '
-          by_status '2026-10-22T00:00:00Z' "$now"
+          printf 'last 7 days    %s .. %s : ' "$week_ago" "$now"
+          by_status "$week_ago" "$now"
 
       - name: Read the scheduled-invocations dataset for the same windows
         shell: bash
@@ -135,14 +141,16 @@ jobs:
               --data @"$work/tq.json" \
               "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT/workers/observability/telemetry/query"
             printf '%s : ' "$label"
-            jq -c '{success, errors: [.errors[]?.message], messages: [.messages[]?.message],
+            if jq -c '{success, errors: [.errors[]?.message], messages: [.messages[]?.message],
                     counts: [.result.calculations[]? | (.aggregates[]?
                              | {groups: [.groups[]? | "\(.key)=\(.value)"], count})],
-                    events: (.result.events // [] | length)}' "$work/tr.json" > "$work/out.txt"
-            head -c 1500 "$work/out.txt"
-            if ! jq -e '.success == true' "$work/tr.json" > /dev/null 2>&1; then
-              printf '\n%s rejected, raw response : ' "$label"
+                    events: (.result.events // [] | length)}' "$work/tr.json" > "$work/out.txt" 2>/dev/null; then
+              head -c 1500 "$work/out.txt"
+            else
+              printf 'not json, raw response : '
               head -c 600 "$work/tr.json"
+            fi
+            if ! jq -e '.success == true' "$work/tr.json" > /dev/null 2>&1; then
               refused=1
             fi
             echo
@@ -161,10 +169,13 @@ jobs:
                                      {key: "$metadata.level", operation: "eq", type: "string", value: "error"}]},
               limit: 5}')" 'newest error events, last 24 h'
           printf 'first error event : '
-          jq -c '.result.events[0]' "$work/tr.json" > "$work/out.txt"
-          head -c 1500 "$work/out.txt"
+          if jq -c '.result.events[0]' "$work/tr.json" > "$work/out.txt" 2>/dev/null; then
+            head -c 1500 "$work/out.txt"
+          else
+            printf 'no readable response'
+          fi
           echo
           if [ "$refused" = "1" ]; then
-            printf 'Workers Observability refused both reads, so the errors behind the rows are unknown\n' >&2
+            printf 'Workers Observability refused a read, so the errors behind the rows are unknown\n' >&2
             exit 1
           fi
