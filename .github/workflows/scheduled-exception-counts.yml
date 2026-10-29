@@ -108,6 +108,28 @@ jobs:
           printf 'three days ago 2026-10-25 .. 2026-10-27 : '
           scheduled '2026-10-25T00:00:00Z' '2026-10-27T00:00:00Z'
 
+      - name: Probe the analytics API for a dimension that names the trigger
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="${RUNNER_TEMP:?}/cfcounts"
+          now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          day_ago="$(date -u -d '24 hours ago' +%Y-%m-%dT%H:%M:%SZ)"
+          filt="scriptName: \"$CF_SCRIPT\", datetime_geq: \"$day_ago\", datetime_leq: \"$now\""
+          for dim in trigger entrypoint dispatchNamespace outcome; do
+            jq -nc --arg q "{ viewer { accounts(filter: {accountTag: \"$CF_ACCOUNT\"}) { workersInvocationsAdaptive(limit: 100, filter: {$filt}) { dimensions { status $dim } sum { requests } } } } }" \
+              '{query: $q}' > "$work/q.json"
+            curl --silent --show-error --location -H "@$work/headers" --output "$work/r.json" \
+              --data @"$work/q.json" https://api.cloudflare.com/client/v4/graphql
+            printf 'dimension %-18s : ' "$dim"
+            jq -c --arg d "$dim" '{errors: [.errors[]?.message],
+                    rows: [.data.viewer.accounts[0].workersInvocationsAdaptive[]?
+                           | "\(.dimensions.status)/\(.dimensions[$d]) requests=\(.sum.requests)"]}' \
+              "$work/r.json" > "$work/out.txt"
+            head -c 1200 "$work/out.txt"
+            echo
+          done
+
       - name: Ask the analytics API which invocation dimensions it has
         shell: bash
         run: |
