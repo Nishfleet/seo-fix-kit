@@ -114,7 +114,8 @@ jobs:
 
       - name: End-to-end browser tests (desktop and phone)
         # Playwright drives the real Worker and database (e2e/server.mjs)
-        # against the dist/ that `npm run check` just built. Same job, so the
+        # against the assets `npm run check` just built into
+        # .cloudflare/output/v0/workers/default/assets. Same job, so the
         # required "check" status covers it.
         run: npx playwright test
 
