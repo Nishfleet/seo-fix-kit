@@ -6,16 +6,21 @@
 # under 1% over 24 hours. Cloudflare's dashboard is the only other place those
 # numbers live, so this workflow reads them and prints them as plain text.
 #
+# Two sources are read. The invocations dataset counts every invocation of the
+# Worker, so a cron throw shows there as scriptThrewException, but so does fetch
+# traffic, and its rate is not the scheduled rate. The scheduled-invocations
+# dataset counts only cron runs, which is the number the finish line asks for.
+# Workers Observability would name the errors behind those rows.
+#
 # Every call is a read: the GraphQL analytics API and the Workers Observability
 # telemetry API. Nothing deploys, and the API token never reaches argv -- curl
-# takes it from a headers file under RUNNER_TEMP.
+# takes it from a headers file under RUNNER_TEMP. A step that cannot read its
+# source fails, because a zero count and an unread source print the same line.
 
 name: Scheduled exception counts
 
 on:
   workflow_dispatch: {}
-  push:
-    branches: [orch/issue-237]
 
 permissions:
   contents: read
@@ -42,6 +47,8 @@ jobs:
           umask 077
           work="${RUNNER_TEMP:?}/cfcounts"
           mkdir -p "$work"
+          test -n "$CF_TOKEN"
+          test -n "$CF_ACCOUNT"
           {
             printf 'Authorization: Bearer %s\n' "$CF_TOKEN"
             printf 'Accept: application/json\n'
@@ -71,7 +78,7 @@ jobs:
           # window below stays inside that limit.
           printf 'before #289    2026-10-09 .. 2026-10-12 : '
           by_status '2026-10-09T00:00:00Z' '2026-10-12T00:00:00Z'
-          printf 'after  #289    2026-10-13 .. 2026-10-17 : '
+          printf 'around #289   2026-10-13 .. 2026-10-17 : '
           by_status '2026-10-13T00:00:00Z' '2026-10-17T00:00:00Z'
           printf 'last week      2026-10-22 .. now         : '
           by_status '2026-10-22T00:00:00Z' "$now"
@@ -95,10 +102,11 @@ jobs:
           }
           now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           day_ago="$(date -u -d '24 hours ago' +%Y-%m-%dT%H:%M:%SZ)"
-          printf 'last 24 hours  %s .. %s : ' "$day_ago" "$now"
-          scheduled "$day_ago" "$now"
           # The analytics API refuses a range wider than one week, so every
           # window below stays inside that limit.
+          printf 'last 24 hours  %s .. %s : ' "$day_ago" "$now"
+          last_day="$(scheduled "$day_ago" "$now")"
+          printf '%s\n' "$last_day"
           printf 'the cut-over   2026-10-12 .. 2026-10-15 : '
           scheduled '2026-10-12T00:00:00Z' '2026-10-15T00:00:00Z'
           printf 'before #289    2026-10-09 .. 2026-10-12 : '
@@ -107,6 +115,10 @@ jobs:
           scheduled '2026-10-18T00:00:00Z' '2026-10-22T00:00:00Z'
           printf 'three days ago 2026-10-25 .. 2026-10-27 : '
           scheduled '2026-10-25T00:00:00Z' '2026-10-27T00:00:00Z'
+          if [ "$(printf '%s' "$last_day" | jq -r '.rows')" = "0" ]; then
+            printf 'the scheduled dataset has no rows for the last 24 hours, so it cannot show the 96 runs\n' >&2
+            exit 1
+          fi
 
       - name: Read the cron invocations from Workers Observability
         shell: bash
@@ -115,6 +127,7 @@ jobs:
           work="${RUNNER_TEMP:?}/cfcounts"
           from_ms=$(( $(date -u -d '24 hours ago' +%s) * 1000 ))
           to_ms=$(( $(date -u +%s) * 1000 ))
+          refused=0
           ask() {
             local body="$1" label="$2"
             printf '%s' "$body" > "$work/tq.json"
@@ -130,6 +143,7 @@ jobs:
             if ! jq -e '.success == true' "$work/tr.json" > /dev/null 2>&1; then
               printf '\n%s rejected, raw response : ' "$label"
               head -c 600 "$work/tr.json"
+              refused=1
             fi
             echo
           }
@@ -150,3 +164,7 @@ jobs:
           jq -c '.result.events[0]' "$work/tr.json" > "$work/out.txt"
           head -c 1500 "$work/out.txt"
           echo
+          if [ "$refused" = "1" ]; then
+            printf 'Workers Observability refused both reads, so the errors behind the rows are unknown\n' >&2
+            exit 1
+          fi
