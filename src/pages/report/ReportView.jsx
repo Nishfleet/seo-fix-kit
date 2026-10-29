@@ -445,7 +445,7 @@ function ReportTabs({ tabs, children, selectRef }) {
   function select(key, focus = false) {
     setActive(key);
     const hash = key === keys[0] ? "" : `#${key}`;
-    navigate(`${location.pathname}${location.search}${hash}`, { replace: true });
+    navigate(`${location.pathname}${location.search}${hash}`, { replace: true, state: location.state });
     if (focus) listRef.current?.querySelector(`#report-tab-${key}`)?.focus();
   }
 

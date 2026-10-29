@@ -574,7 +574,11 @@ async function getSavedReport(request, env) {
       report.fixRequest.finalReportPath = `/beta/reports/${encodeURIComponent(fixRequest.final_report_id)}`;
     }
   }
-  await seedRepairProposalsForReport(env, report, row, access.ownerEmail);
+  try {
+    await seedRepairProposalsForReport(env, report, row, access.ownerEmail);
+  } catch (error) {
+    console.error("Repair proposal seeding failed", error);
+  }
   report.repairProposals = await repairProposalsForReport(env, id, access.ownerEmail);
   report.repairSprint = repairSprintEligibilityFromProposals(report.repairProposals, report.fixRequest || null, {
     checkoutReady: dodoRepairSprintCheckoutConfigStatus(env).checkoutReady

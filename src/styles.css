@@ -274,7 +274,7 @@ a {
 .gate-row button,
 .audit-row button,
 .action-link {
-  background: var(--accent);
+  background: var(--ink);
   border: 1px solid transparent;
   border-radius: 8px;
   color: #08110d;

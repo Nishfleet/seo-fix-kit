@@ -13,7 +13,7 @@ import {
   requestRepairSprintCheckout,
   seedRepairProposalsForFixRequest
 } from "./billing.js";
-import { seedRepairProposalsForReport, updateRepairProposalApproval } from "./reports.js";
+import { getSavedReport, seedRepairProposalsForReport, updateRepairProposalApproval } from "./reports.js";
 import { extractDodoPayment, extractDodoSubscription } from "../../shared/dodo.js";
 import { sha256Hex } from "../lib/security.js";
 
@@ -2333,6 +2333,21 @@ test("repair proposal seeding fails loudly when the proposals table is unavailab
     () => seedRepairProposalsForReport(env, report, reportRow, "owner@example.com"),
     /no such table: repair_proposals/
   );
+});
+
+test("a saved report still loads when repair proposal seeding fails", async () => {
+  const env = await fakeBillingEnv();
+  env.repairProposalsMissing = true;
+  const response = await getSavedReport(
+    new Request(`https://seofixkit.test/api/reports/${env.reportId}`, {
+      headers: { "x-beta-session": env.sessionToken }
+    }),
+    env
+  );
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.id, env.reportId);
+  assert.deepEqual(body.repairProposals, []);
 });
 
 test("offer entitlement event logging fails loudly when the event table is unavailable", async () => {
