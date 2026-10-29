@@ -618,35 +618,33 @@ async function updateFixRequestAdmin(request, env) {
 
 async function syncRepairProposalDeliveryState(env, { fixRequestId, status, deliveryUrl, finalReportId, now }) {
   if (!env.WAITLIST_DB || !fixRequestId || !["in_progress", "delivered"].includes(status)) return;
-  try {
-    if (status === "in_progress") {
-      await env.WAITLIST_DB.prepare(
-        `UPDATE repair_proposals
-         SET delivery_status = 'in_progress',
-             updated_at = ?
-         WHERE fix_request_id = ?
-           AND approval_status = 'approved'
-           AND execution_mode != 'unsupported'
-           AND delivery_status = 'draft'`
-      )
-        .bind(now, fixRequestId)
-        .run();
-      return;
-    }
+  if (status === "in_progress") {
     await env.WAITLIST_DB.prepare(
       `UPDATE repair_proposals
-       SET delivery_status = 'delivered',
-           delivery_url = ?,
-           final_report_id = ?,
-           delivered_at = ?,
+       SET delivery_status = 'in_progress',
            updated_at = ?
        WHERE fix_request_id = ?
          AND approval_status = 'approved'
-         AND execution_mode != 'unsupported'`
+         AND execution_mode != 'unsupported'
+         AND delivery_status = 'draft'`
     )
-      .bind(deliveryUrl || null, finalReportId || null, now, now, fixRequestId)
+      .bind(now, fixRequestId)
       .run();
-  } catch {}
+    return;
+  }
+  await env.WAITLIST_DB.prepare(
+    `UPDATE repair_proposals
+     SET delivery_status = 'delivered',
+         delivery_url = ?,
+         final_report_id = ?,
+         delivered_at = ?,
+         updated_at = ?
+     WHERE fix_request_id = ?
+       AND approval_status = 'approved'
+       AND execution_mode != 'unsupported'`
+  )
+    .bind(deliveryUrl || null, finalReportId || null, now, now, fixRequestId)
+    .run();
 }
 
 function fixRequestAdminResponse(
@@ -949,5 +947,6 @@ export {
   getFunnelSummary,
   sendDailyOpsDigest,
   sendUrgentOpsAlerts,
+  syncRepairProposalDeliveryState,
   updateFixRequestAdmin
 };

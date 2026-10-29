@@ -49,14 +49,14 @@ let pendingSignOut = Promise.resolve();
 
 const SESSION_QUERY_ROOTS = new Set(["session", "access-token"]);
 
-export function BetaApp({ mountKey }) {
+export function BetaApp() {
   const location = useLocation();
   const navigate = useNavigate();
   const reportId = reportIdFromPath(location.pathname);
   const isAdminRoute = location.pathname === "/beta/admin";
   const isBillingRoute = location.pathname.startsWith("/beta/billing");
   const inviteParams = new URLSearchParams(location.search);
-  const replaceUrl = (path) => navigate(path, { replace: true, state: { betaMountKey: mountKey } });
+  const replaceUrl = (path) => navigate(path, { replace: true });
   const accessToken = inviteParams.get("access") || "";
   const hasInviteParam = inviteParams.has("invite");
   const queryClient = useQueryClient();
@@ -222,11 +222,8 @@ export function BetaApp({ mountKey }) {
     if (!hasInviteParam) return;
     const cleanUrl = new URL(window.location.href);
     cleanUrl.searchParams.delete("invite");
-    navigate(`${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`, {
-      replace: true,
-      state: { betaMountKey: mountKey }
-    });
-  }, [hasInviteParam, navigate, mountKey]);
+    navigate(`${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`, { replace: true });
+  }, [hasInviteParam, navigate]);
 
   const auditPollRef = useRef(null);
   useEffect(() => () => auditPollRef.current?.abort(), []);
@@ -499,7 +496,7 @@ export function BetaApp({ mountKey }) {
       setRerunStatus("idle");
       setRerunMessage("");
       refreshAccount();
-      if (nextPath) navigate(nextPath, { state: { betaMountKey: mountKey, rerunOf: source.id } });
+      if (nextPath) navigate(nextPath, { state: { rerunOf: source.id } });
       window.requestAnimationFrame(() => window.scrollTo(0, 0));
     } catch (error) {
       if (isAbortError(error) || auditPoll.signal.aborted) return;

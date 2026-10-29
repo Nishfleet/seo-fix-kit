@@ -17,11 +17,10 @@ export default function App() {
 }
 
 function BetaRoute() {
-  const location = useLocation();
-  const mountKey = location.state?.betaMountKey || location.key;
+  const { pathname } = useLocation();
   return (
     <Suspense fallback={<div className="app-loading" aria-busy="true" />}>
-      <BetaApp key={mountKey} mountKey={mountKey} />
+      <BetaApp key={pathname} />
     </Suspense>
   );
 }
