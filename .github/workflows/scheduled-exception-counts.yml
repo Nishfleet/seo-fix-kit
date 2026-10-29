@@ -1,0 +1,181 @@
+# Scheduled exception counts for issue #237.
+#
+# The seo-fix-kit Worker runs a cron every 15 minutes. Before #289 that run threw
+# on D1 ("Network connection lost" and "D1 DB is overloaded. Requests queued for
+# too long"), so the finish line for the issue is a scheduled exception rate
+# under 1% over 24 hours. Cloudflare's dashboard is the only other place those
+# numbers live, so this workflow reads them and prints them as plain text.
+#
+# Two sources are read. The invocations dataset counts every invocation of the
+# Worker, so a cron throw shows there as scriptThrewException, but so does fetch
+# traffic, and its rate is not the scheduled rate. The scheduled-invocations
+# dataset counts only cron runs, which is the number the finish line asks for.
+# Workers Observability would name the errors behind those rows.
+#
+# Every call is a read: the GraphQL analytics API and the Workers Observability
+# telemetry API. Nothing deploys, and the API token never reaches argv -- curl
+# takes it from a headers file under RUNNER_TEMP. A step that cannot read its
+# source fails, because a zero count and an unread source print the same line.
+
+name: Scheduled exception counts
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scheduled-exception-counts-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  counts:
+    name: counts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CF_SCRIPT: seo-fix-kit
+    steps:
+      - name: Write the API headers file
+        shell: bash
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+          work="${RUNNER_TEMP:?}/cfcounts"
+          mkdir -p "$work"
+          test -n "$CF_TOKEN"
+          test -n "$CF_ACCOUNT"
+          {
+            printf 'Authorization: Bearer %s\n' "$CF_TOKEN"
+            printf 'Accept: application/json\n'
+            printf 'Content-Type: application/json\n'
+          } > "$work/headers"
+          test -s "$work/headers"
+
+      - name: Read invocations by status for the window and the baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="${RUNNER_TEMP:?}/cfcounts"
+          by_status() {
+            local from="$1" to="$2" out
+            local filt="scriptName: \"$CF_SCRIPT\", datetime_geq: \"$from\", datetime_leq: \"$to\""
+            jq -nc --arg q "{ viewer { accounts(filter: {accountTag: \"$CF_ACCOUNT\"}) { workersInvocationsAdaptive(limit: 5000, filter: {$filt}) { sum { requests errors } dimensions { status } } } } }" \
+              '{query: $q}' > "$work/q.json"
+            curl --silent --show-error --location -H "@$work/headers" --output "$work/r.json" \
+              --data @"$work/q.json" https://api.cloudflare.com/client/v4/graphql
+            out="$(jq -c '{errors: [.errors[]?.message], byStatus: [.data.viewer.accounts[0].workersInvocationsAdaptive[]? | "\(.dimensions.status) requests=\(.sum.requests) errors=\(.sum.errors)"]}' "$work/r.json")"
+            printf '%s\n' "$out"
+            if [ "$(printf '%s' "$out" | jq -r '.errors | length')" != "0" ]; then
+              printf 'the invocations dataset refused this read\n' >&2
+              return 1
+            fi
+          }
+          now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          day_ago="$(date -u -d '24 hours ago' +%Y-%m-%dT%H:%M:%SZ)"
+          week_ago="$(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%SZ)"
+          printf 'last 24 hours  %s .. %s : ' "$day_ago" "$now"
+          by_status "$day_ago" "$now"
+          # The analytics API refuses a range wider than one week, so every
+          # window below stays inside that limit.
+          printf 'before #289    2026-10-09 .. 2026-10-12 : '
+          by_status '2026-10-09T00:00:00Z' '2026-10-12T00:00:00Z'
+          printf 'around #289   2026-10-13 .. 2026-10-17 : '
+          by_status '2026-10-13T00:00:00Z' '2026-10-17T00:00:00Z'
+          printf 'last 7 days    %s .. %s : ' "$week_ago" "$now"
+          by_status "$week_ago" "$now"
+
+      - name: Read the scheduled-invocations dataset for the same windows
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="${RUNNER_TEMP:?}/cfcounts"
+          scheduled() {
+            local from="$1" to="$2"
+            local filt="scriptName: \"$CF_SCRIPT\", datetime_geq: \"$from\", datetime_leq: \"$to\""
+            jq -nc --arg q "{ viewer { accounts(filter: {accountTag: \"$CF_ACCOUNT\"}) { workersInvocationsScheduled(limit: 5000, filter: {$filt}) { datetime status cron } } } }" \
+              '{query: $q}' > "$work/q.json"
+            curl --silent --show-error --location -H "@$work/headers" --output "$work/r.json" \
+              --data @"$work/q.json" https://api.cloudflare.com/client/v4/graphql
+            jq -c '(.data.viewer.accounts[0].workersInvocationsScheduled // []) as $rows
+              | {errors: [.errors[]?.message], rows: ($rows | length),
+                 byStatus: ([$rows[].status] | group_by(.) | map("\(.[0])=\(length)")),
+                 oldest: ([$rows[].datetime] | min), newest: ([$rows[].datetime] | max)}' "$work/r.json"
+          }
+          now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          day_ago="$(date -u -d '24 hours ago' +%Y-%m-%dT%H:%M:%SZ)"
+          # The analytics API refuses a range wider than one week, so every
+          # window below stays inside that limit.
+          printf 'last 24 hours  %s .. %s : ' "$day_ago" "$now"
+          last_day="$(scheduled "$day_ago" "$now")"
+          printf '%s\n' "$last_day"
+          printf 'the cut-over   2026-10-12 .. 2026-10-15 : '
+          scheduled '2026-10-12T00:00:00Z' '2026-10-15T00:00:00Z'
+          printf 'before #289    2026-10-09 .. 2026-10-12 : '
+          scheduled '2026-10-09T00:00:00Z' '2026-10-12T00:00:00Z'
+          printf 'inside the gap 2026-10-18 .. 2026-10-22 : '
+          scheduled '2026-10-18T00:00:00Z' '2026-10-22T00:00:00Z'
+          printf 'three days ago 2026-10-25 .. 2026-10-27 : '
+          scheduled '2026-10-25T00:00:00Z' '2026-10-27T00:00:00Z'
+          if [ "$(printf '%s' "$last_day" | jq -r '.rows')" = "0" ]; then
+            printf 'the scheduled dataset has no rows for the last 24 hours, so it cannot show the 96 runs\n' >&2
+            exit 1
+          fi
+
+      - name: Read the cron invocations from Workers Observability
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="${RUNNER_TEMP:?}/cfcounts"
+          from_ms=$(( $(date -u -d '24 hours ago' +%s) * 1000 ))
+          to_ms=$(( $(date -u +%s) * 1000 ))
+          refused=0
+          ask() {
+            local body="$1" label="$2"
+            printf '%s' "$body" > "$work/tq.json"
+            curl --silent --show-error --location -H "@$work/headers" --output "$work/tr.json" \
+              --data @"$work/tq.json" \
+              "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT/workers/observability/telemetry/query"
+            printf '%s : ' "$label"
+            if jq -c '{success, errors: [.errors[]?.message], messages: [.messages[]?.message],
+                    counts: [.result.calculations[]? | (.aggregates[]?
+                             | {groups: [.groups[]? | "\(.key)=\(.value)"], count})],
+                    events: (.result.events // [] | length)}' "$work/tr.json" > "$work/out.txt" 2>/dev/null; then
+              head -c 1500 "$work/out.txt"
+            else
+              printf 'not json, raw response : '
+              head -c 600 "$work/tr.json"
+            fi
+            if ! jq -e '.success == true' "$work/tr.json" > /dev/null 2>&1; then
+              refused=1
+            fi
+            echo
+          }
+          printf 'window %s .. %s (unix ms)\n' "$from_ms" "$to_ms"
+          ask "$(jq -nc --arg svc "$CF_SCRIPT" --argjson f "$from_ms" --argjson t "$to_ms" \
+            '{view: "calculations", timeframe: {from: $f, to: $t},
+              parameters: {filters: [{key: "$metadata.service", operation: "eq", type: "string", value: $svc}],
+                           calculations: [{operator: "count"}],
+                           groupBys: [{type: "string", value: "$metadata.trigger"},
+                                      {type: "string", value: "$metadata.level"}]},
+              limit: 50}')" 'events by trigger and level, last 24 h'
+          ask "$(jq -nc --arg svc "$CF_SCRIPT" --argjson f "$from_ms" --argjson t "$to_ms" \
+            '{view: "events", timeframe: {from: $f, to: $t},
+              parameters: {filters: [{key: "$metadata.service", operation: "eq", type: "string", value: $svc},
+                                     {key: "$metadata.level", operation: "eq", type: "string", value: "error"}]},
+              limit: 5}')" 'newest error events, last 24 h'
+          printf 'first error event : '
+          if jq -c '.result.events[0]' "$work/tr.json" > "$work/out.txt" 2>/dev/null; then
+            head -c 1500 "$work/out.txt"
+          else
+            printf 'no readable response'
+          fi
+          echo
+          if [ "$refused" = "1" ]; then
+            printf 'Workers Observability refused a read, so the errors behind the rows are unknown\n' >&2
+            exit 1
+          fi
