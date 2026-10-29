@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>SEO Fix Kit launch video</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      @font-face {
+        font-family: "HF Inter";
+        src: url("assets/fonts/inter-var.woff2") format("woff2");
+        font-weight: 100 900;
+        font-style: normal;
+        font-display: block;
+      }
+
+      @font-face {
+        font-family: "HF Mono";
+        src: url("assets/fonts/jetbrains-mono-500.woff2") format("woff2");
+        font-weight: 500;
+        font-style: normal;
+        font-display: block;
+      }
+
+      :root {
+        --bg: #070908;
+        --ink: #fbf8ef;
+        --ink-soft: #fbf8efc2;
+        --ink-muted: #fbf8ef99;
+        --accent: #98f0cc;
+        --gold: #d6b15f;
+        --line: #fbf8ef1a;
+        --font-sans: "HF Inter", sans-serif;
+        --font-mono: "HF Mono", monospace;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: var(--bg);
+      }
+
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: var(--bg);
+        font-family: var(--font-sans);
+        color: var(--ink);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .scene {
+        position: absolute;
+        inset: 0;
+      }
+
+      .plate {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        background: var(--bg);
+      }
+
+      .plate img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: top center;
+      }
+
+      .scrim {
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(
+            180deg,
+            rgba(7, 9, 8, 0.55) 0%,
+            rgba(7, 9, 8, 0.05) 26%,
+            rgba(7, 9, 8, 0.15) 58%,
+            rgba(7, 9, 8, 0.6) 100%
+          ),
+          radial-gradient(
+            120% 80% at 50% 40%,
+            rgba(7, 9, 8, 0) 40%,
+            rgba(7, 9, 8, 0.5) 100%
+          );
+      }
+
+      .caption {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        padding: 112px 120px 96px;
+        display: flex;
+        gap: 28px;
+        align-items: flex-start;
+        background: linear-gradient(
+          180deg,
+          rgba(7, 9, 8, 0) 0px,
+          rgba(7, 9, 8, 0.98) 86px,
+          rgba(7, 9, 8, 1) 100%
+        );
+      }
+
+      .caption .rule {
+        display: block;
+        width: 4px;
+        height: 100%;
+        min-height: 92px;
+        margin-top: 8px;
+        background: var(--accent);
+        border-radius: 2px;
+        flex: none;
+      }
+
+      .caption .body {
+        display: block;
+        max-width: 1180px;
+      }
+
+      .caption .head {
+        display: block;
+        font-size: 54px;
+        line-height: 1.16;
+        font-weight: 700;
+        letter-spacing: -0.025em;
+        color: var(--ink);
+      }
+
+      .caption .tail {
+        display: block;
+        margin-top: 18px;
+        font-size: 34px;
+        line-height: 1.35;
+        font-weight: 400;
+        color: var(--ink-soft);
+        letter-spacing: -0.01em;
+      }
+
+      .type-scene {
+        position: absolute;
+        inset: 0;
+        padding: 0 140px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+
+      .kicker {
+        display: block;
+        font-family: var(--font-mono);
+        font-size: 28px;
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+
+      .headline {
+        display: block;
+        margin-top: 34px;
+        font-size: 104px;
+        line-height: 1.04;
+        font-weight: 800;
+        letter-spacing: -0.038em;
+        color: var(--ink);
+        max-width: 1560px;
+      }
+
+      .subline {
+        display: block;
+        margin-top: 34px;
+        font-size: 42px;
+        line-height: 1.32;
+        font-weight: 400;
+        color: var(--ink-soft);
+        letter-spacing: -0.014em;
+        max-width: 1420px;
+      }
+
+      .audience {
+        position: absolute;
+        left: 140px;
+        bottom: 92px;
+        display: block;
+        font-family: var(--font-mono);
+        font-size: 30px;
+        letter-spacing: 0.02em;
+        color: var(--ink-muted);
+      }
+
+      .stat-label {
+        display: block;
+        font-family: var(--font-mono);
+        font-size: 28px;
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+        color: var(--gold);
+      }
+
+      .stat-row {
+        display: flex;
+        align-items: baseline;
+        gap: 34px;
+        margin-top: 26px;
+      }
+
+      .stat-number {
+        display: block;
+        font-size: 168px;
+        line-height: 1;
+        font-weight: 800;
+        letter-spacing: -0.05em;
+        color: var(--ink);
+      }
+
+      .stat-number.accent {
+        color: var(--accent);
+      }
+
+      .stat-words {
+        display: block;
+        font-size: 40px;
+        line-height: 1.24;
+        font-weight: 500;
+        color: var(--ink-soft);
+        letter-spacing: -0.012em;
+        max-width: 760px;
+      }
+
+      .stat-divider {
+        display: block;
+        height: 1px;
+        background: var(--line);
+        margin: 40px 0 34px;
+        width: 1240px;
+      }
+
+      .cta-scene {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 0 140px;
+        background: var(--bg);
+      }
+
+      .cta-head {
+        display: block;
+        font-size: 122px;
+        line-height: 1.02;
+        font-weight: 800;
+        letter-spacing: -0.042em;
+        color: var(--ink);
+        max-width: 1500px;
+      }
+
+      .cta-sub {
+        display: block;
+        margin-top: 30px;
+        font-size: 44px;
+        line-height: 1.3;
+        font-weight: 400;
+        color: var(--ink-soft);
+        letter-spacing: -0.014em;
+      }
+
+      .cta-url {
+        display: block;
+        margin-top: 54px;
+        font-family: var(--font-mono);
+        font-size: 40px;
+        letter-spacing: 0.01em;
+        color: var(--accent);
+      }
+
+      .cta-brand {
+        position: absolute;
+        left: 140px;
+        bottom: 92px;
+        display: block;
+        font-family: var(--font-mono);
+        font-size: 28px;
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+        color: var(--ink-muted);
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="72"
+      data-width="1920"
+      data-height="1080"
+    >
+      <section class="scene clip" id="s1" data-start="0" data-duration="7" data-track-index="1">
+        <div class="type-scene" id="s1-inner">
+          <span class="kicker" id="s1-kicker">SEO Fix Kit</span>
+          <span class="headline" id="s1-head">An SEO audit that checks its own work.</span>
+          <span class="subline" id="s1-sub"
+            >For sites that need clear fixes, not generic audit homework.</span
+          >
+        </div>
+        <span class="audience" id="s1-audience"
+          >Small business sites &middot; JavaScript sites &middot; AI search readiness</span
+        >
+      </section>
+
+      <section class="scene clip" id="s2" data-start="7" data-duration="9.5" data-track-index="1">
+        <div class="plate" data-layout-allow-overflow>
+          <img id="s2-img" src="shots/home.png" alt="SEO Fix Kit homepage" />
+        </div>
+        <div class="scrim" id="s2-scrim"></div>
+        <div class="caption" id="s2-caption">
+          <span class="rule"></span>
+          <span class="body">
+            <span class="head">We load every page in a real browser.</span>
+            <span class="tail"
+              >List only the problems that are actually there, then rerun after you ship.</span
+            >
+          </span>
+        </div>
+      </section>
+
+      <section class="scene clip" id="s3" data-start="16.5" data-duration="9.5" data-track-index="1">
+        <div class="plate" data-layout-allow-overflow>
+          <img id="s3-img" src="shots/demo.png" alt="Sample report page" />
+        </div>
+        <div class="scrim" id="s3-scrim"></div>
+        <div class="caption" id="s3-caption">
+          <span class="rule"></span>
+          <span class="body">
+            <span class="head">Basic scanners read only the raw HTML.</span>
+            <span class="tail"
+              >They flag headings and text that JavaScript adds later. We read the rendered
+              page.</span
+            >
+          </span>
+        </div>
+      </section>
+
+      <section class="scene clip" id="s4" data-start="26" data-duration="9.5" data-track-index="1">
+        <div class="type-scene" id="s4-inner">
+          <span class="stat-label" id="s4-label">Measured on our own public test page</span>
+          <div class="stat-row" id="s4-row1">
+            <span class="stat-number" id="s4-n1">3</span>
+            <span class="stat-words">visible words in the raw HTML.</span>
+          </div>
+          <div class="stat-divider" id="s4-div"></div>
+          <div class="stat-row" id="s4-row2">
+            <span class="stat-number accent" id="s4-n2">277</span>
+            <span class="stat-words">words once a real browser renders it.</span>
+          </div>
+          <span class="subline" id="s4-tail"
+            >The thin page exists only in the raw HTML. The repair queue stays empty, because the
+            browser evidence rules it out.</span
+          >
+        </div>
+      </section>
+
+      <section class="scene clip" id="s5" data-start="35.5" data-duration="9" data-track-index="1">
+        <div class="plate" data-layout-allow-overflow>
+          <img id="s5-img" src="shots/check.png" alt="Free page check page" />
+        </div>
+        <div class="scrim" id="s5-scrim"></div>
+        <div class="caption" id="s5-caption">
+          <span class="rule"></span>
+          <span class="body">
+            <span class="head">Only issues backed by evidence.</span>
+            <span class="tail"
+              >Each one with a concrete fix, and a proposed markup change when the engine can write
+              one.</span
+            >
+          </span>
+        </div>
+      </section>
+
+      <section class="scene clip" id="s6" data-start="44.5" data-duration="12" data-track-index="1">
+        <div class="plate" data-layout-allow-overflow>
+          <img id="s6-img" src="shots/proof.png" alt="Case study page" />
+        </div>
+        <div class="scrim" id="s6-scrim"></div>
+        <div class="caption" id="s6-caption">
+          <span class="rule"></span>
+          <span class="body">
+            <span class="head">Our founder&rsquo;s own site, re-measured by the same audit.</span>
+            <span class="tail"
+              >7 problems to 0. Score 85, then 99, then 100. Tiny Studio portfolio, published with
+              consent.</span
+            >
+          </span>
+        </div>
+      </section>
+
+      <section class="scene clip" id="s7" data-start="56.5" data-duration="7" data-track-index="1">
+        <div class="type-scene" id="s7-inner">
+          <span class="kicker" id="s7-kicker">The loop</span>
+          <span class="headline" id="s7-head">Then rerun.</span>
+          <span class="subline" id="s7-sub"
+            >Each problem is marked fixed, or still open. Nothing guessed, nothing left as
+            homework.</span
+          >
+        </div>
+      </section>
+
+      <section class="scene clip" id="s8" data-start="63.5" data-duration="8.5" data-track-index="1">
+        <div class="cta-scene">
+          <span class="cta-head" id="s8-head">Check one public page free.</span>
+          <span class="cta-sub" id="s8-sub">No account. No card. No stored report.</span>
+          <span class="cta-url" id="s8-url">seofixkit.com/check</span>
+        </div>
+        <span class="cta-brand" id="s8-brand">SEO Fix Kit</span>
+      </section>
+    </div>
+
+    <script>
+      const ease = "power3.out";
+      const tl = gsap.timeline({ paused: true });
+
+      tl.fromTo("#s1-inner", { y: 0 }, { y: -16, duration: 7, ease: "none" }, 0);
+      tl.fromTo("#s1-head", { scale: 1.035 }, { scale: 1, duration: 6.6, ease: "power2.out" }, 0);
+      tl.fromTo("#s1-kicker", { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.5, ease }, 0.2);
+      tl.fromTo("#s1-sub", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.8, ease }, 1.5);
+      tl.fromTo(
+        "#s1-audience",
+        { opacity: 0, y: 18 },
+        { opacity: 1, y: 0, duration: 0.7, ease },
+        2.6
+      );
+
+      tl.fromTo("#s2-img", { scale: 1.06 }, { scale: 1.0, duration: 9.5, ease: "none" }, 7);
+      tl.fromTo("#s2-scrim", { opacity: 0 }, { opacity: 1, duration: 0.7, ease }, 7);
+      tl.fromTo(
+        "#s2-caption",
+        { opacity: 0, y: 34 },
+        { opacity: 1, y: 0, duration: 0.75, ease },
+        7.6
+      );
+
+      tl.fromTo("#s3-img", { scale: 1.02 }, { scale: 1.06, duration: 9.5, ease: "none" }, 16.5);
+      tl.fromTo("#s3-scrim", { opacity: 0 }, { opacity: 1, duration: 0.7, ease }, 16.5);
+      tl.fromTo(
+        "#s3-caption",
+        { opacity: 0, y: 34 },
+        { opacity: 1, y: 0, duration: 0.75, ease },
+        17.1
+      );
+
+      tl.fromTo("#s4-inner", { y: 0 }, { y: -18, duration: 9.5, ease: "none" }, 26);
+      tl.fromTo("#s4-label", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.6, ease }, 26.2);
+      tl.fromTo("#s4-row1", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.7, ease }, 26.7);
+      tl.fromTo("#s4-div", { opacity: 0, scaleX: 0 }, { opacity: 1, scaleX: 1, duration: 0.6, ease: "power2.out" }, 27.4);
+      tl.fromTo("#s4-row2", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.7, ease }, 27.7);
+      tl.fromTo("#s4-tail", { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.8, ease }, 28.8);
+
+      tl.fromTo("#s5-img", { scale: 1.02 }, { scale: 1.06, duration: 9, ease: "none" }, 35.5);
+      tl.fromTo("#s5-scrim", { opacity: 0 }, { opacity: 1, duration: 0.7, ease }, 35.5);
+      tl.fromTo(
+        "#s5-caption",
+        { opacity: 0, y: 34 },
+        { opacity: 1, y: 0, duration: 0.75, ease },
+        36.1
+      );
+
+      tl.fromTo("#s6-img", { scale: 1.04 }, { scale: 1.0, duration: 12, ease: "none" }, 44.5);
+      tl.fromTo("#s6-scrim", { opacity: 0 }, { opacity: 1, duration: 0.7, ease }, 44.5);
+      tl.fromTo(
+        "#s6-caption",
+        { opacity: 0, y: 34 },
+        { opacity: 1, y: 0, duration: 0.75, ease },
+        45.1
+      );
+
+      tl.fromTo("#s7-inner", { y: 0 }, { y: -16, duration: 7, ease: "none" }, 56.5);
+      tl.fromTo("#s7-kicker", { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.5, ease }, 56.7);
+      tl.fromTo("#s7-head", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.8, ease }, 57);
+      tl.fromTo("#s7-sub", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.8, ease }, 57.9);
+
+      tl.fromTo("#s8-head", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.85, ease }, 64);
+      tl.fromTo("#s8-sub", { opacity: 0, y: 28 }, { opacity: 1, y: 0, duration: 0.75, ease }, 64.8);
+      tl.fromTo("#s8-url", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.75, ease }, 65.6);
+      tl.fromTo("#s8-brand", { opacity: 0 }, { opacity: 1, duration: 0.7, ease }, 66.4);
+
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>
