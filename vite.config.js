@@ -76,8 +76,10 @@ function prerenderHomepage() {
   };
 }
 
-export default defineConfig({
-  plugins: [react(), cloudflare(), siteStylesheet(), workerPageScripts(), prerenderHomepage()],
+// The Cloudflare plugin is build-only: `npm run dev` keeps the Vite dev server
+// proxying to `wrangler dev`, whose local D1 `npm run db:migrate:local` migrates.
+export default defineConfig(({ command }) => ({
+  plugins: [react(), command === "build" && cloudflare(), siteStylesheet(), workerPageScripts(), prerenderHomepage()],
   server: {
     proxy: {
       "/api": "http://127.0.0.1:8787",
@@ -85,4 +87,4 @@ export default defineConfig({
       "/r": "http://127.0.0.1:8787"
     }
   }
-});
+}));
