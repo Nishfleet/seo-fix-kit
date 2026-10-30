@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect } from "react";
 import { Route, Routes, useLocation, useNavigationType } from "react-router";
+import { reportIdFromPath } from "./lib/browser.js";
 import { WaitlistPage } from "./pages/LandingPage.jsx";
 
 const BetaApp = lazy(() => import("./pages/beta/BetaApp.jsx").then((module) => ({ default: module.BetaApp })));
@@ -17,11 +18,10 @@ export default function App() {
 }
 
 function BetaRoute() {
-  const location = useLocation();
-  const mountKey = location.state?.betaMountKey || location.key;
+  const { pathname } = useLocation();
   return (
     <Suspense fallback={<div className="app-loading" aria-busy="true" />}>
-      <BetaApp key={mountKey} mountKey={mountKey} />
+      <BetaApp key={reportIdFromPath(pathname) || "workspace"} />
     </Suspense>
   );
 }
