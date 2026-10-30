@@ -5,6 +5,7 @@ import {
   getBillingSummary,
   fixRequestNotificationRecipients,
   handleDodoWebhook,
+  logOfferEntitlementEvent,
   processDodoPaymentWebhook,
   processDodoSubscriptionWebhook,
   requestFixPack,
@@ -12,7 +13,7 @@ import {
   requestRepairSprintCheckout,
   seedRepairProposalsForFixRequest
 } from "./billing.js";
-import { seedRepairProposalsForReport, updateRepairProposalApproval } from "./reports.js";
+import { getSavedReport, seedRepairProposalsForReport, updateRepairProposalApproval } from "./reports.js";
 import { extractDodoPayment, extractDodoSubscription } from "../../shared/dodo.js";
 import { sha256Hex } from "../lib/security.js";
 
@@ -2312,6 +2313,70 @@ test("repair proposals seed once per report and get adopted by a fix request", a
   assert.equal(reseed.adopted, 0);
   assert.equal(env.repairProposals.length, 1);
 });
+
+test("repair proposal seeding fails loudly when the proposals table is unavailable", async () => {
+  const env = await fakeBillingEnv();
+  const reportRow = env.reports[0];
+  const report = JSON.parse(reportRow.report_json);
+  env.WAITLIST_DB = {
+    prepare: () => ({
+      bind: () => ({
+        all: async () => ({ results: [] }),
+        run: async () => {
+          throw new Error("D1_ERROR: no such table: repair_proposals");
+        }
+      })
+    })
+  };
+
+  await assert.rejects(
+    () => seedRepairProposalsForReport(env, report, reportRow, "owner@example.com"),
+    /no such table: repair_proposals/
+  );
+});
+
+test("a saved report still loads when repair proposal seeding fails", async () => {
+  const env = await fakeBillingEnv();
+  env.repairProposalsMissing = true;
+  const response = await getSavedReport(
+    new Request(`https://seofixkit.test/api/reports/${env.reportId}`, {
+      headers: { "x-beta-session": env.sessionToken }
+    }),
+    env
+  );
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.id, env.reportId);
+  assert.deepEqual(body.repairProposals, []);
+});
+
+test("offer entitlement event logging fails loudly when the event table is unavailable", async () => {
+  const env = { WAITLIST_DB: unavailableTable("offer_entitlement_events") };
+
+  await assert.rejects(
+    () =>
+      logOfferEntitlementEvent(env, {
+        ownerEmail: "owner@example.com",
+        entitlementId: "entitlement-1",
+        event: "subscription_active",
+        fromStatus: "",
+        toStatus: "active"
+      }),
+    /no such table: offer_entitlement_events/
+  );
+});
+
+function unavailableTable(table) {
+  return {
+    prepare: () => ({
+      bind: () => ({
+        run: async () => {
+          throw new Error(`D1_ERROR: no such table: ${table}`);
+        }
+      })
+    })
+  };
+}
 
 test("Dodo payment webhook rejects Repair Sprint when approved proposals no longer match", async () => {
   const env = await fakeBillingEnv();

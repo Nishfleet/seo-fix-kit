@@ -83,6 +83,12 @@ const SCHEMA_CHECKS = [
     critical: true
   },
   {
+    key: "reportBlobDeletionFailures",
+    label: "report blob deletion retries",
+    sql: "SELECT 1 AS ok FROM audit_report_blob_deletion_failures LIMIT 1",
+    critical: false
+  },
+  {
     key: "offerEntitlements",
     label: "staged offer entitlements",
     sql: "SELECT 1 AS ok FROM offer_entitlements LIMIT 1",

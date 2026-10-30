@@ -121,7 +121,7 @@ test("requestAccessLink does not record events when email is missing", async () 
   assert.equal(eventRows.length, 0);
 });
 
-import { getFunnelSummary } from "./admin.js";
+import { getFunnelSummary, syncRepairProposalDeliveryState } from "./admin.js";
 
 function adminRequest(path, env) {
   return new Request(`https://seofixkit.test${path}`, {
@@ -175,6 +175,32 @@ test("getFunnelSummary returns steps and conversion rates for an authorized admi
   assert.equal(body.conversionPct.session_created, 20);
   assert.equal(body.totals.uniqueFunnelKeys, 9);
   assert.equal(body.totals.uniqueEmails, 2);
+});
+
+test("repair proposal delivery state fails loudly when the proposals table is unavailable", async () => {
+  const env = {
+    WAITLIST_DB: {
+      prepare: () => ({
+        bind: () => ({
+          run: async () => {
+            throw new Error("D1_ERROR: no such table: repair_proposals");
+          }
+        })
+      })
+    }
+  };
+
+  await assert.rejects(
+    () =>
+      syncRepairProposalDeliveryState(env, {
+        fixRequestId: "fix-request-1",
+        status: "delivered",
+        deliveryUrl: "https://seofixkit.test/report/report-1",
+        finalReportId: "report-1",
+        now: new Date().toISOString()
+      }),
+    /no such table: repair_proposals/
+  );
 });
 
 test("getFunnelSummary rejects callers without a valid admin token", async () => {

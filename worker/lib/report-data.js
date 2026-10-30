@@ -424,21 +424,19 @@ async function runReportDeletionBatch(env, statements = []) {
 async function recordReportBlobDeletionFailure(env, failure = {}) {
   if (!env.WAITLIST_DB || !failure.key) return;
   const now = new Date().toISOString();
-  try {
-    await env.WAITLIST_DB.prepare(
-      `INSERT INTO audit_report_blob_deletion_failures
-        (blob_key, report_id, error, retry_count, status, created_at, updated_at)
-       VALUES (?, ?, ?, 0, 'pending', ?, ?)
-       ON CONFLICT(blob_key) DO UPDATE SET
-         report_id = excluded.report_id,
-         error = excluded.error,
-         retry_count = retry_count + 1,
-         status = 'pending',
-         updated_at = excluded.updated_at`
-    )
-      .bind(failure.key, failure.reportId || "", failure.error || "Report blob deletion failed.", now, now)
-      .run();
-  } catch {}
+  await env.WAITLIST_DB.prepare(
+    `INSERT INTO audit_report_blob_deletion_failures
+      (blob_key, report_id, error, retry_count, status, created_at, updated_at)
+     VALUES (?, ?, ?, 0, 'pending', ?, ?)
+     ON CONFLICT(blob_key) DO UPDATE SET
+       report_id = excluded.report_id,
+       error = excluded.error,
+       retry_count = retry_count + 1,
+       status = 'pending',
+       updated_at = excluded.updated_at`
+  )
+    .bind(failure.key, failure.reportId || "", failure.error || "Report blob deletion failed.", now, now)
+    .run();
 }
 
 // upstream: https://developers.cloudflare.com/d1/platform/limits/ — D1 rejects a value near its row-size limit.

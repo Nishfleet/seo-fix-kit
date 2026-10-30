@@ -3,7 +3,8 @@ import {
   deleteReportRowsWithBlobs,
   preserveProtectedFixRequestReport,
   protectedFixRequestForReport,
-  protectedRepairExecutionForReport
+  protectedRepairExecutionForReport,
+  recordReportBlobDeletionFailure
 } from "../worker/lib/report-data.js";
 import { createTestD1 } from "../test/support/d1.mjs";
 
@@ -569,6 +570,33 @@ function runStatement(sql, values, env) {
 function isProtectedReport(env, reportId) {
   return env.fixRequests.some(
     (row) => protectedStatuses.includes(row.status) && (row.report_id === reportId || row.final_report_id === reportId)
+  );
+}
+
+{
+  const db = createTestD1();
+  await recordReportBlobDeletionFailure(
+    { WAITLIST_DB: db },
+    { key: "r2:reports/report-blob.json", reportId: "report-1", error: "R2 delete failed" }
+  );
+  const rows = db.rows("SELECT blob_key, report_id, status, retry_count FROM audit_report_blob_deletion_failures");
+  assert.equal(rows.length, 1, "a failed report blob deletion is recorded for retry");
+  assert.equal(rows[0].blob_key, "r2:reports/report-blob.json");
+  assert.equal(rows[0].status, "pending");
+
+  const brokenDb = {
+    prepare() {
+      throw new Error("D1_ERROR: no such table: audit_report_blob_deletion_failures");
+    }
+  };
+  await assert.rejects(
+    () =>
+      recordReportBlobDeletionFailure(
+        { WAITLIST_DB: brokenDb },
+        { key: "r2:reports/report-blob.json", reportId: "report-1" }
+      ),
+    /no such table: audit_report_blob_deletion_failures/,
+    "a failed blob deletion record is never dropped silently"
   );
 }
 

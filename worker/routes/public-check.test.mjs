@@ -4,6 +4,7 @@ import http from "node:http";
 import test from "node:test";
 import { createAuditEngine, publicAuditUrlStatus } from "../../shared/audit-engine.js";
 import { compareRows, compareVerdict, publicUrlError, scoreTone } from "../../shared/public-check/client.js";
+import { checkHandoffHref, checkedPageUrl, handoffPageUrl } from "../../shared/public-check/check-handoff.js";
 import { robotsAccess } from "../../shared/robots-access.js";
 import { auditUrl } from "../../server/audit/engine.js";
 import { renderedFixture } from "./audits.js";
@@ -235,6 +236,17 @@ test("public check response is built only from engine fields with truthful copy"
   assert.equal(payload.issues.critical, 2);
   assert.ok(payload.nextStep.includes("create a free account"), "next step hands off into a free account");
   assert.ok(payload.boundary.includes("does not guarantee rankings"), "boundary keeps the no-ranking promise");
+});
+
+test("the free check hands the checked page into the app instead of a bare sign-up link", () => {
+  assert.equal(checkHandoffHref("https://example.com"), "/beta?url=https%3A%2F%2Fexample.com%2F");
+  assert.equal(checkHandoffHref(""), "/beta");
+  assert.equal(checkHandoffHref("javascript:alert(1)"), "/beta");
+  assert.equal(checkedPageUrl("ftp://example.com/"), "");
+  assert.equal(checkedPageUrl("http://localhost:3000/"), "", "a local target is not a page a stranger checked");
+  assert.equal(handoffPageUrl("?url=https%3A%2F%2Fexample.com%2Fpricing", ""), "https://example.com/pricing");
+  assert.equal(handoffPageUrl("", "https://seofixkit.com/check"), "https://seofixkit.com/check");
+  assert.equal(handoffPageUrl("?url=not-a-url", "https://example.com/"), "https://example.com/");
 });
 
 test("public check page is searchable and hands off into a free account", () => {

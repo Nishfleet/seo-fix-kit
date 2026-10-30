@@ -574,7 +574,11 @@ async function getSavedReport(request, env) {
       report.fixRequest.finalReportPath = `/beta/reports/${encodeURIComponent(fixRequest.final_report_id)}`;
     }
   }
-  await seedRepairProposalsForReport(env, report, row, access.ownerEmail);
+  try {
+    await seedRepairProposalsForReport(env, report, row, access.ownerEmail);
+  } catch (error) {
+    console.error("Repair proposal seeding failed", error);
+  }
   report.repairProposals = await repairProposalsForReport(env, id, access.ownerEmail);
   report.repairSprint = repairSprintEligibilityFromProposals(report.repairProposals, report.fixRequest || null, {
     checkoutReady: dodoRepairSprintCheckoutConfigStatus(env).checkoutReady
@@ -613,53 +617,51 @@ async function seedRepairProposalsForReport(env, report, reportRow, ownerEmail) 
     limit: 25
   });
   if (!proposals.length) return;
-  try {
-    const saved = await env.WAITLIST_DB.prepare(
-      `SELECT issue_id
-       FROM repair_proposals
-       WHERE report_id = ?
-         AND owner_email = ?`
+  const saved = await env.WAITLIST_DB.prepare(
+    `SELECT issue_id
+     FROM repair_proposals
+     WHERE report_id = ?
+       AND owner_email = ?`
+  )
+    .bind(reportRow.id, ownerEmail)
+    .all();
+  const existingIssueIds = new Set((saved.results || []).map((row) => row.issue_id).filter(Boolean));
+  const now = new Date().toISOString();
+  for (const proposal of proposals) {
+    if (existingIssueIds.has(proposal.issueId)) continue;
+    await env.WAITLIST_DB.prepare(
+      `INSERT OR IGNORE INTO repair_proposals
+        (id, fix_request_id, report_id, owner_email, issue_id, issue_title, target_url, target_host,
+         severity, source, priority, execution_mode, approval_status, delivery_status, generated_title,
+         generated_summary, proof_json, proposal_json, acceptance_json, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
-      .bind(reportRow.id, ownerEmail)
-      .all();
-    const existingIssueIds = new Set((saved.results || []).map((row) => row.issue_id).filter(Boolean));
-    const now = new Date().toISOString();
-    for (const proposal of proposals) {
-      if (existingIssueIds.has(proposal.issueId)) continue;
-      await env.WAITLIST_DB.prepare(
-        `INSERT OR IGNORE INTO repair_proposals
-          (id, fix_request_id, report_id, owner_email, issue_id, issue_title, target_url, target_host,
-           severity, source, priority, execution_mode, approval_status, delivery_status, generated_title,
-           generated_summary, proof_json, proposal_json, acceptance_json, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      .bind(
+        crypto.randomUUID(),
+        "",
+        reportRow.id,
+        ownerEmail,
+        proposal.issueId,
+        proposal.issueTitle,
+        proposal.targetUrl || reportRow.url,
+        proposal.targetHost || reportRow.target_host || "",
+        proposal.severity,
+        proposal.source,
+        proposal.priority,
+        proposal.executionMode,
+        proposal.approvalStatus,
+        proposal.deliveryStatus,
+        proposal.generatedTitle,
+        proposal.generatedSummary,
+        jsonForStorage(proposal.proof || {}, 4000, {}),
+        jsonForStorage(proposal.proposal || {}, 4000, { truncated: true }),
+        jsonForStorage(proposal.acceptance || [], 2000, []),
+        now,
+        now
       )
-        .bind(
-          crypto.randomUUID(),
-          "",
-          reportRow.id,
-          ownerEmail,
-          proposal.issueId,
-          proposal.issueTitle,
-          proposal.targetUrl || reportRow.url,
-          proposal.targetHost || reportRow.target_host || "",
-          proposal.severity,
-          proposal.source,
-          proposal.priority,
-          proposal.executionMode,
-          proposal.approvalStatus,
-          proposal.deliveryStatus,
-          proposal.generatedTitle,
-          proposal.generatedSummary,
-          jsonForStorage(proposal.proof || {}, 4000, {}),
-          jsonForStorage(proposal.proposal || {}, 4000, { truncated: true }),
-          jsonForStorage(proposal.acceptance || [], 2000, []),
-          now,
-          now
-        )
-        .run();
-      existingIssueIds.add(proposal.issueId);
-    }
-  } catch {}
+      .run();
+    existingIssueIds.add(proposal.issueId);
+  }
 }
 
 function jsonForStorage(value, max = 4000, fallback = {}) {

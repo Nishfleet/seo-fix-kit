@@ -1,4 +1,4 @@
-import { bindings, defineConfig, triggers } from "cf/config";
+import { bindings, defineConfig, exports, triggers } from "cf/config";
 
 export default defineConfig({
   worker: {
@@ -17,6 +17,12 @@ export default defineConfig({
       runWorkerFirst: true
     },
     domains: ["seofixkit.com", "www.seofixkit.com"],
+    exports: {
+      D1BackupWorkflow: exports.workflow({
+        name: "d1-backup-workflow",
+        schedules: "0 0 * * *"
+      })
+    },
     triggers: [
       triggers.scheduled({
         schedule: "*/15 * * * *"
@@ -49,7 +55,17 @@ export default defineConfig({
         name: "seofixkit-audit-jobs"
       }),
       BROWSER: bindings.browser({}),
-      ASSETS: bindings.assets()
+      ASSETS: bindings.assets(),
+      ACCOUNT_ID: bindings.text("f670a698e17bf160c8e4679823e68916"),
+      DATABASE_ID: bindings.text("887316c4-ca9d-4068-a7fa-1f530b479437"),
+      BACKUP_BUCKET: bindings.r2({
+        name: "seofixkit-backups"
+      }),
+      BACKUP_WORKFLOW: bindings.workflow({
+        name: "d1-backup-workflow",
+        worker: "seo-fix-kit",
+        exportName: "D1BackupWorkflow"
+      })
     }
   }
 });

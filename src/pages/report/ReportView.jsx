@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
+import { useLocation, useNavigate } from "react-router";
 import { reportFixPrompt } from "../../../shared/ai-fix-prompt.js";
 import { DEFAULT_CRAWL_PAGES } from "../../../shared/crawl-depth.js";
 import { distinctFixes, issuePatternKey } from "../../../shared/fix-patterns.js";
@@ -432,6 +433,8 @@ function ChangeSinceLastCheck({ delta, score, onDetails, onShare }) {
 
 function ReportTabs({ tabs, children, selectRef }) {
   const keys = tabs.map((tab) => tab.key);
+  const location = useLocation();
+  const navigate = useNavigate();
   const [active, setActive] = useState(() => {
     const fromHash = window.location.hash.replace("#", "");
     if (fromHash === "fix-pack") return "problems";
@@ -441,8 +444,8 @@ function ReportTabs({ tabs, children, selectRef }) {
 
   function select(key, focus = false) {
     setActive(key);
-    const { pathname, search } = window.location;
-    window.history.replaceState(window.history.state, "", `${pathname}${search}${key === keys[0] ? "" : `#${key}`}`);
+    const hash = key === keys[0] ? "" : `#${key}`;
+    navigate(`${location.pathname}${location.search}${hash}`, { replace: true, state: location.state });
     if (focus) listRef.current?.querySelector(`#report-tab-${key}`)?.focus();
   }
 

@@ -3148,25 +3148,23 @@ async function logOfferEntitlementEvent(
   { entitlementId = "", ownerEmail, event, fromStatus = "", toStatus = "", detail = {} }
 ) {
   if (!env.WAITLIST_DB || !ownerEmail || !event) return;
-  try {
-    await env.WAITLIST_DB.prepare(
-      `INSERT INTO offer_entitlement_events
-        (id, entitlement_id, owner_email, offer_key, event, from_status, to_status, detail_json, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  await env.WAITLIST_DB.prepare(
+    `INSERT INTO offer_entitlement_events
+      (id, entitlement_id, owner_email, offer_key, event, from_status, to_status, detail_json, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  )
+    .bind(
+      crypto.randomUUID(),
+      entitlementId,
+      ownerEmail,
+      OFFER_KEYS.MONITORING,
+      cleanText(event, 80),
+      cleanText(fromStatus, 40),
+      cleanText(toStatus, 40),
+      JSON.stringify(detail || {}).slice(0, 4000),
+      new Date().toISOString()
     )
-      .bind(
-        crypto.randomUUID(),
-        entitlementId,
-        ownerEmail,
-        OFFER_KEYS.MONITORING,
-        cleanText(event, 80),
-        cleanText(fromStatus, 40),
-        cleanText(toStatus, 40),
-        JSON.stringify(detail || {}).slice(0, 4000),
-        new Date().toISOString()
-      )
-      .run();
-  } catch {}
+    .run();
 }
 
 async function findFixRequestForPayment(env, payment) {
