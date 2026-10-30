@@ -98,6 +98,22 @@ export function BetaApp() {
     storageRemove(BETA_SESSION_KEY);
     storageRemove(BETA_EMAIL_KEY);
     queryClient.setQueryData(queryKeys.session, null);
+    setTargetUrl("");
+    setCompetitorUrls("");
+    setBacklinkRows("");
+    setKeywordRows("");
+    setLocalBusinessName("");
+    setLocalPhone("");
+    setLocalAddress("");
+    setGoogleBusinessProfileUrl("");
+    setLocalKeywords("");
+    setLocalCitations("");
+    setSiteHost("");
+    setWebhookUrl("");
+    setWebhookSecret("");
+    setApiTokenSecret("");
+    setAdminToken("");
+    setAdminData(null);
   }
 
   const accessQuery = useQuery({
