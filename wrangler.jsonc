@@ -3,7 +3,12 @@
   "name": "seo-fix-kit",
   "main": "worker/index.js",
   "workers_dev": false,
-  "preview_urls": false,
+  // On so each PR's Workers Preview gets a workers.dev link (Cloudflare sends
+  // noindex on those). The deploy on merge applies this setting.
+  "preview_urls": true,
+  // Workers Previews (one per PR, made by CI). Empty on purpose: a Preview
+  // gets no database, bucket, queue or secret, so it can never touch live data.
+  "previews": {},
   "routes": [
     { "pattern": "seofixkit.com", "custom_domain": true },
     { "pattern": "www.seofixkit.com", "custom_domain": true }
