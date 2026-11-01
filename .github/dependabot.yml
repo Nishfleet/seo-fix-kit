@@ -14,9 +14,14 @@ updates:
       default-days: 3
     open-pull-requests-limit: 2
     groups:
+      # Majors come one per PR, because one breaking major (eslint 10, PR #322)
+      # turned the whole weekly group red.
       npm:
-        patterns:
-          - "*"
+        update-types: [minor, patch]
+    ignore:
+      # eslint-plugin-jsx-a11y 6.10.2 accepts eslint 9 at most (npm ERESOLVE on #322).
+      - dependency-name: eslint
+        update-types: ["version-update:semver-major"]
     commit-message:
       prefix: deps
 
