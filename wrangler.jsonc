@@ -4,6 +4,9 @@
   "main": "worker/index.js",
   "workers_dev": false,
   "preview_urls": false,
+  // Workers Previews (one per PR, made by CI). Empty on purpose: a Preview
+  // gets no database, bucket, queue or secret, so it can never touch live data.
+  "previews": {},
   "routes": [
     { "pattern": "seofixkit.com", "custom_domain": true },
     { "pattern": "www.seofixkit.com", "custom_domain": true }
