@@ -1,13 +1,17 @@
 import { bindings, defineConfig, exports, triggers } from "cf/config";
 
-export default defineConfig({
+// Previews reject `triggers` ("Preview uploads from Build Output don't support
+// the `triggers` field"), so the cron and queue consumers apply only to the real
+// Worker; cf sets isPreview on `cf previews deploy`. Same shape as 0509's config.
+export default defineConfig(({ isPreview }) => ({
   worker: {
     name: "seo-fix-kit",
     compatibilityDate: "2026-05-20",
     compatibilityFlags: ["nodejs_compat"],
     entrypoint: "worker/index.js",
     workersDev: false,
-    previewUrls: false,
+    // Version URLs on, so a preview gets a link; workers.dev stays off (drive's shape).
+    previewUrls: true,
     observability: {
       enabled: true,
       headSamplingRate: 1
@@ -23,18 +27,20 @@ export default defineConfig({
         schedules: "0 0 * * *"
       })
     },
-    triggers: [
-      triggers.scheduled({
-        schedule: "*/15 * * * *"
-      }),
-      triggers.queue({
-        deadLetterQueue: "seofixkit-audit-dlq",
-        maxBatchSize: 1,
-        maxConcurrency: 2,
-        maxRetries: 2,
-        name: "seofixkit-audit-jobs"
-      })
-    ],
+    triggers: isPreview
+      ? []
+      : [
+          triggers.scheduled({
+            schedule: "*/15 * * * *"
+          }),
+          triggers.queue({
+            deadLetterQueue: "seofixkit-audit-dlq",
+            maxBatchSize: 1,
+            maxConcurrency: 2,
+            maxRetries: 2,
+            name: "seofixkit-audit-jobs"
+          })
+        ],
     env: {
       DODO_SEOFIXKIT_BRAND_ID: bindings.text("brnd_0NfFwMVcHJSgp3RkhFpTi"),
       DODO_SEOFIXKIT_PRODUCT_FIX_PACK_ID: bindings.text("pdt_0NfFwlntrooPljJUYoXK8"),
@@ -68,4 +74,4 @@ export default defineConfig({
       })
     }
   }
-});
+}));
