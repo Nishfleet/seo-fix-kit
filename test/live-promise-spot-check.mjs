@@ -32,7 +32,7 @@ async function main() {
       console.error(
         `Spot-check failed on ${failed.length} surface(s): ${staleDeploys.length} served by the static-asset ` +
           `fallback instead of the Worker route. The deployed Worker is behind main — deploy the current ` +
-          `Worker (npx wrangler deploy) and rerun. If a surface still fails after a fresh deploy, fix the ` +
+          `Worker (npx cf deploy) and rerun. If a surface still fails after a fresh deploy, fix the ` +
           `deployed copy or the claim in the spot-check.`
       );
     } else {

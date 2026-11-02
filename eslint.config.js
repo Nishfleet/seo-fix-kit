@@ -82,8 +82,7 @@ export default [
       ".lane/**",
       "migrations/**",
       "prototype-context/**",
-      ".claude/**",
-      ".wrangler/**"
+      ".claude/**"
     ]
   },
   js.configs.recommended,

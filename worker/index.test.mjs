@@ -1,8 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { fileURLToPath } from "node:url";
-import { readFileSync } from "node:fs";
-import { unstable_readConfig } from "wrangler";
+import cloudflareConfig from "../cloudflare.config.ts";
 import worker from "./index.js";
 import { sha256Hex } from "./lib/security.js";
 import { notFoundHtml } from "./routes/pages.js";
@@ -526,9 +524,10 @@ test("Worker never leaks internal error text and rejects malformed URL escapes",
   }
 });
 
+const { worker: deployConfig } = cloudflareConfig({ isPreview: false });
+
 test("Deploy surface serves a real 404 page instead of the single-page-application homepage catch-all", () => {
-  const config = unstable_readConfig({ config: fileURLToPath(new URL("../wrangler.jsonc", import.meta.url)) });
-  assert.equal(config.assets.not_found_handling, "404-page");
+  assert.equal(deployConfig.assets.notFoundHandling, "404-page");
 
   const notFoundPage = notFoundHtml();
   assert.match(notFoundPage, /<title>Page not found - SEO Fix Kit<\/title>/);
@@ -538,40 +537,25 @@ test("Deploy surface serves a real 404 page instead of the single-page-applicati
 });
 
 test("Deploy surface binds the stock D1 backup workflow and the R2 bucket that receives its export", () => {
-  const config = unstable_readConfig({ config: fileURLToPath(new URL("../wrangler.jsonc", import.meta.url)) });
+  assert.deepEqual(deployConfig.exports.D1BackupWorkflow, {
+    type: "workflow",
+    name: "d1-backup-workflow",
+    schedules: "0 0 * * *"
+  });
+  assert.deepEqual(deployConfig.env.BACKUP_WORKFLOW, {
+    type: "workflow",
+    name: "d1-backup-workflow",
+    worker: "seo-fix-kit",
+    exportName: "D1BackupWorkflow"
+  });
+  assert.deepEqual(deployConfig.env.BACKUP_BUCKET, { type: "r2", name: "seofixkit-backups" });
 
-  const workflow = config.workflows?.find((entry) => entry.binding === "BACKUP_WORKFLOW");
-  assert.ok(workflow, "wrangler.jsonc must bind the D1 backup workflow");
-  assert.equal(workflow.name, "d1-backup-workflow");
-  assert.equal(workflow.class_name, "D1BackupWorkflow");
-  assert.deepEqual(workflow.schedules, ["0 0 * * *"]);
-
-  const backupBucket = config.r2_buckets?.find((entry) => entry.binding === "BACKUP_BUCKET");
-  assert.ok(backupBucket, "wrangler.jsonc must bind the R2 bucket that receives D1 exports");
-  assert.equal(backupBucket.bucket_name, "seofixkit-backups");
-
-  assert.match(config.vars.ACCOUNT_ID, /^[0-9a-f]{32}$/);
-  const database = config.d1_databases.find((entry) => entry.binding === "WAITLIST_DB");
-  assert.equal(config.vars.DATABASE_ID, database.database_id, "the export target must match the bound database");
-});
-
-test("cloudflare.config.ts declares the same D1 backup workflow as wrangler.jsonc", () => {
-  const cfConfig = readFileSync(new URL("../cloudflare.config.ts", import.meta.url), "utf8");
-
-  assert.match(
-    cfConfig,
-    /D1BackupWorkflow:\s*exports\.workflow\(\{\s*name: "d1-backup-workflow",\s*schedules: "0 0 \* \* \*"/
+  assert.match(deployConfig.env.ACCOUNT_ID.value, /^[0-9a-f]{32}$/);
+  assert.equal(
+    deployConfig.env.DATABASE_ID.value,
+    deployConfig.env.WAITLIST_DB.id,
+    "the export target must match the bound database"
   );
-  assert.match(
-    cfConfig,
-    /BACKUP_WORKFLOW:\s*bindings\.workflow\(\{\s*name: "d1-backup-workflow",\s*worker: "seo-fix-kit",\s*exportName: "D1BackupWorkflow"/
-  );
-  assert.match(cfConfig, /BACKUP_BUCKET:\s*bindings\.r2\(\{\s*name: "seofixkit-backups"/);
-  assert.match(cfConfig, /DATABASE_ID: bindings\.text\("[0-9a-f-]+"\)/);
-
-  const config = unstable_readConfig({ config: fileURLToPath(new URL("../wrangler.jsonc", import.meta.url)) });
-  assert.equal(config.vars.DATABASE_ID, cfConfig.match(/DATABASE_ID: bindings\.text\("([^"]+)"\)/)[1]);
-  assert.equal(config.vars.ACCOUNT_ID, cfConfig.match(/ACCOUNT_ID: bindings\.text\("([^"]+)"\)/)[1]);
 });
 
 test("404 page reflows at narrow viewports without horizontal overflow", async () => {
