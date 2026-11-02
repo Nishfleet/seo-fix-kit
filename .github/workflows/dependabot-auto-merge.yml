@@ -1,10 +1,11 @@
 # GitHub's Dependabot recipe ("Automating Dependabot with GitHub Actions"):
 # patch and minor updates are approved and auto-merged; majors stay manual.
 # The required checks still gate every merge. pull_request_target runs main's
-# copy of this file and checks nothing out. The merge step uses the fleet App
-# token because GITHUB_TOKEN cannot add a pull request to a merge queue.
+# copy of this file and checks nothing out, which is the safe use zizmor
+# documents. The merge step uses the fleet App token because GITHUB_TOKEN
+# cannot add a pull request to a merge queue.
 name: Dependabot auto-merge
-on: pull_request_target
+on: pull_request_target # zizmor: ignore[dangerous-triggers]
 permissions: {}
 jobs:
   auto-merge:
@@ -31,6 +32,8 @@ jobs:
         with:
           app-id: ${{ secrets.NISHFLEET_WORKER_APP_ID }}
           private-key: ${{ secrets.NISHFLEET_WORKER_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
       - if: steps.minor.outputs.ok == 'true'
         run: gh pr merge --auto --squash "$PR_URL"
         env:
