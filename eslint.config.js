@@ -79,7 +79,6 @@ export default [
       "public/**",
       "docs/**",
       "specs/**",
-      ".lane/**",
       "migrations/**",
       "prototype-context/**",
       ".claude/**",
