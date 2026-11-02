@@ -94,7 +94,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           npx cf previews deploy "pr-$PR" | tee "$RUNNER_TEMP/preview.out"
-          url=$(grep -m1 -oE 'https://pr-[0-9]+-[a-z0-9.-]+' "$RUNNER_TEMP/preview.out")
+          url=$(grep -m1 -oE 'https://pr-[0-9]+-[a-z0-9.-]+' "$RUNNER_TEMP/preview.out" || true)
           curl -fsS -o /dev/null --retry 5 --retry-all-errors --retry-delay 5 "${url:?Cloudflare made no preview link}"
           echo "Preview: $url" >> "$GITHUB_STEP_SUMMARY"
 
