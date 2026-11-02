@@ -10,6 +10,5 @@ playwright-report/
 test-results/
 qa-screenshots/
 .worktrees
-.lane/
 .dev.vars
 .dev.vars.*
