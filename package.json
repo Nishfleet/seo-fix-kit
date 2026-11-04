@@ -18,6 +18,7 @@
     "test:e2e": "npm run build && playwright test",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "cf:dry-run": "cf deploy --dry-run",
@@ -104,6 +105,7 @@
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "2.0.0-beta.v.7",
+    "@cloudflare/workers-types": "^5.20261104.1",
     "@eslint/js": "^9.39.5",
     "@fontsource-variable/inter": "^5.3.0",
     "@playwright/test": "^1.64.1",
@@ -120,6 +122,7 @@
     "eslint-plugin-react-refresh": "^0.5.7",
     "globals": "^17.13.0",
     "prettier": "^3.9.10",
+    "typescript": "^7.0.2",
     "vite": "8.3.5",
     "wrangler": "^4.156.1"
   },

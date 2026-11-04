@@ -1,5 +1,9 @@
 import { z } from "zod";
 
+/** @param {unknown} input
+ * @param {number} maxLength
+ * @returns {string}
+ */
 function cleanText(input, maxLength) {
   return String(input || "")
     .replace(/[\u0000-\u001f\u007f]/g, " ")
@@ -8,6 +12,9 @@ function cleanText(input, maxLength) {
     .slice(0, maxLength);
 }
 
+/** @param {number} maxLength
+ * @returns {import("zod").ZodType<string>}
+ */
 function text(maxLength) {
   return z
     .union([z.string(), z.number()])
@@ -85,11 +92,21 @@ const httpUrlSchema = z.url({ protocol: /^https?$/ });
 
 const isoDateSchema = z.coerce.date().transform((date) => date.toISOString());
 
+/** @template T
+ * @param {import("zod").ZodType<T>} schema
+ * @param {unknown} value
+ * @returns {T | ""}
+ */
 function parsedOrEmpty(schema, value) {
   const result = schema.safeParse(value);
   return result.success ? result.data : "";
 }
 
+/** @template {{ [key: string]: import("zod").ZodType }} T
+ * @param {T} shape
+ * @param {Record<string, keyof T>} [aliases]
+ * @returns {import("zod").ZodType<import("zod").output<import("zod").ZodObject<T> > >}
+ */
 function body(shape, aliases = {}) {
   const schema = z.object(shape);
   if (!Object.keys(aliases).length) return schema;
@@ -103,11 +120,17 @@ function body(shape, aliases = {}) {
   }, schema);
 }
 
+/** @param {string | false | undefined} expected
+ * @returns {string}
+ */
 function typeName(expected) {
   if (expected === "string") return "text";
-  return `${/^[aeiou]/.test(expected) ? "an" : "a"} ${expected}`;
+  return `${/^[aeiou]/.test(/** @type {string} */ (expected)) ? "an" : "a"} ${expected}`;
 }
 
+/** @param {{ [key: string]: unknown, path?: PropertyKey[], code: string, message?: string, expected?: string, errors?: { code?: string, expected?: string }[][] }} issue
+ * @returns {string}
+ */
 function describeIssue(issue) {
   const field = issue.path?.length ? issue.path.join(".") : "Request body";
   if (issue.code === "invalid_type") return `${field} must be ${typeName(issue.expected)}.`;
@@ -120,6 +143,11 @@ function describeIssue(issue) {
   return `${field} is invalid.`;
 }
 
+/** @template T
+ * @param {Request} request
+ * @param {import("zod").ZodType<T>} schema
+ * @returns {Promise<{ data: T } | { error: { error: string, field?: string } }>}
+ */
 async function parseJsonBody(request, schema) {
   const input = await request.json().catch(() => undefined);
   const value = input && typeof input === "object" && !Array.isArray(input) ? input : {};

@@ -2,11 +2,21 @@ const NOT_EXECUTED = /D1 DB is overloaded|Requests queued for too long/i;
 const CONNECTION_LOST = /Network connection lost/i;
 const READ_ONLY = /^\s*SELECT\b/i;
 
+/** @param {unknown} error
+ * @param {boolean} readOnly
+ * @returns {boolean}
+ */
 function isReplayable(error, readOnly) {
-  const message = String(error?.message || error || "");
+  const message = String(/** @type {{ message?: unknown }} */ (error)?.message || error || "");
   return NOT_EXECUTED.test(message) || (readOnly && CONNECTION_LOST.test(message));
 }
 
+/** @template T
+ * @param {() => T | Promise<T>} run
+ * @param {boolean} readOnly
+ * @param {{ attempts: number, delayMs: number }} options
+ * @returns {Promise<T>}
+ */
 async function retrying(run, readOnly, { attempts, delayMs }) {
   for (let attempt = 1; ; attempt += 1) {
     try {
@@ -18,19 +28,44 @@ async function retrying(run, readOnly, { attempts, delayMs }) {
   }
 }
 
+/** @typedef {Object} D1RetryStatement
+ * @property {D1PreparedStatement} inner
+ * @property {boolean} readOnly
+ * @property {(...values: unknown[]) => D1RetryStatement} bind
+ * @property {(colName?: string) => Promise<Record<string, unknown> | null>} first
+ * @property {() => Promise<D1Result<Record<string, unknown>>>} all
+ * @property {() => Promise<D1Result<unknown>>} run
+ * @property {() => Promise<unknown[]>} raw
+ */
+
+/** @param {D1PreparedStatement} inner
+ * @param {string} sql
+ * @param {{ attempts: number, delayMs: number }} options
+ * @returns {D1RetryStatement}
+ */
 function wrapStatement(inner, sql, options) {
   const readOnly = READ_ONLY.test(sql);
   return {
     inner,
     readOnly,
     bind: (...values) => wrapStatement(inner.bind(...values), sql, options),
-    first: (...args) => retrying(() => inner.first(...args), readOnly, options),
-    all: (...args) => retrying(() => inner.all(...args), readOnly, options),
-    run: (...args) => retrying(() => inner.run(...args), readOnly, options),
-    raw: (...args) => retrying(() => inner.raw(...args), readOnly, options)
+    first: (colName) =>
+      retrying(
+        /** @type {() => Promise<Record<string, unknown> | null>} */
+        (() => inner.first(/** @type {string} */ (colName))),
+        readOnly,
+        options
+      ),
+    all: () => retrying(() => inner.all(), readOnly, options),
+    run: () => retrying(() => inner.run(), readOnly, options),
+    raw: () => retrying(() => inner.raw(), readOnly, options)
   };
 }
 
+/** @param {D1Database} db
+ * @param {{ attempts?: number, delayMs?: number }} [options]
+ * @returns {{ prepare: (sql: string) => D1RetryStatement, batch: (statements: D1RetryStatement[]) => Promise<D1Result<unknown>[]> }}
+ */
 function withD1Retry(db, { attempts = 3, delayMs = 250 } = {}) {
   const options = { attempts, delayMs };
   return {

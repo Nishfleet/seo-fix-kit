@@ -1,10 +1,18 @@
 import { parse as parseCookie } from "cookie";
 
+/** @param {Request} request
+ * @param {string} name
+ * @returns {string}
+ */
 function cookieValue(request, name) {
   // upstream: https://github.com/jshttp/cookie/blob/master/src/index.ts — cookie.parse returns the raw value for malformed percent-encoding instead of throwing.
   return parseCookie(request.headers.get("cookie") || "")[name] || "";
 }
 
+/** @param {unknown} value
+ * @param {number} [status]
+ * @returns {Response}
+ */
 function json(value, status = 200) {
   return new Response(JSON.stringify(value, null, 2), {
     status,
@@ -12,6 +20,10 @@ function json(value, status = 200) {
   });
 }
 
+/** @param {unknown} value
+ * @param {number} [status]
+ * @returns {Response}
+ */
 function jsonNoStore(value, status = 200) {
   return new Response(JSON.stringify(value, null, 2), {
     status,
@@ -23,6 +35,9 @@ function jsonNoStore(value, status = 200) {
   });
 }
 
+/** @param {Response} response
+ * @returns {Response}
+ */
 function withPrivateHeaders(response) {
   const headers = new Headers(response.headers);
   headers.set("cache-control", "no-store");
@@ -36,6 +51,9 @@ function withPrivateHeaders(response) {
   );
 }
 
+/** @param {Response} response
+ * @returns {Response}
+ */
 function withSecurityHeaders(response) {
   const headers = secureHeaders(response.headers);
   return new Response(response.body, {
@@ -45,6 +63,9 @@ function withSecurityHeaders(response) {
   });
 }
 
+/** @param {HeadersInit} [input]
+ * @returns {Headers}
+ */
 function secureHeaders(input = {}) {
   const headers = new Headers(input);
   headers.set("x-content-type-options", "nosniff");

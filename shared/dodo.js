@@ -1,5 +1,18 @@
 import { Webhook } from "standardwebhooks";
 
+/** @typedef {Partial<Env>} DodoEnv
+ */
+
+/** @typedef {{
+ *   apiKey: boolean,
+ *   productId: boolean,
+ *   brandId: boolean,
+ *   environment: string,
+ *   webhookSecret: boolean,
+ *   checkoutReady: boolean
+ * }} DodoCheckoutConfigStatus
+ */
+
 const DODO_LIVE_URL = "https://live.dodopayments.com";
 const DODO_TEST_URL = "https://test.dodopayments.com";
 
@@ -45,34 +58,58 @@ export const DODO_SUBSCRIPTION_EVENTS = new Set([
 
 export const PAID_STATUSES = new Set(["succeeded", "paid", "completed"]);
 
+/** @param {DodoEnv} [env]
+ * @returns {string}
+ */
 export function dodoApiKey(env = {}) {
   return env.DODO_SEOFIXKIT_API_KEY || "";
 }
 
+/** @param {DodoEnv} [env]
+ * @returns {string}
+ */
 export function dodoWebhookSecret(env = {}) {
   return env.DODO_SEOFIXKIT_WEBHOOK_SECRET || env.DODO_SEOFIXKIT_WEBHOOK_KEY || "";
 }
 
+/** @param {DodoEnv} [env]
+ * @returns {string}
+ */
 export function dodoProductId(env = {}) {
   return env.DODO_SEOFIXKIT_PRODUCT_FIX_PACK_ID || "";
 }
 
+/** @param {DodoEnv} [env]
+ * @returns {string}
+ */
 export function dodoFixPackProductId(env = {}) {
   return dodoProductId(env);
 }
 
+/** @param {DodoEnv} [env]
+ * @returns {string}
+ */
 export function dodoMonitoringProductId(env = {}) {
   return env.DODO_SEOFIXKIT_PRODUCT_MONITORING_ID || "";
 }
 
+/** @param {DodoEnv} [env]
+ * @returns {string}
+ */
 export function dodoRepairSprintProductId(env = {}) {
   return env.DODO_SEOFIXKIT_PRODUCT_REPAIR_SPRINT_ID || "";
 }
 
+/** @param {DodoEnv} [env]
+ * @returns {string}
+ */
 export function dodoBrandId(env = {}) {
   return env.DODO_SEOFIXKIT_BRAND_ID || "";
 }
 
+/** @param {DodoEnv} [env]
+ * @returns {string}
+ */
 export function dodoEnvironment(env = {}) {
   const mode = String(env.DODO_SEOFIXKIT_ENVIRONMENT || "")
     .trim()
@@ -82,6 +119,9 @@ export function dodoEnvironment(env = {}) {
   return "";
 }
 
+/** @param {DodoEnv} [env]
+ * @returns {string}
+ */
 export function dodoBaseUrl(env = {}) {
   const mode = dodoEnvironment(env);
   if (mode === "test") return DODO_TEST_URL;
@@ -89,10 +129,16 @@ export function dodoBaseUrl(env = {}) {
   return "";
 }
 
+/** @param {DodoEnv} [env]
+ * @returns {boolean}
+ */
 export function dodoAdaptiveCurrencyFeesInclusive(env = {}) {
   return String(env.DODO_SEOFIXKIT_ADAPTIVE_CURRENCY_FEES_INCLUSIVE || "true").toLowerCase() !== "false";
 }
 
+/** @param {Request} request
+ * @returns {string}
+ */
 export function dodoCountryFromRequest(request) {
   const country = String(
     request?.cf?.country || request?.headers?.get?.("cf-ipcountry") || request?.headers?.get?.("x-country") || ""
@@ -100,18 +146,31 @@ export function dodoCountryFromRequest(request) {
   return /^[A-Z]{2}$/.test(country) && country !== "XX" ? country : "";
 }
 
+/** @param {DodoEnv} [env]
+ * @returns {DodoCheckoutConfigStatus}
+ */
 export function dodoCheckoutConfigStatus(env = {}) {
   return dodoProductCheckoutConfigStatus(env, dodoProductId(env));
 }
 
+/** @param {DodoEnv} [env]
+ * @returns {DodoCheckoutConfigStatus}
+ */
 export function dodoMonitoringCheckoutConfigStatus(env = {}) {
   return dodoProductCheckoutConfigStatus(env, dodoMonitoringProductId(env));
 }
 
+/** @param {DodoEnv} [env]
+ * @returns {DodoCheckoutConfigStatus}
+ */
 export function dodoRepairSprintCheckoutConfigStatus(env = {}) {
   return dodoProductCheckoutConfigStatus(env, dodoRepairSprintProductId(env));
 }
 
+/** @param {DodoEnv} [env]
+ * @param {string} [productId]
+ * @returns {DodoCheckoutConfigStatus}
+ */
 export function dodoProductCheckoutConfigStatus(env = {}, productId = "") {
   const checks = {
     apiKey: Boolean(dodoApiKey(env)),
@@ -127,19 +186,31 @@ export function dodoProductCheckoutConfigStatus(env = {}, productId = "") {
   };
 }
 
+/** @param {DodoEnv} [env]
+ * @returns {boolean}
+ */
 export function hasDodoCheckoutConfig(env = {}) {
   return dodoCheckoutConfigStatus(env).checkoutReady;
 }
 
+/** @param {DodoEnv} [env]
+ * @returns {boolean}
+ */
 export function hasDodoMonitoringCheckoutConfig(env = {}) {
   return dodoMonitoringCheckoutConfigStatus(env).checkoutReady;
 }
 
+/** @param {DodoEnv} [env]
+ * @returns {boolean}
+ */
 export function hasDodoRepairSprintCheckoutConfig(env = {}) {
   return dodoRepairSprintCheckoutConfigStatus(env).checkoutReady;
 }
 
 // upstream: https://www.standardwebhooks.com — the Standard Webhooks spec signs id.timestamp.body and allows a 5-minute replay tolerance.
+/** @param {{ payload: string, webhookId: string, webhookTimestamp: string, webhookSignature: string, secret: string }} parts
+ * @returns {Promise<boolean>}
+ */
 export async function verifyDodoWebhookSignature({ payload, webhookId, webhookTimestamp, webhookSignature, secret }) {
   if (!payload || !webhookId || !webhookTimestamp || !webhookSignature || !secret) return false;
   try {
@@ -154,6 +225,12 @@ export async function verifyDodoWebhookSignature({ payload, webhookId, webhookTi
   }
 }
 
+/** @typedef {{ [key: string]: unknown }} DodoWebhookObject
+ */
+
+/** @param {DodoWebhookObject} [payment]
+ * @returns {{ paymentId: string, refundId: string, checkoutSessionId: string, metadataFixRequestId: string, metadataReportId: string, metadataProductKey: string, metadataRepairIssueId: string, metadataRepairQueueItemId: string, metadataRepairTitle: string, metadataWebhookDrill: boolean, businessId: string, brandId: string, customerEmail: string, productIds: string[], productItems: { productId: string, quantity: number }[], productQuantity: number, amount: number, currency: string, refundReason: string, refundStatus: string, isPartialRefund: boolean, status: string }}
+ */
 export function extractDodoPayment(payment = {}) {
   const metadata = objectOrEmpty(payment.metadata);
   const productItems = extractProductItems(payment);
@@ -199,6 +276,9 @@ export function extractDodoPayment(payment = {}) {
   };
 }
 
+/** @param {DodoWebhookObject} [subscription]
+ * @returns {{ subscriptionId: string, customerEmail: string, metadataOfferKey: string, metadataOwnerEmail: string, metadataProductKey: string, metadataTargetHost: string, metadataSiteClaimId: string, metadataAuditScheduleId: string, businessId: string, brandId: string, productIds: string[], productItems: { productId: string, quantity: number }[], productQuantity: number, status: string, currentPeriodStart: string, currentPeriodEnd: string }}
+ */
 export function extractDodoSubscription(subscription = {}) {
   const metadata = objectOrEmpty(subscription.metadata);
   const productItems = extractProductItems(subscription);
@@ -230,12 +310,20 @@ export function extractDodoSubscription(subscription = {}) {
   };
 }
 
+/** @param {ReturnType<typeof extractDodoPayment>} payment
+ * @param {string} expectedProductId
+ * @param {{ allowMissing?: boolean }} [options]
+ * @returns {boolean}
+ */
 export function dodoProductMatches(payment, expectedProductId, options = {}) {
   if (!expectedProductId) return true;
   if (!payment.productIds.length) return Boolean(options.allowMissing);
   return payment.productIds.includes(expectedProductId);
 }
 
+/** @param {DodoWebhookObject} [payment]
+ * @returns {{ productId: string, quantity: number }[]}
+ */
 function extractProductItems(payment = {}) {
   const carts = [
     payment.product_cart,
@@ -279,6 +367,9 @@ function extractProductItems(payment = {}) {
   ];
 }
 
+/** @param {string} secret
+ * @returns {Uint8Array}
+ */
 function decodeWebhookSecret(secret) {
   const normalized = String(secret || "")
     .trim()
@@ -290,6 +381,9 @@ function decodeWebhookSecret(secret) {
   }
 }
 
+/** @param {...unknown} values
+ * @returns {string}
+ */
 function firstText(...values) {
   for (const value of values) {
     if (value !== undefined && value !== null && String(value).trim()) return String(value).trim();
@@ -297,25 +391,42 @@ function firstText(...values) {
   return "";
 }
 
+/** @param {...unknown} values
+ * @returns {boolean}
+ */
 function truthyText(...values) {
   return /^(1|true|yes|drill)$/i.test(firstText(...values));
 }
 
+/** @param {unknown} value
+ * @returns {Record<string, unknown>}
+ */
 function objectOrEmpty(value) {
-  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? /** @type {Record<string, unknown>} */ (value)
+    : {};
 }
 
+/** @param {unknown} value
+ * @returns {number}
+ */
 function numberOrZero(value) {
   const number = Number(value);
   return Number.isFinite(number) ? number : 0;
 }
 
+/** @param {unknown} value
+ * @returns {string}
+ */
 function normalizeCurrency(value) {
   return String(value || "")
     .trim()
     .toUpperCase();
 }
 
+/** @param {unknown} value
+ * @returns {string}
+ */
 function normalizeEmailText(value) {
   const email = String(value || "")
     .trim()

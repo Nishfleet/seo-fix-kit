@@ -1,7 +1,22 @@
+/** @param {string} [prefix]
+ * @returns {string}
+ */
 function workerLargeCrawlId(prefix = "lc") {
   return `${prefix}_${crypto.randomUUID()}`;
 }
 
+/** @typedef {Object} QuotaCheck
+ * @property {string} bucket
+ * @property {Date} windowStart
+ * @property {number} limit
+ * @property {string} error
+ * @property {Date} resetAt
+ */
+
+/** @param {Env} env
+ * @param {QuotaCheck[]} checks
+ * @returns {Promise<{ ok: true } | { ok: false, error: string, resetAt: string }>}
+ */
 async function checkQuotaSet(env, checks) {
   const updatedAt = new Date().toISOString();
   for (const check of checks) {
@@ -34,6 +49,9 @@ function randomToken() {
   return [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
+/** @param {Request} request
+ * @returns {Promise<string>}
+ */
 async function requestIpHash(request) {
   const ip =
     request.headers.get("cf-connecting-ip") ||
@@ -42,11 +60,18 @@ async function requestIpHash(request) {
   return (await sha256Hex(ip)).slice(0, 32);
 }
 
+/** @param {unknown} value
+ * @returns {Promise<string>}
+ */
 async function sha256Hex(value) {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(String(value || "")));
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
+/** @param {string} secret
+ * @param {unknown} value
+ * @returns {Promise<string>}
+ */
 async function hmacSha256Hex(secret, value) {
   const key = await crypto.subtle.importKey(
     "raw",
@@ -59,6 +84,10 @@ async function hmacSha256Hex(secret, value) {
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
+/** @param {unknown} left
+ * @param {unknown} right
+ * @returns {boolean}
+ */
 function constantTimeEqual(left, right) {
   const leftBytes = new TextEncoder().encode(String(left || ""));
   const rightBytes = new TextEncoder().encode(String(right || ""));
@@ -72,6 +101,9 @@ function constantTimeEqual(left, right) {
   return maxLength > 0 && diff === 0;
 }
 
+/** @param {unknown} value
+ * @returns {string}
+ */
 function csvCell(value) {
   let text = String(value ?? "");
   if (/^[=+\-@\t\r]/.test(text)) {
