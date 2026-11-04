@@ -229,6 +229,46 @@ test("a test payment never unlocks downtime alerts", async () => {
   assert.equal(await uptimeAlertsIncluded(env, OWNER), false);
 });
 
+function deliveredOrder(db, fields) {
+  db.insert("fix_requests", {
+    id: "fr-delivered",
+    report_id: "r1",
+    owner_email: OWNER,
+    target_url: "https://www.example.com/",
+    target_host: "www.example.com",
+    status: "delivered",
+    paid_at: T0,
+    delivered_at: T0,
+    created_at: T0,
+    updated_at: T0,
+    ...fields
+  });
+}
+
+test("a dispute the owner lost ends downtime alerts", async () => {
+  const { db, env } = setup("active", { paid: false });
+  deliveredOrder(db, { dispute_event: "dispute.lost", disputed_at: T0 });
+  assert.equal(await uptimeAlertsIncluded(env, OWNER), false);
+});
+
+test("a dispute we won keeps downtime alerts", async () => {
+  const { db, env } = setup("active", { paid: false });
+  deliveredOrder(db, { dispute_event: "dispute.won", disputed_at: T0 });
+  assert.equal(await uptimeAlertsIncluded(env, OWNER), true);
+});
+
+test("a refunded Fix Pack ends downtime alerts", async () => {
+  const { db, env } = setup("active", { paid: false });
+  deliveredOrder(db, { status: "refunded", refunded_at: T0 });
+  assert.equal(await uptimeAlertsIncluded(env, OWNER), false);
+});
+
+test("a failed refund ends downtime alerts", async () => {
+  const { db, env } = setup("active", { paid: false });
+  deliveredOrder(db, { status: "refund_failed" });
+  assert.equal(await uptimeAlertsIncluded(env, OWNER), false);
+});
+
 test("an active paid plan with no Fix Pack still gets downtime pings", async () => {
   const { db, env } = setup("active", { paid: false });
   db.insert("offer_entitlements", {
