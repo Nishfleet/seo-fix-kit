@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { BETA_MONITOR_LIMIT, OFFER_CATALOG, PAID_MONITOR_LIMIT } from "./offers.js";
+import { BETA_MONITOR_LIMIT, OFFER_CATALOG, PAID_MONITOR_LIMIT, offerCatalog } from "./offers.js";
 
 const monitoringOffer = OFFER_CATALOG.find((offer) => offer.key === "proof_monitoring");
 
@@ -17,4 +17,11 @@ test("every offer carries the copy a buyer reads before paying", () => {
     assert.ok(offer.name && offer.description && offer.availability, `${offer.key} needs buyer-facing copy`);
     assert.ok(offer.requirements.length > 0, `${offer.key} needs its requirements listed`);
   }
+});
+
+test("a stored limit that is not a number never replaces the plan's numeric limit", () => {
+  const [fixPack] = offerCatalog({
+    entitlements: [{ offer_key: "fix_pack", status: "active", limits_json: '{"reports":"unlimited","reruns":3}' }]
+  });
+  assert.deepEqual(fixPack.limits, { reports: 1, reruns: 3 });
 });

@@ -34,6 +34,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint
+      - run: npm run typecheck
       - name: No helper-script dirs (standing no-glue rule)
         run: |
           regrew="$(git ls-files scripts bin tools ops .specify '*.sh')"

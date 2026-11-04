@@ -1,5 +1,11 @@
 const D1_MAX_CONCURRENCY = 8;
 
+/** @template T
+ * @param {T[]} items
+ * @param {number} limit
+ * @param {(item: T, index: number) => T | Promise<T>} worker
+ * @returns {Promise<T[]>}
+ */
 async function runBounded(items, limit, worker) {
   const results = new Array(items.length);
   const width = Math.min(items.length, Math.max(1, Math.trunc(limit) || 1));

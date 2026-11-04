@@ -333,7 +333,9 @@ async function logRepairProposalEvent(
         new Date().toISOString()
       )
       .run();
-  } catch {}
+  } catch (error) {
+    console.error("Repair proposal event write failed", error);
+  }
 }
 
 async function teamMembersForOwner(env, ownerEmail) {

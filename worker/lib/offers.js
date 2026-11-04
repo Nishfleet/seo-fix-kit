@@ -5,6 +5,12 @@ import {
 } from "../../shared/offers.js";
 import { dodoMonitoringCheckoutConfigStatus, dodoRepairSprintCheckoutConfigStatus } from "../../shared/dodo.js";
 
+/** @typedef {import("../../shared/offers.js").OfferEntitlementRow} OfferEntitlementRow */
+
+/** @param {Env} env
+ * @param {string} ownerEmail
+ * @returns {Promise<OfferEntitlementRow[]>}
+ */
 async function offerEntitlementsForOwner(env, ownerEmail) {
   if (!env.WAITLIST_DB || !ownerEmail) return [];
   try {
@@ -18,12 +24,17 @@ async function offerEntitlementsForOwner(env, ownerEmail) {
     )
       .bind(ownerEmail)
       .all();
-    return rows.results || [];
+    return /** @type {OfferEntitlementRow[]} */ (rows.results || []);
   } catch {
     return [];
   }
 }
 
+/** @param {Env} env
+ * @param {string} ownerEmail
+ * @param {Record<string, unknown>} [options]
+ * @returns {Promise<ReturnType<typeof offerCatalog>>}
+ */
 async function offerCatalogForOwner(env, ownerEmail, options = {}) {
   const entitlements = await offerEntitlementsForOwner(env, ownerEmail);
   return offerCatalog({
@@ -34,6 +45,11 @@ async function offerCatalogForOwner(env, ownerEmail, options = {}) {
   });
 }
 
+/** @param {Env} env
+ * @param {string} ownerEmail
+ * @param {number} [activeCount]
+ * @returns {Promise<ReturnType<typeof monitoringAccessFromEntitlements>>}
+ */
 async function monitoringAccessForOwner(env, ownerEmail, activeCount = 0) {
   const entitlements = await offerEntitlementsForOwner(env, ownerEmail);
   return monitoringAccessFromEntitlements(entitlements, activeCount, {
@@ -41,17 +57,28 @@ async function monitoringAccessForOwner(env, ownerEmail, activeCount = 0) {
   });
 }
 
+/** @param {Env} env
+ * @param {string} ownerEmail
+ * @param {Record<string, unknown>} [usage]
+ * @returns {Promise<ReturnType<typeof agencyWorkspaceAccessFromEntitlements>>}
+ */
 async function agencyWorkspaceAccessForOwner(env, ownerEmail, usage = {}) {
   const entitlements = await offerEntitlementsForOwner(env, ownerEmail);
   return agencyWorkspaceAccessFromEntitlements(entitlements, usage);
 }
 
-async function monitoringCheckoutReady(env = {}) {
+/** @param {Env} env
+ * @returns {Promise<boolean>}
+ */
+async function monitoringCheckoutReady(env) {
   if (!dodoMonitoringCheckoutConfigStatus(env).checkoutReady) return false;
   return monitoringEntitlementSchemaReady(env);
 }
 
-async function monitoringEntitlementSchemaReady(env = {}) {
+/** @param {Env} env
+ * @returns {Promise<boolean>}
+ */
+async function monitoringEntitlementSchemaReady(env) {
   if (!env.WAITLIST_DB) return false;
   try {
     await env.WAITLIST_DB.prepare(

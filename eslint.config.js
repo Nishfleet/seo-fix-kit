@@ -58,7 +58,7 @@ const backlogWarnings = {
   "preserve-caught-error": "warn",
   "no-useless-escape": "warn",
   "no-regex-spaces": "warn",
-  "no-empty": ["error", { allowEmptyCatch: true }]
+  "no-empty": ["error", { allowEmptyCatch: false }]
 };
 
 // Code passed to Playwright/Puppeteer page.evaluate() is serialized and runs
@@ -223,8 +223,8 @@ export default [
     files: NO_COMMENT_FILES,
     plugins: { "no-comments": noComments },
     rules: {
-      "no-comments/disallowComments": ["error", { allow: ["eslint", "global", "upstream:", "@vite-ignore"] }],
-      "no-inline-comments": ["error", { ignorePattern: "@vite-ignore" }],
+      "no-comments/disallowComments": ["error", { allow: ["eslint", "global", "upstream:", "@vite-ignore", "\\* @"] }],
+      "no-inline-comments": ["error", { ignorePattern: "@vite-ignore|@type" }],
       "no-warning-comments": ["error", { terms: WORKAROUND_TERMS, location: "anywhere" }]
     }
   }

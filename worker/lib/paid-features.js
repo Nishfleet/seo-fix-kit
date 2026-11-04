@@ -3,6 +3,11 @@ import { json } from "./http.js";
 export const PAID_FEATURE_MESSAGE =
   "Branded client reports, custom report domains and the audit widget come with the Fix Pack. Buy one on any report with open problems to unlock them.";
 
+/** @param {Env} env
+ * @param {string} ownerEmail
+ * @param {{ accessMode?: unknown } | null} [access]
+ * @returns {Promise<boolean>}
+ */
 export async function hasPaidFixPack(env, ownerEmail, access = null) {
   if (access?.accessMode === "founder-override") return true;
   if (!env.WAITLIST_DB || !ownerEmail) return false;
