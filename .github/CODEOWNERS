@@ -41,6 +41,8 @@
 /src/dodo-checkout-url.js   @nish3451
 /src/fix-pack-checkout.js   @nish3451
 /src/hooks/usePricingPreview.js @nish3451
+/src/monitoring-checkout.js @nish3451
+/src/pages/billing/BillingPortal.jsx @nish3451
 # Sign-in (access links and sessions).
 /worker/lib/auth.js         @nish3451
 /worker/routes/access.js    @nish3451
