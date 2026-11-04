@@ -229,6 +229,20 @@ test("a test payment never unlocks downtime alerts", async () => {
   assert.equal(await uptimeAlertsIncluded(env, OWNER), false);
 });
 
+test("an active paid plan with no Fix Pack still gets downtime pings", async () => {
+  const { db, env } = setup("active", { paid: false });
+  db.insert("offer_entitlements", {
+    id: "ent-1",
+    owner_email: OWNER,
+    offer_key: "monitoring",
+    status: "active",
+    created_at: T0,
+    updated_at: T0
+  });
+  assert.equal(await uptimeAlertsIncluded(env, OWNER), true);
+  assert.deepEqual(await runUptimeChecks(env, { fetchImpl: answers(200), now: T0 }), ["up"]);
+});
+
 test("after a gap in checking, a new outage is alerted even if the old one never cleared", async () => {
   const { env, sent, row } = setup();
   await runUptimeChecks(env, { fetchImpl: unreachable, now: T0 });
