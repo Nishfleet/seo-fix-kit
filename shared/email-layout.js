@@ -7,6 +7,10 @@ const INK = "#0b0f0d";
 const LINK = "#0f7a56";
 const MUTED = "#6b6f6c";
 
+/** @param {string} href
+ * @param {string} label
+ * @returns {string}
+ */
 export function emailButton(href, label) {
   const url = escapeHtml(href);
   return [
@@ -21,6 +25,9 @@ export function emailButton(href, label) {
   ].join("");
 }
 
+/** @param {{ preheader?: string, body?: string }} [parts]
+ * @returns {string}
+ */
 export function emailLayout({ preheader = "", body = "" } = {}) {
   const preview = String(preheader || "").trim();
   return [

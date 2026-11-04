@@ -1,3 +1,6 @@
+/** @param {unknown} title
+ * @returns {string}
+ */
 export function issuePatternKey(title) {
   return String(title || "Unknown issue")
     .replace(/\son\s(home|\/[^\s]+)/i, "")
@@ -5,6 +8,13 @@ export function issuePatternKey(title) {
     .trim();
 }
 
+/** @typedef {{ title?: unknown, [key: string]: unknown }} FixPatternItem
+ */
+
+/** @param {FixPatternItem[]} [plan]
+ * @param {number} [limit]
+ * @returns {FixPatternItem[]}
+ */
 export function distinctFixes(plan = [], limit = 3) {
   if (!(limit > 0)) return [];
   const seen = new Set();

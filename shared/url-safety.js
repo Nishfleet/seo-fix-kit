@@ -1,5 +1,8 @@
 const DEFAULT_MAX_REDIRECTS = 5;
 
+/** @param {unknown} [input]
+ * @returns {string}
+ */
 export function normalizeHttpUrl(input = "") {
   try {
     const trimmed = String(input || "").trim();
@@ -14,10 +17,17 @@ export function normalizeHttpUrl(input = "") {
   }
 }
 
+/** @param {unknown} [value]
+ * @returns {{ ok: true, url: string } | { ok: false, error: string }}
+ */
 export function publicUrlStatus(value = "") {
   return httpUrlStatus(value, { allowPrivate: false });
 }
 
+/** @param {unknown} [value]
+ * @param {{ allowPrivate?: boolean }} [options]
+ * @returns {{ ok: true, url: string } | { ok: false, error: string }}
+ */
 function httpUrlStatus(value = "", options = {}) {
   const normalized = normalizeHttpUrl(value);
   if (!normalized) return { ok: false, error: "Enter a valid public website URL." };
@@ -28,12 +38,21 @@ function httpUrlStatus(value = "", options = {}) {
   return { ok: true, url: normalized };
 }
 
+/** @param {unknown} [value]
+ * @returns {boolean}
+ */
 export function isPrivateHost(value = "") {
   const normalized = normalizeHttpUrl(value);
   if (!normalized) return true;
   return isPrivateHostname(new URL(normalized).hostname);
 }
 
+/** @param {(input: string, init?: RequestInit) => Promise<Response> | Response} fetcher
+ * @param {string} url
+ * @param {RequestInit} [init]
+ * @param {{ maxRedirects?: number, allowPrivate?: boolean, privateAddressResolver?: (hostname: string) => boolean | Promise<boolean> }} [options]
+ * @returns {Promise<{ response: Response, finalUrl: string, redirectChain: { status: number, from: string, to: string }[] }>}
+ */
 export async function fetchPublicUrl(fetcher, url, init = {}, options = {}) {
   const maxRedirects = Math.min(Math.max(Number(options.maxRedirects || DEFAULT_MAX_REDIRECTS), 0), 10);
   const allowPrivate = Boolean(options.allowPrivate);
@@ -83,6 +102,9 @@ export async function fetchPublicUrl(fetcher, url, init = {}, options = {}) {
   throw new Error("Too many redirects before reaching a public URL.");
 }
 
+/** @param {unknown} status
+ * @returns {boolean}
+ */
 function isRedirectStatus(status) {
   return [301, 302, 303, 307, 308].includes(Number(status || 0));
 }
@@ -95,6 +117,9 @@ function absoluteUrl(value = "", baseUrl = "") {
   }
 }
 
+/** @param {unknown} [input]
+ * @returns {boolean}
+ */
 export function isPrivateHostname(input = "") {
   const host = normalizeHostname(input);
   if (!host) return true;
@@ -112,6 +137,10 @@ export function isPrivateHostname(input = "") {
   return false;
 }
 
+/** @param {unknown} hostname
+ * @param {(input: string | URL, init?: RequestInit) => Promise<Response>} [fetcher]
+ * @returns {Promise<boolean>}
+ */
 export async function resolvesToPrivateAddress(hostname, fetcher = globalThis.fetch) {
   const host = normalizeHostname(hostname);
   if (!host) return true;
@@ -134,6 +163,9 @@ export async function resolvesToPrivateAddress(hostname, fetcher = globalThis.fe
   return false;
 }
 
+/** @param {unknown} [input]
+ * @returns {string}
+ */
 function normalizeHostname(input = "") {
   return String(input || "")
     .trim()
@@ -143,6 +175,9 @@ function normalizeHostname(input = "") {
     .replace(/\.$/, "");
 }
 
+/** @param {string} host
+ * @returns {boolean}
+ */
 function isPrivateName(host) {
   return (
     host === "localhost" ||
@@ -157,6 +192,9 @@ function isPrivateName(host) {
   );
 }
 
+/** @param {string} host
+ * @returns {number[] | null}
+ */
 function parseIpv4(host) {
   if (/^(\d+|0x[0-9a-f]+)$/i.test(host)) {
     const value = parseIpv4Part(host);
@@ -166,11 +204,14 @@ function parseIpv4(host) {
 
   const parts = host.split(".");
   if (parts.length !== 4) return null;
-  const octets = parts.map(parseIpv4Part);
-  if (octets.some((part) => part === null || part < 0 || part > 255)) return null;
+  const octets = parts.map(parseIpv4Part).filter((part) => part !== null);
+  if (octets.length !== 4 || octets.some((part) => part < 0 || part > 255)) return null;
   return octets;
 }
 
+/** @param {string} part
+ * @returns {number | null}
+ */
 function parseIpv4Part(part) {
   if (/^0x[0-9a-f]+$/i.test(part)) return Number.parseInt(part.slice(2), 16);
   if (/^0\d+$/.test(part)) return /^[0-7]+$/.test(part.slice(1)) ? Number.parseInt(part.slice(1), 8) : null;
@@ -178,6 +219,9 @@ function parseIpv4Part(part) {
   return null;
 }
 
+/** @param {string} host
+ * @returns {number[] | null}
+ */
 function parseMappedIpv4(host) {
   const dotted = host.match(/(?:^|:)ffff:(\d{1,3}(?:\.\d{1,3}){3})$/i);
   if (dotted) return parseIpv4(dotted[1]);
@@ -190,6 +234,9 @@ function parseMappedIpv4(host) {
   return [high >> 8, high & 255, low >> 8, low & 255];
 }
 
+/** @param {number[]} octets
+ * @returns {boolean}
+ */
 function isPrivateIpv4([first, second, third]) {
   if (first === 0 || first === 10 || first === 127) return true;
   if (first === 169 && second === 254) return true;
@@ -202,6 +249,9 @@ function isPrivateIpv4([first, second, third]) {
   return false;
 }
 
+/** @param {string} host
+ * @returns {boolean}
+ */
 function isPrivateIpv6(host) {
   const compact = host.replace(/^0+/, "");
   return (
