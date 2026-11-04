@@ -25,5 +25,5 @@ Preconditions:
 
 ## Gotchas
 
-- `/beta` is 404 on the dev server. That is the Vite dev server, not a production bug.
+- `/beta` is 404 on the dev server, while production answers 200 (checked 2026-11-04). Drive `/beta` on the test server.
 - The homepage logo strip scrolls forever by design, and the spam-trap field sits off-screen on purpose.
