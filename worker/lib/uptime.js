@@ -4,7 +4,7 @@ import { fetchPublicUrl, resolvesToPrivateAddress } from "../../shared/url-safet
 import { D1_MAX_CONCURRENCY, runBounded } from "./bounded.js";
 import { emailPreferencesFor } from "./audit-emails.js";
 import { emailSender, sendWorkerEmail } from "./email.js";
-import { hasPaidFixPack, PAID_FIX_PACK_STATUSES } from "./paid-features.js";
+import { hasPaidFixPack } from "./paid-features.js";
 
 const CHECK_EVERY_MINUTES = 14;
 const CHECK_BATCH = 25;
@@ -18,10 +18,8 @@ const MUTED = "#6b6f6c";
 const GOOD = "#0f7a56";
 const BAD = "#b42318";
 
-const PAID_STATUS_SQL = PAID_FIX_PACK_STATUSES.map((status) => `'${status}'`).join(", ");
 const PAID_OWNER_SQL = (owner) => `(
-  EXISTS (SELECT 1 FROM fix_requests f
-          WHERE f.owner_email = ${owner} AND f.status IN (${PAID_STATUS_SQL}) AND f.is_test = 0)
+  EXISTS (SELECT 1 FROM paid_owners p WHERE p.owner_email = ${owner})
   OR EXISTS (SELECT 1 FROM offer_entitlements e
              WHERE e.owner_email = ${owner} AND e.status = 'active' AND e.revoked_at IS NULL)
 )`;

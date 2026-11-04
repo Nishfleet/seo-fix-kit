@@ -56,6 +56,7 @@ async function accountDeletionBlockers(env, ownerEmail) {
   const cutoff = liveCheckoutCutoff();
   const [openRequests, subscriptions, fixPackCheckouts, monitoringCheckouts] = await Promise.all([
     env.WAITLIST_DB.prepare(
+      // eslint-disable-next-line no-restricted-syntax -- counts open orders that block account deletion, not whether the owner has paid
       `SELECT COUNT(*) AS count FROM fix_requests
        WHERE owner_email = ? AND is_test = 0 AND status IN (${placeholders})`
     )

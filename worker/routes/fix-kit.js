@@ -15,6 +15,7 @@ async function fixKitContext(request, env, params) {
   const report = row ? parseJson(row.report_json, null) : null;
   if (!report) return { response: json({ error: "Report not found." }, 404) };
   const paid = await env.WAITLIST_DB.prepare(
+    // eslint-disable-next-line no-restricted-syntax -- unlocks the Fix Kit for this one report's own order, which the per-owner view cannot answer
     `SELECT status FROM fix_requests
      WHERE report_id = ? AND owner_email = ? AND status IN (${FIX_KIT_UNLOCKED_STATUSES.map(() => "?").join(", ")})
      LIMIT 1`

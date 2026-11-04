@@ -248,6 +248,7 @@ async function updateRepairProposalApproval(request, env) {
   const ownerNote = body.ownerNote || body.owner_note;
   const nextApprovalStatus = action === "approve" ? "approved" : "dismissed";
   const updateResult = await env.WAITLIST_DB.prepare(
+    // eslint-disable-next-line no-restricted-syntax -- checks that this proposal's own order is still open, not whether the owner has paid
     `UPDATE repair_proposals
      SET approval_status = ?,
          owner_note = ?,

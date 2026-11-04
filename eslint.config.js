@@ -190,6 +190,28 @@ export default [
     rules: { "no-useless-assignment": "warn" }
   },
   {
+    // "Has this owner paid?" lives in one place: the paid_owners view
+    // (migrations/0098) read through worker/lib/paid-features.js. Copies drifted
+    // before: 9cb0089 counted test orders and lost disputes as paid.
+    files: ["worker/**/*.js", "shared/**/*.js", "server/**/*.js"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector:
+            "TemplateLiteral:has(TemplateElement[value.raw=/fix_requests/]):has(TemplateElement[value.raw=/owner_email/]):has(TemplateElement[value.raw=/status IN|paid_at|'paid'/])",
+          message:
+            "Read the paid_owners view (hasPaidFixPack in worker/lib/paid-features.js) instead of copying the paid rule."
+        },
+        {
+          selector: "Literal[value=/fix_requests/][value=/owner_email/][value=/status IN|paid_at|'paid'/]",
+          message:
+            "Read the paid_owners view (hasPaidFixPack in worker/lib/paid-features.js) instead of copying the paid rule."
+        }
+      ]
+    }
+  },
+  {
     // Comment ban on source and test code (fleet-ops AGENTS.md, fleet-wide 2026-10-14).
     // A comment here survives three ways: an eslint disable directive or a
     // `global` declaration, an `upstream:` comment linking the browser quirk,
