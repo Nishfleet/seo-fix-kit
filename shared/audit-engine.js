@@ -19,7 +19,7 @@ import {
   resourceWaterfallFindings
 } from "./resource-waterfall.js";
 import { describeBlocked, robotsAccess } from "./robots-access.js";
-import { isPrivateHost, isPrivateHostname } from "./url-safety.js";
+import { fetchPublicUrl, isPrivateHost, isPrivateHostname } from "./url-safety.js";
 
 const DOCS = {
   javascript: "https://developers.google.com/search/docs/crawling-indexing/javascript/javascript-seo-basics",
@@ -56,7 +56,7 @@ export const VERSION = "0.9.0";
 
 export function createAuditEngine({
   launchBrowser,
-  // eslint-disable-next-line no-restricted-properties -- fetchResource checks every redirect hop with urlGuard and privateDnsGuard
+  // eslint-disable-next-line no-restricted-properties -- customer URLs go through fetchPublicUrl; only the fixed PageSpeed host is called directly
   fetchImpl = globalThis.fetch,
   pagespeedApiKey = "",
   pagespeedDisabled = false,
@@ -67,7 +67,6 @@ export function createAuditEngine({
   if (typeof launchBrowser !== "function") {
     throw new Error("createAuditEngine requires a launchBrowser() adapter.");
   }
-  const fetch = (...args) => fetchImpl(...args);
   const urlGuard = allowLocalAudits ? localAuditUrlStatus : publicAuditUrlStatus;
   const privateDnsGuard =
     allowLocalAudits || typeof privateAddressResolver !== "function" ? null : privateAddressResolver;
@@ -189,7 +188,7 @@ export function createAuditEngine({
       maxUrls: options.crawlInventoryMaxUrls,
       maxSitemaps: options.crawlInventoryMaxSitemaps,
       allowPrivate: allowLocalAudits && isPrivateHost(startUrl),
-      fetcher: fetch,
+      fetcher: fetchImpl,
       privateAddressResolver: privateDnsGuard
     });
 
@@ -219,7 +218,7 @@ export function createAuditEngine({
 
     const backlinkAudit = await buildBacklinkAudit(report, options.backlinks || options.backlinkRows || [], {
       allowPrivate: allowLocalAudits && options.allowPrivateBacklinks === true,
-      fetcher: fetch,
+      fetcher: fetchImpl,
       privateAddressResolver: privateDnsGuard
     });
     if (backlinkAudit.status === "ready") {
@@ -230,7 +229,7 @@ export function createAuditEngine({
 
     const localSeoAudit = await buildLocalSeoAudit(report, options.localSeo || options.localSeoInput || {}, {
       allowPrivate: allowLocalAudits && options.allowPrivateLocalSeo === true,
-      fetcher: fetch,
+      fetcher: fetchImpl,
       privateAddressResolver: privateDnsGuard
     });
     if (localSeoAudit.status === "ready") {
@@ -433,7 +432,7 @@ export function createAuditEngine({
     if (options.pageSpeedApiKey) {
       endpoint.searchParams.set("key", options.pageSpeedApiKey);
     }
-    const response = await fetch(endpoint.href, {
+    const response = await fetchImpl(endpoint.href, {
       headers: {
         "user-agent": `SEOFixKit/${VERSION} (+https://seofixkit.com; PageSpeed proof audit)`
       },
@@ -572,58 +571,25 @@ export function createAuditEngine({
         };
       }
 
-      let currentUrl = url;
-      let response = null;
-      const redirectChain = [];
-      for (let redirectCount = 0; redirectCount <= RESOURCE_LIMITS.maxRedirects; redirectCount += 1) {
-        if (privateDnsGuard && (await privateDnsGuard(new URL(currentUrl).hostname))) {
-          return {
-            ok: false,
-            status: null,
-            finalUrl: currentUrl,
-            contentType: "",
-            contentLength: 0,
-            headers: {},
-            redirectChain,
-            guarded: true,
-            error: "This URL points at a private or internal address and cannot be audited."
-          };
-        }
-
-        response = await fetch(currentUrl, {
+      const { response, finalUrl, redirectChain } = await fetchPublicUrl(
+        fetchImpl,
+        url,
+        {
           method,
-          redirect: "manual",
           headers: { "user-agent": `SEOFixKit/${VERSION} (+https://seofixkit.com; evidence-backed SEO audit)` },
           signal: AbortSignal.timeout(RESOURCE_LIMITS.timeoutMs)
-        });
-
-        if (![301, 302, 303, 307, 308].includes(response.status)) break;
-        const location = response.headers.get("location");
-        if (!location) break;
-        const nextUrl = new URL(location, currentUrl).href;
-        const nextStatus = urlGuard(nextUrl);
-        if (!nextStatus.ok) {
-          return {
-            ok: false,
-            status: response.status,
-            finalUrl: nextUrl,
-            contentType: "",
-            contentLength: 0,
-            headers: headersToObject(response.headers),
-            redirectChain,
-            error: nextStatus.error
-          };
+        },
+        {
+          allowPrivate: allowLocalAudits,
+          privateAddressResolver: privateDnsGuard,
+          maxRedirects: RESOURCE_LIMITS.maxRedirects
         }
-        redirectChain.push({ status: response.status, from: currentUrl, to: nextUrl });
-        currentUrl = nextUrl;
-      }
-
-      if (!response) throw new Error("No response returned.");
+      );
 
       return {
         ok: response.ok,
         status: response.status,
-        finalUrl: currentUrl,
+        finalUrl,
         contentType: response.headers.get("content-type") || "",
         contentLength: Number(response.headers.get("content-length")) || 0,
         headers: headersToObject(response.headers),
@@ -647,57 +613,30 @@ export function createAuditEngine({
   async function fetchText(url) {
     try {
       const started = Date.now();
-      let currentUrl = url;
-      let response = null;
-      const redirectChain = [];
-      for (let redirectCount = 0; redirectCount < 6; redirectCount += 1) {
-        const status = urlGuard(currentUrl);
-        if (!status.ok) {
-          return {
-            ok: false,
-            status: null,
-            url: currentUrl,
-            contentType: "",
-            body: "",
-            headers: {},
-            redirectChain,
-            responseTimeMs: Date.now() - started,
-            contentLength: 0,
-            error: status.error
-          };
-        }
-        if (privateDnsGuard && (await privateDnsGuard(new URL(currentUrl).hostname))) {
-          return {
-            ok: false,
-            status: null,
-            url: currentUrl,
-            contentType: "",
-            body: "",
-            headers: {},
-            redirectChain,
-            responseTimeMs: Date.now() - started,
-            contentLength: 0,
-            error: "This URL points at a private or internal address and cannot be audited."
-          };
-        }
-
-        response = await fetch(currentUrl, {
-          redirect: "manual",
+      const status = urlGuard(url);
+      if (!status.ok) {
+        return {
+          ok: false,
+          status: null,
+          url,
+          contentType: "",
+          body: "",
+          headers: {},
+          redirectChain: [],
+          responseTimeMs: Date.now() - started,
+          contentLength: 0,
+          error: status.error
+        };
+      }
+      const { response, finalUrl, redirectChain } = await fetchPublicUrl(
+        fetchImpl,
+        url,
+        {
           headers: { "user-agent": `SEOFixKit/${VERSION} (+https://seofixkit.com; evidence-backed SEO audit)` },
           signal: AbortSignal.timeout(15_000)
-        });
-
-        if (![301, 302, 303, 307, 308].includes(response.status)) break;
-        const location = response.headers.get("location");
-        if (!location) break;
-        const nextUrl = new URL(location, currentUrl).href;
-        redirectChain.push({ status: response.status, from: currentUrl, to: nextUrl });
-        currentUrl = nextUrl;
-      }
-
-      if (!response) {
-        throw new Error("No response returned.");
-      }
+        },
+        { allowPrivate: allowLocalAudits, privateAddressResolver: privateDnsGuard }
+      );
 
       const contentType = response.headers.get("content-type") || "";
       const body =
@@ -707,7 +646,7 @@ export function createAuditEngine({
       return {
         ok: response.ok,
         status: response.status,
-        url: currentUrl,
+        url: finalUrl,
         contentType,
         body,
         headers: headersToObject(response.headers),

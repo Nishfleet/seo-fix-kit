@@ -188,10 +188,19 @@ export default [
       ],
       "no-restricted-properties": [
         "error",
-        {
-          object: "globalThis",
+        ...["globalThis", "self", "window"].map((object) => ({
+          object,
           property: "fetch",
           message: "Use fetchPublicUrl from shared/url-safety.js with a privateAddressResolver."
+        }))
+      ],
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector:
+            ":matches(VariableDeclarator[id.name='fetch'], FunctionDeclaration[id.name='fetch'], :function > Identifier.params[name='fetch'], AssignmentPattern > Identifier.left[name='fetch'], Property[key.name='fetch'] > Identifier.value[name='fetch'])",
+          message:
+            "A local binding named fetch hides raw fetch calls from no-restricted-globals. Call fetchPublicUrl from shared/url-safety.js instead."
         }
       ]
     }
