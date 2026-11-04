@@ -785,6 +785,7 @@ async function verifyReportDomainTxt(domain = "", token = "") {
   if (!expected || !dnsName)
     return { ok: false, error: "Custom domain verification is not set up on this server yet." };
   try {
+    // eslint-disable-next-line no-restricted-globals -- DNS-over-HTTPS lookup, fixed vendor host, not a customer URL
     const response = await fetch(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(dnsName)}&type=TXT`, {
       headers: { accept: "application/dns-json" }
     });
@@ -809,6 +810,7 @@ async function verifyReportDomainCname(domain = "", cnameTarget = "") {
   const expected = cleanReportDomain(cnameTarget);
   if (!domainName || !expected) return { ok: false, error: "Custom domain routing is not set up on this server yet." };
   try {
+    // eslint-disable-next-line no-restricted-globals -- DNS-over-HTTPS lookup, fixed vendor host, not a customer URL
     const response = await fetch(
       `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(domainName)}&type=CNAME`,
       { headers: { accept: "application/dns-json" } }

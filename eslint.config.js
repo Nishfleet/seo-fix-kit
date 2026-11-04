@@ -165,6 +165,46 @@ export default [
       globals: pageEvaluateGlobals
     }
   },
+  {
+    // Server code that fetches a URL a customer typed must refuse private and
+    // internal addresses on every redirect hop (seo-fix-kit#282). fetchPublicUrl
+    // in shared/url-safety.js is the one place allowed to call fetch directly.
+    // server/submit-index-now.js only calls this site and the IndexNow endpoints.
+    files: ["worker/**/*.js", "shared/**/*.js", "server/**/*.js"],
+    ignores: [
+      "shared/url-safety.js",
+      "shared/free-tools/client.js",
+      "shared/public-check/client.js",
+      "server/submit-index-now.js"
+    ],
+    rules: {
+      "no-restricted-globals": [
+        "error",
+        {
+          name: "fetch",
+          message:
+            "Use fetchPublicUrl from shared/url-safety.js with a privateAddressResolver. For a fixed vendor host, add an eslint-disable-next-line with the reason."
+        }
+      ],
+      "no-restricted-properties": [
+        "error",
+        ...["globalThis", "self", "window"].map((object) => ({
+          object,
+          property: "fetch",
+          message: "Use fetchPublicUrl from shared/url-safety.js with a privateAddressResolver."
+        }))
+      ],
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector:
+            ":matches(VariableDeclarator[id.name='fetch'], FunctionDeclaration[id.name='fetch'], :function > Identifier.params[name='fetch'], AssignmentPattern > Identifier.left[name='fetch'], Property[key.name='fetch'] > Identifier.value[name='fetch'])",
+          message:
+            "A local binding named fetch hides raw fetch calls from no-restricted-globals. Call fetchPublicUrl from shared/url-safety.js instead."
+        }
+      ]
+    }
+  },
   prettier,
   {
     // Re-apply the backlog downgrades after the plugin presets so a preset

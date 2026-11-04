@@ -97,7 +97,7 @@ export async function buildBacklinkAudit(report = {}, input = [], options = {}) 
   for (const row of parsed.rows) {
     rows.push(
       await inspectBacklinkRow(row, {
-        fetcher: options.fetcher || fetch,
+        fetcher: options.fetcher,
         privateAddressResolver: options.privateAddressResolver,
         targetOrigin,
         targetHost,

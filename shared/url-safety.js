@@ -53,7 +53,7 @@ export function isPrivateHost(value = "") {
  * @param {{ maxRedirects?: number, allowPrivate?: boolean, privateAddressResolver?: (hostname: string) => boolean | Promise<boolean> }} [options]
  * @returns {Promise<{ response: Response, finalUrl: string, redirectChain: { status: number, from: string, to: string }[] }>}
  */
-export async function fetchPublicUrl(fetcher, url, init = {}, options = {}) {
+export async function fetchPublicUrl(fetcher = globalThis.fetch, url, init = {}, options = {}) {
   const maxRedirects = Math.min(Math.max(Number(options.maxRedirects || DEFAULT_MAX_REDIRECTS), 0), 10);
   const allowPrivate = Boolean(options.allowPrivate);
   const privateAddressResolver =

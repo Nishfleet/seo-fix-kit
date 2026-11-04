@@ -294,3 +294,21 @@ test("after a gap in checking, a new outage is alerted even if the old one never
   assert.equal(sent.length, 2);
   assert.equal(sent[1].subject, "www.example.com is down");
 });
+
+test("the scheduled cron call, runUptimeChecks(env) with no options, reports a live site as up", async (t) => {
+  const { env, row } = setup();
+  const fetched = [];
+  t.mock.method(globalThis, "fetch", async (url) => {
+    fetched.push(String(url));
+    if (String(url).startsWith("https://cloudflare-dns.com/")) return Response.json({ Answer: [] });
+    return new Response("ok", { status: 200 });
+  });
+
+  assert.deepEqual(await runChecks(env), ["up"]);
+  assert.equal(row().uptime_status, "up");
+  assert.deepEqual(
+    fetched.filter((url) => new URL(url).hostname === "www.example.com"),
+    ["https://www.example.com/"]
+  );
+  assert.ok(fetched.some((url) => url.startsWith("https://cloudflare-dns.com/dns-query?name=www.example.com")));
+});

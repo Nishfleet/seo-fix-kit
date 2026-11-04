@@ -156,7 +156,7 @@ export async function buildLocalSeoAudit(report = {}, input = {}, options = {}) 
   const siteChecks = buildSiteChecks(report, localInput);
   const citationRows = [];
   for (const row of localInput.citationRows || []) {
-    citationRows.push(await inspectCitationRow(row, options.fetcher || fetch, options.privateAddressResolver));
+    citationRows.push(await inspectCitationRow(row, options.fetcher, options.privateAddressResolver));
   }
   const keywordChecks = buildKeywordChecks(report, localInput.localKeywords || []);
   const googleBusinessProfile = buildGoogleBusinessProfileCheck(report, localInput.googleBusinessProfileUrl);

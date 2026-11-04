@@ -8,6 +8,7 @@ import {
 } from "../lib/auth.js";
 import { emailButton } from "../../shared/email-layout.js";
 import { escapeHtml } from "../../shared/html.js";
+import { fetchPublicUrl, resolvesToPrivateAddress } from "../../shared/url-safety.js";
 import { sendWorkerEmail } from "../lib/email.js";
 import { json, jsonNoStore } from "../lib/http.js";
 import { checkQuotaSet, constantTimeEqual, randomToken, requestIpHash, sha256Hex } from "../lib/security.js";
@@ -671,11 +672,18 @@ async function verifySiteClaim(request, env) {
   });
 }
 
-async function verifySiteClaimMetaTag(host, token) {
+async function verifySiteClaimMetaTag(
+  host,
+  token,
+  { fetcher, privateAddressResolver = resolvesToPrivateAddress } = {}
+) {
   try {
-    const response = await fetch(`https://${host}/`, {
-      headers: { accept: "text/html", "user-agent": "SEOFixKit-Verify/1.0 (+https://seofixkit.com)" }
-    });
+    const { response } = await fetchPublicUrl(
+      fetcher,
+      `https://${host}/`,
+      { headers: { accept: "text/html", "user-agent": "SEOFixKit-Verify/1.0 (+https://seofixkit.com)" } },
+      { privateAddressResolver }
+    );
     if (!response.ok) return { ok: false };
     const html = await readSmallText(response, 512 * 1024);
     const tags = html.match(/<meta\b[^>]*>/gi) || [];
@@ -694,6 +702,7 @@ async function verifySiteClaimDns(host, token) {
   const expected = siteVerificationText(token);
   const dnsName = `_seofixkit.${host}`;
   try {
+    // eslint-disable-next-line no-restricted-globals -- DNS-over-HTTPS lookup, fixed vendor host, not a customer URL
     const response = await fetch(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(dnsName)}&type=TXT`, {
       headers: { accept: "application/dns-json" }
     });
@@ -713,12 +722,19 @@ async function verifySiteClaimDns(host, token) {
   }
 }
 
-async function verifySiteClaimHttpsFile(host, token) {
+async function verifySiteClaimHttpsFile(
+  host,
+  token,
+  { fetcher, privateAddressResolver = resolvesToPrivateAddress } = {}
+) {
   const expected = siteVerificationText(token);
   try {
-    const response = await fetch(`https://${host}/.well-known/seofixkit.txt`, {
-      headers: { accept: "text/plain" }
-    });
+    const { response } = await fetchPublicUrl(
+      fetcher,
+      `https://${host}/.well-known/seofixkit.txt`,
+      { headers: { accept: "text/plain" } },
+      { privateAddressResolver }
+    );
     if (!response.ok)
       return {
         ok: false,
