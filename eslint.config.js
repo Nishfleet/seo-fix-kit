@@ -169,8 +169,14 @@ export default [
     // Server code that fetches a URL a customer typed must refuse private and
     // internal addresses on every redirect hop (seo-fix-kit#282). fetchPublicUrl
     // in shared/url-safety.js is the one place allowed to call fetch directly.
-    files: ["worker/**/*.js", "shared/**/*.js"],
-    ignores: ["shared/url-safety.js", "shared/free-tools/client.js", "shared/public-check/client.js"],
+    // server/submit-index-now.js only calls this site and the IndexNow endpoints.
+    files: ["worker/**/*.js", "shared/**/*.js", "server/**/*.js"],
+    ignores: [
+      "shared/url-safety.js",
+      "shared/free-tools/client.js",
+      "shared/public-check/client.js",
+      "server/submit-index-now.js"
+    ],
     rules: {
       "no-restricted-globals": [
         "error",
