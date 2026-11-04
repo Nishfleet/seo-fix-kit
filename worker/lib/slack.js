@@ -1,6 +1,30 @@
+/** @typedef {{
+ *   report?: SlackReport,
+ *   audit?: { url?: string, error?: string },
+ *   error?: string,
+ *   repair_action?: SlackRepairAction,
+ *   large_crawl?: { url?: string, target_url?: string }
+ * }} SlackEventData
+ */
+
+/** @typedef {{
+ *   url?: string,
+ *   id?: string,
+ *   score?: number,
+ *   summary?: { critical?: number, warnings?: number },
+ *   report_delta?: { status?: string, summary?: { fixedIssuesCount?: number, newIssuesCount?: number, persistentIssuesCount?: number, scoreDelta?: number } } | null
+ * }} SlackReport
+ */
+
+/** @typedef {{ page_url?: string, issue_title?: string, page_label?: string, report_path?: string, report_id?: string }} SlackRepairAction
+ */
+
+/** @param {unknown} value
+ * @returns {boolean}
+ */
 export function isSlackWebhookUrl(value) {
   try {
-    const url = new URL(value);
+    const url = new URL(String(value));
     return url.protocol === "https:" && url.hostname === "hooks.slack.com" && url.pathname.startsWith("/services/");
   } catch {
     return false;
@@ -8,6 +32,9 @@ export function isSlackWebhookUrl(value) {
 }
 
 // upstream: https://api.slack.com/reference/surfaces/formatting — Slack mrkdwn needs the three control characters escaped, and a link label must not break out of <url|label>.
+/** @param {unknown} value
+ * @returns {string}
+ */
 function esc(value) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -15,24 +42,41 @@ function esc(value) {
     .replace(/>/g, "&gt;");
 }
 
+/** @param {string} url
+ * @param {unknown} label
+ * @returns {string}
+ */
 function link(url, label) {
   return `<${url}|${esc(label).replace(/\|/g, "¦")}>`;
 }
 
+/** @param {unknown} url
+ * @returns {string}
+ */
 function host(url) {
   try {
-    return new URL(url).hostname.replace(/^www\./, "");
+    return new URL(String(url)).hostname.replace(/^www\./, "");
   } catch {
     return String(url || "your site");
   }
 }
 
+/** @param {unknown} count
+ * @param {string} word
+ * @returns {string}
+ */
 const plural = (count, word) => `${count} ${word}${count === 1 ? "" : "s"}`;
 
+/** @param {SlackEventData} data
+ * @param {string} origin
+ * @returns {{ text: string, header: string, body: string, action: { url: string, label: string } }}
+ */
 function auditCompleted(data, origin) {
+  /** @type {SlackReport} */
   const report = data.report || {};
   const audit = data.audit || {};
   const site = host(report.url || audit.url);
+  /** @type {NonNullable<SlackReport["summary"]>} */
   const summary = report.summary || {};
   const delta = report.report_delta?.status === "ready" ? report.report_delta.summary : null;
   const reportUrl = report.id ? `${origin}/beta/reports/${report.id}` : `${origin}/beta`;
@@ -51,7 +95,7 @@ function auditCompleted(data, origin) {
     const change = delta.scoreDelta ? ` (${delta.scoreDelta > 0 ? "+" : ""}${delta.scoreDelta} since last run)` : "";
     if (parts.length) lines.push(`Since the last audit: ${parts.join(", ")}${change}.`);
   }
-  const alarming = delta && delta.newIssuesCount > 0;
+  const alarming = Boolean(delta && delta.newIssuesCount && delta.newIssuesCount > 0);
   return {
     text: `${alarming ? "New problems found" : "Audit finished"} on ${site}: score ${report.score ?? "–"}`,
     header: `${alarming ? "New SEO problems on" : "Audit finished for"} ${site}`,
@@ -60,6 +104,10 @@ function auditCompleted(data, origin) {
   };
 }
 
+/** @param {SlackEventData} data
+ * @param {string} origin
+ * @returns {{ text: string, header: string, body: string, action: { url: string, label: string } }}
+ */
 function auditFailed(data, origin) {
   const site = host(data.audit?.url);
   return {
@@ -70,6 +118,7 @@ function auditFailed(data, origin) {
   };
 }
 
+/** @type {Record<string, string>} */
 const REPAIR_HEADERS = {
   "repair_action.drafted": "Fix drafted",
   "repair_action.approved": "Fix approved",
@@ -78,7 +127,13 @@ const REPAIR_HEADERS = {
   "repair_action.regressed": "A fixed problem is back"
 };
 
+/** @param {string} eventType
+ * @param {SlackEventData} data
+ * @param {string} origin
+ * @returns {{ text: string, header: string, body: string, action: { url: string, label: string } }}
+ */
 function repairAction(eventType, data, origin) {
+  /** @type {SlackRepairAction} */
   const action = data.repair_action || {};
   const site = host(data.report?.url || action.page_url);
   const title = action.issue_title || "A repair";
@@ -92,6 +147,11 @@ function repairAction(eventType, data, origin) {
   };
 }
 
+/** @param {string} eventType
+ * @param {SlackEventData} data
+ * @param {string} origin
+ * @returns {{ text: string, header: string, body: string, action: { url: string, label: string } }}
+ */
 function largeCrawl(eventType, data, origin) {
   const crawl = data.large_crawl || {};
   const site = host(crawl.url || crawl.target_url);
@@ -100,6 +160,10 @@ function largeCrawl(eventType, data, origin) {
   return { text: header, header, body: "", action: { url: `${origin}/beta`, label: "Open SEO Fix Kit" } };
 }
 
+/** @param {string} eventType
+ * @param {SlackEventData} [data]
+ * @param {string} [origin]
+ */
 export function slackMessage(eventType, data = {}, origin = "https://seofixkit.com") {
   const base = String(origin).replace(/\/+$/, "");
   const message = eventType.startsWith("repair_action.")
@@ -109,6 +173,7 @@ export function slackMessage(eventType, data = {}, origin = "https://seofixkit.c
       : eventType === "audit.failed"
         ? auditFailed(data, base)
         : largeCrawl(eventType, data, base);
+  /** @type {Array<{ type: string, text?: { type: string, text: string, emoji?: boolean }, elements?: { type: string, text: string }[] }>} */
   const blocks = [{ type: "header", text: { type: "plain_text", text: message.header.slice(0, 150), emoji: false } }];
   if (message.body) blocks.push({ type: "section", text: { type: "mrkdwn", text: message.body } });
   blocks.push({
@@ -118,6 +183,8 @@ export function slackMessage(eventType, data = {}, origin = "https://seofixkit.c
   return { text: message.text, blocks };
 }
 
+/** @param {string} [origin]
+ */
 export function slackConnectedMessage(origin = "https://seofixkit.com") {
   const base = String(origin).replace(/\/+$/, "");
   return {

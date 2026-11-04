@@ -9,6 +9,32 @@ const OFFER_KEYS = {
 const BETA_MONITOR_LIMIT = 5;
 const PAID_MONITOR_LIMIT = BETA_MONITOR_LIMIT;
 
+/** @typedef {Object} OfferEntitlementRow
+ * @property {string} [offer_key]
+ * @property {string} [offerKey]
+ * @property {string} [status]
+ * @property {string} [source]
+ * @property {string} [limits_json]
+ * @property {string} [limitsJson]
+ * @property {string} [current_period_end]
+ * @property {string} [currentPeriodEnd]
+ */
+
+/** @typedef {Object} CatalogOffer
+ * @property {string} key
+ * @property {string} name
+ * @property {string} type
+ * @property {string} stage
+ * @property {string} statusLabel
+ * @property {string} priceRange
+ * @property {string} checkoutState
+ * @property {string} description
+ * @property {string} availability
+ * @property {string[]} requirements
+ * @property {Record<string, number>} limits
+ */
+
+/** @type {CatalogOffer[]} */
 const OFFER_CATALOG = [
   {
     key: OFFER_KEYS.FIX_PACK,
@@ -86,6 +112,9 @@ const BETA_AGENCY_LIMITS = {
   clientSites: 5
 };
 
+/** @param {{ fixPackCheckoutReady?: boolean, monitoringCheckoutReady?: boolean, repairSprintCheckoutReady?: boolean, entitlements?: OfferEntitlementRow[] }} [options]
+ * @returns {(CatalogOffer & { checkoutLive: boolean, checkoutConfigured: boolean, entitlementStatus: string, entitlementSource: string, currentPeriodEnd: string, limits: Record<string, number> })[]}
+ */
 function offerCatalog({
   fixPackCheckoutReady = false,
   monitoringCheckoutReady = false,
@@ -116,14 +145,21 @@ function offerCatalog({
   });
 }
 
+/** @param {CatalogOffer} offer
+ * @param {Record<string, number>} storedLimits
+ * @returns {Record<string, number>}
+ */
 function effectiveOfferLimits(offer, storedLimits) {
   const limits = { ...offer.limits, ...storedLimits };
-  if (offer.key === OFFER_KEYS.MONITORING) {
-    limits.monitoredSites = Math.max(Number(limits.monitoredSites || 0), PAID_MONITOR_LIMIT);
-  }
-  return limits;
+  if (offer.key !== OFFER_KEYS.MONITORING) return limits;
+  return { ...limits, monitoredSites: Math.max(limits.monitoredSites || 0, PAID_MONITOR_LIMIT) };
 }
 
+/** @param {OfferEntitlementRow[]} [entitlements]
+ * @param {number} [activeCount]
+ * @param {{ checkoutLive?: boolean }} [options]
+ * @returns {{ offerKey: string, status: string, activeCount: number, limit: number, remaining: number, cadenceDays: number, checkoutLive: boolean, currentPeriodEnd: string, message: string }}
+ */
 function monitoringAccessFromEntitlements(entitlements = [], activeCount = 0, options = {}) {
   const entitlement = (entitlements || []).find(
     (row) => (row.offer_key || row.offerKey) === OFFER_KEYS.MONITORING && row.status === "active"
@@ -150,6 +186,11 @@ function monitoringAccessFromEntitlements(entitlements = [], activeCount = 0, op
   };
 }
 
+/** @param {Array<{ executionMode?: unknown, execution_mode?: unknown, approvalStatus?: unknown, approval_status?: unknown, deliveryStatus?: unknown, delivery_status?: unknown, title?: unknown }>} [proposals]
+ * @param {{ status?: unknown } | null} [fixRequest]
+ * @param {{ checkoutReady?: boolean }} [options]
+ * @returns {{ offerKey: string, status: string, checkoutReady: boolean, checkoutLive: boolean, checkoutPath: string, priceRange: string, executable: number, approved: number, delivered: number, hasPaidRequest: boolean, message: string }}
+ */
 function repairSprintEligibilityFromProposals(proposals = [], fixRequest = null, options = {}) {
   const executable = (proposals || []).filter(
     (proposal) => (proposal.executionMode || proposal.execution_mode) !== "unsupported"
@@ -160,7 +201,7 @@ function repairSprintEligibilityFromProposals(proposals = [], fixRequest = null,
   const delivered = executable.filter(
     (proposal) => (proposal.deliveryStatus || proposal.delivery_status) === "delivered"
   );
-  const paidStatus = fixRequest?.status || "";
+  const paidStatus = String(fixRequest?.status || "");
   const hasPaidRequest = ["paid", "in_progress", "delivered"].includes(paidStatus);
   const checkoutReady = Boolean(options.checkoutReady);
   const status = !executable.length
@@ -194,6 +235,10 @@ function repairSprintEligibilityFromProposals(proposals = [], fixRequest = null,
   };
 }
 
+/** @param {OfferEntitlementRow[]} [entitlements]
+ * @param {Record<string, unknown>} [usage]
+ * @returns {{ offerKey: string, status: string, checkoutLive: boolean, limits: Record<string, number>, usage: { clientLinks: number, teamSeats: number, reportDomains: number, clientSites: number }, message: string }}
+ */
 function agencyWorkspaceAccessFromEntitlements(entitlements = [], usage = {}) {
   const entitlement = (entitlements || []).find(
     (row) => (row.offer_key || row.offerKey) === OFFER_KEYS.AGENCY_WORKSPACE && row.status === "active"
@@ -219,18 +264,37 @@ function agencyWorkspaceAccessFromEntitlements(entitlements = [], usage = {}) {
   };
 }
 
+/** @param {{ checkoutLive?: boolean, entitlementStatus?: string }[]} [offers]
+ * @returns {{ checkoutLive?: boolean, entitlementStatus?: string }[]}
+ */
 function sellableOffers(offers = []) {
   return offers.filter((offer) => offer.checkoutLive || offer.entitlementStatus === "active");
 }
 
+/** @param {unknown} value
+ * @returns {Record<string, number>}
+ */
 function parseLimits(value) {
-  if (!value) return {};
-  if (typeof value === "object") return value;
+  const parsed = typeof value === "string" ? parseJson(value) : value;
+  if (!parsed || typeof parsed !== "object") return {};
+  return Object.fromEntries(Object.entries(parsed).filter(isNumberEntry));
+}
+
+/** @param {[string, unknown]} entry
+ * @returns {entry is [string, number]}
+ */
+function isNumberEntry(entry) {
+  return typeof entry[1] === "number";
+}
+
+/** @param {string} text
+ * @returns {unknown}
+ */
+function parseJson(text) {
   try {
-    const parsed = JSON.parse(value);
-    return parsed && typeof parsed === "object" ? parsed : {};
+    return JSON.parse(text);
   } catch {
-    return {};
+    return null;
   }
 }
 

@@ -201,8 +201,8 @@ export default [
     files: NO_COMMENT_FILES,
     plugins: { "no-comments": noComments },
     rules: {
-      "no-comments/disallowComments": ["error", { allow: ["eslint", "global", "upstream:", "@vite-ignore"] }],
-      "no-inline-comments": ["error", { ignorePattern: "@vite-ignore" }],
+      "no-comments/disallowComments": ["error", { allow: ["eslint", "global", "upstream:", "@vite-ignore", "\\* @"] }],
+      "no-inline-comments": ["error", { ignorePattern: "@vite-ignore|@type" }],
       "no-warning-comments": ["error", { terms: WORKAROUND_TERMS, location: "anywhere" }]
     }
   }
