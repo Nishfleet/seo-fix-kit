@@ -158,7 +158,9 @@ export async function resolvesToPrivateAddress(hostname, fetcher = globalThis.fe
         if (answer?.type !== 1 && answer?.type !== 28) continue;
         if (isPrivateHostname(String(answer.data || ""))) return true;
       }
-    } catch {}
+    } catch (error) {
+      console.error("Private-address DNS lookup failed", error);
+    }
   }
   return false;
 }

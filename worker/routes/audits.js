@@ -841,7 +841,9 @@ async function enqueueAuditJob(env, ctx, jobId, appOrigin) {
     try {
       await env.AUDIT_QUEUE.send({ kind: "audit-job", jobId, appOrigin });
       return;
-    } catch {}
+    } catch (error) {
+      console.error("Audit queue send failed, processing inline", error);
+    }
   }
   const processing = processAuditJob(env, jobId, { appOrigin });
   if (ctx?.waitUntil) ctx.waitUntil(processing);

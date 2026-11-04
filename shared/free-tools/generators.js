@@ -643,16 +643,20 @@ function ruleMatches(rulePath, path) {
   return new RegExp(`^${pattern}${anchored ? "$" : ""}`).test(path);
 }
 
+function pathAndQuery(value) {
+  try {
+    const url = new URL(value);
+    return `${url.pathname}${url.search}`;
+  } catch {
+    return value;
+  }
+}
+
 export function robotsTest(values) {
   const groups = parseRobots(values.robots);
   const agent = clean(values.userAgent) || "Googlebot";
   let path = clean(values.path) || "/";
-  try {
-    if (isAbsoluteUrl(path)) {
-      const url = new URL(path);
-      path = `${url.pathname}${url.search}`;
-    }
-  } catch {}
+  if (isAbsoluteUrl(path)) path = pathAndQuery(path);
   if (!path.startsWith("/")) path = `/${path}`;
   const token = agent.toLowerCase();
   // upstream: https://www.rfc-editor.org/rfc/rfc9309 — the longest matching user-agent group wins; "*" is the fallback.
