@@ -647,12 +647,10 @@ export function robotsTest(values) {
   const groups = parseRobots(values.robots);
   const agent = clean(values.userAgent) || "Googlebot";
   let path = clean(values.path) || "/";
-  try {
-    if (isAbsoluteUrl(path)) {
-      const url = new URL(path);
-      path = `${url.pathname}${url.search}`;
-    }
-  } catch {}
+  if (isAbsoluteUrl(path) && URL.canParse(path)) {
+    const url = new URL(path);
+    path = `${url.pathname}${url.search}`;
+  }
   if (!path.startsWith("/")) path = `/${path}`;
   const token = agent.toLowerCase();
   // upstream: https://www.rfc-editor.org/rfc/rfc9309 — the longest matching user-agent group wins; "*" is the fallback.

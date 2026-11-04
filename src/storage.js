@@ -29,5 +29,8 @@ export function storageSet(key, value, kind = "session") {
 export function storageRemove(key, kind = "session") {
   try {
     storageArea(kind)?.removeItem(key);
-  } catch {}
+    return true;
+  } catch {
+    return false;
+  }
 }

@@ -67,5 +67,7 @@ export function sendAccessBeacon(step, { funnelKey = "", source = "", landingPat
         })
         .catch(() => {});
     }
-  } catch {}
+  } catch (error) {
+    console.warn("Access beacon failed", error);
+  }
 }

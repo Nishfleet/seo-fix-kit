@@ -58,7 +58,7 @@ const backlogWarnings = {
   "preserve-caught-error": "warn",
   "no-useless-escape": "warn",
   "no-regex-spaces": "warn",
-  "no-empty": ["error", { allowEmptyCatch: true }]
+  "no-empty": ["error", { allowEmptyCatch: false }]
 };
 
 // Code passed to Playwright/Puppeteer page.evaluate() is serialized and runs
