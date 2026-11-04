@@ -2,8 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { fileURLToPath } from "node:url";
-import { unstable_readConfig } from "wrangler";
+import cloudflareConfig from "../cloudflare.config.ts";
 import {
   buildAiAnswerReadiness,
   aiAnswerReadinessBriefLines,
@@ -56,7 +55,14 @@ import { buildPublicCheckResponse } from "../worker/routes/public-check.js";
 
 const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
 const liveSection = readme.split("## What is live in this repo")[1]?.split("## Run locally")[0] || "";
-const wranglerConfig = unstable_readConfig({ config: fileURLToPath(new URL("../wrangler.jsonc", import.meta.url)) });
+const { worker: deployConfig } = cloudflareConfig({ isPreview: false });
+const deployVars = Object.fromEntries(
+  Object.entries(deployConfig.env)
+    .filter(([, binding]) => binding.type === "text")
+    .map(([name, binding]) => [name, binding.value])
+);
+const hasSchedule = (schedule) =>
+  deployConfig.triggers.some((trigger) => trigger.type === "scheduled" && (!schedule || trigger.schedule === schedule));
 
 const ORIGIN = "https://seofixkit.com";
 const OWNER = "owner@example.com";
@@ -489,7 +495,7 @@ test("README public page promise matches Worker routing and copy", async () => {
 
 test("README intent-landing-page promise matches routes, sitemap, and schema boundaries", async () => {
   const landingPaths = ["/small-business-seo-audit", "/rendered-vs-static-seo-audit", "/ai-answer-readiness"];
-  assert.equal(wranglerConfig.assets.run_worker_first, true, "the Worker must run before SPA assets for every path");
+  assert.equal(deployConfig.assets.runWorkerFirst, true, "the Worker must run before SPA assets for every path");
   for (const path of landingPaths) {
     assert.ok(workerRoutes(path, "GET"), `Worker must route ${path}`);
     assert.match(liveSection, new RegExp(`\`${path}\``, "i"), `README must name ${path}`);
@@ -683,7 +689,7 @@ test("README anonymous one-page check claim matches the Worker, page, and rate l
     "the check renders through the Browser Run binding"
   );
   assert.equal(
-    wranglerConfig.assets.run_worker_first,
+    deployConfig.assets.runWorkerFirst,
     true,
     "/check (and every other path) is served by the Worker before SPA assets"
   );
@@ -699,7 +705,7 @@ test("README homepage anonymous-check claim matches the CTA beside the email for
 
 test("README large-crawl daily rate matches the scheduled worker defaults", async () => {
   assert.match(liveSection, /roughly 1,000 pages\/day/i);
-  assert.ok(wranglerConfig.triggers.crons.includes("*/15 * * * *"), "scheduled worker runs every 15 minutes");
+  assert.ok(hasSchedule("*/15 * * * *"), "scheduled worker runs every 15 minutes");
   const db = createTestD1();
   const now = new Date().toISOString();
   for (const id of ["crawl-a", "crawl-b"]) {
@@ -993,7 +999,7 @@ test("README repair-proof-receipt claim keeps publishing and ranking disclaimers
 test("README rendered-audit claims match the Worker browser runtime and local Playwright adapter", async () => {
   assert.match(
     liveSection,
-    /Rendered-page audit powered by Cloudflare Browser Run in the Worker \(emulated by `wrangler dev` locally\); the offline audit smoke tests use Playwright/i
+    /Rendered-page audit powered by Cloudflare Browser Run in the Worker \(emulated by `cf dev` locally\); the offline audit smoke tests use Playwright/i
   );
   const browser = recordingBrowserBinding();
   await withStubbedFetch(
@@ -1008,7 +1014,7 @@ test("README rendered-audit claims match the Worker browser runtime and local Pl
     browser.calls.some((url) => url.includes("/v1/devtools/browser")),
     "deployed Worker launches Browser Run through the BROWSER binding"
   );
-  assert.equal(wranglerConfig.browser.binding, "BROWSER", "wrangler binds Browser Run as BROWSER");
+  assert.equal(deployConfig.env.BROWSER.type, "browser", "the Worker binds Browser Run as BROWSER");
   assert.match(liveSection, /Static HTML vs rendered DOM comparison/i);
   const report = await fixtureAudit();
   const guard = findingTitled(report, /False positive guarded on home: H1 exists after render/);
@@ -1695,23 +1701,23 @@ test("README repair proposal claim matches report-seeded, pre-purchase approvabl
   assert.ok(!remaining.some((row) => row.id === unpaidReport), "unpaid expired reports are still cleaned up");
 });
 
-test("README Dodo var list does not claim an unwired product id is already in wrangler.jsonc", () => {
+test("README Dodo var list does not claim an unwired product id is already in cloudflare.config.ts", () => {
   assert.match(
     readme,
-    /A product id for an offer whose Dodo product is not wired yet is added to `wrangler\.jsonc` at that point/i
+    /A product id for an offer whose Dodo product is not wired yet is added to `cloudflare\.config\.ts` at that point/i
   );
   assert.match(
     readme,
-    /`DODO_SEOFIXKIT_PRODUCT_REPAIR_SPRINT_ID` \(added to `wrangler\.jsonc` when the Repair Sprint product is wired/i
+    /`DODO_SEOFIXKIT_PRODUCT_REPAIR_SPRINT_ID` \(added to `cloudflare\.config\.ts` when the Repair Sprint product is wired/i
   );
-  assert.ok(wranglerConfig.vars.DODO_SEOFIXKIT_PRODUCT_FIX_PACK_ID, "the wired Fix Pack product id is present");
+  assert.ok(deployVars.DODO_SEOFIXKIT_PRODUCT_FIX_PACK_ID, "the wired Fix Pack product id is present");
   assert.equal(
-    wranglerConfig.vars.DODO_SEOFIXKIT_PRODUCT_REPAIR_SPRINT_ID,
+    deployVars.DODO_SEOFIXKIT_PRODUCT_REPAIR_SPRINT_ID,
     undefined,
     "the Repair Sprint product id is not wired yet, so the README may not list it as present"
   );
   assert.equal(
-    dodoRepairSprintCheckoutConfigStatus({ ...wranglerConfig.vars, DODO_SEOFIXKIT_API_KEY: "test-key" }).checkoutReady,
+    dodoRepairSprintCheckoutConfigStatus({ ...deployVars, DODO_SEOFIXKIT_API_KEY: "test-key" }).checkoutReady,
     false,
     "a missing Repair Sprint product id fails checkout closed"
   );
@@ -1720,9 +1726,8 @@ test("README Dodo var list does not claim an unwired product id is already in wr
 test("README React interface and Cloudflare Worker target claims match the build", () => {
   assert.match(liveSection, /Founder-friendly React interface/i);
   assert.match(liveSection, /Cloudflare Worker target using Workers Static Assets and Browser Run/i);
-  assert.equal(wranglerConfig.browser.binding, "BROWSER", "Browser Run binding configured");
-  assert.equal(wranglerConfig.assets.binding, "ASSETS", "Workers Static Assets configured");
-  assert.ok(wranglerConfig.assets.directory, "static assets directory configured");
+  assert.equal(deployConfig.env.BROWSER.type, "browser", "Browser Run binding configured");
+  assert.equal(deployConfig.env.ASSETS.type, "assets", "Workers Static Assets configured");
 });
 
 test("README homepage, waitlist, and access claims match the Worker and D1", async () => {
@@ -2217,7 +2222,7 @@ test("README retention claim keeps cleanup for expired reports, sessions, and qu
     [{ bucket: "audit:ip:fresh" }],
     "quota buckets are cleaned"
   );
-  assert.ok(wranglerConfig.triggers.crons.length > 0, "a scheduled trigger runs the cleanup");
+  assert.ok(hasSchedule(), "a scheduled trigger runs the cleanup");
 });
 
 test("README AI readiness claim keeps the proof-derived signal list", async () => {

@@ -75,6 +75,10 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
+    # GitHub environment url: the PR shows a "View deployment" button that opens the preview.
+    environment:
+      name: preview
+      url: ${{ steps.preview.outputs.url }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -88,6 +92,7 @@ jobs:
       # cf, not wrangler, since the project builds for cf (seo-fix-kit#234); same shape as drive's preview job.
       # PR #343 went green with no link ("no active URLs"), so a link is the pass mark.
       - name: Deploy the preview, and fail when Cloudflare gives no link
+        id: preview
         env:
           PR: ${{ github.event.pull_request.number }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -97,6 +102,7 @@ jobs:
           url=$(grep -m1 -oE 'https://pr-[0-9]+-[a-z0-9.-]+' "$RUNNER_TEMP/preview.out" || true)
           curl -fsS -o /dev/null --retry 5 --retry-all-errors --retry-delay 5 "${url:?Cloudflare made no preview link}"
           echo "Preview: $url" >> "$GITHUB_STEP_SUMMARY"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
 
   # Deploy on merge (fleet-ops#8615). Deploys with cf, because wrangler refuses a
   # project built for cf (seo-fix-kit#234). Same shape as Nishfleet/drive deploy-production.yml.
@@ -104,6 +110,7 @@ jobs:
     if: github.event_name == 'push'
     needs: [check]
     runs-on: ubuntu-latest
+    environment: production
     timeout-minutes: 30
     concurrency:
       group: deploy-production

@@ -10,7 +10,7 @@ It is not trying to replace Ahrefs or Semrush keyword and backlink databases. Th
 
 ## What is live in this repo
 
-- Rendered-page audit powered by Cloudflare Browser Run in the Worker (emulated by `wrangler dev` locally); the offline audit smoke tests use Playwright.
+- Rendered-page audit powered by Cloudflare Browser Run in the Worker (emulated by `cf dev` locally); the offline audit smoke tests use Playwright.
 - Static HTML vs rendered DOM comparison.
 - Evidence-backed findings.
 - Self-serve crawl-depth tiers up to 1,000 pages per queued audit, with per-page scores and page proof.
@@ -74,19 +74,17 @@ npm install
 npm run dev
 ```
 
-Open `http://127.0.0.1:5173`.
+Open `http://localhost:5173`.
 
 There is one backend: the Cloudflare Worker in `worker/index.js`. `npm run dev`
-builds `.cloudflare/output/v0/workers/default/assets` (the Worker's static-asset directory), applies the D1 migrations to
-a local database (`npm run db:migrate:local`, i.e.
-`wrangler d1 migrations apply WAITLIST_DB --local`), then runs the Worker with
-`wrangler dev --local` on `http://127.0.0.1:8787` next to the Vite dev server on
-`:5173`, which proxies `/api`, `/admin`, and `/r` to the Worker. `npm start` runs
-only the Worker (after the same build and migration) and serves the whole app from
-`:8787`, as production does.
+applies the D1 migrations to a local database (`npm run db:migrate:local`, i.e.
+`cf d1 migrations apply <database id> --local --persist-to .cloudflare/state`),
+then runs `cf dev`, which starts Vite with the Cloudflare Vite plugin: the Worker,
+its bindings and the React app are served together on `:5173`. `npm start` builds
+first and serves the built Worker with `vite preview` on `:4173`, as production does.
 
 Local mode keeps every binding on your machine: D1, R2, the audit queue, and Workers
-Assets are simulated under `.wrangler/state/`, so no Cloudflare account or network
+Assets are simulated under `.cloudflare/state/`, so no Cloudflare account or network
 is needed to boot. Put local secrets in `.dev.vars` (gitignored), for example:
 
 ```bash
@@ -97,23 +95,23 @@ SEOFIXKIT_API_WEBHOOK_SECRET=any-local-value
 
 Limits of local mode:
 
-- `BROWSER` (Cloudflare Browser Run) is emulated by a Chromium that wrangler downloads
-  on first use. It needs network access for that download, and Chromium refuses to
-  start as root without `--no-sandbox`, so rendered audits and `/api/public-check`
-  return 503 when wrangler runs as root (e.g. in a container). Everything else works.
-- Audits only accept public URLs, so the Worker's own `http://127.0.0.1:8787/fixture/...`
+- `BROWSER` (Cloudflare Browser Run) is emulated by a Chromium that the local runtime
+  downloads on first use. It needs network access for that download, and Chromium
+  refuses to start as root without `--no-sandbox`, so rendered audits and
+  `/api/public-check` return 503 when the dev server runs as root (e.g. in a container).
+  Everything else works.
+- Audits only accept public URLs, so the Worker's own `http://localhost:5173/fixture/...`
   pages cannot be audited locally (the SSRF guard rejects private addresses).
-- `EMAIL` (send_email) is simulated by wrangler and never delivers real mail; email
+- `EMAIL` (send_email) is simulated locally and never delivers real mail; email
   flows such as `/api/access/request` also need `SEOFIXKIT_EMAIL_FROM` in `.dev.vars`.
-- Offline, wrangler logs a harmless "Unable to fetch the `Request.cf` object" warning
-  and uses placeholder `request.cf` data (country, colo).
-- Cron triggers do not fire on their own; hit
-  `http://127.0.0.1:8787/cdn-cgi/handler/scheduled` to run one.
-- `DODO_SEOFIXKIT_ENVIRONMENT` is `live` in `wrangler.jsonc`; checkout stays
+- Offline, the local runtime uses placeholder `request.cf` data (country, colo).
+- Cron triggers do not fire on their own; run one from Local Explorer at
+  `http://localhost:5173/cdn-cgi/local/explorer`.
+- `DODO_SEOFIXKIT_ENVIRONMENT` is `live` in `cloudflare.config.ts`; checkout stays
   unconfigured locally unless you add Dodo keys to `.dev.vars` (do not use live keys).
 
-`npm run dev:cf` runs the same Worker against remote Cloudflare bindings
-(`wrangler dev --remote`) when you need the real Browser Run or production-like data.
+To use a real remote resource (for example Browser Run) during `cf dev`, set
+`dev: { remote: true }` on that binding in `cloudflare.config.ts`.
 
 ## Check
 
@@ -253,12 +251,6 @@ The Worker in `worker/index.js` is the only backend, locally and in production. 
 - rendered checks powered by Cloudflare Browser Run through the `BROWSER` binding
 - `/llms.txt` and same-URL Markdown for `/` kept truthful to the visible product
 
-Local development with remote bindings (real Browser Run; see Run locally for local mode):
-
-```bash
-npm run dev:cf
-```
-
 Dry-run build:
 
 ```bash
@@ -274,16 +266,13 @@ npm run submit:indexnow          # real submission
 npm run submit:indexnow -- --dry-run   # preview only, no network writes
 ```
 
-The dry-run runs the stock `wrangler deploy --dry-run`: Wrangler bundles the
-Worker and validates `wrangler.jsonc` without deploying. If it fails after a
-green build with `Unexpected end of file in JSON` naming a `package.json`
-above this repo, a malformed ancestor manifest is breaking Wrangler's esbuild
-step — see ERRORS.md for the host-side fix.
+The dry-run runs the stock `cf deploy --dry-run`: cf builds the Worker and
+validates `cloudflare.config.ts` without sending any API request.
 
 Apply D1 migrations after creating or changing the waitlist schema:
 
 ```bash
-wrangler d1 migrations apply seofixkit_waitlist --remote
+cf d1 migrations apply <database id>
 ```
 
 Migration `0004_audit_usage.sql` adds the private beta quota table. Migration `0005_beta_controls.sql` adds beta sessions, report ownership, target-host indexing, and report expiry. Migration `0006_ops_funnel.sql` adds invite codes, invite-bound ownership, fix requests, and admin audit logging. Migration `0007_fix_pack_checkout.sql` adds Dodo checkout/payment tracking and webhook idempotency. Migration `0008_fix_pack_fulfillment.sql` adds the paid Fix Pack delivery queue and payment notification log. Migration `0009_product_hardening.sql` adds webhook-only payment guardrails, test request separation, due dates, delivery notification state, status events, admin sessions, and ops digests. Migration `0010_self_serve_access.sql` adds self-serve access tokens and explicit beta session access modes. Migration `0011_site_claims.sql` adds DNS TXT / HTTPS file site ownership verification. Migration `0012_audit_jobs.sql` adds queued audit job status records. Migration `0013_audit_schedules.sql` adds weekly audit monitors and links scheduled runs back to audit jobs. Migration `0014_developer_api.sql` adds API keys, webhooks, and delivery logs. Migration `0015_white_label_reports.sql` adds agency branding and client report share links. Migration `0016_team_repair_board.sql` adds teammate assignees and issue-level repair tracking. Migration `0017_competitor_benchmarks.sql` stores queued audit competitor URLs for benchmark reports. Migration `0018_report_domains.sql` adds verified white-label report domains. Migration `0019_backlink_imports.sql` stores queued backlink import rows for link-audit reports. Migration `0020_local_seo_inputs.sql` stores queued local SEO inputs for local proof reports. Migration `0021_keyword_rank_inputs.sql` stores queued keyword/rank import rows for keyword proof reports. Migration `0022_rendered_crawl_targets.sql` stores staged rendered crawl targets for 50K/100K planning. Migration `0023_large_rendered_crawls.sql` adds the separate large-crawl job, batch, frontier, proof, dead-letter, worker-heartbeat, and event tables. Migration `0024_link_keyword_databases.sql` adds backlink import/link-edge tables and keyword rank/volume observation tables. Migration `0025_preserve_paid_fix_pack_reports.sql` preserves paid Fix Pack report proof and records blob deletion failures. Migration `0026_repair_execution.sql` adds repair proposals, approval state, execution mode, delivery state, and proposal events. Migration `0027_offer_entitlements.sql` adds staged offer entitlements and entitlement events. Migration `0028_agent_repair_queue.sql` adds repair queue items and approval-safe repair agent action records. Migration `0029_fix_pack_checkout_repair_target.sql` adds `checkout_repair_json` to store selected repair target metadata on Fix Pack requests.
@@ -318,12 +307,12 @@ The private `/beta/billing` portal follows the BillingSDK self-serve billing pat
 
 For production rehearsals, the live audit batch runner can run a test-only Fix Pack webhook drill by setting `SEOFIXKIT_FIX_PACK_PROOF=1` and `SEOFIXKIT_FIX_PACK_WEBHOOK_DRILL=1`. The drill uses the admin token to create a founder-override proof session, creates only an `is_test` Fix Pack request, signs a Dodo-shaped webhook, and proves the Worker can process that test request without printing secrets, checkout URLs, or session ids. It does not prove a real card payment, Dodo-originated webhook delivery, or customer repair delivery.
 
-Cloudflare vars in `wrangler.jsonc` hold the public Dodo brand/product identifiers and environment mode. A product id for an offer whose Dodo product is not wired yet is added to `wrangler.jsonc` at that point; until it is present that offer's checkout stays gated and fails closed:
+Cloudflare vars in `cloudflare.config.ts` hold the public Dodo brand/product identifiers and environment mode. A product id for an offer whose Dodo product is not wired yet is added to `cloudflare.config.ts` at that point; until it is present that offer's checkout stays gated and fails closed:
 
 - `DODO_SEOFIXKIT_BRAND_ID`
 - `DODO_SEOFIXKIT_PRODUCT_FIX_PACK_ID`
 - `DODO_SEOFIXKIT_PRODUCT_MONITORING_ID`
-- `DODO_SEOFIXKIT_PRODUCT_REPAIR_SPRINT_ID` (added to `wrangler.jsonc` when the Repair Sprint product is wired; Repair Sprint checkout stays gated until then)
+- `DODO_SEOFIXKIT_PRODUCT_REPAIR_SPRINT_ID` (added to `cloudflare.config.ts` when the Repair Sprint product is wired; Repair Sprint checkout stays gated until then)
 - `DODO_SEOFIXKIT_ENVIRONMENT`
 - `DODO_SEOFIXKIT_ADAPTIVE_CURRENCY_FEES_INCLUSIVE`
 
@@ -347,7 +336,7 @@ Paid requests move through `checkout_created`, webhook-only `paid`, `in_progress
 
 The admin queue can assign an owner, keep private notes, set customer-visible notes, set due and next-update times, attach a delivery URL, and link a validated final rerun report. Delivery requires a customer note, delivery link, and final rerun report for the same owner, same host, and after payment. When repair proposals exist for a request, at least one executable proposal must be owner-approved before delivery can be marked complete. Repair Sprint eligibility is shown from approved proposal state, and separate Repair Sprint checkout remains config-gated until its Dodo product is wired.
 
-Access-link, payment-success, repair-started, delivery-ready, and daily ops digest emails use Cloudflare Email Service from the Worker through the `EMAIL` `send_email` binding in `wrangler.jsonc`. No API key is needed, but `seofixkit.com` must be onboarded to Email Service in the Cloudflare dashboard, and these Worker values must be set before email can send:
+Access-link, payment-success, repair-started, delivery-ready, and daily ops digest emails use Cloudflare Email Service from the Worker through the `EMAIL` `send_email` binding in `cloudflare.config.ts`. No API key is needed, but `seofixkit.com` must be onboarded to Email Service in the Cloudflare dashboard, and these Worker values must be set before email can send:
 
 - `SEOFIXKIT_EMAIL_FROM` (for example `hello@seofixkit.com`, on the onboarded Email Service domain)
 - `SEOFIXKIT_ADMIN_EMAIL`
