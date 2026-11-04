@@ -199,12 +199,12 @@ export default [
         "error",
         {
           selector:
-            "TemplateLiteral:has(TemplateElement[value.raw=/fix_requests/]):has(TemplateElement[value.raw=/owner_email/]):has(TemplateElement[value.raw=/paid_at IS NOT NULL|'paid'/])",
+            "TemplateLiteral:has(TemplateElement[value.raw=/fix_requests/]):has(TemplateElement[value.raw=/owner_email/]):has(TemplateElement[value.raw=/status IN|paid_at|'paid'/])",
           message:
             "Read the paid_owners view (hasPaidFixPack in worker/lib/paid-features.js) instead of copying the paid rule."
         },
         {
-          selector: "Literal[value=/fix_requests/][value=/owner_email/][value=/paid_at IS NOT NULL|'paid'/]",
+          selector: "Literal[value=/fix_requests/][value=/owner_email/][value=/status IN|paid_at|'paid'/]",
           message:
             "Read the paid_owners view (hasPaidFixPack in worker/lib/paid-features.js) instead of copying the paid rule."
         }
