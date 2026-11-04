@@ -146,15 +146,13 @@ function offerCatalog({
 }
 
 /** @param {CatalogOffer} offer
- * @param {Record<string, unknown>} storedLimits
+ * @param {Record<string, number>} storedLimits
  * @returns {Record<string, number>}
  */
 function effectiveOfferLimits(offer, storedLimits) {
-  const limits = /** @type {Record<string, number>} */ ({ ...offer.limits, ...storedLimits });
-  if (offer.key === OFFER_KEYS.MONITORING) {
-    limits.monitoredSites = Math.max(Number(limits.monitoredSites || 0), PAID_MONITOR_LIMIT);
-  }
-  return limits;
+  const limits = { ...offer.limits, ...storedLimits };
+  if (offer.key !== OFFER_KEYS.MONITORING) return limits;
+  return { ...limits, monitoredSites: Math.max(limits.monitoredSites || 0, PAID_MONITOR_LIMIT) };
 }
 
 /** @param {OfferEntitlementRow[]} [entitlements]
@@ -277,13 +275,26 @@ function sellableOffers(offers = []) {
  * @returns {Record<string, number>}
  */
 function parseLimits(value) {
-  if (!value) return {};
-  if (typeof value === "object") return /** @type {Record<string, number>} */ (value);
+  const parsed = typeof value === "string" ? parseJson(value) : value;
+  if (!parsed || typeof parsed !== "object") return {};
+  return Object.fromEntries(Object.entries(parsed).filter(isNumberEntry));
+}
+
+/** @param {[string, unknown]} entry
+ * @returns {entry is [string, number]}
+ */
+function isNumberEntry(entry) {
+  return typeof entry[1] === "number";
+}
+
+/** @param {string} text
+ * @returns {unknown}
+ */
+function parseJson(text) {
   try {
-    const parsed = JSON.parse(/** @type {string} */ (value));
-    return parsed && typeof parsed === "object" ? parsed : {};
+    return JSON.parse(text);
   } catch {
-    return {};
+    return null;
   }
 }
 

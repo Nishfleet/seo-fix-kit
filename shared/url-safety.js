@@ -142,7 +142,7 @@ export function isPrivateHostname(input = "") {
  * @returns {Promise<boolean>}
  */
 export async function resolvesToPrivateAddress(hostname, fetcher = globalThis.fetch) {
-  const host = normalizeHostname(/** @type {string} */ (hostname));
+  const host = normalizeHostname(hostname);
   if (!host) return true;
   if (parseIpv4(host) || host.includes(":")) return isPrivateHostname(host);
 
@@ -204,8 +204,8 @@ function parseIpv4(host) {
 
   const parts = host.split(".");
   if (parts.length !== 4) return null;
-  const octets = parts.map((part) => /** @type {number} */ (parseIpv4Part(part)));
-  if (octets.some((part) => part === null || part < 0 || part > 255)) return null;
+  const octets = parts.map(parseIpv4Part).filter((part) => part !== null);
+  if (octets.length !== 4 || octets.some((part) => part < 0 || part > 255)) return null;
   return octets;
 }
 

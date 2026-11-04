@@ -7,7 +7,7 @@ const READ_ONLY = /^\s*SELECT\b/i;
  * @returns {boolean}
  */
 function isReplayable(error, readOnly) {
-  const message = String(/** @type {{ message?: unknown }} */ (error)?.message || error || "");
+  const message = error instanceof Error ? error.message : String(error ?? "");
   return NOT_EXECUTED.test(message) || (readOnly && CONNECTION_LOST.test(message));
 }
 
@@ -32,7 +32,7 @@ async function retrying(run, readOnly, { attempts, delayMs }) {
  * @property {D1PreparedStatement} inner
  * @property {boolean} readOnly
  * @property {(...values: unknown[]) => D1RetryStatement} bind
- * @property {(colName?: string) => Promise<Record<string, unknown> | null>} first
+ * @property {() => Promise<Record<string, unknown> | null>} first
  * @property {() => Promise<D1Result<Record<string, unknown>>>} all
  * @property {() => Promise<D1Result<unknown>>} run
  * @property {() => Promise<unknown[]>} raw
@@ -49,13 +49,7 @@ function wrapStatement(inner, sql, options) {
     inner,
     readOnly,
     bind: (...values) => wrapStatement(inner.bind(...values), sql, options),
-    first: (colName) =>
-      retrying(
-        /** @type {() => Promise<Record<string, unknown> | null>} */
-        (() => inner.first(/** @type {string} */ (colName))),
-        readOnly,
-        options
-      ),
+    first: () => retrying(() => inner.first(), readOnly, options),
     all: () => retrying(() => inner.all(), readOnly, options),
     run: () => retrying(() => inner.run(), readOnly, options),
     raw: () => retrying(() => inner.raw(), readOnly, options)

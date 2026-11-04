@@ -125,7 +125,7 @@ function body(shape, aliases = {}) {
  */
 function typeName(expected) {
   if (expected === "string") return "text";
-  return `${/^[aeiou]/.test(/** @type {string} */ (expected)) ? "an" : "a"} ${expected}`;
+  return `${/^[aeiou]/.test(String(expected)) ? "an" : "a"} ${expected}`;
 }
 
 /** @param {{ [key: string]: unknown, path?: PropertyKey[], code: string, message?: string, expected?: string, errors?: { code?: string, expected?: string }[][] }} issue

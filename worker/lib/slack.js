@@ -24,7 +24,7 @@
  */
 export function isSlackWebhookUrl(value) {
   try {
-    const url = new URL(/** @type {string} */ (value));
+    const url = new URL(String(value));
     return url.protocol === "https:" && url.hostname === "hooks.slack.com" && url.pathname.startsWith("/services/");
   } catch {
     return false;
@@ -55,7 +55,7 @@ function link(url, label) {
  */
 function host(url) {
   try {
-    return new URL(/** @type {string} */ (url)).hostname.replace(/^www\./, "");
+    return new URL(String(url)).hostname.replace(/^www\./, "");
   } catch {
     return String(url || "your site");
   }
@@ -72,10 +72,12 @@ const plural = (count, word) => `${count} ${word}${count === 1 ? "" : "s"}`;
  * @returns {{ text: string, header: string, body: string, action: { url: string, label: string } }}
  */
 function auditCompleted(data, origin) {
-  const report = /** @type {SlackReport} */ (data.report || {});
+  /** @type {SlackReport} */
+  const report = data.report || {};
   const audit = data.audit || {};
   const site = host(report.url || audit.url);
-  const summary = /** @type {NonNullable<SlackReport["summary"]>} */ (report.summary || {});
+  /** @type {NonNullable<SlackReport["summary"]>} */
+  const summary = report.summary || {};
   const delta = report.report_delta?.status === "ready" ? report.report_delta.summary : null;
   const reportUrl = report.id ? `${origin}/beta/reports/${report.id}` : `${origin}/beta`;
   const counts = [
@@ -116,13 +118,14 @@ function auditFailed(data, origin) {
   };
 }
 
-const REPAIR_HEADERS = /** @type {Record<string, string>} */ ({
+/** @type {Record<string, string>} */
+const REPAIR_HEADERS = {
   "repair_action.drafted": "Fix drafted",
   "repair_action.approved": "Fix approved",
   "repair_action.applied": "Fix applied, waiting for a rerun",
   "repair_action.fixed": "Fix confirmed by rerun",
   "repair_action.regressed": "A fixed problem is back"
-});
+};
 
 /** @param {string} eventType
  * @param {SlackEventData} data
@@ -130,7 +133,8 @@ const REPAIR_HEADERS = /** @type {Record<string, string>} */ ({
  * @returns {{ text: string, header: string, body: string, action: { url: string, label: string } }}
  */
 function repairAction(eventType, data, origin) {
-  const action = /** @type {SlackRepairAction} */ (data.repair_action || {});
+  /** @type {SlackRepairAction} */
+  const action = data.repair_action || {};
   const site = host(data.report?.url || action.page_url);
   const title = action.issue_title || "A repair";
   const page = action.page_label || action.page_url || "";
