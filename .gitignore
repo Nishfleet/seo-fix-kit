@@ -11,3 +11,6 @@ qa-screenshots/
 .worktrees
 .dev.vars
 .dev.vars.*
+
+# verification skill evidence (.claude/skills/verify)
+verify-evidence/
