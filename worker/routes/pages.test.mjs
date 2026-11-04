@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import http from "node:http";
 import test from "node:test";
+import cloudflareConfig from "../../cloudflare.config.ts";
 import { auditUrl } from "../../server/audit/engine.js";
 import {
   currentPublicPageFingerprints,
@@ -876,9 +877,7 @@ test("static public skill and sitemap files keep buyer-facing boundaries", () =>
 });
 
 test("Cloudflare asset routing sends public proof pages through the Worker", () => {
-  const jsonc = readFileSync(new URL("../../wrangler.jsonc", import.meta.url), "utf8");
-  const wrangler = JSON.parse(jsonc.replace(/^\s*\/\/.*$/gm, ""));
-  const runWorkerFirst = wrangler.assets?.run_worker_first;
+  const runWorkerFirst = cloudflareConfig({ isPreview: false }).worker.assets?.runWorkerFirst;
 
   assert.equal(
     runWorkerFirst === true || Array.isArray(runWorkerFirst),

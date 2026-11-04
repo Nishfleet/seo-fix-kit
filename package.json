@@ -7,12 +7,9 @@
     "node": ">=22.12"
   },
   "scripts": {
-    "dev": "npm run build && npm run db:migrate:local && concurrently -k -n worker,web \"npm run dev:worker\" \"npm run dev:web\"",
-    "dev:worker": "wrangler dev --local --ip 127.0.0.1 --port 8787",
-    "dev:web": "vite --host 127.0.0.1 --port 5173",
-    "dev:cf": "wrangler dev --remote",
-    "db:migrate:local": "wrangler d1 migrations apply WAITLIST_DB --local",
-    "start": "npm run build && npm run db:migrate:local && npm run dev:worker",
+    "dev": "npm run db:migrate:local && cf dev",
+    "db:migrate:local": "cf d1 migrations apply 887316c4-ca9d-4068-a7fa-1f530b479437 --local --persist-to .cloudflare/state",
+    "start": "npm run build && npm run db:migrate:local && npm run preview",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1 --port 4173",
     "test:e2e": "npm run build && playwright test",
@@ -94,7 +91,7 @@
     "@cloudflare/puppeteer": "^1.4.0",
     "@tanstack/react-query": "^5.105.0",
     "cookie": "^1.1.1",
-    "hono": "^4.13.14",
+    "hono": "^4.13.16",
     "playwright": "^1.64.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
@@ -111,7 +108,6 @@
     "@playwright/test": "^1.64.1",
     "@vitejs/plugin-react": "^5.1.0",
     "cf": "1.0.0-beta.25",
-    "concurrently": "10.0.6",
     "esbuild": "0.28.2",
     "eslint": "^9.39.5",
     "eslint-config-prettier": "^10.1.8",
@@ -123,8 +119,7 @@
     "globals": "^17.13.0",
     "prettier": "^3.9.10",
     "typescript": "^7.0.2",
-    "vite": "8.3.5",
-    "wrangler": "^4.156.1"
+    "vite": "8.3.5"
   },
   "overrides": {
     "esbuild": "0.28.2",
