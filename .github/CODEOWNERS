@@ -1,9 +1,9 @@
-# The owner reviews every change by default: the product, CI workflows, this file,
-# the Dependabot config, tests, the dependency manifests, and the tool configs that
-# set the quality gates. GitHub's Actions security hardening guide says to put
-# workflow files under code owners, and its code owners docs say to own this file.
-# Last match wins.
-*                           @nish3451
+# Either the owner or the approver bot reviews a change by default. The bot approves only
+# after the one non-Claude review passes, CI is green and a run-proof is present (decisions
+# ledger 2026-11-04). The owner-only block at the end keeps the gate, the checks and the
+# reserved classes his: GitHub's Actions hardening guide says to code-own workflow files,
+# and its code owners docs say to own this file. Last match wins.
+*                           @nish3451 @nishfleet-approver
 
 # No owner, so these merge on the required checks alone: docs, lockfiles and pure
 # formatting config. Dependabot's npm patch and minor updates touch only lockfiles
@@ -21,3 +21,35 @@
 # Agent rules stay the owner's, even where they sit among unowned docs.
 **/AGENTS.md                @nish3451
 /CLAUDE.md                  @nish3451
+
+# The owner alone (decisions ledger 2026-11-04, approver bot): the review gate, the
+# checks, the schema, money, sign-in, data deletion and privacy promises.
+/.github/                   @nish3451
+# Lint, type and test configs, and package.json, which holds the commands CI runs.
+/eslint.config.js           @nish3451
+/tsconfig.json              @nish3451
+/playwright.config.mjs      @nish3451
+/package.json               @nish3451
+# Database migrations.
+/migrations/                @nish3451
+# Payments and billing (Dodo checkout, offers, paid features).
+/shared/dodo.js             @nish3451
+/shared/offers.js           @nish3451
+/worker/routes/billing.js   @nish3451
+/worker/lib/offers.js       @nish3451
+/worker/lib/paid-features.js @nish3451
+/src/dodo-checkout-url.js   @nish3451
+/src/fix-pack-checkout.js   @nish3451
+/src/hooks/usePricingPreview.js @nish3451
+/src/monitoring-checkout.js @nish3451
+/src/pages/billing/BillingPortal.jsx @nish3451
+# Sign-in (access links and sessions).
+/worker/lib/auth.js         @nish3451
+/worker/routes/access.js    @nish3451
+/worker/lib/access-events.js @nish3451
+/src/pages/beta/SignIn.jsx  @nish3451
+# Data deletion and privacy promises (pages.js holds the privacy and terms text).
+/worker/lib/account-deletion.js @nish3451
+/worker/routes/account.js   @nish3451
+/worker/lib/report-data.js  @nish3451
+/worker/routes/pages.js     @nish3451
