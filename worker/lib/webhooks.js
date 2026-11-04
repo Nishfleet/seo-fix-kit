@@ -92,6 +92,7 @@ async function deliverApiWebhooks(env, ownerEmail, eventType, data = {}, options
         : body;
       const delivery = await deliverApiWebhook(env, webhook, eventType, deliveryBody, {
         unsigned: slack,
+        // eslint-disable-next-line no-restricted-globals -- deliverApiWebhook checks publicWebhookUrlStatus and the private-address resolver, and never follows redirects
         fetcher: options.fetcher || fetch,
         resolvesToPrivateAddress: options.resolvesToPrivateAddress || resolvesToPrivateAddress,
         sleep: options.sleep || sleep,
@@ -135,6 +136,7 @@ async function deliverApiWebhook(env, webhook, eventType, body, options = {}) {
   const maxAttempts = Math.max(Number(options.maxAttempts || WEBHOOK_DELIVERY_MAX_ATTEMPTS), 1);
   const timeoutMs = Math.max(Number(options.timeoutMs || WEBHOOK_DELIVERY_TIMEOUT_MS), 1000);
   const eventBudgetMs = Math.max(Number(options.eventBudgetMs || WEBHOOK_DELIVERY_EVENT_BUDGET_MS), 1000);
+  // eslint-disable-next-line no-restricted-globals -- deliverApiWebhook checks publicWebhookUrlStatus and the private-address resolver, and never follows redirects
   const fetcher = options.fetcher || fetch;
   const privateAddressResolver = options.resolvesToPrivateAddress || resolvesToPrivateAddress;
   const sleepFn = options.sleep || sleep;

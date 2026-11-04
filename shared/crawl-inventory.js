@@ -12,7 +12,7 @@ export async function buildCrawlInventory(startUrl = "", options = {}) {
   const maxUrls = clampPositive(options.maxUrls || CRAWLRAVEN_PUBLIC_CRAWL_PAGES, CRAWLRAVEN_PUBLIC_CRAWL_PAGES);
   const maxSitemaps = clampPositive(options.maxSitemaps || DEFAULT_MAX_SITEMAPS, 5000);
   const targetHost = normalizedHost(start.href);
-  const fetcher = options.fetcher || fetch;
+  const fetcher = options.fetcher;
   const seeds = sitemapSeeds(start, options.robots, options.sitemap);
   const queue = [...seeds];
   const seenSitemaps = new Set();

@@ -208,3 +208,33 @@ test("getFunnelSummary rejects callers without a valid admin token", async () =>
   const response = await getFunnelSummary(new Request("https://seofixkit.test/admin/funnel"), env);
   assert.equal(response.status, 401);
 });
+
+import { verifySiteClaimHttpsFile, verifySiteClaimMetaTag } from "./access.js";
+
+for (const [name, verify] of [
+  ["meta tag", verifySiteClaimMetaTag],
+  ["https file", verifySiteClaimHttpsFile]
+]) {
+  test(`site claim ${name} check refuses a redirect to a private address`, async () => {
+    const requested = [];
+    const fetcher = async (url) => {
+      requested.push(url);
+      return new Response(null, { status: 302, headers: { location: "http://10.0.0.1/" } });
+    };
+    const result = await verify("claimed.example", "token123", { fetcher, privateAddressResolver: async () => false });
+    assert.equal(result.ok, false);
+    assert.equal(requested.length, 1);
+    assert.match(requested[0], /^https:\/\/claimed\.example\//);
+  });
+
+  test(`site claim ${name} check refuses a host that resolves to a private address`, async () => {
+    const requested = [];
+    const fetcher = async (url) => {
+      requested.push(url);
+      return new Response("ok");
+    };
+    const result = await verify("claimed.example", "token123", { fetcher, privateAddressResolver: async () => true });
+    assert.equal(result.ok, false);
+    assert.deepEqual(requested, []);
+  });
+}

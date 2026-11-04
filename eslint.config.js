@@ -165,6 +165,31 @@ export default [
       globals: pageEvaluateGlobals
     }
   },
+  {
+    // Server code that fetches a URL a customer typed must refuse private and
+    // internal addresses on every redirect hop (seo-fix-kit#282). fetchPublicUrl
+    // in shared/url-safety.js is the one place allowed to call fetch directly.
+    files: ["worker/**/*.js", "shared/**/*.js"],
+    ignores: ["shared/url-safety.js", "shared/free-tools/client.js", "shared/public-check/client.js"],
+    rules: {
+      "no-restricted-globals": [
+        "error",
+        {
+          name: "fetch",
+          message:
+            "Use fetchPublicUrl from shared/url-safety.js with a privateAddressResolver. For a fixed vendor host, add an eslint-disable-next-line with the reason."
+        }
+      ],
+      "no-restricted-properties": [
+        "error",
+        {
+          object: "globalThis",
+          property: "fetch",
+          message: "Use fetchPublicUrl from shared/url-safety.js with a privateAddressResolver."
+        }
+      ]
+    }
+  },
   prettier,
   {
     // Re-apply the backlog downgrades after the plugin presets so a preset

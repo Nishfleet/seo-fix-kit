@@ -14,6 +14,7 @@ export class D1BackupWorkflow extends WorkflowEntrypoint {
     const url = `https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/d1/database/${DATABASE_ID}/export`;
 
     const bookmark = await step.do("Start D1 export", async () => {
+      // eslint-disable-next-line no-restricted-globals -- Cloudflare API and its signed export URL, fixed vendor host, not a customer URL
       const response = await fetch(url, {
         method: "POST",
         headers,
@@ -27,6 +28,7 @@ export class D1BackupWorkflow extends WorkflowEntrypoint {
     });
 
     await step.do("Store D1 export in R2", async () => {
+      // eslint-disable-next-line no-restricted-globals -- Cloudflare API and its signed export URL, fixed vendor host, not a customer URL
       const response = await fetch(url, {
         method: "POST",
         headers,
@@ -36,6 +38,7 @@ export class D1BackupWorkflow extends WorkflowEntrypoint {
       if (!result?.signed_url || !result?.filename) {
         throw new Error("Missing signed_url or filename");
       }
+      // eslint-disable-next-line no-restricted-globals -- Cloudflare API and its signed export URL, fixed vendor host, not a customer URL
       const dump = await fetch(result.signed_url);
       if (!dump.ok) {
         throw new Error("Failed to fetch dump file");

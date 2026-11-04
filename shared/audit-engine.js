@@ -56,6 +56,7 @@ export const VERSION = "0.9.0";
 
 export function createAuditEngine({
   launchBrowser,
+  // eslint-disable-next-line no-restricted-properties -- fetchResource checks every redirect hop with urlGuard and privateDnsGuard
   fetchImpl = globalThis.fetch,
   pagespeedApiKey = "",
   pagespeedDisabled = false,

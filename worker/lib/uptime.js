@@ -207,7 +207,7 @@ async function checkSchedule(env, storedSchedule, { fetchImpl, privateAddressRes
 async function runUptimeChecks(
   env,
   {
-    fetchImpl = fetch,
+    fetchImpl,
     privateAddressResolver = (hostname) => resolvesToPrivateAddress(hostname),
     now = new Date().toISOString()
   } = {}

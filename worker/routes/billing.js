@@ -1975,6 +1975,7 @@ async function fetchDodoJson(url, options) {
   if (!url) {
     throw Object.assign(new Error("Dodo environment is not configured."), { code: "DODO_ENVIRONMENT_MISSING" });
   }
+  // eslint-disable-next-line no-restricted-globals -- Dodo Payments API, fixed vendor host, not a customer URL
   const response = await fetch(url, {
     ...options,
     signal: AbortSignal.timeout(12_000)

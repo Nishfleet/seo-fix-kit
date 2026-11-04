@@ -149,7 +149,6 @@ async function createLargeRenderedCrawlForAccess(request, env, access, body = {}
     includeUrls: true,
     maxUrls: Math.min(normalized.targetPages, LARGE_RENDERED_CRAWL_SYNC_FRONTIER_LIMIT),
     maxSitemaps: 25,
-    fetcher: fetch,
     privateAddressResolver: resolvesToPrivateAddress
   });
   const created = createLargeRenderedCrawlJob({
@@ -828,7 +827,6 @@ async function ingestRemainingLargeRenderedCrawlFrontier(env, jobId, normalized 
     const inventory = await buildCrawlInventory(normalized.targetUrl, {
       includeUrls: true,
       maxUrls: normalized.targetPages,
-      fetcher: fetch,
       privateAddressResolver: resolvesToPrivateAddress
     });
     const full = createLargeRenderedCrawlJob({
