@@ -174,7 +174,9 @@ async function summarizeAccessEvents(env, options = {}) {
       totals.uniqueFunnelKeys = Number(uniqueRows.uniqueFunnelKeys || 0);
       totals.uniqueEmails = Number(uniqueRows.uniqueEmails || 0);
     }
-  } catch {}
+  } catch (error) {
+    console.error("Access funnel unique counts failed", error);
+  }
 
   return {
     ok: true,

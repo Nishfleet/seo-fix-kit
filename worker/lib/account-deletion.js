@@ -309,7 +309,9 @@ async function clearReportBlobDeletionFailures(env, keys) {
     await env.WAITLIST_DB.prepare(`DELETE FROM audit_report_blob_deletion_failures WHERE blob_key IN (${placeholders})`)
       .bind(...keys)
       .run();
-  } catch {}
+  } catch (error) {
+    console.error("Clearing report blob deletion failures failed", error);
+  }
 }
 
 async function deleteBlobs(env, keys) {

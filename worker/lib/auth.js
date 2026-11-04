@@ -304,7 +304,9 @@ async function logAdminAction(request, env, action, success, actorEmail = "", de
         new Date().toISOString()
       )
       .run();
-  } catch {}
+  } catch (error) {
+    console.error("Auth audit write failed", error);
+  }
 }
 
 async function createBetaSession(request, env, access) {

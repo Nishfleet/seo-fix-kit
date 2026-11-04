@@ -1,0 +1,6 @@
+# The owner's standing rule (2026-10-22, see dependabot.yml) takes upstream
+# releases 3 days after publish. https://docs.zizmor.sh/audits/#dependabot-cooldown
+rules:
+  dependabot-cooldown:
+    config:
+      days: 3
