@@ -252,6 +252,9 @@ test("the scheduled cron call, runUptimeChecks(env) with no options, reports a l
 
   assert.deepEqual(await runChecks(env), ["up"]);
   assert.equal(row().uptime_status, "up");
-  assert.ok(fetched.includes("https://www.example.com/"));
+  assert.deepEqual(
+    fetched.filter((url) => new URL(url).hostname === "www.example.com"),
+    ["https://www.example.com/"]
+  );
   assert.ok(fetched.some((url) => url.startsWith("https://cloudflare-dns.com/dns-query?name=www.example.com")));
 });
