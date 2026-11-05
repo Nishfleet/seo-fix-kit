@@ -876,10 +876,13 @@ test("README site-claim promise matches verified-host flow and apex/www folding"
   await claimHost("example.com");
   const fileText = siteVerificationText(tokenFor("example.com"));
   const fileVerify = await withStubbedFetch(
-    async (url) =>
-      String(url) === "https://example.com/.well-known/seofixkit.txt"
+    async (url) => {
+      const href = String(url);
+      if (href.startsWith("https://cloudflare-dns.com/")) return Response.json({ Answer: [] });
+      return href === "https://example.com/.well-known/seofixkit.txt"
         ? new Response(fileText, { status: 200 })
-        : new Response("", { status: 404 }),
+        : new Response("", { status: 404 });
+    },
     () => beta.call("/api/sites/verify", { method: "POST", body: { host: "example.com" } })
   );
   assert.equal((await fileVerify.json()).verified, true, "HTTPS file verification verifies the claim");

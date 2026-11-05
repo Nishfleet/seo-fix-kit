@@ -52,6 +52,7 @@ export function isPrivateHost(value = "") {
  * @param {RequestInit} [init]
  * @param {{ maxRedirects?: number, allowPrivate?: boolean, privateAddressResolver?: (hostname: string) => boolean | Promise<boolean> }} [options]
  * @returns {Promise<{ response: Response, finalUrl: string, redirectChain: { status: number, from: string, to: string }[] }>}
+ * @throws {PrivateAddressCheckError} when the private-address check fails, so the fetch is refused
  */
 export async function fetchPublicUrl(fetcher = globalThis.fetch, url, init = {}, options = {}) {
   const maxRedirects = Math.min(Math.max(Number(options.maxRedirects || DEFAULT_MAX_REDIRECTS), 0), 10);
@@ -64,8 +65,17 @@ export async function fetchPublicUrl(fetcher = globalThis.fetch, url, init = {},
   for (let redirectCount = 0; redirectCount <= maxRedirects; redirectCount += 1) {
     const currentStatus = httpUrlStatus(currentUrl, { allowPrivate });
     if (!currentStatus.ok) throw new Error(currentStatus.error);
-    if (privateAddressResolver && (await privateAddressResolver(new URL(currentStatus.url).hostname))) {
-      throw new Error("This URL points at a private or internal address and cannot be audited.");
+    if (privateAddressResolver) {
+      const hostname = new URL(currentStatus.url).hostname;
+      let isPrivate;
+      try {
+        isPrivate = await privateAddressResolver(hostname);
+      } catch (error) {
+        throw new PrivateAddressCheckError(hostname, error);
+      }
+      if (isPrivate) {
+        throw new Error("This URL points at a private or internal address and cannot be audited.");
+      }
     }
 
     const response = await fetcher(currentStatus.url, {
@@ -137,32 +147,62 @@ export function isPrivateHostname(input = "") {
   return false;
 }
 
+export const PRIVATE_ADDRESS_CHECK_FAILED = "private-address-check-failed";
+
+export class PrivateAddressCheckError extends Error {
+  /** @param {unknown} hostname
+   * @param {unknown} [cause] */
+  constructor(hostname, cause) {
+    super(
+      `We could not check whether ${String(hostname || "this URL")} points at a private or internal address, so the request was refused. Try again in a minute.`,
+      cause === undefined ? undefined : { cause }
+    );
+    this.name = "PrivateAddressCheckError";
+    this.code = PRIVATE_ADDRESS_CHECK_FAILED;
+  }
+}
+
 /** @param {unknown} hostname
  * @param {(input: string | URL, init?: RequestInit) => Promise<Response>} [fetcher]
  * @returns {Promise<boolean>}
+ * @throws {PrivateAddressCheckError} when an A or AAAA lookup fails, so the address is unknown
  */
 export async function resolvesToPrivateAddress(hostname, fetcher = globalThis.fetch) {
   const host = normalizeHostname(hostname);
   if (!host) return true;
   if (parseIpv4(host) || host.includes(":")) return isPrivateHostname(host);
 
-  for (const type of ["A", "AAAA"]) {
-    try {
-      const response = await fetcher(
-        `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(host)}&type=${type}`,
-        { headers: { accept: "application/dns-json" } }
-      );
-      if (!response?.ok) continue;
-      const payload = await response.json();
-      for (const answer of payload?.Answer || []) {
-        if (answer?.type !== 1 && answer?.type !== 28) continue;
-        if (isPrivateHostname(String(answer.data || ""))) return true;
-      }
-    } catch (error) {
-      console.error("Private-address DNS lookup failed", error);
+  const lookups = await Promise.allSettled(["A", "AAAA"].map((type) => lookupDnsAnswers(host, type, fetcher)));
+  for (const lookup of lookups) {
+    if (lookup.status !== "fulfilled") continue;
+    for (const data of lookup.value) {
+      if (isPrivateHostname(data)) return true;
     }
   }
+  const failure = lookups.find((lookup) => lookup.status === "rejected");
+  if (failure) {
+    console.error("Private-address DNS lookup failed", failure.reason);
+    throw new PrivateAddressCheckError(host, failure.reason);
+  }
   return false;
+}
+
+/** @param {string} host
+ * @param {"A" | "AAAA"} type
+ * @param {(input: string | URL, init?: RequestInit) => Promise<Response>} fetcher
+ * @returns {Promise<string[]>}
+ */
+async function lookupDnsAnswers(host, type, fetcher) {
+  const response = await fetcher(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(host)}&type=${type}`, {
+    headers: { accept: "application/dns-json" }
+  });
+  if (!response?.ok) {
+    throw new Error(`The DNS ${type} lookup for ${host} returned HTTP ${response?.status || 0}.`);
+  }
+  const payload = await response.json();
+  return (payload?.Answer || [])
+    .filter((answer) => answer?.type === 1 || answer?.type === 28)
+    .map((answer) => String(answer.data || ""));
 }
 
 /** @param {unknown} [input]
