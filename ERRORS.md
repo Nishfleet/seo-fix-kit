@@ -29,7 +29,7 @@ directories it should not touch:
   the `fleet-sol-sweep` lane-control pass start at 19:21:00; creator still unattributed)
 
 **Fix (2026-10-23, issue #304):** the in-repo shield (`scripts/wrangler-dry-run.mjs`)
-is deleted; `npm run cf:dry-run` runs the stock `wrangler deploy --dry-run` again,
+is deleted; `npm run cf:dry-run` runs the stock `cf deploy --dry-run` again,
 which fails loudly on a contaminated chain instead of hiding it. The root cause was
 fixed host-side: the zero-byte `/home/nish/package.json` scaffold manifest was
 restored to valid JSON (`{}`, verified 2026-10-23) and no other manifest exists on

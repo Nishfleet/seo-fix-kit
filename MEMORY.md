@@ -13,7 +13,8 @@ Use this file for durable project truth Codex cannot reliably infer from code al
   `r2://seofixkit-backups/d1/`; the runbook is `docs/restore-runbook.md`. The one remaining
   manual step is the long-lived `D1_REST_API_TOKEN` Worker secret: mint it through
   a reviewed `infra/cloudflare-tokens` PR, then
-  `npx wrangler secret put D1_REST_API_TOKEN`. Decision path: the fleet's
+  `npx cf workers secrets update D1_REST_API_TOKEN --worker seo-fix-kit --text <token value>`.
+  Decision path: the fleet's
   typed-decision judge returned p=0.82, and one jailed final-say review chose
   build over wontfix.
 

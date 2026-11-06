@@ -10,16 +10,16 @@ nothing extra, and has no statement-size limits.
 1. Find the moment to restore to:
 
    ```bash
-   npx wrangler d1 time-travel info seofixkit_waitlist
+   npx cf d1 time-travel get-bookmark 887316c4-ca9d-4068-a7fa-1f530b479437
    # or with a timestamp:
-   npx wrangler d1 time-travel info seofixkit_waitlist --timestamp "2026-06-12T00:00:00Z"
+   npx cf d1 time-travel get-bookmark 887316c4-ca9d-4068-a7fa-1f530b479437 --timestamp "2026-06-12T00:00:00Z"
    ```
 
 2. Restore (this rewrites the live database in place — the Worker keeps
    serving, rows revert to the bookmark):
 
    ```bash
-   npx wrangler d1 time-travel restore seofixkit_waitlist --bookmark=<bookmark-id>
+   npx cf d1 time-travel restore 887316c4-ca9d-4068-a7fa-1f530b479437 --bookmark=<bookmark-id>
    ```
 
 3. Verify: `curl https://seofixkit.com/api/health`, then spot-check
@@ -44,21 +44,21 @@ The one manual step is the long-lived export token, which stays Nish's call:
 
 1. Mint a D1 export token through a reviewed `infra/cloudflare-tokens` PR in the
    fleet repo. A long-lived token never goes through ad-hoc minting.
-2. Set the Worker secret: `npx wrangler secret put D1_REST_API_TOKEN`
+2. Set the Worker secret: `npx cf workers secrets update D1_REST_API_TOKEN --worker seo-fix-kit --text <token value>`
 
 Until that secret exists, each run fails fast with "D1 backup needs ACCOUNT_ID,
 DATABASE_ID and D1_REST_API_TOKEN" instead of looping on a 401. The account and
-database ids are plain vars in wrangler.jsonc, which `npx wrangler deploy` reads,
-and cloudflare.config.ts, which `cf deploy` reads. A test in
-worker/index.test.mjs fails when the two configs stop agreeing.
+database ids are plain vars in cloudflare.config.ts, which `npx cf deploy` reads.
+A test in worker/index.test.mjs checks them and fails when the export target
+stops matching the bound database.
 
 Check it, and run it on demand:
 
 ```bash
-npx wrangler workflows instances list d1-backup-workflow
-npx wrangler workflows instances describe d1-backup-workflow <instance-id>
-npx wrangler workflows trigger d1-backup-workflow
-npx wrangler r2 object get seofixkit-backups d1/<filename>
+npx cf workflows instances list --workflow-name d1-backup-workflow
+npx cf workflows instances get <instance-id> --workflow-name d1-backup-workflow
+npx cf workflows instances create d1-backup-workflow
+npx cf r2 objects get d1/<filename> --bucket-name seofixkit-backups
 ```
 
 What this export does not cover: a copy outside the Cloudflare account (the R2

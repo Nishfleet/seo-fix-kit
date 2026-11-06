@@ -1,6 +1,6 @@
 // Global bindings for the seo-fix-kit Worker, per the Cloudflare Pages and
 // Workers TypeScript guide: https://developers.cloudflare.com/pages/functions/typescript/
-// Keep in sync with wrangler.jsonc (bindings) and the deployed secrets.
+// Keep in sync with cloudflare.config.ts (bindings) and the deployed secrets.
 interface EnvVars {
   DODO_SEOFIXKIT_BRAND_ID: string;
   DODO_SEOFIXKIT_PRODUCT_FIX_PACK_ID: string;
