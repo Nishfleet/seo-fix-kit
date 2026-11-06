@@ -2,8 +2,11 @@ import { jsonNoStore } from "./http.js";
 
 const REPAIR_TABLES_MISSING_CODE = "REPAIR_QUEUE_MIGRATION_MISSING";
 
+/** @param {unknown} error
+ * @returns {boolean}
+ */
 function isRepairTablesMissingError(error) {
-  const message = String(error?.message || error || "").toLowerCase();
+  const message = String(/** @type {{ message?: unknown }} */ (error)?.message || error || "").toLowerCase();
   return (
     (message.includes("no such table") || message.includes("does not exist") || message.includes("not found")) &&
     (message.includes("repair_queue_items") ||
@@ -22,6 +25,9 @@ function repairTablesMissingResponse() {
   );
 }
 
+/** @param {D1PreparedStatement} statement
+ * @returns {Promise<{ results: unknown[], repairTablesMissing?: boolean }>}
+ */
 async function repairTableAll(statement) {
   try {
     return await statement.all();
@@ -31,6 +37,9 @@ async function repairTableAll(statement) {
   }
 }
 
+/** @param {Env} env
+ * @returns {Promise<{ ok: boolean, response?: Response, code?: string }>}
+ */
 async function requireRepairTables(env) {
   try {
     await firstPrepared(env.WAITLIST_DB.prepare("SELECT id FROM repair_queue_items LIMIT 1"));
@@ -44,6 +53,9 @@ async function requireRepairTables(env) {
   }
 }
 
+/** @param {D1PreparedStatement} statement
+ * @returns {Promise<unknown>}
+ */
 function firstPrepared(statement) {
   if (statement?.first) return statement.first();
   return statement.bind().first();

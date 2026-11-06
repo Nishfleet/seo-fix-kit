@@ -1,25 +1,40 @@
+/** @param {unknown} value
+ * @returns {string}
+ */
 function hostOf(value = "") {
   try {
-    return new URL(value).hostname.toLowerCase().replace(/^www\./, "");
+    return new URL(String(value)).hostname.toLowerCase().replace(/^www\./, "");
   } catch {
     return "";
   }
 }
 
+/** @param {unknown} value
+ * @returns {string}
+ */
 function pageKey(value = "") {
   try {
-    const url = new URL(value);
+    const url = new URL(String(value));
     return `${url.hostname.toLowerCase().replace(/^www\./, "")}${url.pathname.replace(/\/$/, "") || "/"}`;
   } catch {
     return "";
   }
 }
 
+/** @param {unknown} value
+ * @param {number} fallback
+ * @returns {number}
+ */
 function numberOr(value, fallback = 0) {
   const number = Number(value);
   return Number.isFinite(number) ? number : fallback;
 }
 
+/** @param {{ url?: string, createdAt?: string }[]} [reports]
+ * @param {{ targetUrl?: string, target_url?: string, status?: string, nextRunAt?: string, next_run_at?: string }[]} [schedules]
+ * @param {{ limit?: number }} [options]
+ * @returns {any[]}
+ */
 export function buildSiteProgress(reports = [], schedules = [], { limit = 4 } = {}) {
   const byPage = new Map();
   for (const report of reports) {
@@ -34,7 +49,9 @@ export function buildSiteProgress(reports = [], schedules = [], { limit = 4 } = 
   for (const [key, rows] of byPage) {
     const host = hostOf(rows[0].url);
     const current = bestPageByHost.get(host);
-    const latest = rows.reduce((max, row) => (row.createdAt > max ? row.createdAt : max), "");
+    /** @type {(max: string, row: { createdAt?: string }) => string} */
+    const pickLatest = (max, row) => (String(row.createdAt || "") > max ? String(row.createdAt || "") : max);
+    const latest = rows.reduce(pickLatest, "");
     if (latest > (latestByHost.get(host) || "")) latestByHost.set(host, latest);
     if (
       !current ||

@@ -97,6 +97,10 @@ export const DEMO_PROOF = {
   ]
 };
 
+/** @param {unknown} snippet
+ * @param {unknown} origin
+ * @returns {string}
+ */
 export function demoProofSnippet(snippet, origin) {
   return String(snippet || "").replaceAll("{ORIGIN}", origin);
 }

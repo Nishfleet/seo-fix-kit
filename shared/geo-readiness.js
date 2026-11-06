@@ -1,3 +1,10 @@
+/** @typedef {{ title?: string, description?: string, h1s?: string[], headings?: { text?: string }[], schemaTypes?: string[], wordCount?: number, internalLinks?: unknown[] }} RenderedPage */
+
+/** @typedef {{ finalUrl?: string, rendered?: RenderedPage }} GeoReportPage */
+
+/** @param {{ pages?: GeoReportPage[] }} [report]
+ * @returns {any}
+ */
 function buildGeoReadinessAudit(report = {}) {
   const home = report.pages?.[0]?.rendered || {};
   if (!report.pages?.[0]?.finalUrl || !report.pages?.[0]?.rendered) {
@@ -90,6 +97,7 @@ function buildGeoReadinessAudit(report = {}) {
   };
 }
 
+/** @returns {{ llmsTxt: string, priority: string }} */
 function geoGuidance() {
   return {
     llmsTxt: "Some non-Google AI tools read llms.txt. It is not required for Google Search or Google's AI features.",
@@ -98,6 +106,9 @@ function geoGuidance() {
   };
 }
 
+/** @param {any} [audit]
+ * @returns {string[]}
+ */
 function geoReadinessBriefLines(audit = null) {
   if (!audit || audit.status !== "ready") return [];
   const lines = [
@@ -115,6 +126,9 @@ function geoReadinessBriefLines(audit = null) {
   return lines;
 }
 
+/** @param {{ text?: string }[]} [headings]
+ * @returns {boolean}
+ */
 function hasAnswerReadySections(headings = []) {
   const joined = headings
     .map((heading) => heading.text || "")
@@ -133,6 +147,9 @@ function hasAnswerReadySections(headings = []) {
   ].some((needle) => joined.includes(needle));
 }
 
+/** @param {string[]} [schemaTypes]
+ * @returns {boolean}
+ */
 function hasUsefulSchema(schemaTypes = []) {
   const useful = new Set([
     "Organization",

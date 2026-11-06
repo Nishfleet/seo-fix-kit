@@ -16,6 +16,10 @@ export const FIX_REQUEST_STATUSES = new Set([
 
 export const ADMIN_EDITABLE_FIX_REQUEST_STATUSES = new Set(["checkout_created", "in_progress", "delivered"]);
 
+/** @param {unknown} [value]
+ * @param {string} [fallback]
+ * @returns {string}
+ */
 export function normalizeFixRequestStatus(value, fallback = "new") {
   const status = String(value || "")
     .trim()
@@ -23,8 +27,11 @@ export function normalizeFixRequestStatus(value, fallback = "new") {
   return FIX_REQUEST_STATUSES.has(status) ? status : fallback;
 }
 
+/** @param {unknown} [status]
+ * @returns {string}
+ */
 export function fixRequestStatusLabel(status) {
-  const labels = {
+  const labels = /** @type {Record<string, string>} */ ({
     new: "Request saved",
     checkout_created: "Checkout opened",
     paid: "Payment confirmed",
@@ -34,10 +41,16 @@ export function fixRequestStatusLabel(status) {
     refunded: "Refunded",
     refund_failed: "Refund failed",
     disputed: "Disputed"
-  };
+  });
   return labels[normalizeFixRequestStatus(status)] || labels.new;
 }
 
+/** @typedef {{ status?: string, paid_at?: string, paidAt?: string, payment_id?: string, paymentId?: string, customer_note?: string, customerNote?: string, delivery_url?: string, deliveryUrl?: string, final_report_id?: string, finalReportId?: string, report_id?: string, target_url?: string, target_host?: string, due_at?: string, next_update_at?: string }} FixRequestLike */
+
+/** @param {FixRequestLike} [fixRequest]
+ * @param {any} [proposalSummary]
+ * @returns {any}
+ */
 export function repairDeliveryReadiness(fixRequest = {}, proposalSummary = {}) {
   const status = normalizeFixRequestStatus(fixRequest.status || "new");
   const paymentConfirmed = Boolean(
@@ -113,16 +126,26 @@ export function repairDeliveryReadiness(fixRequest = {}, proposalSummary = {}) {
   };
 }
 
+/** @param {string} id
+ * @param {string} label
+ * @returns {{ id: string, label: string }}
+ */
 function readinessBlocker(id, label) {
   return { id, label };
 }
 
+/** @param {Partial<Env>} [env]
+ * @returns {boolean}
+ */
 export function isEmailConfigured(env) {
   const emailBindingReady = typeof env?.EMAIL?.send === "function";
   const fromEmail = normalizeEmail(senderEmail(env?.SEOFIXKIT_EMAIL_FROM || ""));
   return Boolean(emailBindingReady && fromEmail);
 }
 
+/** @param {Partial<Env>} [env]
+ * @returns {string}
+ */
 export function adminNotificationEmail(env) {
   return normalizeEmail(env?.SEOFIXKIT_ADMIN_EMAIL || "");
 }
@@ -130,9 +153,12 @@ export function adminNotificationEmail(env) {
 const FIX_PACK_SCOPE =
   "This covers one guided repair pass on the problems in this report, plus one rerun to check the fixes. We don't promise rankings.";
 
+/** @param {{ appOrigin: string, fixRequest: FixRequestLike, report?: { title?: unknown }, payment?: { amount?: unknown, currency?: unknown, paymentId?: unknown } | null, offerKey: unknown, recipientType: unknown }} options
+ * @returns {{ subject: string, text: string, html: string, preheader: string, reportUrl: string, reportTitle: string }}
+ */
 export function buildPaymentNotificationEmail({ appOrigin, fixRequest, report, payment, offerKey, recipientType }) {
   const offer = paymentNotificationOffer(offerKey);
-  const reportUrl = `${appOrigin}/beta/reports/${encodeURIComponent(fixRequest.report_id)}`;
+  const reportUrl = `${appOrigin}/beta/reports/${encodeURIComponent(String(fixRequest.report_id || ""))}`;
   const target = fixRequest.target_host || safeHost(fixRequest.target_url);
   const subject =
     recipientType === "admin" ? `Paid: ${offer.name} for ${target}` : `Payment received: ${offer.name} for ${target}`;
@@ -176,10 +202,13 @@ export function buildPaymentNotificationEmail({ appOrigin, fixRequest, report, p
     html,
     preheader: `${intro} Site: ${target}.`,
     reportUrl,
-    reportTitle: report?.title || target
+    reportTitle: String(report?.title || target)
   };
 }
 
+/** @param {unknown} [offerKey]
+ * @returns {{ name: string, adminIntro: string, ownerIntro: string, scope: string }}
+ */
 function paymentNotificationOffer(offerKey) {
   if (offerKey === OFFER_KEYS.REPAIR_SPRINT) {
     return {
@@ -198,6 +227,9 @@ function paymentNotificationOffer(offerKey) {
   };
 }
 
+/** @param {{ appOrigin: string, fixRequest: FixRequestLike, report?: { title?: unknown }, recipientType: unknown, status: unknown, beforeAfter?: any | null }} options
+ * @returns {{ subject: string, text: string, html: string, preheader: string, reportUrl: string, reportTitle: string }}
+ */
 export function buildStatusNotificationEmail({
   appOrigin,
   fixRequest,
@@ -207,7 +239,7 @@ export function buildStatusNotificationEmail({
   beforeAfter = null
 }) {
   const normalizedStatus = normalizeFixRequestStatus(status, fixRequest.status || "new");
-  const reportUrl = `${appOrigin}/beta/reports/${encodeURIComponent(fixRequest.report_id)}`;
+  const reportUrl = `${appOrigin}/beta/reports/${encodeURIComponent(String(fixRequest.report_id || ""))}`;
   const deliveryUrl = fixRequest.delivery_url || "";
   const finalReportUrl = fixRequest.final_report_id
     ? `${appOrigin}/beta/reports/${encodeURIComponent(fixRequest.final_report_id)}`
@@ -257,6 +289,7 @@ export function buildStatusNotificationEmail({
     : finalReportUrl
       ? { href: finalReportUrl, label: "Open final rerun" }
       : { href: reportUrl, label: "Open report" };
+  /** @type {{ (href: string, label: string): string }} */
   const labeledLink = (href, label) =>
     `<a href="${escapeHtml(href)}" style="color:#0f7a56;font-weight:600;text-decoration:none">${label}</a>`;
   const html = [
@@ -292,10 +325,13 @@ export function buildStatusNotificationEmail({
     html,
     preheader: `${intro} Site: ${target}.`,
     reportUrl,
-    reportTitle: report?.title || target
+    reportTitle: String(report?.title || target)
   };
 }
 
+/** @param {{ appOrigin: string, snapshot: { openPaid: unknown, inProgress: unknown, deliveredToday: unknown, overdue: unknown, webhookErrors: unknown, emailErrors: unknown, runningJobs?: unknown, queuedJobs?: unknown, failedJobs24h?: unknown, overdueSchedules?: unknown, oldestOpenCreatedAt?: unknown } }} options
+ * @returns {{ subject: string, text: string, html: string, preheader: string }}
+ */
 export function buildOpsDigestEmail({ appOrigin, snapshot }) {
   const subject = `SEO Fix Kit ops digest: ${snapshot.openPaid} paid open, ${snapshot.overdue} overdue`;
   const text = [
@@ -337,6 +373,9 @@ export function buildOpsDigestEmail({ appOrigin, snapshot }) {
   return { subject, text, html, preheader: `${snapshot.openPaid} paid open, ${snapshot.overdue} overdue.` };
 }
 
+/** @param {unknown} [input]
+ * @returns {string}
+ */
 export function normalizeEmail(input) {
   const email = String(input || "")
     .trim()
@@ -346,32 +385,47 @@ export function normalizeEmail(input) {
   return email;
 }
 
+/** @param {unknown} [value]
+ * @returns {string}
+ */
 function safeHost(value) {
   try {
-    return new URL(value).hostname;
+    return new URL(String(value || "")).hostname;
   } catch {
     return "site";
   }
 }
 
+/** @param {string} [value]
+ * @returns {string}
+ */
 function senderEmail(value) {
   const raw = String(value || "").trim();
   const match = raw.match(/<([^>]+)>/);
   return match ? match[1] : raw;
 }
 
+/** @param {unknown} [value]
+ * @returns {string}
+ */
 export function formatEmailDate(value) {
-  const date = new Date(value);
+  const date = new Date(String(value || ""));
   if (Number.isNaN(date.getTime())) return String(value || "");
   return `${date.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })} (UTC)`;
 }
 
+/** @param {unknown} [value]
+ * @returns {string}
+ */
 function cleanEmailLine(value) {
   return String(value || "")
     .replace(/\s+/g, " ")
     .trim();
 }
 
+/** @param {any} [summary]
+ * @returns {string[]}
+ */
 function beforeAfterSummaryLines(summary) {
   if (!summary || typeof summary !== "object") return [];
   const lines = [];
@@ -386,6 +440,10 @@ function beforeAfterSummaryLines(summary) {
   return lines;
 }
 
+/** @param {unknown} [currency]
+ * @param {unknown} [amount]
+ * @returns {string}
+ */
 function formatMoneyMinorUnits(currency, amount) {
   const code = String(currency || "").toUpperCase();
   const value = Number(amount || 0);

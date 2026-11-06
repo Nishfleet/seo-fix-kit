@@ -7,6 +7,9 @@ const STEPS = [
   "Checking each problem against the real page…"
 ];
 
+/** @param {unknown} [value]
+ * @returns {string}
+ */
 export function publicUrlError(value) {
   const trimmed = String(value || "").trim();
   if (!trimmed) return INVALID_URL;
@@ -23,12 +26,20 @@ export function publicUrlError(value) {
   return "";
 }
 
+/** @param {number} score
+ * @returns {string}
+ */
 export function scoreTone(score) {
   if (score >= 90) return "good";
   if (score >= 50) return "ok";
   return "bad";
 }
 
+/** @param {string} tag
+ * @param {unknown} [text]
+ * @param {string} [className]
+ * @returns {any}
+ */
 function el(tag, text, className) {
   const node = document.createElement(tag);
   if (text !== undefined && text !== null && text !== "") node.textContent = String(text);
@@ -36,22 +47,36 @@ function el(tag, text, className) {
   return node;
 }
 
+/** @param {unknown} [value]
+ * @returns {string}
+ */
 function hostOf(value) {
   try {
-    return new URL(value).hostname.replace(/^www\./, "");
+    return new URL(String(value || "")).hostname.replace(/^www\./, "");
   } catch {
-    return value;
+    return String(value || "");
   }
 }
 
+/** @param {unknown} [value]
+ * @returns {string | number}
+ */
 function count(value) {
-  return typeof value === "number" ? value.toLocaleString("en-US") : value;
+  return typeof value === "number" ? value.toLocaleString("en-US") : String(value ?? "");
 }
 
+/** @param {number} n
+ * @param {string} word
+ * @returns {string}
+ */
 function plural(n, word) {
   return `${n} ${word}${n === 1 ? "" : "s"}`;
 }
 
+/** @param {string} text
+ * @param {{ label?: string, ariaLabel?: string, className?: string }} [options]
+ * @returns {HTMLButtonElement}
+ */
 function copyButton(text, { label = "Copy", ariaLabel = "Copy markup", className = "copy" } = {}) {
   const button = el("button", label, className);
   button.type = "button";
@@ -68,6 +93,11 @@ function copyButton(text, { label = "Copy", ariaLabel = "Copy markup", className
   return button;
 }
 
+/** @param {string} label
+ * @param {unknown} [value]
+ * @param {boolean} [big]
+ * @returns {HTMLElement}
+ */
 function measure(label, value, big) {
   const box = el("div", "", "measure");
   box.appendChild(el("div", label, "label"));
@@ -76,6 +106,9 @@ function measure(label, value, big) {
   return box;
 }
 
+/** @param {any} finding
+ * @returns {HTMLElement}
+ */
 function findingNode(finding) {
   const box = el("article", "", `finding ${finding.severity}`);
   const top = el("div", "", "finding-top");
@@ -96,12 +129,18 @@ function findingNode(finding) {
   return box;
 }
 
+/** @param {string} title
+ * @returns {HTMLElement}
+ */
 function block(title) {
   const section = el("section");
   section.appendChild(el("h3", title));
   return section;
 }
 
+/** @param {number} score
+ * @returns {HTMLElement}
+ */
 function scoreNode(score) {
   const box = el("div", "", `score ${scoreTone(score)}`);
   box.setAttribute("aria-label", `Score ${score} out of 100`);
@@ -114,6 +153,9 @@ function scoreNode(score) {
   return box;
 }
 
+/** @param {any} crawlers
+ * @returns {HTMLElement}
+ */
 function crawlerBlock(crawlers) {
   const section = block("Search and AI crawlers");
   if (!Array.isArray(crawlers)) {
@@ -144,6 +186,9 @@ function crawlerBlock(crawlers) {
   return section;
 }
 
+/** @param {any} payload
+ * @returns {HTMLElement}
+ */
 export function renderResult(payload) {
   const measured = payload.measured || {};
   const findings = payload.findings || [];
@@ -221,7 +266,7 @@ export function renderResult(payload) {
   }
   wordValue.appendChild(
     document.createTextNode(
-      typeof measured.renderedWordCount === "number" ? count(measured.renderedWordCount) : "Not found"
+      typeof measured.renderedWordCount === "number" ? String(count(measured.renderedWordCount)) : "Not found"
     )
   );
   words.appendChild(wordValue);
@@ -253,6 +298,9 @@ export function renderResult(payload) {
   return card;
 }
 
+/** @param {string} url
+ * @returns {Promise<{ payload?: any, error?: string }>}
+ */
 async function requestCheck(url) {
   try {
     const response = await fetch("/api/public-check", {
@@ -268,17 +316,40 @@ async function requestCheck(url) {
   }
 }
 
+/** @param {any} p
+ * @returns {number}
+ */
 const problemCount = (p) =>
   p.issues ? p.issues.critical + p.issues.warnings + p.issues.notices : (p.findings || []).length;
-const visibilityBots = (p) =>
-  Array.isArray(p.crawlers) ? p.crawlers.filter((bot) => bot.purpose !== "training") : null;
 
+/** @param {any} p
+ * @returns {any[] | null}
+ */
+/** @param {any} bot
+ * @returns {boolean}
+ */
+const isVisibilityBot = (bot) => bot.purpose !== "training";
+
+/** @param {any} p
+ * @returns {any[] | null}
+ */
+const visibilityBots = (p) => (Array.isArray(p.crawlers) ? p.crawlers.filter(isVisibilityBot) : null);
+
+/** @param {any} mine
+ * @param {any} theirs
+ * @returns {any[]}
+ */
 export function compareRows(mine, theirs) {
+  /** @type {{ (p: any): unknown }} */
   const words = (p) => p.measured?.renderedWordCount;
+  /** @type {{ (p: any): unknown }} */
   const links = (p) => p.measured?.renderedInternalLinkCount;
+  /** @type {{ (p: any): 0 | 1 }} */
   const hasH1 = (p) => (p.measured?.renderedH1 ? 1 : 0);
   const [myBots, theirBots] = [visibilityBots(mine), visibilityBots(theirs)];
+  /** @type {{ (bots: any[] | null): number | undefined }} */
   const allowed = (bots) => bots?.filter((bot) => bot.allowed).length;
+  /** @type {{ (bots: any[] | null): string }} */
   const botsShown = (bots) => (bots ? `${allowed(bots)} of ${bots.length}` : "Not checked");
   const botsComparable = myBots && theirBots && myBots.length === theirBots.length;
   const rows = [
@@ -311,6 +382,10 @@ export function compareRows(mine, theirs) {
   });
 }
 
+/** @param {any} mine
+ * @param {any} theirs
+ * @returns {string}
+ */
 export function compareVerdict(mine, theirs) {
   if (typeof mine.score !== "number" || typeof theirs.score !== "number") return "";
   const gap = mine.score - theirs.score;
@@ -327,6 +402,10 @@ export function compareVerdict(mine, theirs) {
   return `You and ${them} have the same score.`;
 }
 
+/** @param {any} mine
+ * @param {any} theirs
+ * @returns {HTMLElement}
+ */
 function compareTable(mine, theirs) {
   const wrap = el("div", "", "compare-result");
   wrap.appendChild(el("p", compareVerdict(mine, theirs), "compare-verdict"));
@@ -356,6 +435,9 @@ function compareTable(mine, theirs) {
   return wrap;
 }
 
+/** @param {any} mine
+ * @returns {HTMLElement}
+ */
 function compareBlock(mine) {
   const section = block("Compare with a competitor");
   const form = el("form", "", "compare-form");
@@ -376,9 +458,9 @@ function compareBlock(mine) {
   out.setAttribute("aria-live", "polite");
   form.append(label, row);
   section.append(form, out);
-  form.addEventListener("submit", async (event) => {
+  form.addEventListener("submit", async (/** @type {SubmitEvent} */ event) => {
     event.preventDefault();
-    const url = input.value.trim();
+    const url = String(input.value).trim();
     const invalid = publicUrlError(url);
     if (invalid) return out.replaceChildren(el("div", invalid, "error-box"));
     button.disabled = true;
@@ -392,6 +474,9 @@ function compareBlock(mine) {
   return section;
 }
 
+/** @param {string} url
+ * @returns {HTMLElement}
+ */
 function loadingCard(url) {
   const card = el("div", "", "loading-card");
   card.setAttribute("role", "status");
@@ -409,16 +494,18 @@ function loadingCard(url) {
   return card;
 }
 
+/** @returns {void}
+ */
 function mount() {
-  const form = document.getElementById("check-form");
-  const urlInput = document.getElementById("url-input");
-  const button = document.getElementById("check-button");
-  const result = document.getElementById("result");
+  const form = /** @type {HTMLFormElement | null} */ (document.getElementById("check-form"));
+  const urlInput = /** @type {HTMLInputElement | null} */ (document.getElementById("url-input"));
+  const button = /** @type {HTMLButtonElement | null} */ (document.getElementById("check-button"));
+  const result = /** @type {HTMLElement | null} */ (document.getElementById("result"));
   if (!form || !urlInput || !button || !result) return;
 
-  form.addEventListener("submit", async (event) => {
+  form.addEventListener("submit", async (/** @type {SubmitEvent} */ event) => {
     event.preventDefault();
-    const url = urlInput.value.trim();
+    const url = String(urlInput.value).trim();
     if (!url) return;
     result.classList.remove("show");
     result.replaceChildren();

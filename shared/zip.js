@@ -8,18 +8,30 @@ const CRC_TABLE = (() => {
   return table;
 })();
 
+/** @param {Uint8Array | number[]} bytes
+ * @returns {number}
+ */
 export function crc32(bytes) {
   let crc = 0xffffffff;
   for (const byte of bytes) crc = CRC_TABLE[(crc ^ byte) & 0xff] ^ (crc >>> 8);
   return (crc ^ 0xffffffff) >>> 0;
 }
 
+/** @param {Date} date
+ * @returns {{ time: number, day: number }}
+ */
 function dosDateTime(date) {
   const time = (date.getUTCHours() << 11) | (date.getUTCMinutes() << 5) | Math.floor(date.getUTCSeconds() / 2);
   const day = ((date.getUTCFullYear() - 1980) << 9) | ((date.getUTCMonth() + 1) << 5) | date.getUTCDate();
   return { time, day };
 }
 
+/** @typedef {{ path: string, content: string | Uint8Array }} ZipEntry */
+
+/** @param {ZipEntry[]} [files]
+ * @param {Date} [date]
+ * @returns {Uint8Array}
+ */
 export function zipFiles(files = [], date = new Date()) {
   const encoder = new TextEncoder();
   const { time, day } = dosDateTime(date);

@@ -1,5 +1,13 @@
 const MAX_COMPETITOR_REPAIRS = 8;
 
+/** @typedef {{ url?: string, origin?: string, score?: unknown, findings?: any[], performance?: { performanceScore?: unknown }, summary?: { pagesScanned?: unknown, critical?: unknown, warnings?: unknown, notices?: unknown }, pages?: { rendered?: { loadDurationMs?: unknown, title?: string, h1s?: string[] } }[] }} BenchmarkReport */
+
+/** @typedef {{ host: string, url: string, score: number, issueAreas: string[], performanceScore: number | null, competitorHosts?: string[], severity?: string }} BenchmarkSite */
+
+/** @param {BenchmarkReport} [targetReport]
+ * @param {BenchmarkReport[]} [competitorReports]
+ * @returns {any}
+ */
 export function buildCompetitorBenchmark(targetReport = {}, competitorReports = []) {
   const competitors = competitorReports
     .filter((report) => report && report.url)
@@ -52,6 +60,9 @@ export function buildCompetitorBenchmark(targetReport = {}, competitorReports = 
   };
 }
 
+/** @param {{ status?: string, competitors?: { host: string }[], summary?: { targetRank?: unknown, totalSitesRanked?: unknown, bestCompetitorHost?: unknown, bestCompetitorScore?: unknown }, repairOpportunities?: any[] }} [benchmark]
+ * @returns {string[]}
+ */
 export function competitorBenchmarkBriefLines(benchmark = {}) {
   if (benchmark.status !== "ready" || !benchmark.competitors?.length) return [];
   const lines = [
@@ -79,6 +90,9 @@ export function competitorBenchmarkBriefLines(benchmark = {}) {
   return lines;
 }
 
+/** @param {any} [benchmark]
+ * @returns {string}
+ */
 export function competitorBenchmarkSummaryCopy(benchmark = {}) {
   if (benchmark.status !== "ready" || !benchmark.competitors?.length) {
     return "This report has no competitor comparison.";
@@ -91,11 +105,15 @@ export function competitorBenchmarkSummaryCopy(benchmark = {}) {
   return `Compared ${compared} competitor homepage${compared === 1 ? "" : "s"}. Your homepage scored the same as or higher than the best one.`;
 }
 
+/** @param {BenchmarkReport} [report]
+ * @param {BenchmarkReport} [targetReport]
+ * @returns {BenchmarkSite & Record<string, unknown>}
+ */
 function benchmarkSite(report = {}, targetReport = {}) {
   const findings = (report.findings || []).filter((finding) => finding?.severity !== "good");
   const issueAreas = unique(findings.map(findingArea).filter(Boolean));
   const performanceScore = Number.isFinite(report.performance?.performanceScore)
-    ? Number(report.performance.performanceScore)
+    ? Number(/** @type {any} */ (report.performance).performanceScore)
     : null;
   const strengths = targetReport.url
     ? targetIssueAreas(targetReport)
@@ -128,12 +146,17 @@ function benchmarkSite(report = {}, targetReport = {}) {
   };
 }
 
+/** @param {BenchmarkReport} [targetReport]
+ * @param {BenchmarkSite[]} [competitors]
+ * @returns {any[]}
+ */
 function benchmarkRepairOpportunities(targetReport = {}, competitors = []) {
   const targetFindings = (targetReport.findings || [])
     .filter((finding) => finding?.severity && finding.severity !== "good")
     .filter(
       (finding) => findingArea(finding) !== "performance" || competitors.some((site) => site.performanceScore !== null)
     );
+  /** @type {any[]} */
   const opportunities = [];
   const seen = new Set();
 
@@ -167,6 +190,9 @@ function benchmarkRepairOpportunities(targetReport = {}, competitors = []) {
     .map((item, index) => ({ ...item, priority: index + 1 }));
 }
 
+/** @param {BenchmarkReport} [report]
+ * @returns {string[]}
+ */
 function targetIssueAreas(report = {}) {
   return unique(
     (report.findings || [])
@@ -176,6 +202,9 @@ function targetIssueAreas(report = {}) {
   );
 }
 
+/** @param {any} [finding]
+ * @returns {string}
+ */
 function findingArea(finding = {}) {
   const text = `${finding.title || ""} ${finding.why || ""} ${finding.fix || ""}`.toLowerCase();
   if (
@@ -223,17 +252,23 @@ function findingArea(finding = {}) {
   return slug(text.split(" on ")[0] || finding.title || "seo-issue").slice(0, 60);
 }
 
+/** @param {string} [area]
+ * @returns {string}
+ */
 function areaLabel(area = "") {
-  const labels = {
+  const labels = /** @type {Record<string, string>} */ ({
     "content-depth": "Content depth",
     "crawl-discovery": "Crawl discovery",
     "internal-links": "Internal links",
     "meta-description": "Meta description",
     "structured-data": "Structured data"
-  };
+  });
   return labels[area] || titleCase(area.replace(/-/g, " "));
 }
 
+/** @param {string} [area]
+ * @returns {string}
+ */
 function estimatedEffortForArea(area = "") {
   if (["title", "meta-description", "canonical", "social"].includes(area)) return "5-15 min";
   if (["structured-data", "images", "internal-links", "hreflang", "mobile"].includes(area)) return "15-45 min";
@@ -242,6 +277,9 @@ function estimatedEffortForArea(area = "") {
   return "15-30 min";
 }
 
+/** @param {string} [area]
+ * @returns {string}
+ */
 function workTypeForArea(area = "") {
   if (["title", "meta-description", "content-depth", "images", "internal-links", "social"].includes(area))
     return "content";
@@ -250,6 +288,9 @@ function workTypeForArea(area = "") {
   return "review";
 }
 
+/** @param {string} [severity]
+ * @returns {number}
+ */
 function severityRank(severity = "") {
   if (severity === "critical") return 0;
   if (severity === "warning") return 1;
@@ -257,6 +298,9 @@ function severityRank(severity = "") {
   return 3;
 }
 
+/** @param {string} [value]
+ * @returns {string}
+ */
 function safeHost(value = "") {
   try {
     return new URL(value).hostname.replace(/^www\./, "");
@@ -265,10 +309,16 @@ function safeHost(value = "") {
   }
 }
 
+/** @param {(string | undefined)[]} [values]
+ * @returns {string[]}
+ */
 function unique(values = []) {
-  return [...new Set(values.filter(Boolean))];
+  return [...new Set(values.filter(Boolean))].map((value) => String(value));
 }
 
+/** @param {string} [value]
+ * @returns {string}
+ */
 function slug(value = "") {
   return String(value)
     .toLowerCase()
@@ -276,6 +326,9 @@ function slug(value = "") {
     .replace(/^-+|-+$/g, "");
 }
 
+/** @param {string} [value]
+ * @returns {string}
+ */
 function titleCase(value = "") {
   return String(value)
     .split(/\s+/)
