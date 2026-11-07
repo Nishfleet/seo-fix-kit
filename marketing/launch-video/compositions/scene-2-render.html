@@ -1,0 +1,74 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      background: #070908;
+      font-family: "Inter", sans-serif;
+    }
+    .shot {
+      position: absolute;
+      inset: 0;
+    }
+    .shot img {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .caption-bar {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 72px;
+      height: 76px;
+    }
+    .slot {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+    .caption {
+      background: rgba(7, 9, 8, 0.8);
+      color: #fbf8ef;
+      font-size: 32px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      line-height: 1;
+      padding: 22px 40px;
+      border-radius: 999px;
+      border: 1px solid rgba(251, 248, 239, 0.18);
+      white-space: nowrap;
+    }
+  </style>
+  <div id="root" data-composition-id="scene-2-render" data-width="1920" data-height="1080">
+    <div id="s2-shot" class="clip shot" data-start="0" data-duration="10" data-track-index="1">
+      <img
+        id="s2-img"
+        src="assets/screens/raw-vs-rendered.png"
+        alt="sample report: the raw HTML of a page next to what the rendered browser shows"
+      />
+    </div>
+    <div id="s2-caption-bar" class="caption-bar" data-layout-allow-caption-zone>
+      <div id="s2-caption-slot" class="slot" data-layout-allow-caption-zone>
+        <p id="s2-caption" class="caption">Raw HTML next to the rendered page</p>
+      </div>
+    </div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo(
+      "#s2-img",
+      { scale: 1.0, xPercent: 0.4 },
+      { scale: 1.08, xPercent: -0.4, duration: 9.8, ease: "sine.inOut" },
+      0
+    );
+    tl.fromTo("#s2-caption", { autoAlpha: 0, y: 22 }, { autoAlpha: 1, y: 0, duration: 0.45, ease: "power2.out" }, 0.5);
+    window.__timelines = window.__timelines || {};
+    window.__timelines["scene-2-render"] = tl;
+  </script>
+</template>
