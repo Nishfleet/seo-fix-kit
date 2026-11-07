@@ -1,0 +1,50 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      background: #070908;
+      font-family: "Inter", sans-serif;
+    }
+    .card {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-content: center;
+      place-items: center;
+      row-gap: 56px;
+    }
+    .logo img {
+      width: 440px;
+      height: auto;
+      display: block;
+    }
+    .cta {
+      display: inline-block;
+      background: #98f0cc;
+      color: #06100c;
+      font-size: 40px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      line-height: 1;
+      padding: 26px 56px;
+      border-radius: 999px;
+    }
+  </style>
+  <div id="root" data-composition-id="scene-7-end-card" data-width="1920" data-height="1080">
+    <div id="s7-card" class="clip card" data-start="0" data-duration="4" data-track-index="1">
+      <div id="s7-logo" class="logo">
+        <img id="s7-logo-img" src="assets/brand/logo-dark.svg" alt="SEO Fix Kit" />
+      </div>
+      <div id="s7-cta" class="cta">seofixkit.com/check</div>
+    </div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo("#s7-logo", { autoAlpha: 0, y: 28 }, { autoAlpha: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0.15);
+    tl.fromTo("#s7-logo-img", { scale: 1.06 }, { scale: 1, duration: 0.5, ease: "power3.out" }, 0.15);
+    tl.fromTo("#s7-cta", { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: 0.45, ease: "power2.out" }, 1.1);
+    window.__timelines = window.__timelines || {};
+    window.__timelines["scene-7-end-card"] = tl;
+  </script>
+</template>
