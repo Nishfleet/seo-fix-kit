@@ -4,6 +4,14 @@ Use this file for durable project truth Codex cannot reliably infer from code al
 
 ## Decisions
 
+- 2026-10-29 (issue #373): the private-address guard fails closed. Reason: when
+  the DNS-over-HTTPS lookup for A or AAAA fails, answers non-200 or throws,
+  `resolvesToPrivateAddress` in `shared/url-safety.js` used to answer "public"
+  and let the fetch run, which is the fail-open behaviour the OWASP SSRF cheat
+  sheet warns about. A failed lookup now throws `PrivateAddressCheckError`
+  (code `private-address-check-failed`) with a clear user-facing message, and
+  `fetchPublicUrl` refuses to fetch. The render-path guard blocks the request
+  instead of throwing, so a failed lookup cannot stall a paused browser request.
 - 2026-10-28 (issue #308): the production D1 database keeps an off-site copy beyond
   Time Travel. Reason: paying customers' email addresses and their
   payment/refund/dispute records live in `seofixkit_waitlist`, Time Travel cannot
