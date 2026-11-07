@@ -2,11 +2,20 @@ import { issuePatternKey } from "./fix-patterns.js";
 
 const MAX_FIELD = 1200;
 
+/** @param {unknown} [value]
+ * @param {number} [max]
+ * @returns {string}
+ */
 function clip(value = "", max = MAX_FIELD) {
   const text = String(value || "").trim();
   return text.length > max ? `${text.slice(0, max - 1)}…` : text;
 }
 
+/** @typedef {{ url?: string, origin?: string, score?: unknown, findings?: any[], repairPlan?: any[], platformSeoAudit?: { summary?: { detectedPlatformNames?: string[] } }, pages?: { rendered?: { generator?: string } }[] }} AuditReportLike */
+
+/** @param {AuditReportLike} [report]
+ * @returns {string}
+ */
 export function reportPlatform(report = {}) {
   const names = report.platformSeoAudit?.summary?.detectedPlatformNames || [];
   if (names.length) return names.join(" / ");
@@ -14,11 +23,18 @@ export function reportPlatform(report = {}) {
   return clip(generator, 60);
 }
 
+/** @param {AuditReportLike} [report]
+ * @returns {string}
+ */
 function siteLine(report = {}) {
   const platform = reportPlatform(report);
   return `My website is ${report.url || report.origin || "my site"}${platform ? `, built with ${platform}` : ""}.`;
 }
 
+/** @param {any} [item]
+ * @param {number | null} [index]
+ * @returns {string}
+ */
 function problemBlock(item = {}, index = null) {
   const lines = [`${index === null ? "Problem:" : `${index}.`} ${clip(item.title, 200)}`];
   const page = item.pageUrl || item.finalUrl;
@@ -40,6 +56,11 @@ const RULES = [
   "Don't change anything unrelated."
 ];
 
+/** @param {any} [finding]
+ * @param {AuditReportLike} [report]
+ * @param {{ acceptance?: string } | null} [plan]
+ * @returns {string}
+ */
 export function findingFixPrompt(finding = {}, report = {}, plan = null) {
   const item = { ...finding, acceptance: plan?.acceptance || finding.acceptance };
   return [
@@ -52,8 +73,13 @@ export function findingFixPrompt(finding = {}, report = {}, plan = null) {
   ].join("\n");
 }
 
+/** @param {AuditReportLike} [report]
+ * @param {{ limit?: number }} [options]
+ * @returns {string}
+ */
 export function reportFixPrompt(report = {}, { limit = 5 } = {}) {
-  const findings = report.findings || [];
+  const findings = /** @type {any[]} */ (report.findings || []);
+  /** @type {Map<string, any[]>} */
   const groups = new Map();
   for (const plan of report.repairPlan || []) {
     const key = issuePatternKey(plan.title);

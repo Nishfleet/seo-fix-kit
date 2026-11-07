@@ -14,6 +14,8 @@ interface EnvVars {
 }
 
 interface EnvSecrets {
+  SEOFIXKIT_EMAIL_FROM?: string;
+  SEOFIXKIT_ADMIN_EMAIL?: string;
   DODO_SEOFIXKIT_API_KEY?: string;
   DODO_SEOFIXKIT_WEBHOOK_SECRET?: string;
   DODO_SEOFIXKIT_WEBHOOK_KEY?: string;

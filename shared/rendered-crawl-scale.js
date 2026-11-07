@@ -26,6 +26,10 @@ export const RENDERED_CRAWL_TARGETS = [
   }
 ];
 
+/** @param {unknown} [value]
+ * @param {{ defaultPages?: unknown, maxPages?: unknown }} [options]
+ * @returns {number}
+ */
 export function normalizeRenderedCrawlTarget(value, options = {}) {
   const defaultPages = Number(options.defaultPages || 0);
   const maxPages = Number(options.maxPages || CRAWLRAVEN_ENTERPRISE_CRAWL_PAGES);
@@ -34,6 +38,9 @@ export function normalizeRenderedCrawlTarget(value, options = {}) {
   return Math.min(Math.max(Math.round(parsed), 0), maxPages);
 }
 
+/** @param {unknown} [value]
+ * @returns {any}
+ */
 export function renderedCrawlTargetSummary(value) {
   const pages = normalizeRenderedCrawlTarget(value);
   const tier = RENDERED_CRAWL_TARGETS.find((item) => item.pages === pages) || {
@@ -54,6 +61,11 @@ export function renderedCrawlTargetSummary(value) {
   };
 }
 
+/** @param {any} [report]
+ * @param {any} [inventory]
+ * @param {{ renderedCrawlTarget?: unknown, crawlScaleTarget?: unknown }} [options]
+ * @returns {any}
+ */
 export function buildRenderedCrawlScalePlan(report = {}, inventory = {}, options = {}) {
   const renderedPages = Number(report.summary?.pagesScanned || report.pages?.length || 0);
   const selectedMaxPages = Number(report.summary?.maxPages || report.crawlDepth?.pages || renderedPages || 0);
@@ -119,6 +131,9 @@ export function buildRenderedCrawlScalePlan(report = {}, inventory = {}, options
   };
 }
 
+/** @param {any} [plan]
+ * @returns {string[]}
+ */
 export function renderedCrawlScaleBriefLines(plan = {}) {
   if (plan.status !== "ready") return [];
   const summary = plan.summary || {};
@@ -148,6 +163,9 @@ export function renderedCrawlScaleBriefLines(plan = {}) {
   return lines;
 }
 
+/** @param {any} [plan]
+ * @returns {string}
+ */
 export function renderedCrawlScaleSummaryCopy(plan = {}) {
   if (plan.status !== "ready") return "";
   const summary = plan.summary || {};
@@ -157,6 +175,11 @@ export function renderedCrawlScaleSummaryCopy(plan = {}) {
   ].join(" ");
 }
 
+/** @param {{ url?: string }[]} [sampleUrls]
+ * @param {number} [plannedUrlCount]
+ * @param {number} [renderedPages]
+ * @returns {any[]}
+ */
 function buildBatchPreview(sampleUrls = [], plannedUrlCount = 0, renderedPages = 0) {
   const batches = [];
   const previewCount = Math.min(Math.ceil(plannedUrlCount / RENDERED_CRAWL_BATCH_PAGES), 5);
@@ -171,7 +194,7 @@ function buildBatchPreview(sampleUrls = [], plannedUrlCount = 0, renderedPages =
       status: renderedPages >= end ? "rendered" : "planned",
       sampleUrls:
         index === 0
-          ? sampleUrls
+          ? /** @type {{ url?: string }[]} */ (sampleUrls)
               .slice(0, 10)
               .map((item) => item.url || item)
               .filter(Boolean)
@@ -181,6 +204,9 @@ function buildBatchPreview(sampleUrls = [], plannedUrlCount = 0, renderedPages =
   return batches;
 }
 
+/** @param {{ renderedPages: number, selectedMaxPages: number, requestedTarget: number, inventoryUrls: number, plannedUrlCount: number, plannedBatches: number, inventory?: any }} options
+ * @returns {any[]}
+ */
 function scaleRepairOpportunities({
   renderedPages,
   selectedMaxPages,
@@ -190,7 +216,9 @@ function scaleRepairOpportunities({
   plannedBatches,
   inventory
 }) {
+  /** @type {any[]} */
   const repairs = [];
+  /** @type {{ (item: any): void }} */
   const addRepair = (item) => {
     repairs.push({
       priority: repairs.length + 1,
@@ -254,6 +282,9 @@ function scaleRepairOpportunities({
   return repairs;
 }
 
+/** @param {unknown} [value]
+ * @returns {string}
+ */
 function formatCount(value) {
   const number = Number(value || 0);
   if (!Number.isFinite(number)) return "0";

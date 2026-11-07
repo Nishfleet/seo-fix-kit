@@ -1,7 +1,14 @@
 const MAX_GROWTH_OPPORTUNITIES = 8;
 
+/** @typedef {{ title?: string, proof?: string, id?: string, type?: string, status?: string, draftOnly?: boolean, source?: string, confidence?: string, estimatedEffort?: string, workType?: string, acceptance?: string, sourceKind?: string, pageUrl?: string, pageLabel?: string, fix?: string, suggestedAction?: string, draftBrief?: { summary?: string, sections?: string[], audience?: string }, guardrail?: string }} GrowthItem */
+
+/** @param {any} [report]
+ * @returns {any}
+ */
 export function buildGrowthOpportunities(report = {}) {
+  /** @type {(GrowthItem & { priority: number })[]} */
   const opportunities = [];
+  /** @type {{ (item: GrowthItem): void }} */
   const add = (item) => {
     if (!item?.title || !item?.proof) return;
     const id = item.id || `growth-${slug(item.title)}`;
@@ -46,6 +53,9 @@ export function buildGrowthOpportunities(report = {}) {
   };
 }
 
+/** @param {any} [growth]
+ * @returns {string[]}
+ */
 export function growthOpportunitiesBriefLines(growth = {}) {
   if (growth.status !== "ready" || !growth.opportunities?.length) return [];
   const lines = [
@@ -71,6 +81,9 @@ export function growthOpportunitiesBriefLines(growth = {}) {
   return lines;
 }
 
+/** @param {any} [growth]
+ * @returns {string}
+ */
 export function growthOpportunitiesSummaryCopy(growth = {}) {
   if (growth.status !== "ready" || !growth.opportunities?.length) {
     return "No growth briefs from this report.";
@@ -79,6 +92,10 @@ export function growthOpportunitiesSummaryCopy(growth = {}) {
   return `${summary.opportunityCount || growth.opportunities.length} draft-only growth ${summary.opportunityCount === 1 ? "brief" : "briefs"} were created from verified keyword, competitor, AI-readiness, or crawl gaps.`;
 }
 
+/** @param {any} audit
+ * @param {{ (item: GrowthItem): void }} add
+ * @returns {void}
+ */
 function addKeywordRefresh(audit = {}, add) {
   if (audit.status !== "ready") return;
   const lowCtr = audit.checks?.lowCtrRows?.[0];
@@ -135,6 +152,10 @@ function addKeywordRefresh(audit = {}, add) {
   }
 }
 
+/** @param {any} benchmark
+ * @param {{ (item: GrowthItem): void }} add
+ * @returns {void}
+ */
 function addCompetitorGapBrief(benchmark = {}, add) {
   if (benchmark.status !== "ready") return;
   const repair = benchmark.repairOpportunities?.[0];
@@ -164,6 +185,10 @@ function addCompetitorGapBrief(benchmark = {}, add) {
   });
 }
 
+/** @param {{ status?: string, repairOpportunities?: GrowthItem[] }} audit
+ * @param {{ (item: GrowthItem): void }} add
+ * @returns {void}
+ */
 function addAiReadinessBrief(audit = {}, add) {
   if (audit.status !== "ready") return;
   const needsFaq =
@@ -197,6 +222,10 @@ function addAiReadinessBrief(audit = {}, add) {
   });
 }
 
+/** @param {{ status?: string, repairOpportunities?: GrowthItem[] }} audit
+ * @param {{ (item: GrowthItem): void }} add
+ * @returns {void}
+ */
 function addCrawlProofBrief(audit = {}, add) {
   if (audit.status !== "ready") return;
   const orphanRepair = audit.repairOpportunities?.find((item) =>
@@ -228,6 +257,9 @@ function addCrawlProofBrief(audit = {}, add) {
   });
 }
 
+/** @param {string} [value]
+ * @returns {string}
+ */
 function cleanLabel(value = "") {
   return (
     String(value || "growth")
@@ -236,23 +268,35 @@ function cleanLabel(value = "") {
   );
 }
 
+/** @param {unknown} [value]
+ * @returns {string}
+ */
 function formatCount(value) {
   const number = Number(value || 0);
   return Number.isFinite(number) ? Math.round(number).toLocaleString("en-US") : "0";
 }
 
+/** @param {{ ctr?: unknown }} [value]
+ * @returns {string}
+ */
 function formatPercent(value) {
   const number = Number(value || 0);
   if (!Number.isFinite(number)) return "0%";
   return `${(number * 100).toFixed(number > 0 && number < 0.01 ? 1 : 0)}%`;
 }
 
+/** @param {unknown} [value]
+ * @returns {string}
+ */
 function formatPosition(value) {
   const number = Number(value || 0);
   if (!Number.isFinite(number) || number <= 0) return "unknown";
   return number.toFixed(number < 10 ? 1 : 0);
 }
 
+/** @param {string} [value]
+ * @returns {string}
+ */
 function slug(value = "") {
   return (
     String(value || "")

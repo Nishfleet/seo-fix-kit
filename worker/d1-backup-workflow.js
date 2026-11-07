@@ -1,6 +1,9 @@
 import { WorkflowEntrypoint } from "cloudflare:workers";
 
 export class D1BackupWorkflow extends WorkflowEntrypoint {
+  /** @param {unknown} _event
+   * @param {CloudflareWorkersModule.WorkflowStep} step
+   */
   async run(_event, step) {
     const { ACCOUNT_ID, DATABASE_ID, D1_REST_API_TOKEN, BACKUP_BUCKET } = this.env;
 

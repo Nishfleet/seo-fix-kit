@@ -30,14 +30,27 @@ export const SELF_SERVE_MAX_CRAWL_PAGES = 1000;
 export const CRAWLRAVEN_PUBLIC_CRAWL_PAGES = 50000;
 export const CRAWLRAVEN_ENTERPRISE_CRAWL_PAGES = 100000;
 
+/** @typedef {{ id: string, label: string, pages: number, description: string }} CrawlDepthTier */
+
+/** @param {unknown} value
+ * @param {{ defaultPages?: number, maxPages?: number }} [options]
+ * @returns {number}
+ */
 export function normalizeCrawlLimit(value, options = {}) {
-  const defaultPages = Number(options.defaultPages || DEFAULT_CRAWL_PAGES);
-  const maxPages = Number(options.maxPages || SELF_SERVE_MAX_CRAWL_PAGES);
+  const defaultPages = Number(
+    /** @type {{ defaultPages?: number, maxPages?: number }} */ (options).defaultPages || DEFAULT_CRAWL_PAGES
+  );
+  const maxPages = Number(
+    /** @type {{ defaultPages?: number, maxPages?: number }} */ (options).maxPages || SELF_SERVE_MAX_CRAWL_PAGES
+  );
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return defaultPages;
   return Math.min(Math.max(Math.round(parsed), 1), maxPages);
 }
 
+/** @param {unknown} value
+ * @returns {CrawlDepthTier}
+ */
 export function crawlDepthTierFor(value) {
   const pages = normalizeCrawlLimit(value);
   return (
@@ -50,6 +63,9 @@ export function crawlDepthTierFor(value) {
   );
 }
 
+/** @param {unknown} value
+ * @returns {{ pages: number, tierId: string, tierLabel: string, selfServeMaxPages: number, crawlRavenPublicPages: number, crawlRavenEnterprisePages: number, parityGapPages: number }}
+ */
 export function crawlDepthSummary(value) {
   const pages = normalizeCrawlLimit(value);
   const tier = crawlDepthTierFor(pages);
