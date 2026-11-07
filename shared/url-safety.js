@@ -137,32 +137,44 @@ export function isPrivateHostname(input = "") {
   return false;
 }
 
+const ADDRESS_LOOKUP_TIMEOUT_MS = 4000;
+
 /** @param {unknown} hostname
  * @param {(input: string | URL, init?: RequestInit) => Promise<Response>} [fetcher]
- * @returns {Promise<boolean>}
+ * @returns {Promise<{ private: boolean, reachable: boolean }>}
  */
-export async function resolvesToPrivateAddress(hostname, fetcher = globalThis.fetch) {
+export async function checkAddressSafety(hostname, fetcher = globalThis.fetch) {
   const host = normalizeHostname(hostname);
-  if (!host) return true;
-  if (parseIpv4(host) || host.includes(":")) return isPrivateHostname(host);
+  if (!host) return { private: true, reachable: true };
+  if (parseIpv4(host) || host.includes(":")) return { private: isPrivateHostname(host), reachable: true };
 
+  let reachable = false;
   for (const type of ["A", "AAAA"]) {
     try {
       const response = await fetcher(
         `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(host)}&type=${type}`,
-        { headers: { accept: "application/dns-json" } }
+        { headers: { accept: "application/dns-json" }, signal: AbortSignal.timeout(ADDRESS_LOOKUP_TIMEOUT_MS) }
       );
+      reachable = true;
       if (!response?.ok) continue;
       const payload = await response.json();
       for (const answer of payload?.Answer || []) {
         if (answer?.type !== 1 && answer?.type !== 28) continue;
-        if (isPrivateHostname(String(answer.data || ""))) return true;
+        if (isPrivateHostname(String(answer.data || ""))) return { private: true, reachable };
       }
     } catch (error) {
       console.error("Private-address DNS lookup failed", error);
     }
   }
-  return false;
+  return { private: false, reachable };
+}
+
+/** @param {unknown} hostname
+ * @param {(input: string | URL, init?: RequestInit) => Promise<Response>} [fetcher]
+ * @returns {Promise<boolean>}
+ */
+export async function resolvesToPrivateAddress(hostname, fetcher = globalThis.fetch) {
+  return (await checkAddressSafety(hostname, fetcher)).private;
 }
 
 /** @param {unknown} [input]

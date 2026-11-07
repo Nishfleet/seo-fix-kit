@@ -100,6 +100,12 @@ Limits of local mode:
   refuses to start as root without `--no-sandbox`, so rendered audits and
   `/api/public-check` return 503 when the dev server runs as root (e.g. in a container).
   Everything else works.
+- Real checks also need working outbound internet from the local runtime. When the
+  dev box cannot reach the internet (a container that advertises IPv6 but drops
+  the packets hangs every outbound fetch, because the runtime resolves dual-stack
+  hosts over IPv6 only), `/api/public-check` returns 503 within about 10 s with an
+  error naming the gap, instead of spinning through every fetch and browser timeout
+  for minutes.
 - Audits only accept public URLs, so the Worker's own `http://localhost:5173/fixture/...`
   pages cannot be audited locally (the SSRF guard rejects private addresses).
 - `EMAIL` (send_email) is simulated locally and never delivers real mail; email

@@ -1,6 +1,6 @@
 import { VERSION, normalizeUrl, publicAuditUrlStatus } from "../../shared/audit-engine.js";
 import { reportFixPrompt } from "../../shared/ai-fix-prompt.js";
-import { resolvesToPrivateAddress } from "../../shared/url-safety.js";
+import { checkAddressSafety } from "../../shared/url-safety.js";
 import { jsonNoStore } from "../lib/http.js";
 import { checkQuotaSet, requestIpHash, sha256Hex } from "../lib/security.js";
 import { dayWindow, hourWindow } from "../lib/text.js";
@@ -171,7 +171,10 @@ export function buildPublicCheckResponse(report) {
   };
 }
 
-export async function runPublicCheck(request, env) {
+const OUTBOUND_OUTAGE =
+  "The page check is not available right now: this server cannot reach the internet, so it cannot open that address. Restore outbound internet access on the machine running the check and try again.";
+
+export async function runPublicCheck(request, env, { addressLookup = checkAddressSafety } = {}) {
   const parsed = await parseJsonBody(request, PublicCheckBody);
   if (parsed.error) return jsonNoStore(parsed.error, 400);
   const validated = validatePublicCheckUrl(parsed.data.url || "");
@@ -180,8 +183,12 @@ export async function runPublicCheck(request, env) {
   }
 
   const hostname = new URL(validated.url).hostname;
-  if (await resolvesToPrivateAddress(hostname)) {
+  const address = await addressLookup(hostname);
+  if (address.private) {
     return jsonNoStore({ error: "This URL points at a private or internal address and cannot be checked." }, 400);
+  }
+  if (!address.reachable) {
+    return jsonNoStore({ error: OUTBOUND_OUTAGE }, 503);
   }
 
   if (!env.WAITLIST_DB) {

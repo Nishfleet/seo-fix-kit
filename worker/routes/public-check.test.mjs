@@ -84,6 +84,29 @@ test("engine failures map to visitor copy, never raw browser diagnostics", () =>
   assert.equal(fallback, "The check failed. Try another public URL.");
 });
 
+test("public check fails fast with visitor copy when the server has no outbound route", async () => {
+  const db = { prepare() { return { bind() { return { async run() { return { meta: { changes: 0 } } } } } } } };
+  const env = { WAITLIST_DB: db };
+  const request = new Request("https://seofixkit.com/api/public-check", {
+    method: "POST",
+    headers: { "content-type": "application/json", "cf-connecting-ip": "203.0.113.9" },
+    body: JSON.stringify({ url: "https://example.com/" })
+  });
+
+  const unreachableResponse = await runPublicCheck(request, env, {
+    addressLookup: async () => ({ private: false, reachable: false })
+  });
+  assert.equal(unreachableResponse.status, 503, "no outbound route answers with HTTP 503");
+  const unreachablePayload = await unreachableResponse.json();
+  assert.match(unreachablePayload.error, /outbound internet access/, "the outage names the missing capability");
+  assert.doesNotMatch(unreachablePayload.error, /AbortError|TIMEOUT|clk|reference/, "no raw diagnostics leak");
+
+  const stillGuarded = await runPublicCheck(request, env, {
+    addressLookup: async () => ({ private: true, reachable: false })
+  });
+  assert.equal(stillGuarded.status, 400, "a private address stays refused even without outbound access");
+});
+
 test("public check page loads its client script and keeps scheme-less URLs allowed", () => {
   const html = checkHtml(origin);
   assert.match(html, /<script type="module" src="https:\/\/seofixkit\.com\/check\.js"><\/script>/);
