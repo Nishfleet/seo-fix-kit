@@ -980,7 +980,16 @@ async function isAllowedRenderRequest(requestUrl = "", options = {}) {
   const status =
     typeof options.urlGuard === "function" ? options.urlGuard(parsed.href) : publicAuditUrlStatus(parsed.href);
   if (!status.ok) return false;
-  if (options.privateDnsGuard && (await options.privateDnsGuard(parsed.hostname))) return false;
+  if (options.privateDnsGuard) {
+    let isPrivate;
+    try {
+      isPrivate = await options.privateDnsGuard(parsed.hostname);
+    } catch (error) {
+      console.error("Private-address render check failed; blocking the request", error);
+      return false;
+    }
+    if (isPrivate) return false;
+  }
   return true;
 }
 
