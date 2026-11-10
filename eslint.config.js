@@ -193,7 +193,27 @@ export default [
           property: "fetch",
           message: "Use fetchPublicUrl from shared/url-safety.js with a privateAddressResolver."
         }))
-      ],
+      ]
+    }
+  },
+  {
+    // Every no-restricted-syntax band for these trees lives in this one block.
+    // ESLint flat config replaces a rule outright when a later block redefines
+    // it, so a second block with the same rule and files silently drops the
+    // first's selectors: that is how the paid-copy block of #371 killed the
+    // local-fetch band of #368 for a day. Add new bands to this array, do not
+    // add a second block. test/eslint-restrictions.test.mjs asserts each band
+    // still reports.
+    //
+    // Band 1 (fetch): a local binding named fetch hides raw fetch calls from
+    // no-restricted-globals, so the binding itself is refused (seo-fix-kit#282).
+    //
+    // Bands 2 and 3 (paid): "Has this owner paid?" lives in one place, the
+    // paid_owners view (migrations/0098) read through
+    // worker/lib/paid-features.js. Copies drifted before: 9cb0089 counted test
+    // orders and lost disputes as paid.
+    files: ["worker/**/*.js", "shared/**/*.js", "server/**/*.js"],
+    rules: {
       "no-restricted-syntax": [
         "error",
         {
@@ -201,6 +221,17 @@ export default [
             ":matches(VariableDeclarator[id.name='fetch'], FunctionDeclaration[id.name='fetch'], :function > Identifier.params[name='fetch'], AssignmentPattern > Identifier.left[name='fetch'], Property[key.name='fetch'] > Identifier.value[name='fetch'])",
           message:
             "A local binding named fetch hides raw fetch calls from no-restricted-globals. Call fetchPublicUrl from shared/url-safety.js instead."
+        },
+        {
+          selector:
+            "TemplateLiteral:has(TemplateElement[value.raw=/fix_requests/]):has(TemplateElement[value.raw=/owner_email/]):has(TemplateElement[value.raw=/status IN|paid_at|'paid'/])",
+          message:
+            "Read the paid_owners view (hasPaidFixPack in worker/lib/paid-features.js) instead of copying the paid rule."
+        },
+        {
+          selector: "Literal[value=/fix_requests/][value=/owner_email/][value=/status IN|paid_at|'paid'/]",
+          message:
+            "Read the paid_owners view (hasPaidFixPack in worker/lib/paid-features.js) instead of copying the paid rule."
         }
       ]
     }
@@ -228,28 +259,6 @@ export default [
     // carve-out once it is fixed.
     files: ["shared/promise-audit.test.mjs"],
     rules: { "no-useless-assignment": "warn" }
-  },
-  {
-    // "Has this owner paid?" lives in one place: the paid_owners view
-    // (migrations/0098) read through worker/lib/paid-features.js. Copies drifted
-    // before: 9cb0089 counted test orders and lost disputes as paid.
-    files: ["worker/**/*.js", "shared/**/*.js", "server/**/*.js"],
-    rules: {
-      "no-restricted-syntax": [
-        "error",
-        {
-          selector:
-            "TemplateLiteral:has(TemplateElement[value.raw=/fix_requests/]):has(TemplateElement[value.raw=/owner_email/]):has(TemplateElement[value.raw=/status IN|paid_at|'paid'/])",
-          message:
-            "Read the paid_owners view (hasPaidFixPack in worker/lib/paid-features.js) instead of copying the paid rule."
-        },
-        {
-          selector: "Literal[value=/fix_requests/][value=/owner_email/][value=/status IN|paid_at|'paid'/]",
-          message:
-            "Read the paid_owners view (hasPaidFixPack in worker/lib/paid-features.js) instead of copying the paid rule."
-        }
-      ]
-    }
   },
   {
     // Comment ban on source and test code (fleet-ops AGENTS.md, fleet-wide 2026-10-14).
