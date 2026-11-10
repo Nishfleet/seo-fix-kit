@@ -18,6 +18,18 @@ Use this file for durable project truth Codex cannot reliably infer from code al
   typed-decision judge returned p=0.82, and one jailed final-say review chose
   build over wontfix.
 
+- 2026-11-10 (issue #398): the production D1 database also keeps a copy outside
+  the Cloudflare account. Reason: R2 sits in the same account as the database,
+  the Workflows export has no retention, and neither helps if the account is
+  lost. Shipped `.github/workflows/d1-export.yml`, a copy of Nishfleet/drive's
+  proven weekly export: Mondays 05:37 UTC or by hand, Cloudflare's D1 export
+  API, sealed with `age` to the repo variable `AGE_RECIPIENT` and uploaded as
+  the 90-day GitHub artifact `d1-backup-seofixkit_waitlist`. Not `wrangler d1
+export`: the proven file polls the stock API instead. The one remaining setup
+  step is that variable (the backup key's public half, Nish); until it is set
+  the run fails loud rather than shipping plaintext. Guarded by
+  `test/d1-export.test.mjs`.
+
 ## Rejected Paths
 
 - _No rejected paths logged yet._
