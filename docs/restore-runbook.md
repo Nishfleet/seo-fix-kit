@@ -61,10 +61,33 @@ npx cf workflows instances create d1-backup-workflow
 npx cf r2 objects get d1/<filename> --bucket-name seofixkit-backups
 ```
 
-What this export does not cover: a copy outside the Cloudflare account (the R2
-bucket lives in the same account as the database), and retention (old dumps
-stay until someone deletes them). A dump import is still not a complete
+What the Workflows export does not cover: a copy outside the Cloudflare
+account (the R2 bucket lives in the same account as the database) and
+retention (old dumps stay until someone deletes them). The weekly GitHub
+Actions export below covers both. A dump import is still not a complete
 restore — see the 2026-06-12 rehearsal below.
+
+## The copy kept outside the Cloudflare account: the GitHub Actions export
+
+The Workflows export writes to R2, which lives in the same account as the
+database. The second copy is `.github/workflows/d1-export.yml`: Mondays 05:37
+UTC (or by hand from the Actions tab) it exports the production database
+through Cloudflare's own D1 export API
+(developers.cloudflare.com/d1/best-practices/import-export-data/), seals the
+dump with `age` on the runner and uploads it as the GitHub artifact
+`d1-backup-seofixkit_waitlist`, kept 90 days — the retention the Workflows
+export lacks, and the copy that survives a wrong restore, a deleted database
+or an account problem after the last run.
+
+The key is split: the run encrypts to the repository variable `AGE_RECIPIENT`
+(the public `age1…` key `age-keygen` prints), so the GitHub credentials alone
+cannot read a backup; the private half stays with whoever holds the restore
+key, never in GitHub. Until the variable is set the run fails loud — the
+backup refuses to ship plaintext dumps.
+
+Restore: download `d1-backup-seofixkit_waitlist` from the run's summary page,
+decrypt with `age -d -i <private-key-file> -o <dump>.sql <dump>.sql.age` on the
+machine holding the private key, then import per the rehearsal log below.
 
 ## Why the old shell dump is gone
 
