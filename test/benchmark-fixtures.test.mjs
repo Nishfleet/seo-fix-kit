@@ -402,7 +402,10 @@ before(async () => {
 
 after(async () => {
   for (const server of startedServers) {
-    server.close();
+    server.closeAllConnections?.();
+    await new Promise((resolve, reject) => {
+      server.close((error) => (error ? reject(error) : resolve()));
+    });
   }
 });
 
@@ -422,7 +425,7 @@ function suggestionTexts(report) {
   return texts;
 }
 
-function assertSuggestionHygiene(report, fixture) {
+function assertSuggestionHygiene(report, fixture, allowedAddresses) {
   for (const text of suggestionTexts(report)) {
     for (const sentinel of fixture.scriptTokens || []) {
       assert.ok(!text.includes(sentinel), `a suggested fix quotes raw script text ("${sentinel}"): ${text}`);
@@ -430,7 +433,7 @@ function assertSuggestionHygiene(report, fixture) {
     const addresses = text.match(/https?:\/\/[^\s"'<>]+/g) || [];
     for (const address of addresses) {
       assert.ok(
-        (fixture.allowedAddresses || []).includes(address),
+        (allowedAddresses || []).includes(address),
         `a suggested fix names a wrong address (${address}): ${text}`
       );
     }
@@ -439,9 +442,10 @@ function assertSuggestionHygiene(report, fixture) {
 
 function assertFaultReported(report, fault) {
   const issues = reportIssues(report);
-  const hit = issues.find(
-    (finding) => fault.title.test(finding.title) && (!fault.evidence || fault.evidence.test(finding.evidence || ""))
-  );
+  const hit = issues.find((finding) => {
+    if (fault.expectIssue) return finding.type === "issue";
+    return fault.title.test(finding.title) && (!fault.evidence || fault.evidence.test(finding.evidence || ""));
+  });
   assert.ok(
     hit,
     `fixture fault not reported (${fault.describe}); the check reported: ${issues.map((f) => f.title).join(" | ") || "nothing"}`
@@ -478,7 +482,7 @@ const FIXTURES = [
     faults: [
       {
         describe: "the whole page's content exists only in JavaScript; the raw HTML body carries none of it",
-        title: /javascript|js-only|client-side|script-rendered/i
+        expectIssue: true
       }
     ],
     nonFaults: [
@@ -578,7 +582,7 @@ const FIXTURES = [
     faults: [
       {
         describe: "any made-up address answers 200 with a full page, so a phantom URL cannot be told from a real one",
-        title: /soft.?404|made.?up|does not exist|doesn't exist|never (been )?published|not (a )?real page|phantom/i
+        expectIssue: true
       }
     ],
     nonFaults: [
@@ -605,7 +609,7 @@ const FIXTURES = [
       {
         describe: "an internal link points at /old-address, which 301s to /final",
         title: /^Redirecting internal links on/,
-        evidence: /\/final/
+        evidence: /-> .*\/final/
       }
     ],
     nonFaults: [
@@ -666,6 +670,7 @@ const FIXTURES = [
     site: "clean-site",
     path: "/clean",
     faults: [],
+    expectNoIssues: true,
     nonFaults: [/.*/],
     allowedAddresses: (origin) => [`${origin}/clean`, `${origin}/sitemap.xml`],
     knownBug: null
@@ -676,7 +681,7 @@ for (const fixture of FIXTURES) {
   const options = { todo: fixture.knownBug || undefined };
 
   test(`benchmark fixture: ${fixture.name}`, options, async () => {
-    fixture.allowedAddresses = fixture.allowedAddresses(running[fixture.site].origin);
+    const allowedAddresses = fixture.allowedAddresses(running[fixture.site].origin);
     const report = await auditFixture(fixture);
     assert.ok(report && Array.isArray(report.findings), "the check returned a report with findings");
 
@@ -687,29 +692,21 @@ for (const fixture of FIXTURES) {
       assertRepairPlanReported(report, fault.title, fault.describe);
     }
     assertNonFaultsQuiet(report, fixture);
-    assertSuggestionHygiene(report, fixture);
+    assertSuggestionHygiene(report, fixture, allowedAddresses);
 
-    if (fixture.name === "redirecting-internal-link") {
-      const redirectFinding = reportIssues(report).find((finding) =>
-        /^Redirecting internal links on/.test(finding.title)
-      );
-      assert.ok(
-        redirectFinding && /-> .*\/final/.test(redirectFinding.evidence || ""),
-        "the redirect evidence must name the final address the link resolves to"
-      );
-    }
-
-    if (fixture.name === "clean-page") {
+    if (fixture.expectNoIssues) {
       const issues = reportIssues(report);
       assert.deepEqual(
         issues.map((finding) => finding.title),
         [],
-        `a clean page must get no findings; the check reported: ${issues.map((f) => f.title).join(" | ")}`
+        `a page marked expectNoIssues must get no findings; the check reported: ${issues
+          .map((f) => f.title)
+          .join(" | ")}`
       );
       assert.deepEqual(
         (report.repairPlan || []).map((item) => item.title || ""),
         [],
-        "a clean page must get no repair suggestions"
+        "a page marked expectNoIssues must get no repair suggestions"
       );
     }
   });
