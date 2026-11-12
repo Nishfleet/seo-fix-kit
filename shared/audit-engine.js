@@ -18,6 +18,12 @@ import {
   resourceWaterfallBriefLines,
   resourceWaterfallFindings
 } from "./resource-waterfall.js";
+import {
+  missingSitemapEvidence,
+  probeMadeUpAddress,
+  redirectLinkEvidence,
+  resolveSitemap
+} from "./check-faults.js";
 import { describeBlocked, robotsAccess } from "./robots-access.js";
 import { fetchPublicUrl, isPrivateHost, isPrivateHostname } from "./url-safety.js";
 
@@ -87,11 +93,18 @@ export function createAuditEngine({
             body: `User-agent: *\nAllow: /\n\nSitemap: ${origin}/sitemap.xml\n`
           }
         : await fetchText(`${origin}/robots.txt`);
-    const sitemap =
-      origin === (options.appOrigin || appOrigin)
-        ? { ok: true, status: 200, url: `${origin}/sitemap.xml`, body: rootSitemap(origin) }
-        : await fetchText(`${origin}/sitemap.xml`);
+    const sitemap = await resolveSitemap({
+      origin,
+      robots,
+      appOrigin: options.appOrigin || appOrigin,
+      fetchText,
+      rootSitemapBody: rootSitemap(origin)
+    });
     const llmsTxt = await fetchText(`${origin}/llms.txt`);
+    const madeUpAddress =
+      options.probeMadeUpAddress && origin !== (options.appOrigin || appOrigin)
+        ? await probeMadeUpAddress({ origin, fetchText })
+        : null;
     let browser;
     try {
       browser = await launchBrowser();
@@ -152,7 +165,8 @@ export function createAuditEngine({
       robots,
       sitemap,
       performance,
-      declaredImages
+      declaredImages,
+      madeUpAddress
     });
     let score = scoreFindings(findings);
     let pageSummaries = buildPageSummaries(pages, findings, startUrl);
@@ -1153,7 +1167,7 @@ function extractStaticFacts(html, url, fetchResult = {}) {
   };
 }
 
-function buildFindings({ pages, startUrl, robots, sitemap, performance, declaredImages = [] }) {
+function buildFindings({ pages, startUrl, robots, sitemap, performance, declaredImages = [], madeUpAddress = null }) {
   const findings = [];
   let activePage = null;
   const add = (finding) => {
@@ -1244,8 +1258,9 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         severity: "notice",
         title: `Redirecting internal links on ${label}`,
         why: "Each of these links goes through a redirect before reaching the page. Linking to the final canonical URL saves a hop for visitors and crawlers.",
-        evidence: formatResourceEvidence(redirectedInternalLinks),
-        fix: "Change each link to the URL it ends up at."
+        evidence: redirectLinkEvidence(redirectedInternalLinks),
+        fix: "Change each link to the URL it ends up at.",
+        checkFault: true
       });
     }
 
@@ -1876,8 +1891,22 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
       severity: "warning",
       title: "Sitemap not found",
       why: "A sitemap lists the pages you want search engines to find.",
-      evidence: `GET /sitemap.xml returned ${sitemap.status || "no response"}.`,
-      fix: "Publish /sitemap.xml listing your public pages, and add its URL to robots.txt."
+      evidence: missingSitemapEvidence(sitemap),
+      fix: "Publish /sitemap.xml listing your public pages, and add its URL to robots.txt.",
+      checkFault: true
+    });
+  }
+
+  if (madeUpAddress?.softNotFound) {
+    add({
+      type: "issue",
+      severity: "warning",
+      title: "Made-up addresses return a page (soft 404)",
+      why: "Search engines treat every wrong address as a real page, so pages that do not exist can end up in search results next to your real pages.",
+      evidence: `GET ${madeUpAddress.path} returned ${madeUpAddress.status} with a page (content type ${madeUpAddress.contentType}).`,
+      fix: "Make the server answer 404 for addresses that do not exist instead of serving this page.",
+      acceptance: "A random made-up address on this site now answers 404 instead of a page.",
+      checkFault: true
     });
   }
 
@@ -2910,6 +2939,7 @@ function workType(finding) {
     title.includes("robots") ||
     title.includes("sitemap") ||
     title.includes("redirect") ||
+    title.includes("soft 404") ||
     title.includes("hreflang") ||
     title.includes("https") ||
     title.includes("security") ||

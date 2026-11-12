@@ -127,9 +127,13 @@ export function buildPublicCheckResponse(report) {
       evidence: finding.evidence,
       fix: finding.fix
     }));
-  const findings = (report?.findings || [])
-    .filter((finding) => finding?.severity && finding.severity !== "good")
-    .slice(0, 5)
+  const problemFindings = (report?.findings || []).filter(
+    (finding) => finding?.severity && finding.severity !== "good"
+  );
+  const checkFaults = problemFindings.filter((finding) => finding.checkFault);
+  const generalQuota = Math.max(0, 5 - checkFaults.length);
+  const findings = problemFindings
+    .filter((finding, index) => finding.checkFault || index < generalQuota)
     .map((finding) => ({
       severity: finding.severity,
       title: finding.title,
@@ -200,7 +204,8 @@ export async function runPublicCheck(request, env) {
   try {
     const report = await auditUrl(validated.url, env, {
       maxPages: 1,
-      appOrigin: new URL(request.url).origin
+      appOrigin: new URL(request.url).origin,
+      probeMadeUpAddress: true
     });
     return jsonNoStore(buildPublicCheckResponse(report));
   } catch (error) {
