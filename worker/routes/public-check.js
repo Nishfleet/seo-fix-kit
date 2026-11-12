@@ -422,9 +422,9 @@ export function checkHtml(origin) {
           <input class="field" id="url-input" name="url" type="text" inputmode="url" autocomplete="off" placeholder="https://example.com/about" required />
           <button class="btn btn-primary" id="check-button" type="submit">Check this page</button>
         </div>
-        <p class="form-note">One page per check. Rate-limited per network and per site to protect the service and the pages it checks. Use only pages you own or are authorized to audit.</p>
+        <p class="form-note">Free for any public page. One page per check; only short-lived rate-limit counters are kept.</p>
       </form>
-      <section class="result" id="result" aria-live="polite"></section>
+      <section class="result" id="result" aria-live="polite" tabindex="-1"></section>
       <section class="grid" aria-label="What the check returns">
         <article class="panel proof">
           <strong>What the browser sees</strong>
@@ -445,7 +445,7 @@ export function checkHtml(origin) {
       </section>
       <section class="band">
         <h2>What this check does not claim</h2>
-        <p>This is one public page at one moment, not a full site audit. No report or URL is stored: only short-lived anonymous rate-limit counters (a hash of your network and a hash of the checked site) are kept, and they expire automatically. It does not guarantee rankings, traffic, indexing, revenue, AI citations, or live answer-engine visibility. It does not replace a private multi-page report.</p>
+        <p>This is one public page at one moment, not a full site audit. No report or URL is stored: only short-lived anonymous rate-limit counters (a hash of your network and a hash of the checked site) are kept, and they expire automatically. It does not guarantee rankings, traffic, indexing, revenue, AI citations, or live answer-engine visibility. It does not replace a private multi-page report. Check only pages you own or are authorized to audit.</p>
       </section>
       <section class="band" aria-label="Frequently asked questions">
         <h2>Frequently asked questions</h2>

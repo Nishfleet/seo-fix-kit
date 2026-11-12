@@ -61,11 +61,31 @@ function copyButton(text, { label = "Copy", ariaLabel = "Copy markup", className
       await navigator.clipboard.writeText(text);
       button.textContent = "Copied";
     } catch {
-      button.textContent = "Select and copy";
+      const area = document.createElement("textarea");
+      area.value = text;
+      area.setAttribute("aria-hidden", "true");
+      area.style.position = "fixed";
+      area.style.opacity = "0";
+      document.body.appendChild(area);
+      area.select();
+      let copied;
+      try {
+        copied = document.execCommand("copy");
+      } catch {
+        copied = false;
+      }
+      area.remove();
+      button.textContent = copied ? "Copied" : "Select and copy";
     }
     setTimeout(() => (button.textContent = label), 1600);
   });
   return button;
+}
+
+function errorBox(message) {
+  const box = el("div", message, "error-box");
+  box.setAttribute("role", "alert");
+  return box;
 }
 
 function measure(label, value, big) {
@@ -153,7 +173,7 @@ export function renderResult(payload) {
   const head = el("div", "", "result-head");
   if (typeof payload.score === "number") head.appendChild(scoreNode(payload.score));
   const titleBox = el("div", "", "box-min result-title");
-  titleBox.appendChild(el("h2", hostOf(payload.finalUrl || payload.checkedUrl)));
+  titleBox.appendChild(el("h2", `First look at ${hostOf(payload.finalUrl || payload.checkedUrl)}`));
   const rendered =
     payload.finalUrl && payload.finalUrl !== payload.checkedUrl ? ` (rendered at ${payload.finalUrl})` : "";
   titleBox.appendChild(el("p", `Checked: ${payload.checkedUrl}${rendered}`, "result-meta"));
@@ -380,12 +400,12 @@ function compareBlock(mine) {
     event.preventDefault();
     const url = input.value.trim();
     const invalid = publicUrlError(url);
-    if (invalid) return out.replaceChildren(el("div", invalid, "error-box"));
+    if (invalid) return out.replaceChildren(errorBox(invalid));
     button.disabled = true;
     button.textContent = "Checking…";
     out.replaceChildren(el("p", `Opening ${url} in a real browser. This can take up to a minute.`, "compare-wait"));
     const { payload, error } = await requestCheck(url);
-    out.replaceChildren(error ? el("div", error, "error-box") : compareTable(mine, payload));
+    out.replaceChildren(error ? errorBox(error) : compareTable(mine, payload));
     button.disabled = false;
     button.textContent = "Compare";
   });
@@ -416,6 +436,12 @@ function mount() {
   const result = document.getElementById("result");
   if (!form || !urlInput || !button || !result) return;
 
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const showResult = (content) => {
+    result.replaceChildren(content);
+    result.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+  };
+
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const url = urlInput.value.trim();
@@ -424,16 +450,19 @@ function mount() {
     result.replaceChildren();
     const validationError = publicUrlError(url);
     if (validationError) {
-      result.appendChild(el("div", validationError, "error-box"));
       result.classList.add("show");
+      showResult(errorBox(validationError));
+      result.focus();
       return;
     }
     button.disabled = true;
     button.textContent = "Checking…";
     result.replaceChildren(loadingCard(url));
     result.classList.add("show");
+    result.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
     const { payload, error } = await requestCheck(url);
-    result.replaceChildren(error ? el("div", error, "error-box") : renderResult(payload));
+    showResult(error ? errorBox(error) : renderResult(payload));
+    result.focus();
     button.disabled = false;
     button.textContent = "Check this page";
   });

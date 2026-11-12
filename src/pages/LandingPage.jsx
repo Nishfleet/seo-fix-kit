@@ -249,9 +249,11 @@ export function WaitlistPage() {
             ].map(([label, score, problems]) => (
               <div key={label}>
                 <dt>{label}</dt>
-                <dd>{score}</dd>
-                <span className="landing-proof-bar" style={{ "--score": score }} aria-hidden="true" />
-                <span>{problems}</span>
+                <dd>
+                  {score}
+                  <span className="landing-proof-bar" style={{ "--score": score }} aria-hidden="true" />
+                  <span>{problems}</span>
+                </dd>
               </div>
             ))}
           </dl>
