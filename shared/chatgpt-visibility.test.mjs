@@ -73,7 +73,7 @@ test("the recorded ChatGPT response parses into a named answer with competitors 
   assert.equal(summary.ownSiteCited, true);
   const own = summary.citedPages.find((page) => page.ownSite);
   assert.equal(own.url, "https://seofixkit.com/methodology?utm_source=chatgpt.com");
-  assert.ok(summary.citedPages.some((page) => page.domain.includes("screamingfrog.co.uk")));
+  assert.ok(summary.citedPages.some((page) => page.domain === "www.screamingfrog.co.uk"));
   assert.equal(summary.model, "gpt-4o");
   assert.equal(summary.cost, 0.004);
   assert.ok(String(summary.checkUrl).startsWith("https://chatgpt.com/"));
