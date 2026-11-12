@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
+import http from "node:http";
 import test from "node:test";
+import { launchAuditBrowser } from "../server/audit/playwright-browser.js";
 import {
   createAuditEngine,
   isSameOriginInfraFailure,
@@ -884,207 +886,49 @@ function fakeBrowser(finalUrl, overrides = {}, hooks = {}) {
   };
 }
 
-function el(tagName, attributes = {}, ...children) {
-  const node = {
-    nodeType: 1,
-    tagName: tagName.toUpperCase(),
-    attributes,
-    childNodes: [],
-    parent: null,
-    get textContent() {
-      return this.childNodes.map((child) => (child.nodeType === 3 ? child.data : child.textContent)).join("");
-    },
-    getAttribute(name) {
-      return Object.hasOwn(this.attributes, name) ? this.attributes[name] : null;
-    },
-    hasAttribute(name) {
-      return Object.hasOwn(this.attributes, name);
-    },
-    querySelector(selector) {
-      return selectDescendants(this, selector)[0] || null;
-    },
-    querySelectorAll(selector) {
-      return selectDescendants(this, selector);
-    },
-    closest(selectorList) {
-      const alternatives = selectorList.split(",").map((item) => item.trim());
-      let current = this;
-      while (current) {
-        if (current.nodeType === 1 && alternatives.some((candidate) => matchesSimpleSelector(current, candidate))) {
-          return current;
-        }
-        current = current.parent;
-      }
-      return null;
-    },
-    cloneNode(deep) {
-      const copy = el(this.tagName.toLowerCase(), { ...this.attributes });
-      if (!deep) return copy;
-      for (const child of this.childNodes) {
-        const clone = child.nodeType === 3 ? txt(child.data) : child.cloneNode(true);
-        clone.parent = copy;
-        copy.childNodes.push(clone);
-      }
-      return copy;
-    },
-    remove() {
-      if (!this.parent) return;
-      this.parent.childNodes = this.parent.childNodes.filter((child) => child !== this);
-      this.parent = null;
-    }
-  };
-  for (const child of children) {
-    child.parent = node;
-    node.childNodes.push(child);
-  }
-  return node;
-}
-
-function txt(value) {
-  return { nodeType: 3, data: value, parent: null };
-}
-
-function matchesSimpleSelector(node, selector) {
-  const parsed = selector.match(/^([a-zA-Z][a-zA-Z0-9-]*)?((?:\[[^\]]*\])*)$/);
-  if (!parsed) return false;
-  const [, tag, attributePart] = parsed;
-  if (tag && node.tagName !== tag.toUpperCase()) return false;
-  for (const attribute of attributePart.match(/\[[^\]]*\]/g) || []) {
-    const match = attribute.match(
-      /^\[\s*([a-zA-Z][a-zA-Z0-9-]*)\s*(?:([~]?=)\s*(?:"([^"]*)"|'([^']*)'|([^\]\s]+))\s*)?\]$/
-    );
-    if (!match) return false;
-    const actual = node.getAttribute(match[1]);
-    if (!match[2]) {
-      if (actual === null) return false;
-      continue;
-    }
-    if (actual === null) return false;
-    const expected = match[3] ?? match[4] ?? match[5];
-    if (match[2] === "=" ? actual !== expected : !actual.split(/\s+/).includes(expected)) return false;
-  }
-  return true;
-}
-
-function selectDescendants(root, selector) {
-  const alternatives = selector.split(",").map((item) => item.trim());
-  const matches = [];
-  const walk = (node) => {
-    for (const child of node.childNodes) {
-      if (child.nodeType !== 1) continue;
-      if (alternatives.some((candidate) => matchesSimpleSelector(child, candidate))) matches.push(child);
-      walk(child);
-    }
-  };
-  walk(root);
-  return matches;
-}
-
-function miniDomDocument(htmlNode, title) {
-  const root = el("#document", {}, htmlNode);
-  return {
-    documentElement: htmlNode,
-    body: selectDescendants(root, "body")[0] || null,
-    doctype: { name: "html" },
-    characterSet: "UTF-8",
-    title,
-    querySelector: (selector) => selectDescendants(root, selector)[0] || null,
-    querySelectorAll: (selector) => selectDescendants(root, selector)
-  };
-}
-
-function domFakeBrowser(doc, locationOverride = { href: "https://public.example/", origin: "https://public.example" }) {
-  return {
-    async newPage() {
-      return {
-        async route() {},
-        on() {},
-        async goto() {
-          return { status: () => 200 };
-        },
-        async evaluate(pageFunction) {
-          const previousDocument = globalThis.document;
-          const previousLocation = globalThis.location;
-          globalThis.document = doc;
-          globalThis.location = locationOverride;
-          try {
-            return await pageFunction();
-          } finally {
-            if (previousDocument === undefined) delete globalThis.document;
-            else globalThis.document = previousDocument;
-            if (previousLocation === undefined) delete globalThis.location;
-            else globalThis.location = previousLocation;
-          }
-        },
-        async close() {}
-      };
-    },
-    async close() {}
-  };
-}
-
 test("rendered body facts keep script, style, noscript and template code out of the suggested description and word count", async () => {
   const scriptToken = "quotetoken-77z";
   const styleToken = "csstoken-42x";
   const noscriptToken = "noscripttoken-83v";
   const templateToken = "templatetoken-58k";
   const scriptLine = `var data = [{ "tags": ["${scriptToken}"], "text": "The world is a stage." }];`;
-  const doc = miniDomDocument(
-    el(
-      "html",
-      { lang: "en" },
-      el("head", {}, el("meta", { charset: "utf-8" })),
-      el(
-        "body",
-        {},
-        txt("\n"),
-        el("h1", {}, txt("Quotes to Scrape")),
-        txt("\n"),
-        el("p", {}, txt("Login")),
-        txt("\n"),
-        el("script", {}, txt(scriptLine)),
-        txt("\n"),
-        el("style", {}, txt(`.${styleToken} { color: red; }`)),
-        txt("\n"),
-        el("noscript", {}, txt(`Enable JavaScript for ${noscriptToken}.`)),
-        txt("\n"),
-        el("template", {}, el("div", {}, txt(`Hidden draft ${templateToken}.`))),
-        txt("\n")
-      )
-    ),
-    "Quotes to Scrape"
-  );
-  const engine = createAuditEngine({
-    launchBrowser: async () => domFakeBrowser(doc),
-    fetchImpl: async () =>
-      new Response(
-        `<!doctype html><html lang="en"><head><meta charset="utf-8" /><title>Quotes to Scrape</title></head><body><h1>Quotes to Scrape</h1><p>Login</p><script>${scriptLine}</script><style>.${styleToken} { color: red; }</style><noscript>Enable JavaScript for ${noscriptToken}.</noscript><template>Hidden draft ${templateToken}.</template></body></html>`,
-        { status: 200, headers: { "content-type": "text/html; charset=utf-8" } }
-      )
+  const fixtureHtml = () =>
+    `<!doctype html><html lang="en"><head><meta charset="utf-8" /><title>Quotes to Scrape</title></head><body>\n<h1>Quotes to Scrape</h1>\n<p>Login</p>\n<script>${scriptLine}</script>\n<style>.${styleToken} { color: red; }</style>\n<noscript>Enable JavaScript for ${noscriptToken}.</noscript>\n<template>Hidden draft ${templateToken}.</template>\n</body></html>`;
+  const server = http.createServer((req, res) => {
+    res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+    res.end(fixtureHtml());
   });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const engine = createAuditEngine({ launchBrowser: launchAuditBrowser, allowLocalAudits: true });
+  try {
+    const report = await engine.auditUrl(`http://127.0.0.1:${server.address().port}/`, {
+      maxPages: 1,
+      pageSpeed: false
+    });
+    const rendered = report.pages[0].rendered;
 
-  const report = await engine.auditUrl("https://public.example/", { maxPages: 1, pageSpeed: false });
-  const rendered = report.pages[0].rendered;
-
-  assert.equal(rendered.wordCount, 4, "only the four visible words count");
-  assert.equal(rendered.bodyText, "Quotes to Scrape Login");
-  assert.equal(rendered.bodySample, "Quotes to Scrape Login");
-  assert.equal(rendered.leadText, "", "a one-word paragraph is not a lead");
-  const descriptionFinding = (report.findings || []).find((finding) =>
-    /Missing meta description/.test(finding.title || "")
-  );
-  assert.ok(descriptionFinding, "expected the missing meta description finding");
-  assert.ok(
-    descriptionFinding.snippet.includes('content="Quotes to Scrape Login"'),
-    `suggested description must use visible text, got: ${descriptionFinding.snippet}`
-  );
-  for (const token of [scriptToken, styleToken, noscriptToken, templateToken]) {
-    assert.ok(!rendered.bodyText.includes(token), `${token} must stay out of rendered bodyText`);
-    assert.ok(!descriptionFinding.snippet.includes(token), `${token} must stay out of the suggested description`);
+    assert.equal(rendered.wordCount, 4, "only the four visible words count");
+    assert.equal(rendered.bodyText, "Quotes to Scrape Login");
+    assert.equal(rendered.bodySample, "Quotes to Scrape Login");
+    assert.equal(rendered.leadText, "", "a one-word paragraph is not a lead");
+    const descriptionFinding = (report.findings || []).find((finding) =>
+      /Missing meta description/.test(finding.title || "")
+    );
+    assert.ok(descriptionFinding, "expected the missing meta description finding");
+    assert.ok(
+      descriptionFinding.snippet.includes('content="Quotes to Scrape Login"'),
+      `suggested description must use visible text, got: ${descriptionFinding.snippet}`
+    );
+    for (const token of [scriptToken, styleToken, noscriptToken, templateToken]) {
+      assert.ok(!rendered.bodyText.includes(token), `${token} must stay out of rendered bodyText`);
+      assert.ok(!descriptionFinding.snippet.includes(token), `${token} must stay out of the suggested description`);
+    }
+    const findingsDump = JSON.stringify(report.findings || []);
+    assert.ok(!findingsDump.includes(scriptToken), "script code must not reach any finding snippet or evidence");
+    assert.ok(!findingsDump.includes(styleToken), "style code must not reach any finding snippet or evidence");
+  } finally {
+    server.close();
   }
-  const findingsDump = JSON.stringify(report.findings || []);
-  assert.ok(!findingsDump.includes(scriptToken), "script code must not reach any finding snippet or evidence");
-  assert.ok(!findingsDump.includes(styleToken), "style code must not reach any finding snippet or evidence");
 });
 
 test("throttle statuses are not treated as broken resources", () => {
