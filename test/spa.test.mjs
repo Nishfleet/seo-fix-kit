@@ -261,7 +261,7 @@ test("homepage leads with a URL check form and keeps the email access form", asy
   });
   await page.goto(baseUrl);
 
-  await visible(page.getByRole("heading", { level: 1, name: "An SEO audit that checks its own work." }));
+  await visible(page.getByRole("heading", { level: 1, name: "Can Google and AI answers read your site?" }));
   assert.ok(await page.locator("#root").getByRole("heading", { level: 1 }).count(), "app renders into #root");
 
   const emailInput = await visible(page.getByLabel("Email"));
