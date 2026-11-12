@@ -823,9 +823,11 @@ async function extractRenderedFacts(browser, url, options = {}) {
           };
         }
       });
-      const bodyText = text(document.body);
+      const visibleBody = document.body.cloneNode(true);
+      visibleBody.querySelectorAll("script, style, noscript, template").forEach((node) => node.remove());
+      const bodyText = text(visibleBody);
       const leadText =
-        [...(document.querySelector("main, article, [role=main]") || document.body).querySelectorAll("p")]
+        [...(visibleBody.querySelector("main, article, [role=main]") || visibleBody).querySelectorAll("p")]
           .filter((node) => !node.closest("nav, header, footer, aside, [role=navigation]"))
           .map(text)
           .find((value) => value.split(" ").length >= 8) || "";
@@ -3144,7 +3146,7 @@ export const ROOT_PUBLIC_PATHS = [
 
 export const ROOT_PUBLIC_LASTMODS = {
   "/": "2026-10-29T23:22:25Z",
-  "/demo": "2026-10-13T04:43:48Z",
+  "/demo": "2026-11-12T15:21:46Z",
   "/check": "2026-10-29T22:26:13Z",
   "/methodology": "2026-10-13T04:43:48Z",
   "/pricing": "2026-10-15T08:12:19Z",

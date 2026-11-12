@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
+import http from "node:http";
 import test from "node:test";
+import { launchAuditBrowser } from "../server/audit/playwright-browser.js";
 import {
   createAuditEngine,
   isSameOriginInfraFailure,
@@ -883,6 +885,51 @@ function fakeBrowser(finalUrl, overrides = {}, hooks = {}) {
     async close() {}
   };
 }
+
+test("rendered body facts keep script, style, noscript and template code out of the suggested description and word count", async () => {
+  const scriptToken = "quotetoken-77z";
+  const styleToken = "csstoken-42x";
+  const noscriptToken = "noscripttoken-83v";
+  const templateToken = "templatetoken-58k";
+  const scriptLine = `var data = [{ "tags": ["${scriptToken}"], "text": "The world is a stage." }];`;
+  const fixtureHtml = () =>
+    `<!doctype html><html lang="en"><head><meta charset="utf-8" /><title>Quotes to Scrape</title></head><body>\n<h1>Quotes to Scrape</h1>\n<p>Login</p>\n<script>${scriptLine}</script>\n<style>.${styleToken} { color: red; }</style>\n<noscript>Enable JavaScript for ${noscriptToken}.</noscript>\n<template>Hidden draft ${templateToken}.</template>\n</body></html>`;
+  const server = http.createServer((req, res) => {
+    res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+    res.end(fixtureHtml());
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const engine = createAuditEngine({ launchBrowser: launchAuditBrowser, allowLocalAudits: true });
+  try {
+    const report = await engine.auditUrl(`http://127.0.0.1:${server.address().port}/`, {
+      maxPages: 1,
+      pageSpeed: false
+    });
+    const rendered = report.pages[0].rendered;
+
+    assert.equal(rendered.wordCount, 4, "only the four visible words count");
+    assert.equal(rendered.bodyText, "Quotes to Scrape Login");
+    assert.equal(rendered.bodySample, "Quotes to Scrape Login");
+    assert.equal(rendered.leadText, "", "a one-word paragraph is not a lead");
+    const descriptionFinding = (report.findings || []).find((finding) =>
+      /Missing meta description/.test(finding.title || "")
+    );
+    assert.ok(descriptionFinding, "expected the missing meta description finding");
+    assert.ok(
+      descriptionFinding.snippet.includes('content="Quotes to Scrape Login"'),
+      `suggested description must use visible text, got: ${descriptionFinding.snippet}`
+    );
+    for (const token of [scriptToken, styleToken, noscriptToken, templateToken]) {
+      assert.ok(!rendered.bodyText.includes(token), `${token} must stay out of rendered bodyText`);
+      assert.ok(!descriptionFinding.snippet.includes(token), `${token} must stay out of the suggested description`);
+    }
+    const findingsDump = JSON.stringify(report.findings || []);
+    assert.ok(!findingsDump.includes(scriptToken), "script code must not reach any finding snippet or evidence");
+    assert.ok(!findingsDump.includes(styleToken), "style code must not reach any finding snippet or evidence");
+  } finally {
+    server.close();
+  }
+});
 
 test("throttle statuses are not treated as broken resources", () => {
   for (const status of [408, 425, 429, 503]) {
