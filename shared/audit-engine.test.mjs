@@ -1659,3 +1659,125 @@ test("asking for no top fixes projects nothing", () => {
   assert.deepEqual(distinctFixes(plan, 0), []);
   assert.equal(projectedScore(plan, findings, undefined, 0), null);
 });
+
+test("a checked URL keeps its trailing slash instead of being fetched without it", async () => {
+  const fetched = [];
+  const gotoUrls = [];
+  const engine = createAuditEngine({
+    launchBrowser: async () => fakeBrowser("https://public.example/js/", {}, { gotoUrls }),
+    fetchImpl: async (url) => {
+      fetched.push(String(url));
+      if (url === "https://public.example/js/") {
+        return new Response(
+          "<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>",
+          { status: 200, headers: { "content-type": "text/html; charset=utf-8" } }
+        );
+      }
+      return new Response("", { status: 404, headers: { "content-type": "text/plain" } });
+    },
+    pagespeedDisabled: true
+  });
+
+  const report = await engine.auditUrl("https://public.example/js/", { maxPages: 1, pageSpeed: false });
+
+  assert.equal(
+    fetched.includes("https://public.example/js/"),
+    true,
+    "the check must fetch the address exactly as it was typed"
+  );
+  assert.equal(fetched.includes("https://public.example/js"), false, "the trailing slash must not be dropped");
+  assert.deepEqual(gotoUrls, ["https://public.example/js/"], "the browser must open the address as typed");
+  assert.equal(report.pages[0].url, "https://public.example/js/");
+});
+
+test("a check never reports a redirect it caused by dropping the trailing slash", async () => {
+  const engine = createAuditEngine({
+    launchBrowser: async () => fakeBrowser("https://public.example/js/"),
+    fetchImpl: async (url) => {
+      if (url === "https://public.example/js") {
+        return new Response("", { status: 308, headers: { location: "https://www.public.example/js/" } });
+      }
+      if (url === "https://public.example/js/") {
+        return new Response(
+          "<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>",
+          { status: 200, headers: { "content-type": "text/html; charset=utf-8" } }
+        );
+      }
+      return new Response("", { status: 404, headers: { "content-type": "text/plain" } });
+    },
+    pagespeedDisabled: true
+  });
+
+  const report = await engine.auditUrl("https://public.example/js/", { maxPages: 1, pageSpeed: false });
+
+  assert.equal(report.pages[0].url, "https://public.example/js/", "the checked address must be the one that was typed");
+  assert.equal(report.pages[0].redirected, false, "a page that answers as typed must not count as redirected");
+  assert.deepEqual(
+    report.findings.filter((finding) => /redirects before rendering/.test(finding.title || "")),
+    [],
+    "the check must not report a redirect it caused itself"
+  );
+});
+
+test("a real server redirect is still reported and the canonical points at the final address", async () => {
+  const engine = createAuditEngine({
+    launchBrowser: async () => fakeBrowser("https://public.example/js/"),
+    fetchImpl: async (url) => {
+      if (url === "https://public.example/js") {
+        return new Response("", { status: 308, headers: { location: "https://public.example/js/" } });
+      }
+      if (url === "https://public.example/js/") {
+        return new Response(
+          "<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>",
+          { status: 200, headers: { "content-type": "text/html; charset=utf-8" } }
+        );
+      }
+      return new Response("", { status: 404, headers: { "content-type": "text/plain" } });
+    },
+    pagespeedDisabled: true
+  });
+
+  const report = await engine.auditUrl("https://public.example/js", { maxPages: 1, pageSpeed: false });
+
+  const redirectFinding = report.findings.find((finding) => /redirects before rendering/.test(finding.title || ""));
+  assert.ok(redirectFinding, "a server redirect must still be reported");
+  assert.match(redirectFinding.evidence, /Requested https:\/\/public\.example\/js;/);
+  assert.match(redirectFinding.evidence, /final URL https:\/\/public\.example\/js\//);
+});
+
+test("every suggested canonical address is the page's final address", async () => {
+  const engine = createAuditEngine({
+    launchBrowser: async () => fakeBrowser("https://public.example/js/", { canonical: null }),
+    fetchImpl: async (url) => {
+      if (url === "https://public.example/js") {
+        return new Response("", { status: 308, headers: { location: "https://public.example/js/" } });
+      }
+      if (url === "https://public.example/js/") {
+        return new Response(
+          "<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>",
+          { status: 200, headers: { "content-type": "text/html; charset=utf-8" } }
+        );
+      }
+      return new Response("", { status: 404, headers: { "content-type": "text/plain" } });
+    },
+    pagespeedDisabled: true
+  });
+
+  const report = await engine.auditUrl("https://public.example/js", { maxPages: 1, pageSpeed: false });
+
+  const missingCanonical = report.findings.find((finding) => /Missing canonical URL/.test(finding.title || ""));
+  assert.ok(missingCanonical, "a page without a canonical tag must still be reported");
+  assert.equal(
+    missingCanonical.snippet,
+    '<link rel="canonical" href="https://public.example/js/" />',
+    "the suggested canonical must be the address the page ended on"
+  );
+
+  const fixPackCanonical = report.fixPack.find((item) => /canonical/i.test(item.snippet || ""));
+  assert.ok(fixPackCanonical, "the fix pack must offer a canonical tag");
+  assert.equal(
+    fixPackCanonical.snippet,
+    '<link rel="canonical" href="https://public.example/js/" />',
+    "the fix pack canonical must be the address the page ended on"
+  );
+});

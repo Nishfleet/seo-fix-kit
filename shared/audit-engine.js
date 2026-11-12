@@ -106,13 +106,15 @@ export function createAuditEngine({
     const pages = [];
     const queue = [startUrl];
     const visited = new Set();
+    const queued = new Set([crawlKey(startUrl)]);
     const resourceValidationBudget = { remainingPages: maxPages > 50 ? 10 : maxPages };
 
     try {
       while (queue.length && pages.length < maxPages) {
         const nextUrl = stripHash(queue.shift());
-        if (visited.has(nextUrl)) continue;
-        visited.add(nextUrl);
+        const nextKey = crawlKey(nextUrl);
+        if (visited.has(nextKey)) continue;
+        visited.add(nextKey);
 
         const page = await inspectPage(nextUrl, browser, { resourceValidationBudget });
         if (!page.isHtml) continue;
@@ -123,13 +125,15 @@ export function createAuditEngine({
 
         for (const link of page.rendered.internalLinks) {
           const href = stripHash(link.href);
+          const hrefKey = crawlKey(href);
           if (!href.startsWith(crawlOrigin)) continue;
           if (
             isLikelyHtmlUrl(href) &&
-            !visited.has(href) &&
-            !queue.includes(href) &&
+            !visited.has(hrefKey) &&
+            !queued.has(hrefKey) &&
             queue.length + pages.length < maxPages
           ) {
+            queued.add(hrefKey);
             queue.push(href);
           }
         }
@@ -1284,13 +1288,13 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
       });
     }
 
-    if (page.redirected || stripHash(rendered.finalUrl || page.finalUrl || page.url) !== stripHash(page.url)) {
+    if (page.redirected || stripHash(finalUrl) !== stripHash(page.url)) {
       add({
         type: "issue",
         severity: "notice",
         title: `URL redirects before rendering on ${label}`,
         why: "This URL redirects. That is fine, but your links, canonical and sitemap should use the final URL.",
-        evidence: `Requested ${page.url}; final URL ${rendered.finalUrl || page.finalUrl}.`,
+        evidence: `Requested ${page.url}; final URL ${finalUrl}.`,
         fix: "Use the final URL in the canonical tag, internal links and sitemap.",
         confidence: "needs-review"
       });
@@ -1619,7 +1623,7 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
         evidence: "No rendered rel=canonical tag found.",
         fix: "Add a canonical tag with this page's preferred URL.",
         source: DOCS.javascript,
-        snippet: `<link rel="canonical" href="${page.url}" />`
+        snippet: `<link rel="canonical" href="${finalUrl}" />`
       });
     }
 
@@ -2046,7 +2050,7 @@ function buildFixPack(page, origin, findings = [], declaredImages = []) {
     {
       title: "Canonical tag",
       body: "Use this when the page has one preferred public URL.",
-      snippet: `<link rel="canonical" href="${page.url}" />`
+      snippet: `<link rel="canonical" href="${page.rendered?.finalUrl || page.finalUrl || page.url}" />`
     },
     {
       title: "Basic WebSite schema",
@@ -3064,12 +3068,18 @@ export function publicAuditUrlStatus(value) {
 function stripHash(value) {
   const url = new URL(value);
   url.hash = "";
-  return url.href.replace(/\/$/, url.pathname === "/" ? "/" : "");
+  return url.href;
+}
+
+function crawlKey(value) {
+  const href = stripHash(value);
+  const url = new URL(href);
+  return url.pathname === "/" ? href : href.replace(/\/$/, "");
 }
 
 function pathLabel(url, startUrl) {
   const parsed = new URL(url);
-  if (stripHash(url) === stripHash(startUrl)) return "home";
+  if (crawlKey(url) === crawlKey(startUrl)) return "home";
   return parsed.pathname || "page";
 }
 
