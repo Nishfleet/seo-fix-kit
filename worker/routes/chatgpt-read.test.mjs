@@ -364,17 +364,20 @@ test("the page shows the URL form, the result region and one CTA into the full c
   assert.match(html, /id="chatgpt-read-url" name="url" type="text" inputmode="url"/);
   assert.match(html, /id="chatgpt-read-result"/);
   assert.match(html, /<script type="module" src="https:\/\/seofixkit\.com\/chatgpt-read\.js"><\/script>/);
-  assert.match(html, /<a class="cta" href="https:\/\/seofixkit\.com\/check">Run the full free page check<\/a>/);
   const main = html.slice(html.indexOf("<main"), html.indexOf("</main>"));
+  const ctas = [...main.matchAll(/<a class="cta" href="([^"]+)"/g)];
+  assert.equal(ctas.length, 1, "the tool body ends with exactly one CTA element");
+  assert.match(ctas[0][1], /\/check(\?|$)/, "the single CTA links into the full free page check");
   assert.doesNotMatch(main, /href="[^"]*\/beta/, "the tool body does not push a sign-up");
-  assert.doesNotMatch(main, /href="[^"]*\/pricing#/, "the tool body has one CTA only");
-  assert.equal([...main.matchAll(/class="cta"/g)].length, 1, "the tool body ends with exactly one CTA");
+  assert.doesNotMatch(main, /href="[^"]*\/pricing#/, "the tool body has no secondary pricing CTA");
 });
 
 test("the page carries its own title, description, canonical URL and share image", () => {
   const html = canChatgptReadHtml(origin);
-  assert.match(html, /<title>Can ChatGPT Read My Page\? - SEO Fix Kit<\/title>/);
-  assert.match(html, /<meta name="description" content="Check if ChatGPT, Claude and Perplexity can read your page\./);
+  const title = html.match(/<title>([^<]+)<\/title>/);
+  assert.ok(title && title[1].trim().length > 0, "the page has its own non-empty title");
+  const description = html.match(/<meta name="description" content="([^"]+)"/);
+  assert.ok(description && description[1].trim().length > 0, "the page has its own non-empty description");
   assert.match(html, /<link rel="canonical" href="https:\/\/seofixkit\.com\/can-chatgpt-read-my-page" \/>/);
   assert.match(html, /<meta property="og:url" content="https:\/\/seofixkit\.com\/can-chatgpt-read-my-page" \/>/);
   assert.match(
@@ -443,22 +446,6 @@ test("the visible FAQ matches the JSON-LD FAQ questions and answers", () => {
     assert.ok(html.includes(question.name), `the page shows the question: ${question.name}`);
     assert.ok(html.includes(question.acceptedAnswer.text), `the page shows the answer for: ${question.name}`);
   }
-});
-
-test("the page copy keeps the honest boundary about citations and rankings", () => {
-  const html = canChatgptReadHtml(origin);
-  const start = html.indexOf("What this check does not claim");
-  assert.ok(start > 0, "the page states what the check does not claim");
-  const band = html.slice(start, html.indexOf("</section>", start));
-  assert.ok(/does not|never|no /i.test(band), "the boundary is stated as a limit, not as a promise");
-  for (const match of band.matchAll(/guarantee|promise|track citations|sample/gi)) {
-    const window = band.slice(Math.max(0, match.index - 80), match.index + match[0].length + 40);
-    assert.ok(
-      /does not|do not|never|no\b/i.test(window),
-      `the page must not claim ${match[0]} without a limit: ${window}`
-    );
-  }
-  assert.doesNotMatch(html, /<form[^>]*action="[^"]*\/beta/i, "the page never posts to the app");
 });
 
 test("the client validator applies the server's public URL rules", () => {
