@@ -1,4 +1,5 @@
 import { SITE_FOOTER, SITE_NAV, SITE_TAGLINE } from "../../shared/site-nav.js";
+import { SHOPIFY_AUDIT_SAMPLE } from "../../shared/shopify-audit-sample.js";
 import { escapeHtml } from "../../shared/audit-engine.js";
 import { FREE_TOOLS } from "../../shared/free-tools/catalog.js";
 import { DEMO_PROOF, DEMO_FIXTURE_PATH, demoProofSnippet } from "./demo-proof.js";
@@ -32,7 +33,7 @@ SEO Fix Kit is a private-beta, self-serve SEO audit and paid Fix Pack workflow.
 - [${origin}/small-business-seo-audit](https://seofixkit.com/small-business-seo-audit): Proof-backed SEO audit for small businesses. Check one page free, pay only when real fixes exist.
 - [${origin}/rendered-vs-static-seo-audit](https://seofixkit.com/rendered-vs-static-seo-audit): Renders pages in a real browser to compare raw HTML with the rendered DOM — guarding static-crawler false positives and showing AI crawler visibility for JavaScript-blind crawlers like GPTBot, ClaudeBot, PerplexityBot, and CCBot.
 - [${origin}/ai-answer-readiness](https://seofixkit.com/ai-answer-readiness): Proof-derived AI Answer Readiness from rendered content, schema, links, sitemap context, and optional llms.txt. Site-proof, not citation monitoring.
-- [${origin}/shopify-seo-audit](https://seofixkit.com/shopify-seo-audit): SEO audit for Shopify stores, with problem counts from a 26-store sample of public Shopify stores audited on 2026-11-12. Counts only; no store is named.
+- [${origin}/shopify-seo-audit](https://seofixkit.com/shopify-seo-audit): SEO audit for Shopify stores, with problem counts from a ${SHOPIFY_AUDIT_SAMPLE.completed}-store sample of public Shopify stores audited on ${SHOPIFY_AUDIT_SAMPLE.auditDate}. Counts only; no store is named.
 - [${origin}/support](https://seofixkit.com/support): Support and contact page.
 - [${origin}/privacy](https://seofixkit.com/privacy): Privacy note for access requests, private beta audits, payments, and fulfillment.
 - [${origin}/terms](https://seofixkit.com/terms): Terms of service.
@@ -909,15 +910,6 @@ function aiAnswerReadinessHtml(origin) {
   });
 }
 
-const SHOPIFY_AUDIT_SAMPLE = {
-  auditDate: "2026-11-12",
-  engineVersion: "0.9.0",
-  attempted: 29,
-  completed: 26,
-  pagesAudited: 78,
-  pagesPerStore: 3
-};
-
 function shopifySeoAuditHtml(origin) {
   const s = SHOPIFY_AUDIT_SAMPLE;
   return publicProductPageHtml({
@@ -930,10 +922,11 @@ function shopifySeoAuditHtml(origin) {
     eyebrow: "Shopify SEO audit",
     heading: "An SEO audit built from real Shopify stores.",
     lead:
-      `On ${s.auditDate} we audited ${s.attempted} public Shopify stores with SEO Fix Kit and counted what the audit found. ` +
+      `On ${s.auditDate} we audited ${s.completed} public Shopify stores with SEO Fix Kit and counted what the audit found. ` +
       `This page lists the problems that came up most often, each with the evidence the audit recorded and the fix — no store is named, and the free check is one paste away.`,
     softwareDescription:
-      "SEO audit software for Shopify stores that loads pages in a real browser, lists confirmed problems with fixes, and reruns the audit to confirm repairs. The Shopify page reports problem counts from a 26-store sample of public Shopify sites.",
+      "SEO audit software for Shopify stores that loads pages in a real browser, lists confirmed problems with fixes, and reruns the audit to confirm repairs. The Shopify page reports problem counts from a " +
+      `${s.completed}-store sample of public Shopify sites.`,
     body: `
       <section class="grid three" aria-label="How to start">
         <article class="panel proof"><strong>Free one-page check</strong><p>Paste a product, collection or home page at <a href="${origin}/check">${origin}/check</a>. You get the rendered evidence, the false alarms ruled out, and real problems with fixes. No account, no email, nothing stored.</p></article>
@@ -966,11 +959,11 @@ function shopifySeoAuditHtml(origin) {
         <h2>Counts that showed up on nearly every store</h2>
         <p>These are not Shopify-specific — any platform can have them — but they came up store after store:</p>
         <ul class="check-list">
-          <li><strong>Basic security headers missing — 26 of ${s.completed}.</strong> The HTML response lacked headers such as Referrer-Policy. The engine’s fix is to set the headers at the host or CDN; on Shopify the platform controls response headers, so the practical first step is checking what your theme and apps emit and raising the rest with Shopify support.</li>
+          <li><strong>Basic security headers missing — 26 of ${s.completed}.</strong> The HTML response lacked basic security headers. The engine’s fix is to set the headers at the host or CDN; on Shopify the platform controls response headers, so the practical first step is checking what your theme and apps emit and raising the rest with Shopify support.</li>
           <li><strong>Render-blocking resources and too many third-party requests — 25 of ${s.completed} each.</strong> Themes plus marketing and review apps load CSS and scripts the first view does not need. Fix: remove tags you no longer use, cut duplicate vendors, inline the CSS the first view needs and defer the rest.</li>
           <li><strong>Heading hierarchy needs cleanup — 24 of ${s.completed}</strong>, including 11 stores with more than one H1 on a page and 8 with a page that had no H1 at all. Fix: one H1, then H2 for sections and H3 inside them. Don’t skip a level.</li>
           <li><strong>Social share image incomplete — 21 of ${s.completed}.</strong> At least one audited page was missing og:image or twitter:image, so links to it shared with no picture. Fix: add og:image and twitter:image tags pointing at a 1200x630 image.</li>
-          <li><strong>URL redirects before rendering — 20 of ${s.completed}.</strong> Most often the bare domain redirecting to www. Fix: use the final URL in the canonical tag, internal links and sitemap.</li>
+          <li><strong>URL redirects before rendering — 20 of ${s.completed}.</strong> Fix: use the final URL in the canonical tag, internal links and sitemap.</li>
           <li><strong>Heavy JavaScript and image payloads — 19 of ${s.completed} each.</strong> Fix: compress large images, serve smaller sizes to phones, split out the code the first view needs and defer the rest.</li>
           <li><strong>Meta descriptions — 19 of ${s.completed}</strong> had a page whose meta description needed tightening, and 10 had a page with no meta description at all. Fix: rewrite it in 1 to 2 sentences that say what the page offers and who it’s for.</li>
           <li><strong>Broken internal links — 15 of ${s.completed}.</strong> Fix: point each link at a page that loads, bring the missing page back, or delete the link.</li>

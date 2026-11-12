@@ -1,3 +1,5 @@
+import { SHOPIFY_AUDIT_SAMPLE } from "./shopify-audit-sample.js";
+
 export const SITE_NAV = [
   {
     label: "Product",
@@ -31,7 +33,7 @@ export const SITE_NAV = [
       {
         href: "/shopify-seo-audit",
         label: "Shopify stores",
-        text: "Problem counts from a real 26-store Shopify audit sample."
+        text: `Problem counts from a real ${SHOPIFY_AUDIT_SAMPLE.completed}-store Shopify audit sample.`
       }
     ]
   },

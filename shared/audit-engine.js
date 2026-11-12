@@ -3144,7 +3144,7 @@ export const ROOT_PUBLIC_PATHS = [
 ];
 
 export const ROOT_PUBLIC_LASTMODS = {
-  "/": "2026-11-12T19:37:52Z",
+  "/": "2026-11-12T19:58:17Z",
   "/demo": "2026-11-12T19:37:52Z",
   "/check": "2026-11-12T19:37:52Z",
   "/methodology": "2026-11-12T19:37:52Z",
@@ -3152,7 +3152,7 @@ export const ROOT_PUBLIC_LASTMODS = {
   "/small-business-seo-audit": "2026-11-12T19:37:52Z",
   "/rendered-vs-static-seo-audit": "2026-11-12T19:37:52Z",
   "/ai-answer-readiness": "2026-11-12T19:37:52Z",
-  "/shopify-seo-audit": "2026-11-12T19:37:52Z",
+  "/shopify-seo-audit": "2026-11-12T19:58:17Z",
   "/privacy": "2026-11-12T19:39:50Z",
   "/proof": "2026-11-12T19:37:52Z",
   "/support": "2026-11-12T19:39:50Z",
