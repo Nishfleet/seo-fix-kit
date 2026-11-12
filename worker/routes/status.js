@@ -48,7 +48,7 @@ export async function serviceStatus(env = {}) {
       detail: "Legacy Fix Pack payment confirmation through Dodo Payments. No new checkout is offered."
     }
   ];
-  const down = components.filter((component) => !component.ok);
+  const down = components.filter((component) => !component.ok && component.key !== "payments");
   return {
     ok: down.length === 0,
     status: down.length === 0 ? "operational" : "degraded",

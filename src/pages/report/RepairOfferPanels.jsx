@@ -8,7 +8,7 @@ import { monitoringCheckoutErrorOutcome, monitoringCheckoutOutcome } from "../..
 import { beforeAfterText, formatDate } from "../../lib/format.js";
 import { proposalStatusLabel, checkoutMessage, statusLabel } from "../../lib/labels.js";
 import { queryKeys } from "../../lib/queries.js";
-import { fixKitDownloadUrl, loadRepairQueue, patchRepairProposalApproval } from "../../lib/requests.js";
+import { loadRepairQueue, patchRepairProposalApproval } from "../../lib/requests.js";
 
 export function FixRequestStatusPanel({ fixRequest, checkoutReturned }) {
   const status = fixRequest?.status || (checkoutReturned ? "checkout_created" : "new");
@@ -284,13 +284,6 @@ export function FixQuotePanel({ report, hasPriorityFixes }) {
           <p className="quiet-note">Checking your repair queue…</p>
         )}
       </div>
-      {hasPriorityFixes ? (
-        <span className="checkout-action">
-          <a className="action-link paid-action" download href={fixKitDownloadUrl(report.id)}>
-            Download fix files (.zip)
-          </a>
-        </span>
-      ) : null}
     </aside>
   );
 }

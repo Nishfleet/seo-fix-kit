@@ -32,21 +32,6 @@ function useFixKit(reportId) {
   });
 }
 
-export function FixKitIncludes({ reportId }) {
-  const { data } = useFixKit(reportId);
-  if (!data?.manifest || data.unlocked) return null;
-  return (
-    <div className="fix-kit-includes">
-      <p className="fix-kit-label">Included free with your account</p>
-      <ul>
-        {fixKitItems(data.manifest).map((item) => (
-          <li key={item}>{item}</li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
 export function FixKitDownload({ reportId }) {
   const { data } = useFixKit(reportId);
   if (!data?.unlocked || !data.manifest) return null;

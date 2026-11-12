@@ -2,7 +2,6 @@ import { distinctFixes } from "../../shared/fix-patterns.js";
 import { escapeHtml } from "../../shared/html.js";
 import { resolvesToPrivateAddress } from "../../shared/url-safety.js";
 import { betaAccessResponse, betaAccessStatus } from "../lib/auth.js";
-import { hasFixPackFeatures, paidFeatureLockedResponse } from "../lib/paid-features.js";
 import { sendWorkerEmail } from "../lib/email.js";
 import { json, jsonNoStore, secureHeaders } from "../lib/http.js";
 import { checkQuotaSet, requestIpHash } from "../lib/security.js";
@@ -83,7 +82,7 @@ export async function getAuditWidget(request, env, _params, origin) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
   if (!env.WAITLIST_DB) return json({ error: "The audit widget is not set up on this server." }, 503);
-  const unlocked = await hasFixPackFeatures(env, access.ownerEmail, access);
+  const unlocked = Boolean(access.ownerEmail);
   return jsonNoStore(await widgetPayload(env, origin, access.ownerEmail, unlocked));
 }
 
@@ -91,7 +90,6 @@ export async function createAuditWidget(request, env, _params, origin) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
   if (!env.WAITLIST_DB) return json({ error: "The audit widget is not set up on this server." }, 503);
-  if (!(await hasFixPackFeatures(env, access.ownerEmail, access))) return paidFeatureLockedResponse();
   await env.WAITLIST_DB.prepare(
     `INSERT INTO audit_widgets (id, owner_email, created_at) VALUES (?, ?, ?)
      ON CONFLICT(owner_email) DO UPDATE SET revoked_at = NULL`
@@ -110,7 +108,7 @@ export async function revokeAuditWidget(request, env) {
     .run();
   return jsonNoStore({
     ok: true,
-    unlocked: await hasFixPackFeatures(env, access.ownerEmail, access),
+    unlocked: Boolean(access.ownerEmail),
     widget: null,
     leads: []
   });
