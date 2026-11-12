@@ -5,6 +5,7 @@ import { reportFixPrompt } from "../../../shared/ai-fix-prompt.js";
 import { DEFAULT_CRAWL_PAGES } from "../../../shared/crawl-depth.js";
 import { distinctFixes, issuePatternKey } from "../../../shared/fix-patterns.js";
 import { CopyButton } from "../../components/CopyButton.jsx";
+import { FixForMe } from "../../components/FixForMe.jsx";
 import { Metric } from "../../components/Metric.jsx";
 import { findingAnchor, formatCount } from "../../lib/format.js";
 import { summarizePages } from "../../lib/page-scoring.js";
@@ -28,7 +29,7 @@ import { ScoreBadgePanel } from "./ScoreBadgePanel.jsx";
 import { ScoreGain } from "./ScoreGain.jsx";
 import { TeamRepairBoard } from "./TeamRepairBoard.jsx";
 
-export function ReportView({ report, onRerun, rerunStatus = "idle", rerunMessage = "" }) {
+export function ReportView({ report, onRerun, ownerEmail = "", rerunStatus = "idle", rerunMessage = "" }) {
   const issues = useMemo(() => (report.findings || []).filter((finding) => finding.severity !== "good"), [report]);
   const guarded = useMemo(() => (report.findings || []).filter((finding) => finding.severity === "good"), [report]);
   const topFixes = report.repairPlan || [];
@@ -284,6 +285,10 @@ export function ReportView({ report, onRerun, rerunStatus = "idle", rerunMessage
 
               <section className="fix-section" id="fix-pack" aria-label="Fix Pack">
                 <FixQuotePanel report={report} hasPriorityFixes={hasPriorityFixes} />
+              </section>
+
+              <section className="fix-section" aria-label="Have it fixed for you">
+                <FixForMe prefillEmail={ownerEmail} reportId={report.id} site={report.url} />
               </section>
             </div>
 

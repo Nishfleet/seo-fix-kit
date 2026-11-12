@@ -405,6 +405,15 @@ export function checkHtml(origin) {
       .projected strong { color: var(--accent); }
       .prompt-row { align-items: center; display: flex; flex-wrap: wrap; gap: 10px 14px; }
       .prompt-note { color: var(--ink-muted); font-size: 14px; }
+      .fix-for-me { border-top: 1px solid var(--line); display: grid; gap: 10px; padding: 22px 24px; }
+      .fix-for-me h3 { color: var(--ink); margin: 0; }
+      .fix-for-me > p { margin: 0; }
+      .fix-for-me-form { display: grid; gap: 10px; max-width: 460px; }
+      .fix-for-me-form label { color: var(--ink); font-size: 14px; font-weight: 600; }
+      .fix-for-me-consent { color: var(--ink-muted); font-size: 14px; margin: 0; }
+      .fix-for-me-note { color: var(--error); font-size: 14px; margin: 0; }
+      .fix-for-me-confirmation h3 { color: var(--success); }
+      .fix-for-me-confirmation { display: grid; gap: 8px; }
       @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } .measure-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .result-head, .result-next, .result-body, .result-foot { padding-left: 16px; padding-right: 16px; } .check-form .row, .compare-form .row { flex-direction: column; } .compare-table th, .compare-table td { padding: 9px 10px; } main { padding-top: 32px; } }
     </style>
   </head>

@@ -630,6 +630,7 @@ export function BetaApp() {
           {report && (
             <ReportView
               onRerun={() => rerunReport(report)}
+              ownerEmail={ownerEmail}
               report={report}
               rerunMessage={rerunMessage}
               rerunStatus={rerunStatus}
