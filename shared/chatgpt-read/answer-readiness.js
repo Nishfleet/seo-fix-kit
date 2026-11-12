@@ -124,7 +124,6 @@ export function buildChatgptReadResult(report) {
     scannedAt: report?.scannedAt || "",
     durationMs: report?.durationMs || 0,
     robotsChecked: Boolean(report?.crawlerAccess),
-    robotsUrl: report?.crawlerAccess?.path ? report?.url : "",
     verdict,
     bots,
     content,

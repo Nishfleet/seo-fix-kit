@@ -4,11 +4,6 @@ export const SITE_NAV = [
     id: "product",
     items: [
       { href: "/check", label: "Free page check", text: "Check one public page in a real browser. No account." },
-      {
-        href: "/can-chatgpt-read-my-page",
-        label: "AI read check",
-        text: "See if GPTBot, ClaudeBot and PerplexityBot can read your page."
-      },
       { href: "/demo", label: "Sample report", text: "Real engine output for a test page, with the evidence." },
       { href: "/proof", label: "Case study", text: "Our founder’s site, from 85 to 100 in two fixes." },
       { href: "/pricing#plans", label: "Fix Pack", text: "A $99 repair pass with a rerun that confirms it." }
@@ -48,7 +43,6 @@ export const SITE_FOOTER = [
     title: "Product",
     links: [
       { href: "/check", label: "Free page check" },
-      { href: "/can-chatgpt-read-my-page", label: "Can ChatGPT read my page?" },
       { href: "/demo", label: "Sample report" },
       { href: "/proof", label: "Case study" },
       { href: "/pricing", label: "Pricing" }

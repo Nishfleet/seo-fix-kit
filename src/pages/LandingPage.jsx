@@ -156,6 +156,23 @@ export function WaitlistPage() {
           </div>
         </section>
 
+        <section className="landing-tools reveal" aria-labelledby="tools-title">
+          <h2 id="tools-title">Free tools, no account.</h2>
+          <ul>
+            <li>
+              <a href="/check">Free page check</a>
+              <span>Load one public page in a real browser and see the problems that are really there.</span>
+            </li>
+            <li>
+              <a href="/can-chatgpt-read-my-page">Can ChatGPT read my page?</a>
+              <span>
+                See whether GPTBot, ClaudeBot and PerplexityBot may fetch your page under robots.txt, and what the raw
+                HTML they receive holds.
+              </span>
+            </li>
+          </ul>
+        </section>
+
         <ProductTour />
 
         <section className="landing-section" aria-labelledby="how-title">
