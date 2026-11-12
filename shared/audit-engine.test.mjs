@@ -1681,11 +1681,15 @@ test("a checked URL keeps its trailing slash instead of being fetched without it
   const report = await engine.auditUrl("https://public.example/js/", { maxPages: 1, pageSpeed: false });
 
   assert.equal(
-    fetched.includes("https://public.example/js/"),
+    fetched.some((url) => url === "https://public.example/js/"),
     true,
     "the check must fetch the address exactly as it was typed"
   );
-  assert.equal(fetched.includes("https://public.example/js"), false, "the trailing slash must not be dropped");
+  assert.equal(
+    fetched.some((url) => url === "https://public.example/js"),
+    false,
+    "the trailing slash must not be dropped"
+  );
   assert.deepEqual(gotoUrls, ["https://public.example/js/"], "the browser must open the address as typed");
   assert.equal(report.pages[0].url, "https://public.example/js/");
 });
