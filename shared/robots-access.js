@@ -19,6 +19,21 @@ export const AI_CRAWLERS = [
 ];
 
 export function robotsAccess(robots, pageUrl) {
+  const status = robots?.status;
+  if (typeof status === "number" && status >= 400 && status < 500) {
+    const target = new URL(pageUrl);
+    const everyCrawlerAllowed = (list) =>
+      list.map(({ agent, ...rest }) => ({ agent, ...rest, allowed: true, rule: "" }));
+    return {
+      path: `${target.pathname}${target.search}`,
+      sitemaps: [],
+      search: everyCrawlerAllowed(SEARCH_CRAWLERS),
+      ai: everyCrawlerAllowed(AI_CRAWLERS),
+      blockedSearch: [],
+      blockedAnswerBots: [],
+      blockedTrainingBots: []
+    };
+  }
   if (!robots?.ok || typeof robots.body !== "string") return null;
   const robotsUrl = robots.url || new URL("/robots.txt", pageUrl).href;
   const parser = robotsParser(robotsUrl, robots.body);
