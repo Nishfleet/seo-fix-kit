@@ -26,6 +26,7 @@ import { FixKitDownload } from "./FixKitPanel.jsx";
 import { FixRequestStatusPanel, RepairProposalPanel, FixQuotePanel } from "./RepairOfferPanels.jsx";
 import { ScoreBadgePanel } from "./ScoreBadgePanel.jsx";
 import { ScoreGain } from "./ScoreGain.jsx";
+import { GscConnectionPanel } from "./GscPanels.jsx";
 import { TeamRepairBoard } from "./TeamRepairBoard.jsx";
 
 export function ReportView({ report, onRerun, rerunStatus = "idle", rerunMessage = "" }) {
@@ -288,6 +289,7 @@ export function ReportView({ report, onRerun, rerunStatus = "idle", rerunMessage
             </div>
 
             <div className="report-tab-panel" hidden={active !== "repair"} {...tabPanelProps("repair")}>
+              <GscConnectionPanel />
               {(report.repairProposals || []).length > 0 &&
                 (report.repairSprint?.checkoutReady || report.repairSprint?.hasPaidRequest) && (
                   <RepairProposalPanel

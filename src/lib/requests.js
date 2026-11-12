@@ -245,6 +245,31 @@ export async function revokeTeamMember(memberId) {
   });
 }
 
+export async function fetchGscConnection() {
+  return apiFetch("/api/gsc/connection", { fallbackError: "Google Search Console didn’t load. Try again." });
+}
+
+export async function postGscConnect() {
+  return apiFetch("/api/gsc/connect", {
+    method: "POST",
+    fallbackError: "Google sign-in didn’t start. Try again."
+  });
+}
+
+export async function postGscDisconnect() {
+  return apiFetch("/api/gsc/disconnect", {
+    method: "POST",
+    fallbackError: "Google Search Console wasn’t disconnected. Try again."
+  });
+}
+
+export async function postGscSync() {
+  return apiFetch("/api/gsc/sync", {
+    method: "POST",
+    fallbackError: "Google Search Console data didn’t load. Try again."
+  });
+}
+
 export async function fetchReport(id) {
   return apiFetch(`/api/reports/${encodeURIComponent(id)}`, {
     requireOkFlag: false,

@@ -358,6 +358,7 @@ export function TeamRepairBoard({ report }) {
                 </span>
               </summary>
               <div className="issue-board-body">
+                {issue.trafficReason && <p className="issue-board-traffic">{issue.trafficReason}</p>}
                 <p className="issue-board-fix">{issue.fix}</p>
                 <div className="repair-proof-block">
                   <div>

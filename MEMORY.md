@@ -4,6 +4,21 @@ Use this file for durable project truth Codex cannot reliably infer from code al
 
 ## Decisions
 
+- 2026-11-12 (issue #417, owner decision): the read-only Google Search Console
+  connector ships. This supersedes the 2026-08-22 CrawlRaven note that said not
+  to rush a GSC connector: Nish ordered it directly ("lets build both seofixkit
+  and tinystudio.io to the top of their competition"). It stays inside the
+  truth discipline that note demanded: OAuth only through Arctic (arctic 3.x,
+  `Google.createAuthorizationURL` PKCE + `validateAuthorizationCode` +
+  `refreshAccessToken`, `access_type=offline` per its Google provider docs),
+  `webmasters.readonly` scope only, refresh token AES-GCM-encrypted with
+  Web Crypto under `GSC_TOKEN_SECRET`, disconnect revokes and deletes, Search
+  Analytics API for 90-day per-page clicks/impressions, repair queue reordered
+  by clicks at risk via `shared/gsc-traffic.js`, keyword/CSV upload kept as the
+  fallback. Setup: `docs/gsc-connect.md` (Google OAuth client creation is the
+  owner's pending account step). Guarded by `test/gsc-flow.test.mjs` and
+  `shared/gsc-traffic.test.mjs`.
+
 - 2026-10-28 (issue #308): the production D1 database keeps an off-site copy beyond
   Time Travel. Reason: paying customers' email addresses and their
   payment/refund/dispute records live in `seofixkit_waitlist`, Time Travel cannot
