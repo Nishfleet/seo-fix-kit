@@ -18,6 +18,7 @@ import {
   resourceWaterfallBriefLines,
   resourceWaterfallFindings
 } from "./resource-waterfall.js";
+import { answerReadiness } from "./chatgpt-read/answer-readiness.js";
 import { describeBlocked, robotsAccess } from "./robots-access.js";
 import { fetchPublicUrl, isPrivateHost, isPrivateHostname } from "./url-safety.js";
 
@@ -1357,7 +1358,21 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
       });
     }
 
-    if (staticFacts.wordCount < 50 && rendered.wordCount >= 250) {
+    const readiness = answerReadiness({
+      staticWordCount: staticFacts.wordCount,
+      renderedWordCount: rendered.wordCount
+    });
+    if (readiness.status === "javascript-only") {
+      add({
+        type: "issue",
+        severity: "warning",
+        title: `AI answer tools cannot read the content on ${label}`,
+        why: "All the text is added by JavaScript. Google renders JavaScript, but the crawlers behind ChatGPT, Claude and Perplexity read only the raw HTML, so they see an almost empty page.",
+        evidence: `Raw HTML: ${staticFacts.wordCount} words; rendered page: ${rendered.wordCount} words.`,
+        fix: "Send the content in the first HTML: server rendering or pre-rendering.",
+        source: DOCS.javascript,
+        aiReadability: true
+      });
       add({
         type: "guard",
         severity: "good",

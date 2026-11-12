@@ -127,8 +127,14 @@ export function buildPublicCheckResponse(report) {
       evidence: finding.evidence,
       fix: finding.fix
     }));
-  const findings = (report?.findings || [])
-    .filter((finding) => finding?.severity && finding.severity !== "good")
+  const issues = (report?.findings || []).filter(
+    (finding) => finding?.severity && finding.severity !== "good"
+  );
+  const ordered = [
+    ...issues.filter((finding) => finding.aiReadability),
+    ...issues.filter((finding) => !finding.aiReadability)
+  ];
+  const findings = ordered
     .slice(0, 5)
     .map((finding) => ({
       severity: finding.severity,
