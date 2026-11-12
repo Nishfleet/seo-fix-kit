@@ -34,6 +34,7 @@ import {
   runWidgetCheck,
   showWidgetPage
 } from "./routes/audit-widget.js";
+import { apiPageCheck, mcpEndpoint } from "./routes/mcp.js";
 import { json, secureHeaders, withPrivateHeaders, withSecurityHeaders } from "./lib/http.js";
 import { getDeepHealth } from "./routes/health.js";
 import { isSafeUuid } from "./lib/text.js";
@@ -326,6 +327,8 @@ app.post("/api/large-crawls/:id/merge", route(markLargeRenderedCrawlReadyToMerge
 
 app.get("/v1/projects", route(apiListProjects));
 app.post("/v1/projects", route(apiCreateProject));
+app.post("/v1/page-check", route(apiPageCheck));
+app.all("/v1/mcp", route(mcpEndpoint));
 app.get("/v1/audits", route(apiListAudits));
 app.post("/v1/audits", route(apiCreateAudit));
 app.get("/v1/audits/:id", route(apiGetAudit));

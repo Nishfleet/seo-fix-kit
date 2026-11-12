@@ -415,7 +415,6 @@ test("machine-readable public surfaces list proof pages and limits", () => {
   assert.match(llms, /POST \/v1\/audits/);
   assert.match(llms, /GET \/v1\/audits\/\{audit_id\}\/repair-actions\/\{action_id\}\/implementation\.md/);
   assert.match(llms, /repair_action\.fixed/);
-  assert.match(llms, /There is no live SEO Fix Kit MCP endpoint today/);
   assert.match(llms, /Does not expose unauthenticated agent actions/);
   assert.match(llms, /Hosted-only differentiators vs free installable SEO agent skills:/);
   assert.match(llms, /robots\.txt and sitemap crawl inventory up to 50,000 discovered URLs/);
@@ -852,7 +851,6 @@ test("static public skill and sitemap files keep buyer-facing boundaries", () =>
   assert.match(skill, /POST \/api\/developer\/tokens/);
   assert.match(skill, /POST \/v1\/audits/);
   assert.match(skill, /GET \/v1\/audits\/\{audit_id\}\/repair-actions\/\{action_id\}\/proof\.md/);
-  assert.match(skill, /There is no live SEO Fix Kit MCP endpoint today/);
   assert.match(skill, /normal bearer API keys cannot lease or submit rendered proof/i);
   assert.match(skill, /must not claim SEO Fix Kit publishes CMS changes/i);
   assert.match(skill, /## Hosted-Only Differentiators vs Free Installable SEO Agent Skills/);
