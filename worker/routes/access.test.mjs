@@ -155,6 +155,27 @@ function makeAdminEnv() {
             if (/COUNT\(DISTINCT/i.test(sql)) {
               return { first: async () => ({ uniqueFunnelKeys: 9, uniqueEmails: 2 }) };
             }
+            if (/GROUP BY funnel_key/i.test(sql)) {
+              return { all: async () => ({ results: [{ funnel_key: "fk-a" }, { funnel_key: "fk-b" }] }) };
+            }
+            if (/FROM access_events/i.test(sql) && /WHERE step/i.test(sql)) {
+              return { first: async () => null, all: async () => ({ results: [] }) };
+            }
+            if (/COALESCE\(SUM\(count\)/i.test(sql)) {
+              return { first: async () => ({ n: 6 }) };
+            }
+            if (/FROM audit_reports/i.test(sql)) {
+              return { first: async () => ({ n: 5 }) };
+            }
+            if (/FROM beta_sessions/i.test(sql)) {
+              return { first: async () => ({ n: 4 }) };
+            }
+            if (/checkout_created_at/i.test(sql)) {
+              return { first: async () => ({ n: 3 }) };
+            }
+            if (/paid_at/i.test(sql)) {
+              return { first: async () => ({ n: 2 }) };
+            }
             return { first: async () => null, all: async () => ({ results: [] }) };
           }
         };
@@ -175,6 +196,16 @@ test("getFunnelSummary returns steps and conversion rates for an authorized admi
   assert.equal(body.conversionPct.session_created, 20);
   assert.equal(body.totals.uniqueFunnelKeys, 9);
   assert.equal(body.totals.uniqueEmails, 2);
+  assert.equal(body.growthFunnel.weeks.length, 8);
+  assert.deepEqual(body.growthFunnel.weeks[0].steps, {
+    visits: 2,
+    checks: 6,
+    accounts: 4,
+    audits: 5,
+    checkouts: 3,
+    paid: 2
+  });
+  assert.match(body.growthFunnel.weeks[0].label, /^\d{4}-\d{2}-\d{2} to \d{4}-\d{2}-\d{2}$/);
 });
 
 test("repair proposal delivery state fails loudly when the proposals table is unavailable", async () => {

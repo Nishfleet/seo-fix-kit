@@ -310,6 +310,9 @@ export function buildOpsDigestEmail({ appOrigin, snapshot }) {
     `Audits: ${snapshot.runningJobs ?? 0} running, ${snapshot.queuedJobs ?? 0} queued, ${snapshot.failedJobs24h ?? 0} failed in 24h`,
     `Monitors overdue: ${snapshot.overdueSchedules ?? 0}`,
     snapshot.oldestOpenCreatedAt ? `Oldest open request: ${snapshot.oldestOpenCreatedAt}` : "",
+    snapshot.growthFunnel?.steps
+      ? `Last week (${snapshot.growthFunnel.label}): visits ${snapshot.growthFunnel.steps.visits}, free page checks ${snapshot.growthFunnel.steps.checks}, accounts ${snapshot.growthFunnel.steps.accounts}, site audits ${snapshot.growthFunnel.steps.audits}, checkouts started ${snapshot.growthFunnel.steps.checkouts}, Fix Packs paid ${snapshot.growthFunnel.steps.paid}`
+      : "",
     "",
     `Admin: ${appOrigin}/beta/admin`
   ]
@@ -328,6 +331,9 @@ export function buildOpsDigestEmail({ appOrigin, snapshot }) {
     `<li><strong>Monitors overdue:</strong> ${snapshot.overdueSchedules ?? 0}</li>`,
     snapshot.oldestOpenCreatedAt
       ? `<li><strong>Oldest open request:</strong> ${escapeHtml(snapshot.oldestOpenCreatedAt)}</li>`
+      : "",
+    snapshot.growthFunnel?.steps
+      ? `<li><strong>Last week (${snapshot.growthFunnel.label}):</strong> visits ${snapshot.growthFunnel.steps.visits}, free page checks ${snapshot.growthFunnel.steps.checks}, accounts ${snapshot.growthFunnel.steps.accounts}, site audits ${snapshot.growthFunnel.steps.audits}, checkouts started ${snapshot.growthFunnel.steps.checkouts}, Fix Packs paid ${snapshot.growthFunnel.steps.paid}</li>`
       : "",
     "</ul>",
     emailButton(`${appOrigin}/beta/admin`, "Open admin queue")

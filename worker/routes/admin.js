@@ -27,6 +27,7 @@ import { body, email, isoDateSchema, number, optionalEmail, parseJsonBody, text,
 import { deleteAccount, deletionBlockedMessage } from "../lib/account-deletion.js";
 import { adminAccessStatus, adminDeniedJson, createBetaSession, logAdminAction } from "../lib/auth.js";
 import { countRows } from "../lib/db.js";
+import { growthFunnelWeek, growthFunnelWeekBounds, growthFunnelWeeks } from "../lib/growth-funnel.js";
 import { summarizeAccessEvents } from "../lib/access-events.js";
 import { PRESERVED_FIX_REQUEST_STATUSES, hydrateReportRow, preserveFixRequestReports } from "../lib/report-data.js";
 import { repairProposalSummaryForFixRequest } from "../lib/repair-proposal-summary.js";
@@ -368,7 +369,9 @@ async function getFunnelSummary(request, env) {
 
   const url = new URL(request.url);
   const windowDays = Math.max(1, Math.min(Number(url.searchParams.get("windowDays") || 7), 90));
+  const growthWeeks = Math.max(1, Math.min(Number(url.searchParams.get("weeks") || 8), 26));
   const summary = await summarizeAccessEvents(env, { windowMs: windowDays * 24 * 60 * 60 * 1000 });
+  const growthFunnel = await growthFunnelWeeks(env, { weeks: growthWeeks });
 
   return jsonNoStore({
     ok: true,
@@ -376,7 +379,8 @@ async function getFunnelSummary(request, env) {
     steps: summary.steps || {},
     conversionPct: summary.conversionPct || {},
     totals: summary.totals || {},
-    order: summary.order || []
+    order: summary.order || [],
+    growthFunnel: { weeks: growthFunnel }
   });
 }
 
@@ -772,6 +776,7 @@ async function buildOpsSnapshot(env, options = {}) {
     DIGEST_QUERY_CONCURRENCY,
     (query) => query()
   );
+  const growthFunnel = await growthFunnelWeek(env, growthFunnelWeekBounds(new Date(now), 1));
   return {
     openPaid,
     inProgress,
@@ -784,7 +789,8 @@ async function buildOpsSnapshot(env, options = {}) {
     runningJobs,
     queuedJobs,
     failedJobs24h,
-    overdueSchedules
+    overdueSchedules,
+    growthFunnel
   };
 }
 
