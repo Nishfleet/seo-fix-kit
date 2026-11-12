@@ -422,7 +422,7 @@ export function checkHtml(origin) {
           <input class="field" id="url-input" name="url" type="text" inputmode="url" autocomplete="off" placeholder="https://example.com/about" required />
           <button class="btn btn-primary" id="check-button" type="submit">Check this page</button>
         </div>
-        <p class="form-note">Free for any public page. One page per check; only short-lived rate-limit counters are kept.</p>
+        <p class="form-note">Free. One page per check; only short-lived rate-limit counters are kept. Check only pages you own or are authorized to audit.</p>
       </form>
       <section class="result" id="result" aria-live="polite" tabindex="-1"></section>
       <section class="grid" aria-label="What the check returns">

@@ -621,6 +621,11 @@ test("public one-page check page is a truthful, searchable entry path", () => {
   assert.match(check, /does not guarantee rankings, traffic, indexing, revenue, AI citations/i);
   assert.match(check, /Create a free account/);
   assert.match(check, /only short-lived rate-limit counters are kept/i);
+  assert.match(
+    check,
+    /<p class="form-note">Free\. One page per check; only short-lived rate-limit counters are kept\. Check only pages you own or are authorized to audit\.<\/p>/,
+    "the form note must carry the authorization sentence next to the button"
+  );
   assert.match(check, /Check only pages you own or are authorized to audit\./);
   assert.match(check, /no report or URL is stored/i);
   assert.match(check, /Frequently asked questions/);
