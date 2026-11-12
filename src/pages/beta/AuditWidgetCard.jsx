@@ -26,13 +26,13 @@ export function AuditWidgetCard() {
           <p className="app-card-subtle">
             Put a free SEO check on your own site. Visitors enter their site and email, see their score and top
             problems, and you get the lead by email. It uses your report branding.
-            {locked && " Included with the Fix Pack: buy one on any report with open problems to turn it on."}
+            {locked && " Free with your account: open any of your reports to turn it on."}
           </p>
         </div>
         {locked && (
           <div className="app-card-actions">
             <a className="app-button-secondary" href="/pricing#plans">
-              See what the Fix Pack includes
+              See what's included
             </a>
           </div>
         )}

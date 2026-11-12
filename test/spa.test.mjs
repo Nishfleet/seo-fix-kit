@@ -290,7 +290,7 @@ test("homepage FAQ shows the buyer questions, the anonymous /check path, and no-
   const faq = page.locator("details").filter({ has: page.locator("summary") });
   for (const question of [
     "Do I need an account?",
-    "What does the Fix Pack include?",
+    "What do the fix files include?",
     "Do you check AI search?",
     "What doesn’t SEO Fix Kit do?"
   ]) {

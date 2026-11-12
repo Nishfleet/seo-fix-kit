@@ -23,7 +23,7 @@ const checkedPage = {
   ]
 };
 
-test("a stranger buys a Fix Pack from the free check without retyping the page", async ({
+test("a stranger signs up from the free check and downloads the fix files without paying", async ({
   page,
   request
 }, testInfo) => {
@@ -69,28 +69,22 @@ test("a stranger buys a Fix Pack from the free check without retyping the page",
   );
   await page.getByRole("button", { name: "Run audit" }).click();
   await expect(page).toHaveURL(new RegExp(`/beta/reports/${id}$`));
-  const fixPack = page.locator(".paid-panel");
-  await expect(fixPack.getByText("$99.00")).toBeVisible();
+  const fixFiles = page.locator(".paid-panel");
+  await expect(fixFiles.getByText("Get every fix ready to ship — free")).toBeVisible();
   mark("full report with the fixes");
 
-  await page.route("https://test.dodopayments.com/**", (route) =>
-    route.fulfill({
-      contentType: "text/html",
-      body: "<!doctype html><title>Dodo checkout</title><h1>Dodo test checkout</h1>"
-    })
-  );
-  await fixPack.getByRole("button", { name: "Buy Fix Pack" }).click();
-  await expect(page).toHaveURL(/^https:\/\/test\.dodopayments\.com\/session\/cs_e2e_\d+$/);
-  mark("Fix Pack checkout opened");
+  const reportText = await page.locator("body").innerText();
+  expect(reportText).not.toMatch(/\$\d/);
+  expect(reportText).not.toContain("Buy Fix Pack");
 
-  const paid = await (await request.post("/__e2e/dodo/pay", { data: { ownerEmail: email } })).json();
-  expect(paid).toMatchObject({ received: true, paid: true });
-  await page.goto(`/beta/reports/${id}?checkout=return&fixRequestId=${paid.fixRequestId}`);
-  await expect(page.getByText("Payment confirmed").first()).toBeVisible();
+  const zip = await page.request.get(`/api/reports/${id}/fix-kit.zip`);
+  expect(zip.status()).toBe(200);
+  expect(zip.headers()["content-type"]).toBe("application/zip");
+
   const download = page.waitForEvent("download");
-  await page.getByRole("link", { name: "Download fix files (.zip)" }).click();
+  await page.getByRole("link", { name: "Download fix files (.zip)" }).first().click();
   expect((await download).suggestedFilename()).toBe("seo-fix-kit-acme-widgets-example.zip");
-  mark("paid and downloaded");
+  mark("downloaded free, no payment");
 
   console.log(`stranger path steps: ${JSON.stringify(steps)}`);
 });

@@ -3,8 +3,6 @@ import { escapeHtml } from "../../shared/audit-engine.js";
 import { FREE_TOOLS } from "../../shared/free-tools/catalog.js";
 import { DEMO_PROOF, DEMO_FIXTURE_PATH, demoProofSnippet } from "./demo-proof.js";
 
-const FIX_PACK_PUBLIC_PRICE = "$99.00 one-time";
-
 const SOCIAL_IMAGE_PATH = "/og-image.png";
 const SOCIAL_IMAGE_WIDTH = 1200;
 const SOCIAL_IMAGE_HEIGHT = 630;
@@ -20,16 +18,16 @@ function socialImageMeta() {
 function llmsText(origin) {
   return `# SEO Fix Kit
 
-SEO Fix Kit is a private-beta, self-serve SEO audit and paid Fix Pack workflow.
+SEO Fix Kit is a private-beta, self-serve SEO audit and repair workflow. Everything is free.
 
 ## Pages
 - [${origin}/](https://seofixkit.com/): Landing page with proof-backed SEO repair pitch and free one-page check entry.
 - [${origin}/check](https://seofixkit.com/check): Anonymous one-page browser-rendered SEO audit. No account, no stored report, no ranking promises.
 - [${origin}/demo](https://seofixkit.com/demo): Public sample report showing rendered-vs-static false-positive guards and repair briefs.
 - [${origin}/methodology](https://seofixkit.com/methodology): Proof standard, limits, and boundaries. No live AI-engine sampling, no citation monitoring, no ranking guarantees.
-- [${origin}/pricing](https://seofixkit.com/pricing): Pricing: free page checks, free beta site audits, and the $99 one-time Fix Pack. Dodo checkout is the price source of truth.
+- [${origin}/pricing](https://seofixkit.com/pricing): Pricing: everything is free - page checks, site audits, the fix files and the weekly re-check.
 - [${origin}/proof](https://seofixkit.com/proof): Before/after repair proof receipt from a completed beta repair. Published with consent.
-- [${origin}/small-business-seo-audit](https://seofixkit.com/small-business-seo-audit): Proof-backed SEO audit for small businesses. Check one page free, pay only when real fixes exist.
+- [${origin}/small-business-seo-audit](https://seofixkit.com/small-business-seo-audit): Proof-backed SEO audit for small businesses. Check one page free, download the fix files free.
 - [${origin}/rendered-vs-static-seo-audit](https://seofixkit.com/rendered-vs-static-seo-audit): Renders pages in a real browser to compare raw HTML with the rendered DOM — guarding static-crawler false positives and showing AI crawler visibility for JavaScript-blind crawlers like GPTBot, ClaudeBot, PerplexityBot, and CCBot.
 - [${origin}/ai-answer-readiness](https://seofixkit.com/ai-answer-readiness): Proof-derived AI Answer Readiness from rendered content, schema, links, sitemap context, and optional llms.txt. Site-proof, not citation monitoring.
 - [${origin}/support](https://seofixkit.com/support): Support and contact page.
@@ -62,8 +60,8 @@ Live product claims:
 - The account dashboard includes a repair-agent feed that ranks open repairs, drafted actions, applied items needing rerun proof, and monitor regressions.
 - Developer API issue/report responses include safe repair_queue status. Approved-action implementation packs are fetched from /v1/audits/{audit_id}/repair-actions/{action_id}/implementation.md; fixed-action proof receipts are fetched from /v1/audits/{audit_id}/repair-actions/{action_id}/proof.md; repair-action lifecycle webhooks are supported.
 - Reports include SEO/GEO readiness checks for crawlable answer content, entity clarity, useful schema, internal context, and optional llms.txt boundaries.
-- Dodo is the source of truth for visible Fix Pack pricing and checkout.
-- Paid Fix Pack fulfillment includes a downloadable fix-files bundle (fix checklist, tracker CSV, per-page code, sitemap.xml, robots.txt changes, llms.txt, broken-link list, AI prompt), owner-approved repair proposals, status, delivery notes, and one rerun after fixes.
+- Dodo remains the payment provider for legacy paid orders; no new checkout is offered. The fix files are free for any signed-in owner.
+- Fix Pack features (the fix-files bundle with fix checklist, tracker CSV, per-page code, sitemap.xml, robots.txt changes, llms.txt, broken-link list, AI prompt, plus report branding and the audit widget) are free for any signed-in account on its own audits.
 - Proof Monitoring checkout is config-gated behind the Dodo subscription product and webhook entitlement sync; access activates from subscription webhooks, not redirects.
 - Repair Sprint checkout is config-gated behind the Dodo one-time product and opens only from approved executable proposal queues.
 - Agency Workspace features run under beta limits; paid Agency Workspace checkout is not live yet.
@@ -73,7 +71,7 @@ Hosted-only differentiators vs free installable SEO agent skills:
 - Hosted rendered crawl scope: self-serve audits up to 1,000 pages per queued audit, robots.txt and sitemap crawl inventory up to 50,000 discovered URLs, and staged large rendered crawl jobs for 50,000-page targets (early access; batches render gradually, never sold as completed 50K rendered validation).
 - Persistent repair queue: proven issues stay tracked across saved reports with approval state, acceptance checks, status, and fixed-rerun proof receipts.
 - Owner-approved implementation packs: private handoff documents with source proof and approval state for approved repair actions.
-- Paid Fix Pack fulfillment: one proof-backed repair pass per report plus one rerun after fixes, with Dodo as the checkout and visible-price source of truth.
+- Paid Fix Pack fulfillment: legacy paid orders only. New orders are not accepted; the same fix files are free for any signed-in owner.
 - Why not just use a free AI SEO agent skill? The plain answer is on ${origin}/methodology; the same boundaries apply to both, including no live AI-engine sampling, no AI citation monitoring, and no ranking guarantees.
 
 Agent-readable acquisition and action surfaces:
@@ -132,7 +130,7 @@ function homeMarkdown(origin) {
 
 Proof-backed SEO audits, self-serve repair queue, private implementation packs, and approval-safe repair-agent workflow.
 
-Request a secure email access link to run a rate-limited private audit. The paid Fix Pack is one proof-backed repair pass for one report plus one rerun after fixes. No ranking promise is made.
+Request a secure email access link to run a rate-limited private audit. Everything is free: the audits, the repair queue, the fix files and the weekly re-check. No ranking promise is made.
 
 Public proof before payment:
 - Anonymous one-page check: ${origin}/check
@@ -337,7 +335,7 @@ ${DEMO_PROOF.repairPlan.map((item) => `          <li><strong>${escapeHtml(item.s
         <p>On this test page, the raw HTML suggested a missing H1, missing internal links and thin content: ${DEMO_PROOF.measured.staticWordCount} visible words in the raw HTML against ${DEMO_PROOF.measured.renderedWordCount} rendered words. The same comparison filters missing-H1 and missing-link warnings on any site that builds its content with JavaScript.</p>
         <p>This matters when an AI agent does the fixing. If a scanner says “add an H1” when the page already has one, the agent adds a duplicate heading and makes the page worse. SEO Fix Kit keeps that item out of the repair queue and says why.</p>
       </section>
-      <section class="grid" aria-label="What a paid Fix Pack uses from the sample">
+      <section class="grid" aria-label="What the fix files use from the sample">
         <article class="panel proof">
           <strong>Evidence</strong>
           <p>Each problem shows the page URL, the rendered facts, the evidence, and whether it is a real problem or a filtered false alarm. These are the same fields as the engine output above.</p>
@@ -388,7 +386,7 @@ function methodologyHtml(origin) {
           <li>One-page checks at <a href="${origin}/check">${origin}/check</a>, with no account and nothing stored. You get the rendered evidence, the false alarms that were ruled out, and the real problems with fixes.</li>
           <li>Site audits of up to 1,000 pages for sites you have verified. Before verification, you can run a one-page audit.</li>
           <li>Rendered page checks, a sitemap inventory of up to 50,000 URLs, internal links and duplicate content, page load waterfalls, WordPress and online store checks, AI Answer Readiness, draft-only growth briefs, competitor homepage comparisons, and imports of your backlink, local and keyword data.</li>
-          <li>A repair queue on every report: evidence, status, draft actions, approvals, implementation notes for your developer, confirmation after each rerun, and teammate assignment. Reports with real problems offer the Fix Pack.</li>
+          <li>A repair queue on every report: evidence, status, draft actions, approvals, implementation notes for your developer, confirmation after each rerun, and teammate assignment. Reports with real problems include the fix files.</li>
           <li>A developer API and webhooks for audits, reports and the repair queue.</li>
         </ul>
         <p><a class="cta" href="${origin}/check">Check a page</a></p>
@@ -448,7 +446,7 @@ function methodologyHtml(origin) {
       <section class="band">
         <h2>Compared with free AI SEO agent skills</h2>
         <p>Free SEO skills you install in an AI agent are useful for quick one-page checks: read a page, spot a missing title, draft a fix. Open-source SEO tooling is good at that, and you should keep using it. Those skills run one prompt at a time and keep nothing between runs.</p>
-        <p>SEO Fix Kit handles what needs a server: audits of up to 1,000 pages, a sitemap inventory of up to 50,000 URLs, staged large crawls, a repair queue that keeps approvals and rerun results, implementation notes, and the Fix Pack. For one page, <a href="${origin}/check">${origin}/check</a> is free with no account. For a whole site, see <a href="${origin}/pricing">pricing</a>.</p>
+        <p>SEO Fix Kit handles what needs a server: audits of up to 1,000 pages, a sitemap inventory of up to 50,000 URLs, staged large crawls, a repair queue that keeps approvals and rerun results, implementation notes, and the fix files. For one page, <a href="${origin}/check">${origin}/check</a> is free with no account. For a whole site, see <a href="${origin}/pricing">pricing</a>.</p>
       </section>
     `
   });
@@ -474,11 +472,11 @@ const PRICING_PLANS = [
   },
   {
     key: "fixpack",
-    name: "Fix Pack",
-    price: FIX_PACK_PUBLIC_PRICE.replace(/\.00 one-time$/, ""),
-    cadence: "One-time, per report",
+    name: "Fix files",
+    price: "Free",
+    cadence: "With any site audit",
     summary:
-      "Download every fix as ready-to-ship files, go through them with us, then rerun the audit to show what got fixed.",
+      "Download every fix as ready-to-ship files, work through them with your developer or AI tool, then rerun the audit to show what got fixed.",
     cta: { label: "Start with a free audit", href: "/#get-started" }
   }
 ];
@@ -500,22 +498,17 @@ const PRICING_FEATURES = [
   { label: "Fix list as a spreadsheet for Jira, Trello or Asana", plans: ["fixpack"] },
   { label: "Your logo, colours and domain on client reports", plans: ["fixpack"] },
   { label: "Lead-capture audit widget for your own site", plans: ["fixpack"] },
-  { label: "Guided repair pass on one report", plans: ["fixpack"] },
   { label: "Rerun that confirms each fix", plans: ["fixpack"] }
 ];
 
 const PRICING_FAQ = [
   {
-    q: "When do I pay?",
-    a: `Only if you buy a Fix Pack. Page checks and site audits are free during the beta. The Fix Pack (${FIX_PACK_PUBLIC_PRICE}) is offered on reports with real problems, and the final price including any local tax is shown at checkout before you pay.`
+    q: "What does it cost?",
+    a: "Nothing. Page checks, site audits, the repair queue, the fix files, report branding and the weekly re-check are all free. No checkout is offered anywhere on the site."
   },
   {
-    q: "Who processes payment?",
-    a: "Dodo Payments handles checkout as merchant of record: cards, local taxes and receipts. We never see or store your card details."
-  },
-  {
-    q: "What if the Fix Pack can’t start?",
-    a: "If you have paid and the repair pass can’t start, we refund you in full. The support page has the refund policy."
+    q: "Can I have the fixes done for me?",
+    a: "That is a separate paid service by TinyStudio (tinystudio.io). SEO Fix Kit stays free and does not publish changes to your site: you approve each fix, your developer ships it, and the rerun confirms it."
   },
   {
     q: "Do you guarantee rankings or traffic?",
@@ -526,8 +519,8 @@ const PRICING_FAQ = [
     a: "No. You approve each fix and your developer ships it. Then we rerun the audit to confirm."
   },
   {
-    q: "How is this different from GEO Auditor’s $29 Agent Fix Mode?",
-    a: "GEO Auditor’s Agent Fix Mode gives you one command, and your AI agent applies every fix automatically. That is fast and fairly priced. The Fix Pack is slower and more careful: every fix comes with evidence from a real browser, you approve each one before anything changes, and a rerun shows what actually got fixed."
+    q: "I paid for a Fix Pack before. What happens now?",
+    a: "Everything you paid for stays as it is: your delivery, your rerun and your perks remain. No refund is triggered and no data is removed."
   },
   {
     q: "Is monitoring included?",
@@ -587,10 +580,11 @@ function pricingHtml(origin) {
     origin,
     path: "/pricing",
     title: "Pricing",
-    description: `Free page checks and free site audits during the beta. The ${FIX_PACK_PUBLIC_PRICE} Fix Pack is offered only when a report finds real problems.`,
+    description:
+      "Everything on SEO Fix Kit is free: page checks, site audits, the repair queue, the fix files and the weekly re-check. Having the fixes done for you is a separate paid service by TinyStudio.",
     eyebrow: "Pricing",
-    heading: "Audits are free. Fixes are $99 per report.",
-    lead: "Check a page or audit up to 1,000 pages free during the beta. When a report finds real problems, the Fix Pack gives you every fix as ready-to-ship files, a guided repair pass and the rerun that confirms it.",
+    heading: "Everything is free.",
+    lead: "Check a page, audit up to 1,000 pages, download every fix as ready-to-ship files and rerun the audit to confirm them. No payment, no checkout. Having the fixes done for you is a separate paid service by TinyStudio.",
     body: `
       <section class="plans" id="plans" aria-label="Plans">${cards}
       </section>
@@ -657,7 +651,7 @@ function smallBusinessSeoAuditHtml(origin) {
     path: "/small-business-seo-audit",
     title: "Small Business SEO Audit",
     description:
-      "An SEO audit for small business sites: check one page free, see the evidence behind each problem, and pay for a repair pass only when there is something real to fix.",
+      "An SEO audit for small business sites: check one page free, see the evidence behind each problem, and download the fix files free once there is something real to fix.",
     eyebrow: "Small business SEO audit",
     heading: "An SEO audit that shows its evidence.",
     lead: "Most audit tools hand small businesses a long list of red flags and a generic checklist. SEO Fix Kit checks one page free, shows the rendered evidence behind each problem, and only queues a fix when the page a visitor sees is actually wrong.",
@@ -676,7 +670,7 @@ function smallBusinessSeoAuditHtml(origin) {
       <section class="grid three" aria-label="How to start">
         <article class="panel proof"><strong>Free one-page check</strong><p>Paste a public URL at ${origin}/check. You get the rendered evidence, the false alarms ruled out, and real problems with fixes. No account, no email, nothing stored.</p></article>
         <article class="panel"><strong>Audit your whole site</strong><p>Sign in with an emailed link to run audits. Once you verify the site, each audit can cover up to 1,000 pages.</p></article>
-        <article class="panel"><strong>Fix Pack when you need it</strong><p>One repair pass on one report, plus one rerun after the fixes ship. You see the price at checkout before you pay.</p></article>
+        <article class="panel"><strong>Fix files when you need them</strong><p>Download every fix as ready-to-ship files: a checklist, per-page code, sitemap and robots.txt changes. Free with any site audit. If you want the fixes done for you, that is a separate paid service by <a href="https://tinystudio.io" rel="noopener" target="_blank">TinyStudio</a>.</p></article>
       </section>
       <section class="band">
         <h2>Why evidence beats a checklist</h2>
@@ -698,8 +692,8 @@ function smallBusinessSeoAuditHtml(origin) {
         a: "Yes. The one-page check at /check loads one public URL in a real browser and shows the evidence and any problems it finds. No account, no email, nothing stored."
       },
       {
-        q: "What does the Fix Pack include?",
-        a: "One repair pass on one saved report, plus one rerun after your fixes ship. You see the price at checkout before you pay. No ranking, traffic or revenue promise is made."
+        q: "What do the fix files include?",
+        a: "Every fix on a saved report as ready-to-ship files: a checklist, per-page code, sitemap and robots.txt changes, plus one rerun after your fixes ship. Free with any site audit. No ranking, traffic or revenue promise is made."
       },
       {
         q: "Do I need to verify my site first?",
@@ -925,9 +919,10 @@ function aboutHtml(origin) {
       <section class="band">
         <h2>The company</h2>
         <ul class="check-list">
-          <li>SEO Fix Kit is in beta. Page checks, site audits of up to 1,000 pages and the ${FIX_PACK_PUBLIC_PRICE.replace(" one-time", "")} Fix Pack are live today.</li>
+          <li>SEO Fix Kit is in beta. Page checks, site audits of up to 1,000 pages, the fix files and the weekly re-check are all free today.</li>
           <li>It runs on Cloudflare: pages are rendered with Cloudflare’s browser service and reports are stored in Cloudflare’s data centres.</li>
-          <li>Payments are handled by Dodo Payments as merchant of record. We never see your card details.</li>
+          <li>Nothing on SEO Fix Kit is for sale. Having the fixes done for you is a separate paid service by TinyStudio (tinystudio.io).</li>
+          <li>Dodo Payments remains the payment provider for Fix Packs bought before the product became free; we never saw your card details.</li>
           <li>Full site audits run only on sites whose owners have verified them. The free page check stores nothing.</li>
         </ul>
       </section>
@@ -1278,11 +1273,11 @@ ${pageSocialHead({ origin, title: "Privacy - SEO Fix Kit", description: "What SE
     ${siteHeader(origin)}
     <main class="hero-light" id="main">
       <h1>Privacy</h1>
-      <p>SEO Fix Kit ("we") collects only what we need to sign you in, run your audits, take payment for a Fix Pack, and send you repair updates. We are the data controller for this information. Contact us at <a href="mailto:support@seofixkit.com">support@seofixkit.com</a>.</p>
+      <p>SEO Fix Kit ("we") collects only what we need to sign you in, run your audits, keep records of Fix Packs bought before the product became free, and send you repair updates. We are the data controller for this information. Contact us at <a href="mailto:support@seofixkit.com">support@seofixkit.com</a>.</p>
       <ul>
         <li>We store your email address, signup source, UTM fields, landing path, referrer, browser user agent, country code when Cloudflare provides it, signup timestamps, and short-lived access-link records.</li>
         <li>Private audits store the website URL, rendered-page audit findings, screenshots or extracted page facts when available, report owner, beta session reference, target host, and report expiry timestamp.</li>
-        <li>Fix Pack records store checkout status, Dodo payment identifiers, payment amount and currency, fulfillment notes, final rerun report links, delivery notifications, and admin audit events. We never see or store your card details; Dodo Payments processes payment as merchant of record under its own privacy policy.</li>
+        <li>Fix Pack records (legacy paid orders only) store checkout status, Dodo payment identifiers, payment amount and currency, fulfillment notes, final rerun report links, delivery notifications, and admin audit events. No new payments are taken. We never saw or stored your card details; Dodo Payments processed payment as merchant of record under its own privacy policy.</li>
         <li>Audit widgets and score badges: when you check a site through an audit widget on someone else's website, we store the email and site address you enter, the score and problem count, and pass them to that widget's owner, who decides how to contact you. Public score badges and score pages show only a site's score, problem count and trend, never the problems themselves. Widget leads are deleted after 12 months.</li>
         <li>Cookies and local browser storage: we set only essential, HttpOnly session cookies (beta login, admin login, and report-unlock state), and the beta dashboard may keep your access email and dashboard state in sessionStorage on your device. No advertising, analytics, or cross-site tracking cookies are set.</li>
         <li>Processors: Cloudflare (hosting, database, email delivery, browser rendering; data may be processed anywhere on Cloudflare's network), Dodo Payments (checkout and payment webhooks), and Sentry (Functional Software, Inc., USA; error monitoring: when the service hits an error, a scrubbed error report with the request method, path and stack trace is sent, with request bodies, cookies, query strings and email addresses removed).</li>
@@ -1291,7 +1286,7 @@ ${pageSocialHead({ origin, title: "Privacy - SEO Fix Kit", description: "What SE
         <li>Deletion: delete your account yourself under Billing in your account (sign in with an email link first, even if you only joined the waitlist). It takes effect right away and removes your reports and stored report files, sites, checks, alerts, API keys, team, widget and badge data, settings, sign-in records and waitlist signup, and your email from other accounts' teams and repair boards. We keep only the payment records accounting and tax rules require (amounts, dates, payment, refund and dispute IDs), with your email, site and notes removed; Dodo Payments keeps its own records as merchant of record. If a Fix Pack is paid but not delivered, or a refund, dispute or subscription is still open, deletion waits until it settles. Deletion requests sent to <a href="mailto:support@seofixkit.com">support@seofixkit.com</a> run through the same process once we confirm the address is yours.</li>
         <li>Access: email <a href="mailto:support@seofixkit.com">support@seofixkit.com</a> (or reply to any email we send) for a copy of your data. We answer verified requests within 30 days.</li>
       </ul>
-      <p>Last updated: October 28, 2026.</p>
+      <p>Last updated: November 12, 2026.</p>
     </main>
     ${siteFooter(origin)}
   </body>
@@ -1304,19 +1299,19 @@ function supportHtml(origin) {
     title: "Support",
     path: "/support",
     description:
-      "Email support@seofixkit.com for help with audits, the Fix Pack, billing, refunds or security reports.",
+      "Email support@seofixkit.com for help with audits, the fix files, legacy Fix Pack billing or security reports.",
     body: `
       <p>Email <a href="mailto:support@seofixkit.com">support@seofixkit.com</a> with any question or problem, including an email you expected that never arrived. You can also reply to any SEO Fix Kit email; we use that thread to confirm the account is yours.</p>
 
       <h2>What to include</h2>
-      <p>Include your account email, the site, the report link or ID, your checkout email if it is different, and the repair-queue item you are asking about. For a rerun question, say what changed on the site and when it shipped. For billing, include the Dodo receipt email, the payment date, and whether the Fix Pack repair pass has started.</p>
+      <p>Include your account email, the site, the report link or ID, and the repair-queue item you are asking about. For a rerun question, say what changed on the site and when it shipped. For a legacy paid Fix Pack, include the Dodo receipt email, the payment date, and whether the repair pass has started.</p>
 
-      <h2>Fix Pack support</h2>
+      <h2>Fix Pack support (legacy paid orders)</h2>
       <ul>
-        <li>The Fix Pack covers one repair pass on one report, plus one rerun after the fixes ship.</li>
+        <li>Nothing on SEO Fix Kit is for sale now. Fix Packs bought before the product became free keep everything they paid for; no refund is triggered by the change.</li>
+        <li>A legacy Fix Pack covered one repair pass on one report, plus one rerun after the fixes ship.</li>
         <li>No ranking, traffic, or revenue promise is made.</li>
-        <li>If payment succeeds but the repair pass can’t start, you get a full refund.</li>
-        <li>Refunds: a full refund on request within 14 days of payment if the repair pass has not started. After work starts, requests are reviewed against the Dodo payment record, the report and the delivery status.</li>
+        <li>If payment succeeded but the repair pass could not start, you got a full refund.</li>
         <li>Security or abuse reports should include the affected URL, account email, and timestamp.</li>
       </ul>
 
@@ -1328,7 +1323,7 @@ function supportHtml(origin) {
 
       <h2>Ownership and deletion</h2>
       <p>SEO Fix Kit is for sites you own or are authorized to audit. We may pause audits, delete reports or revoke access when ownership is unclear, the target looks abusive, or a crawl could overload someone else’s site. To delete your account and its data, use Delete account under Billing in your account. To get a copy of your data, email us from your account address or reply to an SEO Fix Kit email so we can confirm it is you.</p>
-      <p>Last updated: October 28, 2026.</p>
+      <p>Last updated: November 12, 2026.</p>
     `
   });
 }
@@ -1340,11 +1335,11 @@ function termsHtml(origin) {
     path: "/terms",
     description: "The terms for using SEO Fix Kit: audits, the Fix Pack, payments, refunds and liability.",
     body: `
-      <p>These terms govern your use of SEO Fix Kit at seofixkit.com ("the service", "we", "us"). By requesting access, running an audit, or purchasing a Fix Pack you agree to them. Contact: <a href="mailto:support@seofixkit.com">support@seofixkit.com</a>.</p>
+      <p>These terms govern your use of SEO Fix Kit at seofixkit.com ("the service", "we", "us"). By requesting access or running an audit you agree to them. Contact: <a href="mailto:support@seofixkit.com">support@seofixkit.com</a>.</p>
 
       <h2>The service</h2>
       <ul>
-        <li>SEO Fix Kit provides SEO audits and a paid Fix Pack: one repair pass on the confirmed problems in one report, plus one rerun after the fixes.</li>
+        <li>SEO Fix Kit provides free SEO audits, a repair queue and the fix files for saved reports. Nothing on SEO Fix Kit is for sale; no checkout is offered. Fix Packs bought before the product became free remain governed by the payment terms below.</li>
         <li>Reports are diagnostic. They reflect what the crawl and browser render could observe at scan time and may miss issues outside that scope.</li>
         <li>No ranking, indexing, traffic, revenue, or search-engine outcome is promised or implied, before or after repairs.</li>
         <li>The service is in active development; features may change, and beta access may be adjusted or revoked for abuse.</li>
@@ -1357,12 +1352,11 @@ function termsHtml(origin) {
         <li>Do not use the service to probe, attack, or overload third-party sites or infrastructure.</li>
       </ul>
 
-      <h2>Payments and refunds</h2>
+      <h2>Payments and refunds (legacy paid Fix Packs only)</h2>
       <ul>
-        <li>Checkout, payment processing, currency handling, refunds, and disputes are processed by Dodo Payments as merchant of record. The price shown at checkout is the price charged.</li>
-        <li>If your Fix Pack repair pass has not started, you may request a full refund within 14 days of payment by emailing <a href="mailto:support@seofixkit.com">support@seofixkit.com</a>.</li>
-        <li>After repair work has started or been delivered, refund requests are reviewed against the payment record, the report proof, and the fulfillment state, and may be granted in full, in part, or declined.</li>
-        <li>If payment succeeds but the repair queue cannot start, you are entitled to a full refund.</li>
+        <li>No new payments are taken. Fix Packs bought before the product became free were processed by Dodo Payments as merchant of record.</li>
+        <li>Legacy paid orders keep everything they paid for: the delivery, the rerun and any perks. No refund is triggered by the change to free.</li>
+        <li>For legacy paid orders, refund and dispute requests are reviewed against the Dodo payment record, the report proof, and the fulfillment state, and may be granted in full, in part, or declined.</li>
       </ul>
 
       <h2>Liability</h2>

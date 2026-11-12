@@ -182,30 +182,23 @@ test("the cron drops widget leads older than 12 months", async () => {
   );
 });
 
-test("the widget is a Fix Pack feature and stops when the Fix Pack is refunded", async () => {
+test("the audit widget is free with the account", async () => {
   const db = createTestD1();
   const env = { WAITLIST_DB: db };
   const session = signIn(db);
 
-  const locked = await (await call(env, "/api/widget", { session })).json();
-  assert.equal(locked.unlocked, false);
-  const blocked = await call(env, "/api/widget", { method: "POST", session });
-  assert.equal(blocked.status, 402);
-  assert.equal((await blocked.json()).code, "PAID_FEATURE_LOCKED");
-
-  payForFixPack(db);
+  const status = await (await call(env, "/api/widget", { session })).json();
+  assert.equal(status.unlocked, true);
   const created = await (await call(env, "/api/widget", { method: "POST", session })).json();
   assert.equal(created.unlocked, true);
   assert.ok(created.widget.id);
   assert.equal((await call(env, `/embed/${created.widget.id}`)).status, 200);
 
-  await db.prepare("UPDATE fix_requests SET status = 'refunded'").run();
-  assert.equal((await call(env, `/embed/${created.widget.id}`)).status, 404);
   const check = await visitorCheck(env, created.widget.id, { url: "https://visitor.example/", email: "v@example.com" });
-  assert.equal(check.status, 404);
+  assert.equal(check.status, 200);
 });
 
-test("a test payment never unlocks a paid feature", async () => {
+test("a test payment never gates the free feature", async () => {
   const db = createTestD1();
   const env = { WAITLIST_DB: db };
   const session = signIn(db);
@@ -213,8 +206,7 @@ test("a test payment never unlocks a paid feature", async () => {
   payForFixPack(db);
   await db.prepare("UPDATE fix_requests SET is_test = 1").run();
 
-  const blocked = await call(env, "/api/widget", { method: "POST", session });
-  assert.equal(blocked.status, 402);
-  assert.equal((await blocked.json()).code, "PAID_FEATURE_LOCKED");
-  assert.equal((await (await call(env, "/api/widget", { session })).json()).unlocked, false);
+  const created = await (await call(env, "/api/widget", { method: "POST", session })).json();
+  assert.equal(created.unlocked, true);
+  assert.equal((await (await call(env, "/api/widget", { session })).json()).unlocked, true);
 });

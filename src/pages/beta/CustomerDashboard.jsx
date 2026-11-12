@@ -416,7 +416,7 @@ export function ReportsPage({ accountData, message, status, onRetry }) {
             </div>
           ) : (
             <EmptyState icon="wrench">
-              No Fix Packs yet. You can buy one from the Problems tab of any report.
+              No Fix Packs yet. Fix files download free from the Problems tab of any report.
             </EmptyState>
           )}
         </section>

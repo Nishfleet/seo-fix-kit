@@ -3,6 +3,7 @@ import { createHmac } from "node:crypto";
 import test from "node:test";
 import {
   getBillingSummary,
+  getPublicFixPackPricing,
   fixRequestNotificationRecipients,
   handleDodoWebhook,
   logOfferEntitlementEvent,
@@ -395,6 +396,49 @@ test("Fix Pack checkout blocks rebuy after refund or dispute statuses", async ()
     assert.equal(dodoRequests.length, 0);
     assert.equal(env.fixRequests.length, 1);
   }
+});
+
+test("Fix Pack checkout stays closed unless FIX_PACK_CHECKOUT_ENABLED is set", async () => {
+  const env = await fakeBillingEnv();
+  delete env.FIX_PACK_CHECKOUT_ENABLED;
+  const dodoRequests = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url, options = {}) => {
+    dodoRequests.push({ url: String(url), body: JSON.parse(options.body || "{}") });
+    return new Response(
+      JSON.stringify({ checkout_url: "https://checkout.example.com/should-not-exist", session_id: "s" }),
+      { status: 200, headers: { "content-type": "application/json" } }
+    );
+  };
+
+  try {
+    const response = await requestFixPack(
+      new Request("https://seofixkit.test/api/beta/fix-request", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-beta-session": env.sessionToken
+        },
+        body: JSON.stringify({ reportId: env.reportId, queueItemId: "queue-1" })
+      }),
+      env
+    );
+
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.mode, "request");
+    assert.equal(body.checkoutAvailable, false);
+    assert.match(body.message, /free/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+
+  assert.equal(dodoRequests.length, 0);
+  assert.equal(env.fixRequests.length, 0);
+
+  const pricing = await getPublicFixPackPricing(new Request("https://seofixkit.test/api/beta/fix-pack/pricing"), env);
+  assert.equal(pricing.status, 503);
+  assert.equal((await pricing.json()).ok, false);
 });
 
 test("Fix Pack checkout materializes repair queue before Dodo metadata", async () => {
@@ -3652,6 +3696,7 @@ async function fakeBillingEnv() {
     sessionToken,
     reportId,
     DODO_SEOFIXKIT_API_KEY: "dodo-key",
+    FIX_PACK_CHECKOUT_ENABLED: "1",
     DODO_SEOFIXKIT_PRODUCT_FIX_PACK_ID: "pdt_fix_pack",
     DODO_SEOFIXKIT_PRODUCT_MONITORING_ID: "pdt_monitoring",
     DODO_SEOFIXKIT_PRODUCT_REPAIR_SPRINT_ID: "pdt_repair_sprint",

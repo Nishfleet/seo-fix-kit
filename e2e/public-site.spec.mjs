@@ -27,7 +27,7 @@ test.describe("homepage", () => {
   test("ships its content in the HTML, so it reads without JavaScript", async ({ request, browser }) => {
     const html = await (await request.get("/")).text();
     expect(html).toContain("An SEO audit that checks its own work.");
-    expect(html).toContain("What does the Fix Pack include?");
+    expect(html).toContain("What do the fix files include?");
 
     const context = await browser.newContext({ javaScriptEnabled: false });
     const page = await context.newPage();
@@ -156,7 +156,7 @@ test.describe("pricing", () => {
     await expect(plans.nth(1)).toContainText("Start here");
     await expect(plans.nth(1)).toContainText("Everything in Page check, plus:");
     await expect(plans.nth(2)).toContainText("Everything in Site audit, plus:");
-    await expect(plans.nth(2)).toContainText("$99");
+    await expect(plans.nth(2)).toContainText("Free");
     await expect(page.getByRole("table")).toContainText("Rerun that confirms each fix");
     await expect(page.getByRole("table")).toContainText("AI fix prompt for ChatGPT, Claude or Cursor");
 
@@ -311,7 +311,7 @@ test("the homepage starts from a pasted URL and runs the check straight away", a
 test("the status page shows each part of the service", async ({ page }) => {
   await page.goto("/status");
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-  for (const name of ["Website and API", "Page checks and site audits", "Sign-in emails", "Fix Pack checkout"]) {
+  for (const name of ["Website and API", "Page checks and site audits", "Sign-in emails", "Payment provider"]) {
     await expect(page.getByText(name, { exact: true })).toBeVisible();
   }
 });

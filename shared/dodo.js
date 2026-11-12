@@ -189,6 +189,13 @@ export function dodoProductCheckoutConfigStatus(env = {}, productId = "") {
 /** @param {DodoEnv} [env]
  * @returns {boolean}
  */
+export function hasFixPackCheckoutEnabled(env = {}) {
+  return String(env.FIX_PACK_CHECKOUT_ENABLED || "") === "1";
+}
+
+/** @param {DodoEnv} [env]
+ * @returns {boolean}
+ */
 export function hasDodoCheckoutConfig(env = {}) {
   return dodoCheckoutConfigStatus(env).checkoutReady;
 }

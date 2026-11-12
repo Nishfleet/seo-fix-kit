@@ -43,9 +43,9 @@ export async function serviceStatus(env = {}) {
     },
     {
       key: "payments",
-      name: "Fix Pack checkout",
+      name: "Payment provider",
       ok: Boolean(dodo.checkoutReady && dodo.webhookSecret),
-      detail: "Checkout and payment confirmation through Dodo Payments."
+      detail: "Legacy Fix Pack payment confirmation through Dodo Payments. No new checkout is offered."
     }
   ];
   const down = components.filter((component) => !component.ok);
@@ -98,7 +98,7 @@ export function statusHtml(origin, status) {
     path: "/status",
     title: "Status",
     description:
-      "Live status of SEO Fix Kit: page checks, site audits, saved reports, sign-in emails and Fix Pack checkout, checked when you load the page.",
+      "Live status of SEO Fix Kit: page checks, site audits, saved reports, sign-in emails and the payment provider, checked when you load the page.",
     eyebrow: "Status",
     heading: status.ok ? "All systems working." : "Some things aren’t working.",
     lead: status.ok

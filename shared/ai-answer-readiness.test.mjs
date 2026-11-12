@@ -254,7 +254,7 @@ function trafficRankFixtureReport() {
     "Pricing for SEO Fix Kit is public on the packages page and stays diagnostic.",
     "What does the paid Fix Pack include? One proof-backed repair pass plus one rerun after fixes.",
     "How should teams compare plans? Start with the anonymous one-page check, then request private access for a saved report.",
-    "This pricing page names the live $99 one-time Fix Pack, config-gated monitoring, and the Repair Sprint path without ranking promises.",
+    "This pricing page says everything is free, mentions TinyStudio for done-for-you repair, and keeps the no-ranking promise.",
     "It also explains what is not sold: completed 50,000-page rendered validation, live AI citation monitoring, and guaranteed traffic."
   ].join(" ");
   return {

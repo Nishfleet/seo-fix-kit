@@ -297,15 +297,19 @@ test("public proof pages expose methodology and pricing without overclaims", () 
     );
   }
   assert.match(packages, /Fix Pack/);
-  assert.match(packages, /\$99\.00 one-time/);
-  assert.match(packages, /final price including any local tax is shown at checkout before you pay/);
+  assert.match(
+    packages,
+    /Nothing\. Page checks, site audits, the repair queue, the fix files, report branding and the weekly re-check are all free\. No checkout is offered anywhere on the site\./
+  );
+  assert.match(packages, /separate paid service by TinyStudio \(tinystudio\.io\)/);
   assert.match(packages, /No ranking or traffic guarantee is made/);
-  assert.match(packages, /Dodo Payments handles checkout as merchant of record/);
-  assert.match(packages, /Coming soon[\s\S]*?Proof Monitoring/);
-  assert.match(packages, /a paid plan is not on sale yet/);
+  assert.match(packages, /Everything you paid for stays as it is/);
+  assert.match(packages, /A paid monitoring plan is planned but not on sale yet/);
+  assert.doesNotMatch(packages, /\$\d/);
+  assert.doesNotMatch(packages, /Dodo Payments handles checkout as merchant of record/);
   assert.doesNotMatch(packages, /\$49-\$99\/mo/);
   assert.doesNotMatch(packages, /Most popular/);
-  for (const plan of ["Page check", "Site audit", "Fix Pack"]) {
+  for (const plan of ["Page check", "Site audit", "Fix files"]) {
     const card = (packages.match(
       new RegExp(`<article class="plan[^"]*">[\\s\\S]*?<h2>${plan}</h2>[\\s\\S]*?</article>`)
     ) || [])[0];
@@ -330,14 +334,12 @@ test("public proof pages expose methodology and pricing without overclaims", () 
   );
 });
 
-test("pricing page answers the GEO Auditor agent-fix trade-off without overclaims", () => {
+test("pricing page points done-for-you demand to TinyStudio and offers no checkout", () => {
   const packages = pricingHtml(origin);
-  assert.match(packages, /GEO Auditor’s \$29 Agent Fix Mode/);
-  assert.match(packages, /Agent Fix Mode/);
-  assert.match(packages, /evidence from a real browser/);
-  assert.match(packages, /you approve each one before anything changes/);
-  assert.match(packages, /a rerun shows what actually got fixed/);
-  assert.match(packages, /fast and fairly priced/);
+  assert.match(packages, /TinyStudio \(tinystudio\.io\)/);
+  assert.match(packages, /you approve each fix, your developer ships it, and the rerun confirms it/);
+  assert.doesNotMatch(packages, /\$\d/);
+  assert.doesNotMatch(packages, /Buy Fix Pack/);
   assert.doesNotMatch(packages, /we apply your fixes/i);
   assert.doesNotMatch(packages, /each with an exact snippet/);
 });
@@ -429,7 +431,11 @@ test("machine-readable public surfaces list proof pages and limits", () => {
     llms,
     /Owner-approved implementation packs: private handoff documents with source proof and approval state/
   );
-  assert.match(llms, /Paid Fix Pack fulfillment: one proof-backed repair pass per report plus one rerun after fixes/);
+  assert.match(
+    llms,
+    /Paid Fix Pack fulfillment: legacy paid orders only\. New orders are not accepted; the same fix files are free for any signed-in owner/
+  );
+  assert.match(llms, /Dodo remains the payment provider for legacy paid orders; no new checkout is offered/);
   assert.match(llms, new RegExp(`The plain answer is on ${origin}/methodology`));
   assert.match(llms, /no live AI-engine sampling, no AI citation monitoring, and no ranking guarantees/);
   assert.match(markdown, new RegExp(`Anonymous one-page check: ${origin}/check`));
@@ -867,7 +873,10 @@ test("static public skill and sitemap files keep buyer-facing boundaries", () =>
     skill,
     /Owner-approved implementation packs: private handoff documents with source proof and approval state/
   );
-  assert.match(skill, /Paid Fix Pack fulfillment: one proof-backed repair pass per report plus one rerun after fixes/);
+  assert.match(
+    skill,
+    /Fix Pack features: the fix-files bundle, the tracker CSV, report branding and the audit widget are free for any signed-in account on its own audits\./
+  );
   assert.match(skill, new RegExp(`The plain answer is on the methodology page: ${origin}/methodology`));
   assert.match(skill, /no live AI-engine sampling, no AI citation monitoring, and no ranking guarantees/);
   assert.doesNotMatch(skill, /guaranteed rankings|guarantees rankings|guarantees traffic/i);

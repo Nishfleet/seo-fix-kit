@@ -201,7 +201,7 @@ export function ClientReportPanel({ report }) {
         <p>
           {brandingUnlocked
             ? "Send a link or PDF with your own name, logo and colours."
-            : "Send a link or PDF branded as SEO Fix Kit. Your own name, logo, colours and domain come with the Fix Pack."}
+            : "Send a link or PDF branded as SEO Fix Kit. Your own name, logo, colours and domain come free with your account."}
         </p>
         <StatusMessage tone={status}>{message}</StatusMessage>
       </div>
@@ -212,11 +212,11 @@ export function ClientReportPanel({ report }) {
               <strong>Your branding</strong>
             </div>
             <p>
-              Put your agency name, logo, colours and your own report domain on every client link and PDF. Included with
-              the Fix Pack: buy one on any report with open problems.
+              Put your agency name, logo, colours and your own report domain on every client link and PDF. Included free
+              with your account.
             </p>
             <a className="app-button-secondary" href="/pricing#plans">
-              See what the Fix Pack includes
+              See what's included
             </a>
           </div>
         )}

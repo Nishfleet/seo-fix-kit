@@ -478,7 +478,7 @@ test("README weekly monitor promise matches the schedule interval", () => {
 test("README public page promise matches Worker routing and copy", async () => {
   assert.match(
     liveSection,
-    /Public `\/demo`, `\/methodology`, `\/pricing`, and `\/proof` pages showing the proof loop, limits, plans and prices, and a real before\/after repair receipt/i
+    /Public `\/demo`, `\/methodology`, `\/pricing`, and `\/proof` pages showing the proof loop, limits, free plans, and a real before\/after repair receipt/i
   );
   assert.match(
     liveSection,
@@ -490,7 +490,12 @@ test("README public page promise matches Worker routing and copy", async () => {
   for (const path of ["/small-business-seo-audit", "/rendered-vs-static-seo-audit", "/ai-answer-readiness"]) {
     assert.ok(workerRoutes(path, "GET"), `Worker must route ${path}`);
   }
-  assert.match(await publicPage("/pricing"), /\$99\.00 one-time/, "pricing page shows the public Fix Pack price");
+  assert.match(
+    await publicPage("/pricing"),
+    /Everything on SEO Fix Kit is free/,
+    "pricing page states the product is free"
+  );
+  assert.doesNotMatch(await publicPage("/pricing"), /\$\d/, "pricing page shows no price");
 });
 
 test("README intent-landing-page promise matches routes, sitemap, and schema boundaries", async () => {
@@ -2461,11 +2466,16 @@ test("README deep-health claim stays runtime/config/schema scoped and public-saf
 test("README pricing page claim keeps Proof Monitoring off sale and the no-ranking promise", async () => {
   assert.match(
     liveSection,
-    /Public `\/demo`, `\/methodology`, `\/pricing`, and `\/proof` pages showing the proof loop, limits, plans and prices, and a real before\/after repair receipt/i
+    /Public `\/demo`, `\/methodology`, `\/pricing`, and `\/proof` pages showing the proof loop, limits, free plans, and a real before\/after repair receipt/i
   );
   const pricing = visibleText(await publicPage("/pricing"));
-  assert.match(pricing, /a paid plan is not on sale yet/, "Proof Monitoring is marked coming soon, not sold");
+  assert.match(
+    pricing,
+    /A paid monitoring plan is planned but not on sale yet/,
+    "Proof Monitoring is marked coming soon, not sold"
+  );
   assert.doesNotMatch(pricing, /\$49-\$99\/mo/, "Proof Monitoring shows no price while it is not on sale");
+  assert.doesNotMatch(pricing, /\$\d/, "pricing shows no price anywhere");
   assert.match(pricing, /No ranking or traffic guarantee/, "pricing keeps the no-ranking promise");
 });
 
@@ -2477,9 +2487,9 @@ test("README anonymous-check claim keeps the deployed copy locked to the live sp
     { path: "/demo", copy: "See which warnings a real browser rules out." },
     { path: "/demo", copy: "an exact snippet when the engine can generate one" },
     { path: "/methodology", copy: "What it does not do" },
-    { path: "/pricing", copy: "Audits are free. Fixes are $99 per report." },
-    { path: "/pricing", copy: "$99.00 one-time" },
-    { path: "/pricing", copy: "a paid plan is not on sale yet" }
+    { path: "/pricing", copy: "Everything on SEO Fix Kit is free" },
+    { path: "/pricing", copy: "No checkout is offered anywhere on the site" },
+    { path: "/pricing", copy: "A paid monitoring plan is planned but not on sale yet" }
   ]) {
     assert.match(spotCheck, new RegExp(`path: "${surface.path}"`), `spot-check must still cover ${surface.path}`);
     assert.match(

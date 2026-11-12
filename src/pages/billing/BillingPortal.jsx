@@ -76,11 +76,8 @@ export function BillingPortal({ ownerEmail = "", onAccountDeleted = () => {} }) 
 
   const requests = billing?.requests || [];
   const payments = billing?.payments || [];
-  const pricing = billing?.pricing || {};
   const monitoring = billing?.monitoring || {};
   const monitoringOffer = monitoring.offer || {};
-  const pricingUnavailable = pricing.status !== "available";
-  const priceLabel = pricing.status === "available" ? pricing.displayPrice : "";
   const monitoringDisabled = monitoringCheckoutDisabled({
     checkoutReady: Boolean(monitoring.checkoutReady),
     status: monitoringCheckoutStatus,
@@ -118,7 +115,7 @@ export function BillingPortal({ ownerEmail = "", onAccountDeleted = () => {} }) 
     <div className="app-page">
       <PageHeader
         title="Billing"
-        description="Your plan, Fix Packs and payments. Dodo Payments handles checkout as the merchant of record."
+        description="Your plan, Fix Packs and payments. Nothing on SEO Fix Kit is for sale; legacy paid Fix Packs keep everything they paid for."
       />
 
       {billingQuery.isError && (
@@ -144,7 +141,7 @@ export function BillingPortal({ ownerEmail = "", onAccountDeleted = () => {} }) 
             <p className="app-card-text">
               {monitoringActive
                 ? "Proof Monitoring is on. Your verified sites are rerun every week."
-                : "Audits and weekly checks for verified sites are free during the beta. You pay only if you buy a Fix Pack."}
+                : "Everything is free: audits, weekly checks for verified sites, and the fix files from any report."}
             </p>
             {monitoring.checkoutReady && !monitoringActive && (
               <div>
@@ -164,15 +161,16 @@ export function BillingPortal({ ownerEmail = "", onAccountDeleted = () => {} }) 
 
           <section className="app-card" aria-labelledby="fixpack-title">
             <div className="app-card-head">
-              <h2 id="fixpack-title">{billing?.product?.name || "SEO Fix Pack"}</h2>
-              {!pricingUnavailable && <strong className="billing-price">{priceLabel}</strong>}
+              <h2 id="fixpack-title">Fix files</h2>
+              <strong className="billing-price">Free</strong>
             </div>
             <p className="app-card-text">
-              One guided repair pass on a report’s problems, plus one rerun to check the fixes.
+              {billing?.product?.description ||
+                "The fix files for any of your reports: fix checklist, tracker CSV, per-page code and one rerun."}
             </p>
             <p className="app-footnote">
-              One-time payment per report. Buy it from the Problems tab of any report. You see the final price before
-              you pay.
+              Download them free from the Problems tab of any report. Legacy paid Fix Packs keep everything they paid
+              for.
             </p>
           </section>
 
@@ -232,11 +230,7 @@ export function BillingPortal({ ownerEmail = "", onAccountDeleted = () => {} }) 
               </ul>
             ) : (
               <EmptyState icon="wrench">
-                No Fix Packs yet.{" "}
-                <Link discover="none" className="inline-link" to="/beta#new-audit">
-                  Run an audit
-                </Link>
-                , then buy one from the report if you want help with the fixes.
+                No Fix Packs yet. Fix files download free from the Problems tab of any report.
               </EmptyState>
             )}
           </section>

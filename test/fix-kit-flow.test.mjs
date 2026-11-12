@@ -116,31 +116,16 @@ test("robots additions unblock blocked answer bots and add the sitemap", () => {
   assert.match(robots.content, /Sitemap: https:\/\/acme-widgets\.example\/sitemap\.xml/);
 });
 
-test("fix files are locked until the Fix Pack is paid, then download as a zip", async () => {
+test("fix files download free for the signed-in report owner as a zip", async () => {
   const db = createTestD1();
   seed(db, fixture());
   const session = signIn(db);
 
   assert.equal((await call(db, "/api/reports/acme-report-0001/fix-kit")).status, 401);
 
-  const locked = await (await call(db, "/api/reports/acme-report-0001/fix-kit", session)).json();
-  assert.equal(locked.unlocked, false);
-  assert.equal(locked.manifest.problems, 2);
-  const blocked = await call(db, "/api/reports/acme-report-0001/fix-kit.zip", session);
-  assert.equal(blocked.status, 402);
-  assert.equal((await blocked.json()).code, "FIX_KIT_LOCKED");
-
-  db.insert("fix_requests", {
-    id: "fr-1",
-    report_id: "acme-report-0001",
-    owner_email: OWNER,
-    target_url: "https://acme-widgets.example/",
-    target_host: "acme-widgets.example",
-    status: "paid",
-    created_at: iso(0),
-    updated_at: iso(0)
-  });
-  assert.equal((await (await call(db, "/api/reports/acme-report-0001/fix-kit", session)).json()).unlocked, true);
+  const unlocked = await (await call(db, "/api/reports/acme-report-0001/fix-kit", session)).json();
+  assert.equal(unlocked.unlocked, true);
+  assert.equal(unlocked.manifest.problems, 2);
   const zip = await call(db, "/api/reports/acme-report-0001/fix-kit.zip", session);
   assert.equal(zip.status, 200);
   assert.equal(zip.headers.get("content-type"), "application/zip");
@@ -150,7 +135,4 @@ test("fix files are locked until the Fix Pack is paid, then download as a zip", 
 
   const other = signIn(db, "someone@example.com");
   assert.equal((await call(db, "/api/reports/acme-report-0001/fix-kit.zip", other)).status, 404);
-
-  await db.prepare("UPDATE fix_requests SET status = 'refunded' WHERE id = ?").bind("fr-1").run();
-  assert.equal((await call(db, "/api/reports/acme-report-0001/fix-kit.zip", session)).status, 402);
 });
