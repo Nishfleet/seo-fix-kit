@@ -86,6 +86,19 @@ function findingNode(finding) {
   if (finding.evidence) box.appendChild(el("p", `Evidence: ${finding.evidence}`));
   if (finding.why) box.appendChild(el("p", finding.why));
   if (finding.fix) box.appendChild(el("p", `Fix: ${finding.fix}`, "fix"));
+  if (finding.suggested?.owner) {
+    box.appendChild(el("p", `Your call: ${finding.suggested.text}`, "owner-note"));
+  } else if (finding.suggested?.text) {
+    box.appendChild(
+      el("p", `${finding.suggested.label} — a starting point to edit, not a finished verdict`, "snippet-label")
+    );
+    const wrap = el("div", "", "snippet-wrap");
+    wrap.appendChild(el("code", finding.suggested.text, "snippet box-min"));
+    wrap.appendChild(
+      copyButton(finding.suggested.text, { ariaLabel: `Copy ${finding.suggested.label.toLowerCase()}` })
+    );
+    box.appendChild(wrap);
+  }
   if (finding.proposedMarkup) {
     box.appendChild(el("p", "Suggested markup. Generated for this page, not copied from it", "snippet-label"));
     const wrap = el("div", "", "snippet-wrap");
@@ -100,6 +113,24 @@ function block(title) {
   const section = el("section");
   section.appendChild(el("h3", title));
   return section;
+}
+
+const FINDING_GROUPS = [
+  ["critical", "Critical problems", true],
+  ["warning", "Warnings", false],
+  ["notice", "Notices", false]
+];
+
+function findingGroup(label, groupFindings, open, severity) {
+  const details = document.createElement("details");
+  details.className = `finding-group ${severity}`;
+  if (open) details.open = true;
+  const summary = el("summary", "", "group-summary");
+  summary.appendChild(el("span", label, "group-label"));
+  summary.appendChild(el("span", plural(groupFindings.length, "problem"), "group-count"));
+  details.appendChild(summary);
+  for (const finding of groupFindings) details.appendChild(findingNode(finding));
+  return details;
 }
 
 function scoreNode(score) {
@@ -185,7 +216,15 @@ export function renderResult(payload) {
   const problems = block("Problems to fix");
   if (findings.length === 0)
     problems.appendChild(el("p", "No problems found on this page in this check.", "empty-note"));
-  for (const finding of findings) problems.appendChild(findingNode(finding));
+  const grouped = new Set();
+  for (const [severity, label, open] of FINDING_GROUPS) {
+    const inGroup = findings.filter((finding) => finding.severity === severity);
+    if (!inGroup.length) continue;
+    grouped.add(severity);
+    problems.appendChild(findingGroup(label, inGroup, open, severity));
+  }
+  const rest = findings.filter((finding) => !grouped.has(finding.severity));
+  if (rest.length) problems.appendChild(findingGroup("Other findings", rest, true, "rest"));
   if (payload.projectedScore?.to > payload.score || payload.fixPrompt) {
     const next = el("div", "", "fix-next");
     if (payload.projectedScore?.to > payload.score) {
