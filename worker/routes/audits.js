@@ -1128,6 +1128,10 @@ function renderedFixture(origin) {
           <p>Founders need verified findings, not busywork. The page includes enough rendered text to show that the final browser-visible page is materially different from the raw HTML response.</p>
           <p>Use this fixture to prove that the audit sees what users and modern rendering systems see after JavaScript runs. The report should guard false positives instead of telling the user to add duplicate headings or unnecessary internal links.</p>
           <p>The right output is evidence, confidence, and a practical fix only when a real fix is needed.</p>
+          <p>The fixture stays deliberately simple so the comparison stays honest. Every claim the audit makes can be traced back to something visible in the browser: a heading, a link, a paragraph, or a meta tag. Nothing in this page depends on ranking promises, paid tools, or private data.</p>
+          <p>Buyers who run this check on their own pages should expect the same treatment. The engine reads the raw response first, then renders the page, then compares what it saw. When the two views disagree, the report says so instead of quietly picking one.</p>
+          <p>Search systems have rendered pages for years, so a report built only on the raw HTML answers a question nobody asked. The fixture keeps that gap visible on purpose, because the fastest way to trust an audit is to watch it describe this exact page correctly.</p>
+          <p>That is also why the word count on this page counts what a visitor can read. Code that runs the page is not content, and the audit no longer confuses the two.</p>
           <nav>
             <a href="/fixture/rendered-page">Overview</a>
             <a href="/fixture/rendered-page?tab=pricing">Pricing</a>

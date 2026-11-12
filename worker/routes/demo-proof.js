@@ -7,7 +7,7 @@ export const DEMO_PROOF = {
   fixturePath: DEMO_FIXTURE_PATH,
   measured: {
     staticWordCount: 3,
-    renderedWordCount: 277,
+    renderedWordCount: 303,
     renderedH1: "Rendered SaaS page with real content",
     renderedInternalLinkCount: 3,
     renderedTitle: "Proof Demo App Shell"
@@ -31,7 +31,7 @@ export const DEMO_PROOF = {
       severity: "good",
       title: "False positive guarded on home: rendered content is not thin",
       why: "Raw HTML has little text, but the loaded page has plenty.",
-      evidence: "277 rendered words found.",
+      evidence: "303 rendered words found.",
       fix: "No change needed."
     }
   ],
