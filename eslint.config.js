@@ -144,8 +144,8 @@ export default [
     }
   },
   {
-    // Browser entries for Worker-rendered pages, bundled by Vite to /tools.js and /check.js.
-    files: ["shared/free-tools/client.js", "shared/public-check/client.js"],
+    // Browser entries for Worker-rendered pages, bundled by Vite to /tools.js, /check.js and /chatgpt-read.js.
+    files: ["shared/free-tools/client.js", "shared/public-check/client.js", "shared/chatgpt-read/client.js"],
     languageOptions: {
       globals: { ...globals.browser }
     }
@@ -175,6 +175,7 @@ export default [
       "shared/url-safety.js",
       "shared/free-tools/client.js",
       "shared/public-check/client.js",
+      "shared/chatgpt-read/client.js",
       "server/submit-index-now.js"
     ],
     rules: {

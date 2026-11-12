@@ -25,6 +25,7 @@ SEO Fix Kit is a private-beta, self-serve SEO audit and paid Fix Pack workflow.
 ## Pages
 - [${origin}/](https://seofixkit.com/): Landing page with proof-backed SEO repair pitch and free one-page check entry.
 - [${origin}/check](https://seofixkit.com/check): Anonymous one-page browser-rendered SEO audit. No account, no stored report, no ranking promises.
+- [${origin}/can-chatgpt-read-my-page](https://seofixkit.com/can-chatgpt-read-my-page): Free anonymous check of whether GPTBot, ClaudeBot and PerplexityBot may read a public page under robots.txt, with the raw-HTML content and schema evidence those crawlers receive. No account, no stored report.
 - [${origin}/demo](https://seofixkit.com/demo): Public sample report showing rendered-vs-static false-positive guards and repair briefs.
 - [${origin}/methodology](https://seofixkit.com/methodology): Proof standard, limits, and boundaries. No live AI-engine sampling, no citation monitoring, no ranking guarantees.
 - [${origin}/pricing](https://seofixkit.com/pricing): Pricing: free page checks, free beta site audits, and the $99 one-time Fix Pack. Dodo checkout is the price source of truth.
@@ -44,6 +45,7 @@ ${FREE_TOOLS.map((tool) => `- [${origin}/tools/${tool.slug}](https://seofixkit.c
 Live product claims:
 - Visitors can request a secure email access link.
 - Anyone can anonymously check one public page URL at /check and see real-browser evidence, the false alarms it rules out, and real problems with fixes, with no account and no stored report.
+- Anyone can anonymously check at ${origin}/can-chatgpt-read-my-page whether GPTBot, ClaudeBot and PerplexityBot may read a public page under robots.txt, and see the raw-HTML content and schema evidence those crawlers receive, with no account, no email and no stored report.
 - Verified sessions can run rate-limited private audits and save owner-only reports.
 - Verified sessions can choose self-serve crawl depth up to 1,000 pages per queued audit.
 - Reports include robots.txt and sitemap crawl inventory up to 50,000 discovered URLs.
@@ -1291,7 +1293,7 @@ ${pageSocialHead({ origin, title: "Privacy - SEO Fix Kit", description: "What SE
         <li>Deletion: delete your account yourself under Billing in your account (sign in with an email link first, even if you only joined the waitlist). It takes effect right away and removes your reports and stored report files, sites, checks, alerts, API keys, team, widget and badge data, settings, sign-in records and waitlist signup, and your email from other accounts' teams and repair boards. We keep only the payment records accounting and tax rules require (amounts, dates, payment, refund and dispute IDs), with your email, site and notes removed; Dodo Payments keeps its own records as merchant of record. If a Fix Pack is paid but not delivered, or a refund, dispute or subscription is still open, deletion waits until it settles. Deletion requests sent to <a href="mailto:support@seofixkit.com">support@seofixkit.com</a> run through the same process once we confirm the address is yours.</li>
         <li>Access: email <a href="mailto:support@seofixkit.com">support@seofixkit.com</a> (or reply to any email we send) for a copy of your data. We answer verified requests within 30 days.</li>
       </ul>
-      <p>Last updated: October 28, 2026.</p>
+      <p>Last updated: November 12, 2026.</p>
     </main>
     ${siteFooter(origin)}
   </body>
@@ -1328,7 +1330,7 @@ function supportHtml(origin) {
 
       <h2>Ownership and deletion</h2>
       <p>SEO Fix Kit is for sites you own or are authorized to audit. We may pause audits, delete reports or revoke access when ownership is unclear, the target looks abusive, or a crawl could overload someone else’s site. To delete your account and its data, use Delete account under Billing in your account. To get a copy of your data, email us from your account address or reply to an SEO Fix Kit email so we can confirm it is you.</p>
-      <p>Last updated: October 28, 2026.</p>
+      <p>Last updated: November 12, 2026.</p>
     `
   });
 }
