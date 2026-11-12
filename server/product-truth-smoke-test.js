@@ -51,7 +51,6 @@ assert.equal(
   true
 );
 assert.equal(llms.includes("Agent-readable acquisition and action surfaces"), true);
-assert.equal(llms.includes("There is no live SEO Fix Kit MCP endpoint today"), true);
 assert.equal(llms.includes("Does not expose unauthenticated agent actions"), true);
 assert.equal(home.includes("No ranking promise is made."), true);
 assert.equal(support.includes("No ranking, traffic, or revenue promise is made."), true);

@@ -134,7 +134,7 @@ async function fakeMcpEnv(overrides = {}) {
 
 test("MCP initialize handshake needs no API key and speaks the Streamable HTTP spec", async () => {
   const env = await fakeMcpEnv();
-  const response = await mcpEndpoint(mcpRequest({ jsonrpc: "2.0", id: 1, method: "initialize", params: {} }), "", env);
+  const response = await mcpEndpoint(mcpRequest({ jsonrpc: "2.0", id: 1, method: "initialize", params: {} }), env);
   assert.equal(response.status, 200);
   const body = await response.json();
   assert.equal(body.jsonrpc, "2.0");

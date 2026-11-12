@@ -83,7 +83,6 @@ Agent-readable acquisition and action surfaces:
 - Bearer-token API actions agents can use today: POST /v1/page-check (the free one-page check, same rate limits, behind your API key), POST /v1/audits, GET /v1/audits/{audit_id}, GET /v1/audits/{audit_id}/issues, GET /v1/audits/{audit_id}/report, GET/PATCH /v1/audits/{audit_id}/repair-queue, POST /v1/audits/{audit_id}/repair-actions, PATCH /v1/audits/{audit_id}/repair-actions/{action_id}, GET /v1/audits/{audit_id}/repair-actions/{action_id}/implementation.md, GET /v1/audits/{audit_id}/repair-actions/{action_id}/proof.md, GET /v1/projects, POST /v1/large-crawls, and GET /v1/large-crawls/{large_crawl_id}. The same calls are also exposed as an MCP server at POST /v1/mcp (JSON-RPC over HTTP, same API key) with tools page_check, start_audit, and read_report.
 - Webhook events agents can subscribe to today: audit.completed, audit.failed, repair_action.drafted, repair_action.approved, repair_action.applied, repair_action.fixed, and repair_action.regressed.
 - Worker-only large-crawl batch claim/process/proof endpoints require x-seofixkit-worker-token and are not available to normal bearer API keys.
-- There is no live SEO Fix Kit MCP endpoint today; agents should use the documented REST and markdown proof endpoints.
 
 Current product boundary:
 - Public methodology and pricing pages describe the live proof loop, limits, and plans; they are not a public anonymous audit.

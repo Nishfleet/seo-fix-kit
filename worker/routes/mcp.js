@@ -239,4 +239,4 @@ export async function apiPageCheck(request, env) {
   return runPublicCheck(request, env);
 }
 
-export { MCP_PROTOCOL_VERSION, MCP_SERVER_INFO, MCP_TOOLS, mcpEndpoint as default };
+export { MCP_PROTOCOL_VERSION, MCP_SERVER_INFO, MCP_TOOLS };

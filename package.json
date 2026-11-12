@@ -58,7 +58,6 @@
     "test:repair-agent": "node --test worker/routes/repair-agent.test.mjs",
     "test:developer-api": "node --test worker/routes/developer-api.test.mjs",
     "test:mcp": "node --test worker/routes/mcp.test.mjs",
-    "mcp:walk": "node server/mcp-walk.mjs",
     "test:remediation-brief": "node server/remediation-brief-smoke-test.js",
     "test:webhooks": "node --test worker/lib/webhooks.test.mjs",
     "test:validation": "node --test worker/lib/validation.test.mjs",
