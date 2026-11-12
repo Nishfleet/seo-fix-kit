@@ -5,6 +5,7 @@ import { failStaleRunningAuditJobs, resumeStaleQueuedAuditJobs, runDueAuditSched
 import { sendDailyOpsDigest, sendUrgentOpsAlerts } from "../routes/admin.js";
 import { runDueLargeRenderedCrawlWorkers } from "../routes/large-crawls.js";
 import { runUptimeChecks } from "./uptime.js";
+import { retryPendingFixForMe } from "../routes/fix-for-me.js";
 
 function scheduledTasks(env) {
   const tasks = [
@@ -17,7 +18,8 @@ function scheduledTasks(env) {
       }
     ],
     ["runDueAuditSchedules", runDueAuditSchedules],
-    ["runUptimeChecks", runUptimeChecks]
+    ["runUptimeChecks", runUptimeChecks],
+    ["fixForMeRetries", retryPendingFixForMe]
   ];
   tasks.push(
     ["sendFirstAuditNudges", sendFirstAuditNudges],

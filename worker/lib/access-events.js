@@ -9,7 +9,9 @@ const FUNNEL_STEPS = Object.freeze([
   "access_link_sent",
   "access_link_verified",
   "session_created",
-  "audit_started"
+  "audit_started",
+  "fix_request_clicked",
+  "fix_request_submitted"
 ]);
 
 const KNOWN_FUNNEL_STEPS = new Set(FUNNEL_STEPS);
