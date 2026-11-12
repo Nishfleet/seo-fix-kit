@@ -26,6 +26,7 @@ import {
   proofCaseHtml,
   proofCaseMarkdown,
   renderedVsStaticAuditHtml,
+  shopifySeoAuditHtml,
   smallBusinessSeoAuditHtml,
   supportHtml,
   termsHtml
@@ -41,6 +42,7 @@ const allWorkerRenderedPublicPages = [
   { name: "/small-business-seo-audit", html: smallBusinessSeoAuditHtml(origin) },
   { name: "/rendered-vs-static-seo-audit", html: renderedVsStaticAuditHtml(origin) },
   { name: "/ai-answer-readiness", html: aiAnswerReadinessHtml(origin) },
+  { name: "/shopify-seo-audit", html: shopifySeoAuditHtml(origin) },
   { name: "/proof", html: proofCaseHtml(origin) },
   { name: "/privacy", html: privacyHtml(origin) },
   { name: "/support", html: supportHtml(origin) },
@@ -378,7 +380,8 @@ test("machine-readable public surfaces list proof pages and limits", () => {
     "/check",
     "/small-business-seo-audit",
     "/rendered-vs-static-seo-audit",
-    "/ai-answer-readiness"
+    "/ai-answer-readiness",
+    "/shopify-seo-audit"
   ]) {
     assert.match(llms, new RegExp(`${origin}${path}`));
     assert.match(markdown, new RegExp(`${origin}${path}`));
@@ -464,7 +467,8 @@ test("intent-matching landing pages carry unique, truthful, machine-readable pro
   const pages = [
     { name: "small-business", path: "/small-business-seo-audit", html: smallBusinessSeoAuditHtml(origin) },
     { name: "rendered-vs-static", path: "/rendered-vs-static-seo-audit", html: renderedVsStaticAuditHtml(origin) },
-    { name: "ai-answer-readiness", path: "/ai-answer-readiness", html: aiAnswerReadinessHtml(origin) }
+    { name: "ai-answer-readiness", path: "/ai-answer-readiness", html: aiAnswerReadinessHtml(origin) },
+    { name: "shopify", path: "/shopify-seo-audit", html: shopifySeoAuditHtml(origin) }
   ];
 
   for (const { name, path, html } of pages) {
@@ -489,7 +493,7 @@ test("intent-matching landing pages carry unique, truthful, machine-readable pro
   }
 
   const titles = pages.map(({ html }) => (html.match(/<title>([^<]+) - SEO Fix Kit<\/title>/) || [])[1]);
-  assert.equal(new Set(titles).size, 3, "each landing page must have a unique title");
+  assert.equal(new Set(titles).size, pages.length, "each landing page must have a unique title");
   assert.match(pages[0].html, /Small Business SEO Audit/);
   assert.match(pages[1].html, /Rendered vs Static SEO Audit/);
   assert.match(pages[2].html, /AI Answer Readiness Check/);
@@ -515,6 +519,20 @@ test("intent-matching landing pages carry unique, truthful, machine-readable pro
   assert.match(pages[2].html, /never claims to predict citations/);
   assert.match(pages[2].html, /Content relevance is the citation driver; technical health is the hygiene floor/);
   assert.doesNotMatch(pages[2].html, /live AI citation monitoring is live/i);
+
+  const shopify = pages[3].html;
+  assert.match(shopify, /SEO Audit for Shopify Stores/);
+  assert.match(shopify, /26 public Shopify stores/, "the Shopify page must state its sample size");
+  assert.match(shopify, /78 pages in total/, "the Shopify page must state how many pages it audited");
+  assert.match(shopify, /engine v0\.9\.0/, "the Shopify page must name the engine version");
+  assert.match(shopify, /How the sample was built/, "the Shopify page must describe its method");
+  assert.match(shopify, /20 of 26 stores/, "the Shopify page must report the faceted-URL count");
+  assert.match(shopify, /12 of 26 stores/, "the Shopify page must report the product-schema count");
+  assert.match(shopify, /15 of 26 stores/, "the Shopify page must report the breadcrumb count");
+  assert.match(shopify, /0 of 26 stores/, "the Shopify page must report what the sample did not surface");
+  assert.match(shopify, /Counts, not names/, "the Shopify page must keep the no-naming gate");
+  assert.match(shopify, /does not log into Shopify admin/, "the Shopify page must keep the no-admin boundary");
+  assert.doesNotMatch(shopify, /guaranteed rankings|guarantees rankings|guarantees traffic/i);
 });
 
 test("public proof pages carry a site footer with terms and privacy links", () => {
@@ -834,7 +852,8 @@ test("static public skill and sitemap files keep buyer-facing boundaries", () =>
     "/terms",
     "/small-business-seo-audit",
     "/rendered-vs-static-seo-audit",
-    "/ai-answer-readiness"
+    "/ai-answer-readiness",
+    "/shopify-seo-audit"
   ]) {
     assert.match(skill, new RegExp(`${origin}${path}`));
     assert.match(sitemap, new RegExp(`${origin}${path}`));
@@ -897,7 +916,8 @@ test("Cloudflare asset routing sends public proof pages through the Worker", () 
       "/privacy",
       "/small-business-seo-audit",
       "/rendered-vs-static-seo-audit",
-      "/ai-answer-readiness"
+      "/ai-answer-readiness",
+      "/shopify-seo-audit"
     ]) {
       assert.equal(covered.has(path), true, `${path} must be served by the Worker before SPA assets`);
     }
