@@ -231,6 +231,17 @@ function seedEverything(world) {
     created_at: NOW,
     updated_at: NOW
   });
+  db.insert("fix_for_me_requests", {
+    id: "ffm-leaver",
+    site: `https://${host}/`,
+    email: e,
+    report_id: "rpt-leaver-000001",
+    status: "sent",
+    tiny_studio_id: "ts-leaver",
+    created_at: NOW,
+    last_attempt_at: NOW,
+    sent_at: NOW
+  });
   db.insert("api_tokens", {
     id: "api-token-leaver",
     owner_email: e,
