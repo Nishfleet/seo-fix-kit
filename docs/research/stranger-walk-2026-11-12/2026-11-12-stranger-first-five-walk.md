@@ -50,13 +50,15 @@ Steps: landing → free check entry → result → account ask → first full re
    lands on `#result`, scrollY 593/first screen shows the result.
 2. **The result headline was a bare domain.** Changed to "First look at
    {domain}" (matches how the rivals headline a result; keeps the domain).
-3. **Legal-sounding caution before the first value.** The form note
-   ("Rate-limited per network and per site… Use only pages you own or are
-   authorized to audit") sat between the stranger and the button. Now a
-   value-first note ("Free for any public page. One page per check; only
-   short-lived rate-limit counters are kept."), with the authorization
-   sentence moved into the "What this check does not claim" band. Truth
-   guards updated in `worker/routes/pages.test.mjs`.
+3. **Wording that sounded like a gate before the first value.** The form
+   note led with the rate-limit detail ("Rate-limited per network and per
+   site… Use only pages you own or are authorized to audit") and the
+   authorization sentence sat between the stranger and the button. The note
+   now leads with "Free" and keeps the rest short: "Free. One page per
+   check; only short-lived rate-limit counters are kept. Check only pages
+   you own or are authorized to audit." The authorization sentence stays
+   beside the button and is repeated in the "What this check does not
+   claim" band. Truth guards updated in `worker/routes/pages.test.mjs`.
 4. **Errors were not announced.** Error boxes now carry `role="alert"` (client
    validation, failed check, failed compare), so screen readers announce them
    immediately; verified `alert` attribute and on-screen visibility.
