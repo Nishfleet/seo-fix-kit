@@ -143,7 +143,7 @@ test("MCP initialize handshake needs no API key and speaks the Streamable HTTP s
   assert.equal(body.result.serverInfo.name, "seofixkit");
   assert.deepEqual(body.result.capabilities, { tools: {} });
 
-  const notification = await mcpEndpoint(mcpRequest({ jsonrpc: "2.0", method: "notifications/initialized" }), "", env);
+  const notification = await mcpEndpoint(mcpRequest({ jsonrpc: "2.0", method: "notifications/initialized" }), env);
   assert.equal(notification.status, 202, "notifications are answered with 202 and no body");
   assert.equal(await notification.text(), "");
 });
