@@ -26,7 +26,7 @@ test("a fresh owner downloads the fix files from a report without paying", async
   expect(zip.headers()["content-type"]).toBe("application/zip");
 
   const download = page.waitForEvent("download");
-  await page.getByRole("link", { name: "Download fix files (.zip)" }).first().click();
+  await page.getByRole("link", { name: "Download fix files (.zip)" }).click();
   expect((await download).suggestedFilename()).toBe("seo-fix-kit-acme-widgets-example.zip");
 
   await page.goto("/beta/billing");
