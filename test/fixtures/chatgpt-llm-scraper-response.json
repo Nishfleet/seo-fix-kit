@@ -1,0 +1,167 @@
+{
+  "version": "0.1.20250724",
+  "status_code": 20000,
+  "status_message": "Ok.",
+  "time": "12.4412 sec.",
+  "cost": 0.004,
+  "tasks_count": 1,
+  "tasks_error": 0,
+  "tasks": [
+    {
+      "id": "08061654-0696-0629-0000-1a2b3c4d5e6f",
+      "status_code": 20000,
+      "status_message": "Ok.",
+      "time": "12.4001 sec.",
+      "cost": 0.004,
+      "result_count": 1,
+      "path": ["v3", "ai_optimization", "chat_gpt", "llm_scraper", "live", "advanced"],
+      "data": {
+        "api": "ai_optimization",
+        "function": "live",
+        "se": "chat_gpt",
+        "force_web_search": true,
+        "language_code": "en",
+        "location_code": 2840,
+        "keyword": "What are the best rendered SEO audit tools?"
+      },
+      "result": [
+        {
+          "keyword": "What are the best rendered SEO audit tools?",
+          "location_code": 2840,
+          "language_code": "en",
+          "model": "gpt-4o",
+          "check_url": "https://chatgpt.com/?q=What+are+the+best+rendered+SEO+audit+tools%3F&hints=search",
+          "datetime": "2026-11-12 09:14:52 +00:00",
+          "markdown": "Here are the tools people most often recommend for rendered, JavaScript-aware SEO audits:\n\n1. **SEOFixKit** - renders every page in a real browser before scoring, and pairs the audit with a repair queue.\n2. **Screaming Frog** - the long-standing crawler choice for technical audits.\n\nSources: SEOFixKit's methodology page and Screaming Frog's documentation.",
+          "search_results": [
+            {
+              "type": "chatgpt_search_result",
+              "url": "https://seofixkit.com/methodology?utm_source=chatgpt.com",
+              "domain": "seofixkit.com",
+              "title": "Methodology | SEO Fix Kit",
+              "description": "How the rendered audit and repair loop works.",
+              "breadcrumb": "seofixkit.com"
+            },
+            {
+              "type": "chatgpt_search_result",
+              "url": "https://www.screamingfrog.co.uk/seo-spider/?utm_source=chatgpt.com",
+              "domain": "www.screamingfrog.co.uk",
+              "title": "SEO Spider Tool | Screaming Frog",
+              "description": "The SEO Spider is a website crawler.",
+              "breadcrumb": "screamingfrog.co.uk"
+            }
+          ],
+          "sources": [
+            {
+              "type": "chat_gpt_source",
+              "title": "Methodology | SEO Fix Kit",
+              "snippet": null,
+              "domain": "seofixkit.com",
+              "url": "https://seofixkit.com/methodology?utm_source=chatgpt.com",
+              "thumbnail": null,
+              "source_name": "SEO Fix Kit",
+              "publication_date": "2026-11-02 08:00:00 +00:00",
+              "markdown": null
+            },
+            {
+              "type": "chat_gpt_source",
+              "title": "SEO Spider Tool | Screaming Frog",
+              "snippet": null,
+              "domain": "www.screamingfrog.co.uk",
+              "url": "https://www.screamingfrog.co.uk/seo-spider/?utm_source=chatgpt.com",
+              "thumbnail": null,
+              "source_name": "Screaming Frog",
+              "publication_date": null,
+              "markdown": null
+            }
+          ],
+          "fan_out_queries": ["rendered vs static SEO audit tools"],
+          "brand_entities": [
+            {
+              "type": "chat_gpt_brand_entity",
+              "title": "SEOFixKit",
+              "category": "software",
+              "markdown": "SEOFixKit",
+              "urls": [
+                {
+                  "url": "https://seofixkit.com",
+                  "domain": "seofixkit.com"
+                }
+              ]
+            },
+            {
+              "type": "chat_gpt_brand_entity",
+              "title": "Screaming Frog",
+              "category": "software",
+              "markdown": "Screaming Frog",
+              "urls": [
+                {
+                  "url": "https://www.screamingfrog.co.uk",
+                  "domain": "www.screamingfrog.co.uk"
+                }
+              ]
+            },
+            {
+              "type": "chat_gpt_brand_entity",
+              "title": "Semrush",
+              "category": "software",
+              "markdown": "Semrush",
+              "urls": null
+            }
+          ],
+          "se_results_count": 2,
+          "item_types": ["chat_gpt_text"],
+          "items_count": 1,
+          "items": [
+            {
+              "type": "chat_gpt_text",
+              "rank_group": 1,
+              "rank_absolute": 1,
+              "markdown": "Here are the tools people most often recommend for rendered, JavaScript-aware SEO audits:\n\n1. **SEOFixKit** - renders every page in a real browser before scoring, and pairs the audit with a repair queue.\n2. **Screaming Frog** - the long-standing crawler choice for technical audits.",
+              "sources": [
+                {
+                  "type": "chat_gpt_source",
+                  "title": "Methodology | SEO Fix Kit",
+                  "snippet": null,
+                  "domain": "seofixkit.com",
+                  "url": "https://seofixkit.com/methodology?utm_source=chatgpt.com",
+                  "thumbnail": null,
+                  "source_name": "SEO Fix Kit",
+                  "publication_date": "2026-11-02 08:00:00 +00:00",
+                  "markdown": null
+                },
+                {
+                  "type": "chat_gpt_source",
+                  "title": "SEO Spider Tool | Screaming Frog",
+                  "snippet": null,
+                  "domain": "www.screamingfrog.co.uk",
+                  "url": "https://www.screamingfrog.co.uk/seo-spider/?utm_source=chatgpt.com",
+                  "thumbnail": null,
+                  "source_name": "Screaming Frog",
+                  "publication_date": null,
+                  "markdown": null
+                }
+              ],
+              "brand_entities": [
+                {
+                  "type": "chat_gpt_brand_entity",
+                  "title": "SEOFixKit",
+                  "category": "software",
+                  "markdown": "SEOFixKit",
+                  "urls": null
+                },
+                {
+                  "type": "chat_gpt_brand_entity",
+                  "title": "Screaming Frog",
+                  "category": "software",
+                  "markdown": "Screaming Frog",
+                  "urls": null
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

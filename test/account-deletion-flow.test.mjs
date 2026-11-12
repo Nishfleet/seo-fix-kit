@@ -212,6 +212,26 @@ function seedEverything(world) {
     created_at: NOW,
     updated_at: NOW
   });
+  db.insert("chatgpt_visibility_runs", {
+    id: "visibility-leaver",
+    owner_email: e,
+    host,
+    brand: "Leaver Site",
+    question_count: 5,
+    cost_usd: 0.02,
+    report_json: JSON.stringify({ brand: "Leaver Site", host }),
+    created_at: NOW
+  });
+  db.insert("chatgpt_visibility_runs", {
+    id: "visibility-stayer",
+    owner_email: OTHER,
+    host: "stayer.example",
+    brand: "Stayer Site",
+    question_count: 5,
+    cost_usd: 0.02,
+    report_json: JSON.stringify({ brand: "Stayer Site", host: "stayer.example" }),
+    created_at: NOW
+  });
   db.insert("audit_schedules", {
     id: "schedule-leaver",
     owner_email: e,
