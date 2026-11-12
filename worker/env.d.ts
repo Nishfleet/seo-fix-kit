@@ -17,6 +17,8 @@ interface EnvSecrets {
   DODO_SEOFIXKIT_API_KEY?: string;
   DODO_SEOFIXKIT_WEBHOOK_SECRET?: string;
   DODO_SEOFIXKIT_WEBHOOK_KEY?: string;
+  DATAFORSEO_LOGIN?: string;
+  DATAFORSEO_PASSWORD?: string;
 }
 
 interface Env extends EnvVars, EnvSecrets {

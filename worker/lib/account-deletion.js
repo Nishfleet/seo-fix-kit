@@ -272,6 +272,7 @@ function deletionStatements(env, ownerEmail, pseudonym, now, loginBucketHash) {
     run(`DELETE FROM monitoring_checkout_sessions WHERE owner_email = ?`, e),
 
     run(`DELETE FROM site_claims WHERE owner_email = ?`, e),
+    run(`DELETE FROM chatgpt_visibility_runs WHERE owner_email = ?`, e),
     run(`DELETE FROM email_preferences WHERE owner_email = ?`, e),
     run(`DELETE FROM lifecycle_emails WHERE owner_email = ?`, e),
     run(`DELETE FROM access_events WHERE owner_email = ?`, e),
