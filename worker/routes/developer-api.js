@@ -128,6 +128,8 @@ async function getDeveloperApiSummary(request, env) {
     docs: {
       startAudit: "POST /v1/audits",
       getAudit: "GET /v1/audits/{audit_id}",
+      pageCheck: "POST /v1/page-check",
+      mcpServer: "POST /v1/mcp (MCP JSON-RPC; same API key; tools: page_check, start_audit, read_report)",
       getIssues: "GET /v1/audits/{audit_id}/issues",
       getRepairQueue: "GET /v1/audits/{audit_id}/repair-queue",
       updateRepairQueue: "PATCH /v1/audits/{audit_id}/repair-queue",
