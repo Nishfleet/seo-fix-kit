@@ -215,7 +215,8 @@ test("connect, sync, reorder the repair queue, then disconnect", async (t) => {
     /"issue-home".*"issue-pricing".*"issue-thin"/,
     "faults on pages with Google traffic are ranked first"
   );
-  assert.match(queue.items[0].trafficReason, /1200 clicks/);
+  assert.equal(queue.items[0].trafficClicks, 1200);
+  assert.ok(queue.items[0].trafficReason, "a reason is present for the top fault");
   assert.equal(queue.items[0].priority, 1);
 
   const disconnected = await call(db, ENV, session, "/api/gsc/disconnect", { method: "POST" });

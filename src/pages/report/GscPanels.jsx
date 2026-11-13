@@ -79,7 +79,7 @@ export function GscConnectionPanel() {
                 <li key={`${entry.priority}-${entry.title}`}>
                   <strong>{entry.title}</strong>
                   <span>
-                    {entry.trafficClicks} clicks · {entry.reason.replace(/^Ranked (first|by traffic): /, "")}
+                    {entry.trafficClicks} clicks · {entry.reasonText}
                   </span>
                 </li>
               ))}

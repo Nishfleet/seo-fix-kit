@@ -11,7 +11,6 @@ import {
   loadGscConnection,
   loadGscPageRows,
   pickGscSiteUrl,
-  refreshGscAccessToken,
   saveAuthState,
   saveGscConnection,
   saveGscPageRows,
@@ -138,7 +137,7 @@ async function syncGsc(request, env) {
 
   let tokens;
   try {
-    tokens = await refreshGscAccessToken(client, refreshToken);
+    tokens = await client.refreshAccessToken(refreshToken);
   } catch {
     return json({ error: "Google could not refresh the connection. Disconnect and connect again." }, 401);
   }

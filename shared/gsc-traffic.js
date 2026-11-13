@@ -29,13 +29,6 @@ function canonicalPageKey(url) {
   }
 }
 
-function pathKey(url) {
-  const canonical = canonicalPageKey(url);
-  if (!canonical) return "";
-  const index = canonical.indexOf("/");
-  return index === -1 ? "" : canonical.slice(index);
-}
-
 export function normalizeGscPageRows(rawRows, options = {}) {
   const limit = Math.min(Math.max(Number(options.limit || MAX_GSC_PAGE_ROWS), 1), MAX_GSC_PAGE_ROWS);
   const rows = Array.isArray(rawRows) ? rawRows : [];
@@ -66,32 +59,31 @@ export function normalizeGscPageRows(rawRows, options = {}) {
 
 function trafficIndex(rows) {
   const byPage = new Map();
-  const byPath = new Map();
   for (const row of rows || []) {
     const canonical = canonicalPageKey(row.url);
     if (!canonical) continue;
     if (!byPage.has(canonical)) byPage.set(canonical, row);
-    if (!byPath.has(row.path)) byPath.set(row.path, row);
   }
-  return { byPage, byPath };
+  return { byPage };
 }
 
 function trafficForPage(item, index) {
   const canonical = canonicalPageKey(item.pageUrl || item.page_url || "");
-  if (canonical && index.byPage.has(canonical)) return index.byPage.get(canonical);
-  const path = pathKey(item.pageUrl || item.page_url || "");
-  if (path) return index.byPath.get(path) || null;
-  return null;
+  return canonical ? index.byPage.get(canonical) || null : null;
 }
 
 function formatClicks(clicks) {
   return clicks === 1 ? "1 click" : `${clicks} clicks`;
 }
 
-function trafficReason(item) {
+function trafficReasonText(item) {
   const clicks = Number(item.trafficClicks || 0);
+  return `This page earns ${formatClicks(clicks)} over the last 90 days from Google, and this fault puts that traffic at risk.`;
+}
+
+function trafficReason(item) {
   const prefix = item.priority <= TOP_REASON_COUNT ? "Ranked first" : "Ranked by traffic";
-  return `${prefix}: this page earns ${formatClicks(clicks)} over the last 90 days from Google, and this fault puts that traffic at risk.`;
+  return `${prefix}: ${trafficReasonText(item)}`;
 }
 
 export function applyGscTrafficToQueue(items = [], gscRows = []) {
@@ -101,7 +93,6 @@ export function applyGscTrafficToQueue(items = [], gscRows = []) {
     return { items: input, summary: null };
   }
   const index = trafficIndex(rows);
-  const originalOrder = new Map(input.map((item, position) => [item, position]));
   const ranked = input.map((item) => {
     const row = trafficForPage(item, index);
     const clicks = row ? row.clicks : 0;
@@ -119,14 +110,12 @@ export function applyGscTrafficToQueue(items = [], gscRows = []) {
       if (!aTraffic || !bTraffic) return aTraffic ? -1 : 1;
       return bTraffic - aTraffic;
     }
-    if (aTraffic && Number(b.trafficImpressions || 0) !== Number(a.trafficImpressions || 0)) {
-      return Number(b.trafficImpressions) - Number(a.trafficImpressions);
-    }
-    return (originalOrder.get(a) || 0) - (originalOrder.get(b) || 0);
+    if (aTraffic) return Number(b.trafficImpressions || 0) - Number(a.trafficImpressions || 0);
+    return 0;
   });
   ranked.forEach((item, position) => {
     item.priority = position + 1;
-    item.trafficReason = trafficReason(item);
+    if (Number(item.trafficClicks || 0) > 0) item.trafficReason = trafficReason(item);
   });
 
   const withTraffic = ranked.filter((item) => Number(item.trafficClicks || 0) > 0);
@@ -138,13 +127,14 @@ export function applyGscTrafficToQueue(items = [], gscRows = []) {
       pages: rows.length,
       pagesWithTraffic: withTraffic.length,
       clicksAtRisk: withTraffic.reduce((total, item) => total + Number(item.trafficClicks || 0), 0),
-      topFive: ranked.slice(0, TOP_REASON_COUNT).map((item) => ({
+      topFive: withTraffic.slice(0, TOP_REASON_COUNT).map((item) => ({
         priority: item.priority,
         title: item.title,
         pageUrl: item.pageUrl,
         trafficClicks: Number(item.trafficClicks || 0),
         trafficImpressions: Number(item.trafficImpressions || 0),
-        reason: item.trafficReason
+        reason: item.trafficReason,
+        reasonText: trafficReasonText(item)
       }))
     }
   };

@@ -73,12 +73,13 @@ export function gscAuthorizationUrl(client, scopes = [GSC_READONLY_SCOPE]) {
 
 export async function saveAuthState(env, ownerEmail, state, codeVerifier) {
   const now = new Date().toISOString();
-  await env.WAITLIST_DB.prepare(
-    `INSERT INTO gsc_auth_states (state_hash, owner_email, code_verifier, created_at, expires_at)
-     VALUES (?, ?, ?, ?, ?)`
-  )
-    .bind(await sha256Hex(state), ownerEmail, codeVerifier, now, isoSecondsFromNow(GSC_STATE_TTL_SECONDS))
-    .run();
+  await env.WAITLIST_DB.batch([
+    env.WAITLIST_DB.prepare(`DELETE FROM gsc_auth_states WHERE expires_at <= ?`).bind(now),
+    env.WAITLIST_DB.prepare(
+      `INSERT INTO gsc_auth_states (state_hash, owner_email, code_verifier, created_at, expires_at)
+       VALUES (?, ?, ?, ?, ?)`
+    ).bind(await sha256Hex(state), ownerEmail, codeVerifier, now, isoSecondsFromNow(GSC_STATE_TTL_SECONDS))
+  ]);
 }
 
 export async function takeAuthState(env, state) {
@@ -223,11 +224,6 @@ export async function fetchGscPageRows(accessToken, siteUrl, options = {}) {
   }
   const payload = await response.json().catch(() => ({}));
   return Array.isArray(payload.rows) ? payload.rows : [];
-}
-
-export async function refreshGscAccessToken(client, refreshToken) {
-  const tokens = await client.refreshAccessToken(refreshToken);
-  return tokens;
 }
 
 export { GSC_WINDOW_DAYS };

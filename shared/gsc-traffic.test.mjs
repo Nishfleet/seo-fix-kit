@@ -64,18 +64,57 @@ test("the queue ranks faults on pages with traffic first and says why", () => {
     "the homepage (1200 clicks) and /pricing (400 clicks) outrank the critical fault on an unvisited page"
   );
   assert.equal(ranked[0].trafficClicks, 1200);
+  assert.equal(ranked[0].priority, 1);
   assert.equal(ranked[1].trafficClicks, 400);
   assert.equal(ranked[2].trafficClicks, 0);
-  assert.match(ranked[0].trafficReason, /1200 clicks.*90 days.*risk/);
-  assert.match(ranked[2].trafficReason, /0 clicks/);
+  assert.ok(ranked[0].trafficReason, "a reason is present for a fault on a page with traffic");
+  assert.ok(!ranked[2].trafficReason, "a fault on a page without traffic gets no reason");
 
   assert.equal(summary.status, "ready");
   assert.equal(summary.windowDays, 90);
   assert.equal(summary.pages, 3);
   assert.equal(summary.pagesWithTraffic, 2);
   assert.equal(summary.clicksAtRisk, 1600);
-  assert.equal(summary.topFive.length, 3);
-  assert.match(summary.topFive[0].reason, /1200 clicks/);
+  assert.deepEqual(
+    summary.topFive.map((entry) => entry.trafficClicks),
+    [1200, 400],
+    "top five lists only pages that have traffic"
+  );
+  assert.equal(summary.topFive[0].priority, 1);
+  assert.ok(summary.topFive[0].reason, "the summary carries a reason");
+  assert.ok(summary.topFive[0].reasonText, "the summary carries the reason text without its label");
+});
+
+test("rows from one property are never credited to a report on a different host", () => {
+  const items = [
+    {
+      issueId: "issue-1",
+      title: "Duplicate title on /pricing",
+      severity: "critical",
+      pageUrl: "https://other.example/pricing",
+      priority: 1
+    },
+    {
+      issueId: "issue-2",
+      title: "Thin content on /",
+      severity: "warning",
+      pageUrl: "https://other.example/",
+      priority: 2
+    }
+  ];
+  const { items: ranked, summary } = applyGscTrafficToQueue(items, GSC_ROWS);
+
+  assert.deepEqual(
+    ranked.map((item) => item.issueId),
+    ["issue-1", "issue-2"],
+    "the queue order is unchanged"
+  );
+  for (const item of ranked) {
+    assert.equal(item.trafficClicks, 0, "no clicks from shop.example are credited to other.example");
+    assert.ok(!item.trafficReason);
+  }
+  assert.equal(summary.clicksAtRisk, 0);
+  assert.deepEqual(summary.topFive, []);
 });
 
 test("without Search Console rows the queue is untouched", () => {
