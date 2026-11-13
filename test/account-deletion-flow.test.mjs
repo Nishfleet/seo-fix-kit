@@ -451,6 +451,27 @@ function seedEverything(world) {
     imported_at: NOW,
     created_at: NOW
   });
+  db.insert("gsc_auth_states", {
+    state_hash: "gsc-state-hash-leaver",
+    owner_email: e,
+    code_verifier: "gsc-verifier",
+    created_at: NOW,
+    expires_at: LATER
+  });
+  db.insert("gsc_connections", {
+    owner_email: e,
+    site_url: `sc-domain:${host}`,
+    refresh_token_enc: "gsc-encrypted-refresh-token",
+    created_at: NOW,
+    updated_at: NOW,
+    last_synced_at: NOW
+  });
+  db.insert("gsc_page_data", {
+    owner_email: e,
+    site_url: `sc-domain:${host}`,
+    page_rows_json: "[]",
+    synced_at: NOW
+  });
   db.insert("keyword_rank_observations", {
     id: "rank-leaver",
     owner_email: e,

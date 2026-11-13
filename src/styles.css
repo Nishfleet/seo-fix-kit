@@ -5589,6 +5589,13 @@ a.app-table-row:hover {
   padding: 16px 18px 18px;
 }
 
+.issue-board-traffic {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0;
+}
+
 .issue-board-fix {
   color: var(--ink-soft);
   font-size: 14px;

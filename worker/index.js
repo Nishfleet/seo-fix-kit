@@ -71,6 +71,7 @@ import {
   verifyAccessLink,
   verifySiteClaim
 } from "./routes/access.js";
+import { disconnectGsc, getGscConnection, gscCallback, startGscConnect, syncGsc } from "./routes/gsc.js";
 import {
   createTeamMember,
   getReportCollaboration,
@@ -253,6 +254,11 @@ app.post("/api/access/request", route(requestAccessLink));
 app.post("/api/access/verify", route(verifyAccessLink));
 app.post("/api/access/track", route(recordAccessBeacon));
 app.post("/api/beta/login", route(betaLogin));
+app.post("/api/gsc/connect", route(startGscConnect));
+app.get("/api/gsc/callback", route(gscCallback));
+app.get("/api/gsc/connection", route(getGscConnection));
+app.post("/api/gsc/disconnect", route(disconnectGsc));
+app.post("/api/gsc/sync", route(syncGsc));
 app.get("/api/beta/session", route(betaSession));
 app.post("/api/beta/logout", route(betaLogout));
 app.get("/api/sites", route(listSiteClaims));

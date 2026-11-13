@@ -3,6 +3,7 @@ import {
   deriveRepairQueueItems,
   REPAIR_QUEUE_ITEM_LIMIT
 } from "../../shared/repair-queue.js";
+import { applyGscTrafficToQueue } from "../../shared/gsc-traffic.js";
 import {
   cleanRerunReportId,
   comparableReportHost,
@@ -22,6 +23,7 @@ import {
 } from "../../shared/repair-action-rules.js";
 import { repairTableAll } from "./repair-tables.js";
 import { reportJsonForRow } from "./report-data.js";
+import { loadGscPageRows } from "./gsc.js";
 import { cleanText, parseJson } from "./text.js";
 import { body, text, z } from "./validation.js";
 
@@ -386,9 +388,21 @@ async function ensureRepairQueueRows(env, access, reportId, report) {
   ]);
 
   return {
-    items: deriveRepairQueueItems(report, freshRows.results || [], freshActions.results || []),
+    items: await repairQueueWithGscTraffic(env, access.ownerEmail, [
+      ...deriveRepairQueueItems(report, freshRows.results || [], freshActions.results || [])
+    ]),
     unavailable: Boolean(freshRows.repairTablesMissing || freshActions.repairTablesMissing)
   };
+}
+
+async function repairQueueWithGscTraffic(env, ownerEmail, items) {
+  try {
+    const pageData = await loadGscPageRows(env, ownerEmail);
+    if (!pageData || !pageData.rows.length) return items;
+    return applyGscTrafficToQueue(items, pageData.rows).items;
+  } catch {
+    return items;
+  }
 }
 
 function queueUpdateFromActionStateStatement(db, access, reportId, queueItemId, state) {
