@@ -30,3 +30,18 @@ test("the backup covers the database the deploy migrates, under its own bound na
   assert.ok(row, `the matrix row is named after the bound database ${bound[1]}`);
   assert.equal(row[1], bound[2], `the backup dumps the bound database ${bound[2]}`);
 });
+
+test("the dumps are encrypted before they touch an artifact", () => {
+  assert.match(WF, /\$\{\{ vars\.AGE_RECIPIENT \}\}/);
+  assert.match(WF, /the age recipient is unset/);
+  assert.match(WF, /age-bin\/age" -r "\$AGE_RECIPIENT" -o "\$file\.age" "\$file"/);
+  assert.match(WF, /rm -f "\$file"/);
+  assert.match(WF, /path: \$\{\{ runner\.temp \}\}\/d1-export\/\*\.sql\.age$/m);
+  assert.doesNotMatch(WF, /path: \$\{\{ runner\.temp \}\}\/d1-export\/\*\.sql$/m);
+});
+
+test("the age binary is a digest-pinned release download", () => {
+  assert.match(WF, /AGE_VERSION: v\d+\.\d+\.\d+/);
+  assert.match(WF, /AGE_LINUX_AMD64_SHA256: [0-9a-f]{64}/);
+  assert.match(WF, /echo "\$AGE_LINUX_AMD64_SHA256 {2}\$RUNNER_TEMP\/age\.tar\.gz" \| sha256sum -c -/);
+});
