@@ -3,7 +3,7 @@ import { apiFetch } from "../api.js";
 import { FIX_FOR_ME_CONSENT_TEXT } from "../../shared/fix-for-me.js";
 import { readOrCreateFunnelKey, sendAccessBeacon } from "../lib/browser.js";
 
-// upstream: https://react.dev/learn/passing-props-to-a-component — "Have it fixed for you" (issue #412): one button at the end of every report; the visitor confirms site and email here in SEO Fix Kit and the Worker hands the request to TinyStudio server-to-server; no price on this screen, the fixed-price offer comes from TinyStudio.
+// upstream: https://react.dev/learn/passing-props-to-a-component — "Have it fixed for you" (issue #412): one button at the end of every report; the visitor confirms site and email here in SEO Fix Kit and the Worker puts the request on TinyStudio's queue (`tinystudio-requests`); no price on this screen, the fixed-price offer comes from TinyStudio.
 export function FixForMe({ site, reportId = "", prefillEmail = "" }) {
   const [open, setOpen] = useState(false);
   const [siteValue, setSiteValue] = useState(site || "");

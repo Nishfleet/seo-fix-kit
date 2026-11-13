@@ -1,4 +1,4 @@
-// upstream: https://developers.cloudflare.com/workers/runtime-apis/hmac/ — the "Have it fixed for you" button (issue #412): the visitor confirms site and email on the report or the free page check, and this Worker hands the request to TinyStudio server-to-server per the contract in shared/fix-for-me.js; the browser never calls TinyStudio; if TinyStudio does not answer the row stays pending and the scheduled queue retries it, so a request is never dropped and success is never claimed early.
+// upstream: https://developers.cloudflare.com/queues/ — the "Have it fixed for you" button (issue #412): the visitor confirms site and email on the report or the free page check, and this Worker puts the request on the Cloudflare Queue `tinystudio-requests` through the producer binding per the contract in shared/fix-for-me.js; the browser never calls TinyStudio, no shared secret signs anything, and Cloudflare Queues' built-in delivery retries carry the request the rest of the way.
 import { recordAccessEvent } from "../lib/access-events.js";
 import { withD1Retry } from "../lib/d1-retry.js";
 import { jsonNoStore } from "../lib/http.js";
@@ -6,21 +6,11 @@ import { checkQuotaSet, requestIpHash, sha256Hex } from "../lib/security.js";
 import { dayWindow, hourWindow } from "../lib/text.js";
 import { body, email, parseJsonBody, text } from "../lib/validation.js";
 import { resolvesToPrivateAddress } from "../../shared/url-safety.js";
-import {
-  normalizeFixForMeRequest,
-  tinyStudioRequestBody,
-  tinyStudioSignatureHeaders,
-  TINY_STUDIO_REQUEST_URL
-} from "../../shared/fix-for-me.js";
+import { fixForMeQueueMessage, normalizeFixForMeRequest } from "../../shared/fix-for-me.js";
 
 export const FIX_FOR_ME_API_PATH = "/api/fix-for-me";
 
 export const FIX_FOR_ME_LIMITS = { ipHour: 3, ipDay: 8, targetHour: 2, targetDay: 5 };
-
-const DELIVERY_TIMEOUT_MS = 5000;
-const MAX_ATTEMPTS = 12;
-const RETRY_AFTER_MS = 10 * 60 * 1000;
-const RETRY_BATCH = 20;
 
 const FixForMeBody = body({
   site: text(2000),
@@ -79,71 +69,26 @@ function fixForMeConfirmation(email) {
 }
 
 /** @param {Env} env
- *  @param {{ id?: string, site: string, email: string, reportId: string }} row */
-async function deliverFixForMeRequest(env, row) {
-  const rawBody = tinyStudioRequestBody({ site: row.site, email: row.email, reportId: row.reportId });
-  const timestamp = Math.floor(Date.now() / 1000);
+ *  @param {{ id: string, site: string, email: string, reportId: string }} row — puts the request on the `tinystudio-requests` queue; Cloudflare Queues retries delivery, so a request is never dropped and success is never claimed early */
+async function enqueueFixForMeRequest(env, row) {
   try {
-    const signature = await tinyStudioSignatureHeaders({
-      secret: String(env.SEOFIXKIT_REQUEST_SECRET || ""),
-      timestamp,
-      rawBody
-    });
-    // eslint-disable-next-line no-restricted-globals -- fixed vendor host (tinystudio.io) per the #412 contract, never a customer-typed URL
-    const response = await fetch(TINY_STUDIO_REQUEST_URL, {
-      method: "POST",
-      headers: { ...signature, "content-type": "application/json" },
-      body: rawBody,
-      signal: AbortSignal.timeout(DELIVERY_TIMEOUT_MS)
-    });
-    if (response.status !== 202) {
-      return { status: "pending", error: `TinyStudio answered HTTP ${response.status}` };
-    }
-    const payload = await response.json().catch(() => ({}));
-    if (!payload?.id || typeof payload.id !== "string") {
-      return { status: "pending", error: "TinyStudio answered 202 without an id" };
-    }
-    return { status: "sent", tinyStudioId: payload.id.slice(0, 128) };
-  } catch {
+    await env.TINY_STUDIO_QUEUE.send(fixForMeQueueMessage(row));
+    return true;
+  } catch (error) {
     console.error(
-      "Fix-for-me delivery to TinyStudio did not succeed; request stays queued for retry, logged without the body so no personal data reaches a log line"
+      "Fix-for-me queue send failed; request stays pending in the database, logged without the body so no personal data reaches a log line",
+      error
     );
-    return { status: "pending", error: "TinyStudio did not answer" };
-  }
-}
-
-/** @param {import("../lib/d1-retry.js").D1RetryDatabase} db
- *  @param {{ id: string }} row
- *  @param {{ status: string, tinyStudioId?: string, error?: string }} delivery
- *  @param {string} attemptedAt */
-async function markDelivered(db, row, delivery, attemptedAt) {
-  if (delivery.status === "sent") {
-    await db
-      .prepare(
-        `UPDATE fix_for_me_requests
-         SET status = 'sent', tiny_studio_id = ?, attempts = attempts + 1, last_attempt_at = ?, last_error = NULL, sent_at = ?
-         WHERE id = ?`
-      )
-      .bind(delivery.tinyStudioId, attemptedAt, attemptedAt, row.id)
-      .run();
-  } else {
-    await db
-      .prepare(
-        `UPDATE fix_for_me_requests
-         SET attempts = attempts + 1, last_attempt_at = ?, last_error = ?
-         WHERE id = ?`
-      )
-      .bind(attemptedAt, String(delivery.error || "").slice(0, 300), row.id)
-      .run();
+    return false;
   }
 }
 
 /** @param {Request} request
  *  @param {Env} env — POST /api/fix-for-me, the only place the browser talks to for this */
 export async function runFixForMe(request, env) {
-  if (!env.WAITLIST_DB) {
+  if (!env.WAITLIST_DB || !env.TINY_STUDIO_QUEUE) {
     return jsonNoStore(
-      { error: "Request storage is not set up on this server. Email support@seofixkit.com for help." },
+      { error: "Request intake is not set up on this server. Email support@seofixkit.com for help." },
       503
     );
   }
@@ -194,8 +139,7 @@ export async function runFixForMe(request, env) {
     .run();
 
   const row = { id, site, email, reportId };
-  const delivery = await deliverFixForMeRequest(env, row);
-  await markDelivered(db, row, delivery, now);
+  const queued = await enqueueFixForMeRequest(env, row);
 
   await recordAccessEvent(env, {
     step: "fix_request_submitted",
@@ -203,38 +147,14 @@ export async function runFixForMe(request, env) {
     source: "fix-for-me",
     landingPath: "/api/fix-for-me",
     request,
-    metadata: { fromReport: Boolean(reportId), delivered: delivery.status === "sent" }
+    metadata: { fromReport: Boolean(reportId), queued }
   });
 
   return jsonNoStore({
     ok: true,
     requestId: id,
-    tinyStudioId: delivery.tinyStudioId || "",
-    status: delivery.status,
+    tinyStudioId: "",
+    status: queued ? "queued" : "pending",
     confirmation: fixForMeConfirmation(email)
   });
-}
-
-/** @param {Env} env — scheduled-queue retry for requests TinyStudio did not answer */
-export async function retryPendingFixForMe(env) {
-  if (!env?.WAITLIST_DB) return { retried: 0, sent: 0 };
-  const db = withD1Retry(env.WAITLIST_DB);
-  const cutoff = new Date(Date.now() - RETRY_AFTER_MS).toISOString();
-  const result = await db
-    .prepare(
-      `SELECT * FROM fix_for_me_requests
-       WHERE status = 'pending' AND attempts < ${MAX_ATTEMPTS} AND last_attempt_at <= ?
-       ORDER BY created_at ASC LIMIT ${RETRY_BATCH}`
-    )
-    .bind(cutoff)
-    .all();
-  const rows = result?.results || [];
-  let sent = 0;
-  for (const row of rows) {
-    const attemptedAt = new Date().toISOString();
-    const delivery = await deliverFixForMeRequest(env, row);
-    await markDelivered(db, row, delivery, attemptedAt);
-    if (delivery.status === "sent") sent += 1;
-  }
-  return { retried: rows.length, sent };
 }

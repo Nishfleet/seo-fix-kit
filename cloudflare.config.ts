@@ -60,6 +60,12 @@ export default defineConfig(({ isPreview }) => ({
       AUDIT_QUEUE: bindings.queue({
         name: "seofixkit-audit-jobs"
       }),
+      // Producer-only binding for "Have it fixed for you" (issue #412): the request
+      // lands on the `tinystudio-requests` queue and TinyStudio's consumer takes it
+      // from there; this Worker makes no HTTP call to TinyStudio.
+      TINY_STUDIO_QUEUE: bindings.queue({
+        name: "tinystudio-requests"
+      }),
       BROWSER: bindings.browser({}),
       ASSETS: bindings.assets(),
       ACCOUNT_ID: bindings.text("f670a698e17bf160c8e4679823e68916"),

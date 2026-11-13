@@ -1,7 +1,4 @@
-// upstream: https://docs.stripe.com/webhooks — Stripe and GitHub sign webhooks the same way, an HMAC over "<timestamp>.<raw body>" with a shared secret; this file is that contract for "Have it fixed for you" (seo-fix-kit#412, TinyStudio.io-public#149), sent by the Worker with the shared secret SEOFIXKIT_REQUEST_SECRET — the browser never calls TinyStudio.
-export const TINY_STUDIO_ORIGIN = "https://tinystudio.io";
-export const TINY_STUDIO_REQUEST_PATH = "/api/requests/from-seofixkit";
-export const TINY_STUDIO_REQUEST_URL = `${TINY_STUDIO_ORIGIN}${TINY_STUDIO_REQUEST_PATH}`;
+// upstream: https://developers.cloudflare.com/queues/ — "Have it fixed for you" (seo-fix-kit#412, TinyStudio.io-public#149): the Worker puts each request on the Cloudflare Queue `tinystudio-requests` through a producer binding — no signed HTTP call and no shared secret; the browser never calls TinyStudio. This file is the message contract both sides share.
 
 /** @param {string} [consentText] test override; the default is the owner's consent line (Nish, 2026-11-12) — the email is used for this request only, never for a marketing list
  *  @returns {string} the consent line sent to TinyStudio */
@@ -47,31 +44,8 @@ export function normalizeFixForMeRequest(input = {}) {
   return { ok: true, value: { site: url.href, email, reportId } };
 }
 
-/** @param {{ secret: string, timestamp: number, rawBody: string }} options
- *  @returns {Promise<{ "X-TinyStudio-Timestamp": string, "X-TinyStudio-Signature": string }>} */
-export async function tinyStudioSignatureHeaders({ secret, timestamp, rawBody }) {
-  const signingSecret = String(secret || "");
-  if (!signingSecret) {
-    throw new Error("Fix-request signing is not configured. Set the SEOFIXKIT_REQUEST_SECRET secret.");
-  }
-  const encoder = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(signingSecret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(`${timestamp}.${rawBody}`));
-  const hex = [...new Uint8Array(signature)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
-  return {
-    "X-TinyStudio-Timestamp": String(Math.floor(timestamp)),
-    "X-TinyStudio-Signature": `sha256=${hex}`
-  };
-}
-
-/** @param {{ site: string, email: string, reportId: string, consentText?: string }} request — the JSON body the contract fixes: site, email, reportId, consentText
- *  @returns {string} the exact raw body that gets signed */
-export function tinyStudioRequestBody({ site, email, reportId, consentText = FIX_FOR_ME_CONSENT_TEXT }) {
-  return JSON.stringify({ site, email, reportId, consentText });
+/** @param {{ site: string, email: string, reportId: string, consentText?: string }} request — the message the contract fixes: site, email, reportId, consentText
+ *  @returns {{ site: string, email: string, reportId: string, consentText: string }} the exact message sent to the `tinystudio-requests` queue */
+export function fixForMeQueueMessage({ site, email, reportId, consentText = FIX_FOR_ME_CONSENT_TEXT }) {
+  return { site, email, reportId, consentText };
 }

@@ -17,7 +17,6 @@ interface EnvSecrets {
   DODO_SEOFIXKIT_API_KEY?: string;
   DODO_SEOFIXKIT_WEBHOOK_SECRET?: string;
   DODO_SEOFIXKIT_WEBHOOK_KEY?: string;
-  SEOFIXKIT_REQUEST_SECRET?: string;
 }
 
 interface Env extends EnvVars, EnvSecrets {
@@ -26,6 +25,7 @@ interface Env extends EnvVars, EnvSecrets {
   BACKUP_BUCKET: R2Bucket;
   BACKUP_WORKFLOW: Workflow;
   AUDIT_QUEUE: Queue;
+  TINY_STUDIO_QUEUE: Queue;
   EMAIL: SendEmail;
   BROWSER: Fetcher;
   ASSETS: Fetcher;

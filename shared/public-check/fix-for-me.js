@@ -1,4 +1,4 @@
-// upstream: https://vitejs.dev/guide/build — the "Have it fixed for you" block on the free one-page check result (issue #412): vanilla DOM because the check page is Worker-rendered and loads one bundled script (/check.js); the browser calls only /api/fix-for-me, and the Worker signs and forwards to TinyStudio.
+// upstream: https://vitejs.dev/guide/build — the "Have it fixed for you" block on the free one-page check result (issue #412): vanilla DOM because the check page is Worker-rendered and loads one bundled script (/check.js); the browser calls only /api/fix-for-me, and the Worker puts the request on TinyStudio's queue (`tinystudio-requests`).
 import { FIX_FOR_ME_CONSENT_TEXT } from "../fix-for-me.js";
 
 const DEFAULT_CONFIRMATION =
