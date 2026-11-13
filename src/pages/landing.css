@@ -196,7 +196,7 @@
   font-size: 21px;
   font-weight: var(--weight-semibold);
   letter-spacing: -0.03em;
-  opacity: 0.55;
+  opacity: 0.62;
   white-space: nowrap;
 }
 
@@ -929,6 +929,7 @@
 }
 
 .landing-proof-scores dd {
+  display: grid;
   font-size: clamp(32px, 4vw, 44px);
   font-variant-numeric: tabular-nums;
   font-weight: var(--weight-semibold);
