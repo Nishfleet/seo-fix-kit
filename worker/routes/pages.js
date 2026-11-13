@@ -1,4 +1,5 @@
 import { SITE_FOOTER, SITE_NAV, SITE_TAGLINE } from "../../shared/site-nav.js";
+import { SHOPIFY_AUDIT_SAMPLE } from "../../shared/shopify-audit-sample.js";
 import { escapeHtml } from "../../shared/audit-engine.js";
 import { FREE_TOOLS } from "../../shared/free-tools/catalog.js";
 import { DEMO_PROOF, DEMO_FIXTURE_PATH, demoProofSnippet } from "./demo-proof.js";
@@ -33,6 +34,7 @@ SEO Fix Kit is a private-beta, self-serve SEO audit and paid Fix Pack workflow.
 - [${origin}/small-business-seo-audit](https://seofixkit.com/small-business-seo-audit): Proof-backed SEO audit for small businesses. Check one page free, pay only when real fixes exist.
 - [${origin}/rendered-vs-static-seo-audit](https://seofixkit.com/rendered-vs-static-seo-audit): Renders pages in a real browser to compare raw HTML with the rendered DOM — guarding static-crawler false positives and showing AI crawler visibility for JavaScript-blind crawlers like GPTBot, ClaudeBot, PerplexityBot, and CCBot.
 - [${origin}/ai-answer-readiness](https://seofixkit.com/ai-answer-readiness): Proof-derived AI Answer Readiness from rendered content, schema, links, sitemap context, and optional llms.txt. Site-proof, not citation monitoring.
+- [${origin}/shopify-seo-audit](https://seofixkit.com/shopify-seo-audit): SEO audit for Shopify stores, with problem counts from a ${SHOPIFY_AUDIT_SAMPLE.completed}-store sample of public Shopify stores audited on ${SHOPIFY_AUDIT_SAMPLE.auditDate}. Counts only; no store is named.
 - [${origin}/support](https://seofixkit.com/support): Support and contact page.
 - [${origin}/privacy](https://seofixkit.com/privacy): Privacy note for access requests, private beta audits, payments, and fulfillment.
 - [${origin}/terms](https://seofixkit.com/terms): Terms of service.
@@ -59,6 +61,7 @@ Live product claims:
 - Reports include rendered WordPress and ecommerce platform proof for Product schema, breadcrumbs, faceted links, archives, and plugin resource impact.
 - Reports include proof-derived AI Answer Readiness checks for rendered content depth, helpful schema, canonical/internal-link clarity, question-led structure, sitemap context, and optional llms.txt reachability. When imported Search Console rows are present, those faults are ranked by clicks and impressions on the affected pages.
 - Intent-matching landing pages at ${origin}/small-business-seo-audit, ${origin}/rendered-vs-static-seo-audit, and ${origin}/ai-answer-readiness describe the proof-backed small-business audit, the rendered-vs-static proof loop framed as AI crawler visibility (GPTBot, ClaudeBot, PerplexityBot, and CCBot read raw HTML without executing JavaScript), and the site-proof AI Answer Readiness boundary; none claim live answer-engine sampling or AI citation monitoring.
+- The Shopify audit page at ${origin}/shopify-seo-audit reports problem counts from a 2026-11-12 sample of 26 public Shopify stores audited with the same engine, without naming any store and without logging into Shopify admin.
 - Reports include draft-only growth briefs from verified keyword, competitor, AI-readiness, and crawl gaps.
 - Reports include a private repair queue with proof, acceptance checks, status, safe draft action records, approval state, owner-approved implementation packs, and proof receipts after fixed rerun proof.
 - The account dashboard includes a repair-agent feed that ranks open repairs, drafted actions, applied items needing rerun proof, and monitor regressions.
@@ -125,6 +128,7 @@ Useful routes:
 - ${origin}/small-business-seo-audit
 - ${origin}/rendered-vs-static-seo-audit
 - ${origin}/ai-answer-readiness
+- ${origin}/shopify-seo-audit
 - ${origin}/tools
 `;
 }
@@ -144,6 +148,7 @@ Public proof before payment:
 - Small-business SEO audit: ${origin}/small-business-seo-audit
 - Rendered vs static audit: ${origin}/rendered-vs-static-seo-audit
 - AI Answer Readiness check: ${origin}/ai-answer-readiness
+- Shopify store audit: ${origin}/shopify-seo-audit
 
 Start at ${origin}/.
 `;
@@ -907,6 +912,115 @@ function aiAnswerReadinessHtml(origin) {
   });
 }
 
+function shopifySeoAuditHtml(origin) {
+  const s = SHOPIFY_AUDIT_SAMPLE;
+  return publicProductPageHtml({
+    origin,
+    path: "/shopify-seo-audit",
+    title: "SEO Audit for Shopify Stores",
+    description:
+      "What an SEO audit most often finds on real Shopify stores: problem counts from a " +
+      `${s.completed}-store sample of public Shopify sites, each with the evidence and the fix. Check one page free.`,
+    eyebrow: "Shopify SEO audit",
+    heading: "An SEO audit built from real Shopify stores.",
+    lead:
+      `On ${s.auditDate} we audited ${s.completed} public Shopify stores with SEO Fix Kit and counted what the audit found. ` +
+      `This page lists the problems that came up most often, each with the evidence the audit recorded and the fix — no store is named, and the free check is one paste away.`,
+    softwareDescription:
+      "SEO audit software for Shopify stores that loads pages in a real browser, lists confirmed problems with fixes, and reruns the audit to confirm repairs. The Shopify page reports problem counts from a " +
+      `${s.completed}-store sample of public Shopify sites.`,
+    body: `
+      <section class="grid three" aria-label="How to start">
+        <article class="panel proof"><strong>Free one-page check</strong><p>Paste a product, collection or home page at <a href="${origin}/check">${origin}/check</a>. You get the rendered evidence, the false alarms ruled out, and real problems with fixes. No account, no email, nothing stored.</p></article>
+        <article class="panel"><strong>Audit the whole store</strong><p>Sign in with an emailed link to run audits. Once you verify the site, each audit can cover up to 1,000 pages — every product, collection and content page.</p></article>
+        <article class="panel"><strong>Fix Pack when you need it</strong><p>One repair pass on one report, plus one rerun after the fixes ship. You see the price at checkout before you pay.</p></article>
+      </section>
+      <section class="band">
+        <h2>How the sample was built</h2>
+        <p>The counts below are not a template. They come from running SEO Fix Kit’s own audit engine on real Shopify stores:</p>
+        <ul class="check-list">
+          <li><strong>${s.completed} public Shopify stores</strong> (of ${s.attempted} attempted; 3 were excluded before counting — 1 audit failed to complete, 2 changed domain mid-audit so one of the three pages could not be audited).</li>
+          <li><strong>${s.pagesPerStore} pages per store</strong> (${s.pagesAudited} pages in total): the home page, one product page and one collection page. Product and collection URLs came from each store’s public products.json or its sitemap.</li>
+          <li><strong>Every page was rendered in Chromium</strong> and audited with engine v${s.engineVersion} — the same engine that powers the free one-page check and the beta site audits. Nothing was logged into; only public pages were read.</li>
+          <li><strong>Counts, not names.</strong> No store is named as an example of a problem, and no store’s results are published individually.</li>
+        </ul>
+      </section>
+      <section class="band">
+        <h2>What the audit found most often on Shopify</h2>
+        <h3>Faceted, filtered and variant URLs are crawlable — 20 of ${s.completed} stores</h3>
+        <p>The audit found 211 filter, sort, pagination or variant URLs across the sample sitting in the rendered links of these stores’ pages, such as <code>?variant=…</code> and <code>?color=…</code> addresses next to the plain product URL. Shopify themes produce these links on their own, and most of them only waste crawl.</p>
+        <p><strong>Fix:</strong> decide which filtered URLs should be in search. Point the rest at the plain category or product URL with a canonical tag, and block or noindex filter parameters that only waste crawling.</p>
+        <h3>Product pages without rendered Product schema — 12 of ${s.completed} stores</h3>
+        <p>Of the 25 audited <code>/products/</code> pages, 13 carried a rendered <code>Product</code> JSON-LD object and 12 did not. Twelve of the ${s.completed} stores had at least one audited product page without <code>Product</code> schema. Nine of those twelve emit a <code>ProductGroup</code> object instead, which the engine counts as missing <code>Product</code> schema, and three stores’ audited product pages had no product markup in the rendered DOM at all. Product markup is what makes price, stock and rating details eligible to show in search results.</p>
+        <p><strong>Fix:</strong> add Product schema with the name, image, price, stock status and offer details shown on the product page — and check the rendered DOM, not the app settings, to confirm it is actually there.</p>
+        <h3>Collection and product pages without BreadcrumbList schema — 15 of ${s.completed} stores</h3>
+        <p>Across the sample, 25 of the 57 audited product and collection pages had a rendered <code>BreadcrumbList</code>, and 32 did not. Breadcrumbs tell search engines where a product sits in the store’s structure, and they are what the breadcrumb trail in a result should be built from.</p>
+        <p><strong>Fix:</strong> add visible breadcrumbs (Home &gt; Collection &gt; Product) and BreadcrumbList schema that matches them.</p>
+      </section>
+      <section class="band">
+        <h2>Counts that showed up on nearly every store</h2>
+        <p>These are not Shopify-specific — any platform can have them — but they came up store after store:</p>
+        <ul class="check-list">
+          <li><strong>Basic security headers missing — 26 of ${s.completed}.</strong> The HTML response lacked basic security headers. The engine’s fix is to set the headers at the host or CDN; on Shopify the platform controls response headers, so the practical first step is checking what your theme and apps emit and raising the rest with Shopify support.</li>
+          <li><strong>Render-blocking resources and too many third-party requests — 25 of ${s.completed} each.</strong> Themes plus marketing and review apps load CSS and scripts the first view does not need. Fix: remove tags you no longer use, cut duplicate vendors, inline the CSS the first view needs and defer the rest.</li>
+          <li><strong>Heading hierarchy needs cleanup — 24 of ${s.completed}</strong>, including 11 stores with more than one H1 on a page and 8 with a page that had no H1 at all. Fix: one H1, then H2 for sections and H3 inside them. Don’t skip a level.</li>
+          <li><strong>Social share image incomplete — 21 of ${s.completed}.</strong> At least one audited page was missing og:image or twitter:image, so links to it shared with no picture. Fix: add og:image and twitter:image tags pointing at a 1200x630 image.</li>
+          <li><strong>URL redirects before rendering — 20 of ${s.completed}.</strong> Fix: use the final URL in the canonical tag, internal links and sitemap.</li>
+          <li><strong>Heavy JavaScript and image payloads — 19 of ${s.completed} each.</strong> Fix: compress large images, serve smaller sizes to phones, split out the code the first view needs and defer the rest.</li>
+          <li><strong>Meta descriptions — 19 of ${s.completed}</strong> had a page whose meta description needed tightening, and 10 had a page with no meta description at all. Fix: rewrite it in 1 to 2 sentences that say what the page offers and who it’s for.</li>
+          <li><strong>Broken internal links — 15 of ${s.completed}.</strong> Fix: point each link at a page that loads, bring the missing page back, or delete the link.</li>
+          <li><strong>Images missing alt attributes — 11 of ${s.completed}.</strong> Fix: describe each meaningful image in a few words; give purely decorative images alt="".</li>
+          <li><strong>AI Answer Readiness: helpful structured data not proven — 12 of ${s.completed}.</strong> The rendered pages did not prove the helpful schema an answer engine could use. <a href="${origin}/ai-answer-readiness">How that check works</a>.</li>
+        </ul>
+      </section>
+      <section class="band">
+        <h2>What was rare in this sample</h2>
+        <p>The counts work both ways. Two Shopify checks barely came up:</p>
+        <ul class="check-list">
+          <li><strong>Thin collection-page content: 0 of ${s.completed} stores.</strong> The audited collection pages all had more than the engine’s small rendered-text threshold. That may differ on a sample with more small catalogues, but in this sample it was not a problem.</li>
+          <li><strong>Out-of-stock product handling: 1 of ${s.completed} stores</strong> (2 pages). Most audited product pages did not trigger the engine’s sold-out handling check.</li>
+        </ul>
+        <p>If a checklist elsewhere tells you thin collections are the top Shopify problem, this sample did not reproduce that.</p>
+      </section>
+      <section class="band">
+        <h2>What this page does not claim</h2>
+        <p>The counts come from ${s.completed} public Shopify stores at one moment (${s.auditDate}), ${s.pagesAudited} pages in total. They are not a prediction for any particular store: a store that audited cleanly on most checks can still fail a check not in this list, and a store with none of these problems still isn’t guaranteed anything. The sample is small, and every store is treated anonymously. The audit reads public pages and files only: it does not log into Shopify admin, does not change themes, apps or settings, and does not guarantee rankings, traffic, indexing or revenue. Results are evidence at the time of the audit.</p>
+      </section>
+      <section class="band">
+        <h2>Start with one page</h2>
+        <p><a class="cta" href="${origin}/check">Check a Shopify page</a></p>
+        <p><a href="${origin}/demo">See a sample report</a> · <a href="${origin}/methodology">How it works</a> · <a href="${origin}/pricing">Pricing</a></p>
+      </section>
+    `,
+    faq: [
+      {
+        q: "How many stores were audited, and how?",
+        a: `On ${s.auditDate}, ${s.completed} public Shopify stores (from ${s.attempted} attempted), ${s.pagesPerStore} pages each — home page, one product page, one collection page — ${s.pagesAudited} pages in total. Every page was rendered in a real browser and audited with SEO Fix Kit’s engine v${s.engineVersion}. Only counts are published; no store is named.`
+      },
+      {
+        q: "Why aren’t the stores named?",
+        a: "The audit reads public pages, but naming a store as an example of a problem is the owner’s call, not ours. So the page reports counts only."
+      },
+      {
+        q: "Does my store have these problems?",
+        a: `Maybe — the counts say what showed up across the sample, not what is on your store. Paste any public product, collection or home page at ${origin}/check to see the same checks run on your page, free, with the evidence.`
+      },
+      {
+        q: "Doesn’t Shopify handle SEO on its own?",
+        a: "Shopify covers a lot automatically: redirects for renamed products, canonical tags and sitemaps are generated for you. What the sample still found store after store were the things Shopify leaves to the theme and apps: filter and variant URLs that stay crawlable, product and breadcrumb schema that depends on the theme, third-party app weight, and share images. The audit checks the rendered result, not the settings."
+      },
+      {
+        q: "Do you log into my Shopify admin?",
+        a: "No. The audit reads public pages and public files only. It never touches themes, apps, orders or settings, and never makes changes — you approve fixes and your developer ships them."
+      },
+      {
+        q: "Does a clean audit guarantee rankings?",
+        a: "No. A report shows what the crawl and the browser could see at the time of the audit. Rankings, traffic, indexing and revenue are never guaranteed."
+      }
+    ]
+  });
+}
+
 function aboutHtml(origin) {
   return publicProductPageHtml({
     origin,
@@ -1293,7 +1407,7 @@ ${pageSocialHead({ origin, title: "Privacy - SEO Fix Kit", description: "What SE
         <li>Deletion: delete your account yourself under Billing in your account (sign in with an email link first, even if you only joined the waitlist). It takes effect right away and removes your reports and stored report files, sites, checks, alerts, API keys, team, widget and badge data, settings, sign-in records and waitlist signup, and your email from other accounts' teams and repair boards. We keep only the payment records accounting and tax rules require (amounts, dates, payment, refund and dispute IDs), with your email, site and notes removed; Dodo Payments keeps its own records as merchant of record. If a Fix Pack is paid but not delivered, or a refund, dispute or subscription is still open, deletion waits until it settles. Deletion requests sent to <a href="mailto:support@seofixkit.com">support@seofixkit.com</a> run through the same process once we confirm the address is yours.</li>
         <li>Access: email <a href="mailto:support@seofixkit.com">support@seofixkit.com</a> (or reply to any email we send) for a copy of your data. We answer verified requests within 30 days.</li>
       </ul>
-      <p>Last updated: October 28, 2026.</p>
+      <p>Last updated: November 12, 2026.</p>
     </main>
     ${siteFooter(origin)}
   </body>
@@ -1330,7 +1444,7 @@ function supportHtml(origin) {
 
       <h2>Ownership and deletion</h2>
       <p>SEO Fix Kit is for sites you own or are authorized to audit. We may pause audits, delete reports or revoke access when ownership is unclear, the target looks abusive, or a crawl could overload someone else’s site. To delete your account and its data, use Delete account under Billing in your account. To get a copy of your data, email us from your account address or reply to an SEO Fix Kit email so we can confirm it is you.</p>
-      <p>Last updated: October 28, 2026.</p>
+      <p>Last updated: November 12, 2026.</p>
     `
   });
 }
@@ -1503,6 +1617,7 @@ export {
   renderedVsStaticAuditHtml,
   siteFooter,
   siteHeader,
+  shopifySeoAuditHtml,
   socialImageMeta,
   smallBusinessSeoAuditHtml,
   supportHtml,
