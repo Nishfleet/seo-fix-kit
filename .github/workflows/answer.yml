@@ -3,9 +3,6 @@ name: answer
 # lane, which lives in fleet-ops. The stub needs its own trigger, because "the github
 # context is always associated with the caller workflow":
 # https://docs.github.com/en/actions/reference/workflows-and-actions/reusing-workflow-configurations
-# A failed CI run on an agent PR is forwarded the same way: the workflow_run trigger
-# below names this repo's CI workflow, the same working trigger review.yml uses; the
-# filter itself lives in fleet-ops.
 on:
   pull_request_review:
     types: [submitted]
