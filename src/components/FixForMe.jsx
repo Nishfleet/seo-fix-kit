@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { apiFetch } from "../api.js";
+import { FIX_FOR_ME_CONSENT_TEXT } from "../../shared/fix-for-me.js";
 import { readOrCreateFunnelKey, sendAccessBeacon } from "../lib/browser.js";
 
 // upstream: https://react.dev/learn/passing-props-to-a-component — "Have it fixed for you" (issue #412): one button at the end of every report; the visitor confirms site and email here in SEO Fix Kit and the Worker hands the request to TinyStudio server-to-server; no price on this screen, the fixed-price offer comes from TinyStudio.
@@ -42,7 +43,7 @@ export function FixForMe({ site, reportId = "", prefillEmail = "" }) {
       <section aria-labelledby="fix-for-me-title" className="app-card fix-for-me">
         <h2 id="fix-for-me-title">Request received</h2>
         <p>{confirmation}</p>
-        <p className="app-footnote">Your email is used for this request only — never for a marketing list.</p>
+        <p className="app-footnote">{FIX_FOR_ME_CONSENT_TEXT}</p>
       </section>
     );
   }
@@ -80,10 +81,7 @@ export function FixForMe({ site, reportId = "", prefillEmail = "" }) {
             type="email"
             value={email}
           />
-          <p className="app-footnote">
-            Your site address, email and this report go to TinyStudio, the repair desk. They use your email to reply
-            about this request only — never for a marketing list.
-          </p>
+          <p className="app-footnote">{FIX_FOR_ME_CONSENT_TEXT}</p>
           <button className="app-button" disabled={status === "sending"} type="submit">
             {status === "sending" ? "Sending…" : "Send my request"}
           </button>

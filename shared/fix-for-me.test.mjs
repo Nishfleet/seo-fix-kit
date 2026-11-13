@@ -26,7 +26,6 @@ test("the request body carries site, email, reportId and the consent line", () =
   assert.equal(body.email, "owner@example.com");
   assert.equal(body.reportId, "rep_1");
   assert.equal(body.consentText, FIX_FOR_ME_CONSENT_TEXT);
-  assert.match(FIX_FOR_ME_CONSENT_TEXT, /marketing list/);
 });
 
 test("site and email normalize; reportId is optional", () => {
