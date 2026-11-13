@@ -99,13 +99,14 @@ test("public check fails fast with visitor copy when the server has no outbound 
     }
   };
   const env = { WAITLIST_DB: db };
-  const request = new Request("https://seofixkit.com/api/public-check", {
-    method: "POST",
-    headers: { "content-type": "application/json", "cf-connecting-ip": "203.0.113.9" },
-    body: JSON.stringify({ url: "https://example.com/" })
-  });
+  const publicCheckRequest = () =>
+    new Request("https://seofixkit.com/api/public-check", {
+      method: "POST",
+      headers: { "content-type": "application/json", "cf-connecting-ip": "203.0.113.9" },
+      body: JSON.stringify({ url: "https://example.com/" })
+    });
 
-  const unreachableResponse = await runPublicCheck(request, env, {
+  const unreachableResponse = await runPublicCheck(publicCheckRequest(), env, {
     addressLookup: async () => ({ private: false, reachable: false })
   });
   assert.equal(unreachableResponse.status, 503, "no outbound route answers with HTTP 503");
@@ -113,10 +114,18 @@ test("public check fails fast with visitor copy when the server has no outbound 
   assert.match(unreachablePayload.error, /outbound internet access/, "the outage names the missing capability");
   assert.doesNotMatch(unreachablePayload.error, /AbortError|TIMEOUT|clk|reference/, "no raw diagnostics leak");
 
-  const stillGuarded = await runPublicCheck(request, env, {
+  const stillGuarded = await runPublicCheck(publicCheckRequest(), env, {
     addressLookup: async () => ({ private: true, reachable: false })
   });
   assert.equal(stillGuarded.status, 400, "a private address stays refused even without outbound access");
+  const guardedPayload = await stillGuarded.json();
+  assert.match(guardedPayload.error, /private or internal address/, "the refusal names the private address");
+
+  const reachableResponse = await runPublicCheck(publicCheckRequest(), env, {
+    addressLookup: async () => ({ private: false, reachable: true })
+  });
+  assert.notEqual(reachableResponse.status, 503, "a reachable host never gets the outbound-outage answer");
+  assert.equal(reachableResponse.status, 429, "a reachable host walks past the address gate into the quota check");
 });
 
 test("public check page loads its client script and keeps scheme-less URLs allowed", () => {
