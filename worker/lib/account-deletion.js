@@ -188,6 +188,9 @@ function deletionStatements(env, ownerEmail, pseudonym, now, loginBucketHash) {
     run(`DELETE FROM keyword_rank_observations WHERE owner_email = ?`, e),
     run(`DELETE FROM keyword_volume_observations WHERE owner_email = ?`, e),
     run(`DELETE FROM keyword_import_batches WHERE owner_email = ?`, e),
+    run(`DELETE FROM gsc_auth_states WHERE owner_email = ?`, e),
+    run(`DELETE FROM gsc_connections WHERE owner_email = ?`, e),
+    run(`DELETE FROM gsc_page_data WHERE owner_email = ?`, e),
 
     run(
       `DELETE FROM api_webhook_events
