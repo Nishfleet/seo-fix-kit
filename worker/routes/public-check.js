@@ -127,24 +127,20 @@ export function buildPublicCheckResponse(report) {
       evidence: finding.evidence,
       fix: finding.fix
     }));
-  const issues = (report?.findings || []).filter(
-    (finding) => finding?.severity && finding.severity !== "good"
-  );
+  const issues = (report?.findings || []).filter((finding) => finding?.severity && finding.severity !== "good");
   const ordered = [
     ...issues.filter((finding) => finding.aiReadability),
     ...issues.filter((finding) => !finding.aiReadability)
   ];
-  const findings = ordered
-    .slice(0, 5)
-    .map((finding) => ({
-      severity: finding.severity,
-      title: finding.title,
-      why: finding.why,
-      evidence: finding.evidence,
-      fix: finding.fix,
-      proposedMarkup: finding.snippet || "",
-      scoreGain: plan.find((item) => item.title === finding.title)?.scoreGain || 0
-    }));
+  const findings = ordered.slice(0, 5).map((finding) => ({
+    severity: finding.severity,
+    title: finding.title,
+    why: finding.why,
+    evidence: finding.evidence,
+    fix: finding.fix,
+    proposedMarkup: finding.snippet || "",
+    scoreGain: plan.find((item) => item.title === finding.title)?.scoreGain || 0
+  }));
   return {
     ok: true,
     mode: "one-page-check",

@@ -43,14 +43,14 @@ test("a 404 robots.txt means every crawler is allowed, not unchecked", () => {
 
 test("a 5xx robots.txt stays unknown, so the panel can say it was not checked", () => {
   assert.equal(
-    robotsAccess(
-      { ok: false, status: 503, url: "https://shop.example/robots.txt", body: "" },
-      "https://shop.example/"
-    ),
+    robotsAccess({ ok: false, status: 503, url: "https://shop.example/robots.txt", body: "" }, "https://shop.example/"),
     null
   );
   assert.equal(
-    robotsAccess({ ok: false, status: null, url: "https://shop.example/robots.txt", body: "", error: "timed out" }, "https://shop.example/"),
+    robotsAccess(
+      { ok: false, status: null, url: "https://shop.example/robots.txt", body: "", error: "timed out" },
+      "https://shop.example/"
+    ),
     null
   );
 });
@@ -133,7 +133,7 @@ test("a JavaScript-only page gets the AI-readability finding and a 404 robots.tx
     bodySample: "Quote after quote rendered by JavaScript."
   };
   const report = await auditPage(
-    "<!doctype html><html><head><title>Quotes</title></head><body><div id=\"root\"></div></body></html>",
+    '<!doctype html><html><head><title>Quotes</title></head><body><div id="root"></div></body></html>',
     rendered
   );
   const finding = report.findings.find((item) => item.aiReadability);
