@@ -12,8 +12,8 @@ import {
   topicFromSiteContent
 } from "./chatgpt-visibility.js";
 
-const recorded = JSON.parse(
-  fs.readFileSync(new URL("../test/fixtures/chatgpt-llm-scraper-response.json", import.meta.url), "utf8")
+const synthetic = JSON.parse(
+  fs.readFileSync(new URL("../test/fixtures/chatgpt-llm-scraper-response.synthetic.json", import.meta.url), "utf8")
 );
 
 test("buyer questions come from the site's own content and stay deterministic", () => {
@@ -59,12 +59,12 @@ test("the ChatGPT LLM Scraper task body matches the documented endpoint shape", 
   assert.match(CHATGPT_LLM_SCRAPER_ENDPOINT, /\/v3\/ai_optimization\/chat_gpt\/llm_scraper\/live\/advanced$/);
 });
 
-test("the recorded ChatGPT response parses into a named answer with competitors and cited pages", () => {
+test("the synthetic (hand-written, docs-shaped) ChatGPT response parses into a named answer with competitors and cited pages", () => {
   const summary = summarizeChatgptVisibilityTask({
     brand: "SEOFixKit",
     host: "seofixkit.com",
     question: "What are the best rendered SEO audit tools?",
-    payload: recorded
+    payload: synthetic
   });
   assert.equal(summary.named, true);
   assert.equal(summary.namedByText, false);
@@ -80,7 +80,7 @@ test("the recorded ChatGPT response parses into a named answer with competitors 
 });
 
 test("a brand only mentioned in the answer text still counts as named", () => {
-  const payload = JSON.parse(JSON.stringify(recorded));
+  const payload = JSON.parse(JSON.stringify(synthetic));
   payload.tasks[0].result[0].brand_entities = payload.tasks[0].result[0].brand_entities.filter(
     (entity) => entity.title !== "SEOFixKit"
   );
@@ -97,12 +97,12 @@ test("a brand only mentioned in the answer text still counts as named", () => {
   assert.equal(summary.namedByText, true);
 });
 
-test("a rival brand check reads the same recorded answer as not named", () => {
+test("a rival brand check reads the same synthetic answer as not named", () => {
   const summary = summarizeChatgptVisibilityTask({
     brand: "Rank Prompt",
     host: "rankprompt.example",
     question: "What are the best rendered SEO audit tools?",
-    payload: recorded
+    payload: synthetic
   });
   assert.equal(summary.named, false);
   assert.equal(summary.namedByText, false);
@@ -129,7 +129,7 @@ test("the report aggregates five answers, the cost, and the cited pages", () => 
       brand: "SEOFixKit",
       host: "seofixkit.com",
       question,
-      payload: recorded
+      payload: synthetic
     });
     return { ...summary, cost: index === 4 ? 0 : summary.cost };
   });
@@ -177,7 +177,7 @@ test("the fetcher posts one Basic-authed task to the documented endpoint", async
   const calls = [];
   const fetcher = async (url, init) => {
     calls.push({ url, init });
-    return Response.json(JSON.parse(JSON.stringify(recorded)));
+    return Response.json(JSON.parse(JSON.stringify(synthetic)));
   };
   const payload = await fetchChatgptLlmScraper({
     keyword: "Is SEOFixKit a good choice for rendered SEO audits?",
