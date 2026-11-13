@@ -995,11 +995,13 @@ async function abortInterceptedRequest(target) {
 function extractStaticFacts(html, url, fetchResult = {}) {
   const base = new URL(url);
   const head = html.match(/<head[\s\S]*?<\/head>/i)?.[0] || "";
-  const staticMarkup = html.replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<style[\s\S]*?<\/style>/gi, "");
+  const staticMarkup = html
+    .replace(/<script[\s\S]*?<\/script\b[^>]*>/gi, "")
+    .replace(/<style[\s\S]*?<\/style\b[^>]*>/gi, "");
   const withoutScripts = html
-    .replace(/<script[\s\S]*?<\/script>/gi, "")
-    .replace(/<style[\s\S]*?<\/style>/gi, "")
-    .replace(/<noscript[\s\S]*?<\/noscript>/gi, "");
+    .replace(/<script[\s\S]*?<\/script\b[^>]*>/gi, "")
+    .replace(/<style[\s\S]*?<\/style\b[^>]*>/gi, "")
+    .replace(/<noscript[\s\S]*?<\/noscript\b[^>]*>/gi, "");
   const body = withoutScripts.match(/<body[\s\S]*?<\/body>/i)?.[0] || withoutScripts;
   const bodyText = decodeEntities(stripTags(body)).replace(/\s+/g, " ").trim();
   const contentMarkup = (body.match(/<main\b[\s\S]*?<\/main>/i)?.[0] || body).replace(
