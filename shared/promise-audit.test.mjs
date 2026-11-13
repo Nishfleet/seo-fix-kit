@@ -2449,4 +2449,3 @@ test("README pricing page claim keeps Proof Monitoring off sale and the no-ranki
   assert.doesNotMatch(pricing, /\$49-\$99\/mo/, "Proof Monitoring shows no price while it is not on sale");
   assert.match(pricing, /No ranking or traffic guarantee/, "pricing keeps the no-ranking promise");
 });
-
