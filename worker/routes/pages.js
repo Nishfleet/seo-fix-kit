@@ -26,6 +26,7 @@ SEO Fix Kit is a private-beta, self-serve SEO audit and paid Fix Pack workflow.
 ## Pages
 - [${origin}/](https://seofixkit.com/): Landing page with proof-backed SEO repair pitch and free one-page check entry.
 - [${origin}/check](https://seofixkit.com/check): Anonymous one-page browser-rendered SEO audit. No account, no stored report, no ranking promises.
+- [${origin}/can-chatgpt-read-my-page](https://seofixkit.com/can-chatgpt-read-my-page): Free anonymous check of whether GPTBot, ClaudeBot and PerplexityBot may read a public page under robots.txt, with the raw-HTML content and schema evidence those crawlers receive. No account, no stored report.
 - [${origin}/demo](https://seofixkit.com/demo): Public sample report showing rendered-vs-static false-positive guards and repair briefs.
 - [${origin}/methodology](https://seofixkit.com/methodology): Proof standard, limits, and boundaries. No live AI-engine sampling, no citation monitoring, no ranking guarantees.
 - [${origin}/pricing](https://seofixkit.com/pricing): Pricing: free page checks, free beta site audits, and the $99 one-time Fix Pack. Dodo checkout is the price source of truth.
@@ -46,6 +47,7 @@ ${FREE_TOOLS.map((tool) => `- [${origin}/tools/${tool.slug}](https://seofixkit.c
 Live product claims:
 - Visitors can request a secure email access link.
 - Anyone can anonymously check one public page URL at /check and see real-browser evidence, the false alarms it rules out, and real problems with fixes, with no account and no stored report.
+- Anyone can anonymously check at ${origin}/can-chatgpt-read-my-page whether GPTBot, ClaudeBot and PerplexityBot may read a public page under robots.txt, and see the raw-HTML content and schema evidence those crawlers receive, with no account, no email and no stored report.
 - Verified sessions can run rate-limited private audits and save owner-only reports.
 - Verified sessions can choose self-serve crawl depth up to 1,000 pages per queued audit.
 - Reports include robots.txt and sitemap crawl inventory up to 50,000 discovered URLs.

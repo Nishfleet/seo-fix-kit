@@ -57,6 +57,7 @@ import {
   termsHtml
 } from "./routes/pages.js";
 import { checkHtml, runPublicCheck } from "./routes/public-check.js";
+import { canChatgptReadHtml, runChatgptReadCheck } from "./routes/chatgpt-read.js";
 import { toolPageHtml, toolsIndexHtml } from "./routes/tools.js";
 import { getStatusJson, serviceStatus, statusHtml } from "./routes/status.js";
 import { FREE_TOOLS } from "../shared/free-tools/catalog.js";
@@ -298,6 +299,7 @@ app.post("/api/audit/schedules", route(createAuditSchedule));
 app.delete("/api/audit/schedules/:id", route(deleteAuditSchedule));
 app.all("/api/demo-audit", route(runPrivateDemoAudit));
 app.post("/api/public-check", route(runPublicCheck));
+app.post("/api/chatgpt-read-check", route(runChatgptReadCheck));
 
 app.delete("/api/report-shares/:id", route(revokeReportShare));
 app.get("/api/reports/:id/shares", route(listReportShares));
@@ -412,6 +414,7 @@ app.get("/support", htmlPage(supportHtml));
 app.get("/terms", htmlPage(termsHtml));
 app.get("/demo", htmlPage(demoHtml));
 app.get("/check", htmlPage(checkHtml));
+app.get("/can-chatgpt-read-my-page", htmlPage(canChatgptReadHtml));
 app.get("/methodology", htmlPage(methodologyHtml));
 app.get("/pricing", htmlPage(pricingHtml));
 app.get("/small-business-seo-audit", htmlPage(smallBusinessSeoAuditHtml));

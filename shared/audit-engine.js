@@ -3129,6 +3129,7 @@ export const ROOT_PUBLIC_PATHS = [
   "/",
   "/demo",
   "/check",
+  "/can-chatgpt-read-my-page",
   "/methodology",
   "/pricing",
   "/small-business-seo-audit",
@@ -3144,9 +3145,10 @@ export const ROOT_PUBLIC_PATHS = [
 ];
 
 export const ROOT_PUBLIC_LASTMODS = {
-  "/": "2026-11-12T19:58:17Z",
+  "/": "2026-11-13T16:48:00Z",
   "/demo": "2026-11-12T19:37:52Z",
   "/check": "2026-11-12T19:37:52Z",
+  "/can-chatgpt-read-my-page": "2026-11-13T16:48:00Z",
   "/methodology": "2026-11-12T19:37:52Z",
   "/pricing": "2026-11-12T19:37:52Z",
   "/small-business-seo-audit": "2026-11-12T19:37:52Z",

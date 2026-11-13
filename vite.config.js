@@ -46,7 +46,8 @@ function isClient(environment) {
 // and /check.js for the free page check.
 const WORKER_PAGE_SCRIPTS = {
   "tools.js": "shared/free-tools/client.js",
-  "check.js": "shared/public-check/client.js"
+  "check.js": "shared/public-check/client.js",
+  "chatgpt-read.js": "shared/chatgpt-read/client.js"
 };
 
 function workerPageScripts() {
