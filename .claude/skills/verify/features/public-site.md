@@ -20,7 +20,7 @@ Preconditions:
 - `npm run build` has run.
 
 - **Render every page.** Run `npx playwright test e2e/public-site.spec.mjs --project desktop --trace on --output verify-evidence/$RUN_ID`. Each path test passes: status 200, one visible `h1`, a `banner` with a `Check a page` link, a `contentinfo`.
-- **No JavaScript.** Run `npx playwright test e2e/public-site.spec.mjs -g "ships its content in the HTML"`. The heading `An SEO audit that checks its own work.` is visible with JavaScript off.
+- **No JavaScript.** Run `npx playwright test e2e/public-site.spec.mjs -g "ships its content in the HTML"`. The heading `Can Google and AI answers read your site?` is visible with JavaScript off.
 - **Dev server spot check.** Run `curl -s -o /dev/null -w '%{http_code}' "$BASE/pricing"`. It prints `200`.
 
 ## Gotchas
