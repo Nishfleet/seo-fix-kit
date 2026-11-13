@@ -13,8 +13,20 @@ on:
 permissions: {}
 jobs:
   answer:
+    # The trigger fires for every CI completion, so the gate decides: only a failed CI
+    # run on the head of an agent/issue-* PR in this repo may start the lane. A review
+    # round is the other way in, and the called workflow reads the review and the PR and
+    # decides on it under the same conditions.
+    # https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_run
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'failure' &&
+        github.event.workflow_run.event == 'pull_request' &&
+        github.event.workflow_run.head_repository.full_name == github.repository &&
+        startsWith(github.event.workflow_run.head_branch, 'agent/issue-'))
     # The lane's job dispatches agent.yml on main with the issue and the PR. A called
     # workflow can only lower the caller's GITHUB_TOKEN permissions, never raise them.
     permissions: { actions: write }
-    # @main, not a SHA, the same as the agent stub.
+    # @main, not a SHA, the same as the agent stub. The called workflow takes the same
+    # workflow_run event and keeps the same conditions, so this gate and its gate agree.
     uses: Nishfleet/fleet-ops/.github/workflows/answer.yml@main

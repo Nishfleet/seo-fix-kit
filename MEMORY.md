@@ -30,6 +30,18 @@ export`: the proven file polls the stock API instead. The one remaining setup
   the run fails loud rather than shipping plaintext. Guarded by
   `test/d1-export.test.mjs`.
 
+- 2026-11-13 (issue #438): a failed CI run on an `agent/issue-*` PR starts the fleet's
+  answer lane, so a red PR draws a fix instead of waiting for a review that never comes
+  (the reviewer reads green CI only, fleet-ops review.yml). Reason: the `workflow_run`
+  trigger fires for every CI completion, green or red, on any branch, so the lane is
+  gated on a failed run, on a pull request, in this repo, on an `agent/issue-*` head;
+  the same conditions the called workflow keeps, so the stub and the lane agree. A
+  `workflow_run` trigger only fires when the workflow file is on the default branch, so
+  the hop cannot be shown before merge: after merge the next red agent PR starts the
+  lane, and the signal to watch is the lane's own `agent: answering red CI on <sha>`
+  comment on that PR. Guarded by `test/answer-workflow.test.mjs`, which reads the gate
+  out of `.github/workflows/answer.yml` and decides the events.
+
 ## Rejected Paths
 
 - _No rejected paths logged yet._
