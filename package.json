@@ -91,7 +91,7 @@
     "test:client-report": "node --import ./test/cloudflare-workers-hooks.mjs --test test/client-report-flow.test.mjs"
   },
   "dependencies": {
-    "@cloudflare/puppeteer": "^1.4.0",
+    "@cloudflare/puppeteer": "^2.0.0",
     "@tanstack/react-query": "^5.105.0",
     "cookie": "^1.1.1",
     "hono": "^4.13.16",
