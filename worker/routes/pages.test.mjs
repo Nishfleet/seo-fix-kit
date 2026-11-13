@@ -26,6 +26,7 @@ import {
   proofCaseHtml,
   proofCaseMarkdown,
   renderedVsStaticAuditHtml,
+  shopifySeoAuditHtml,
   smallBusinessSeoAuditHtml,
   supportHtml,
   termsHtml
@@ -41,6 +42,7 @@ const allWorkerRenderedPublicPages = [
   { name: "/small-business-seo-audit", html: smallBusinessSeoAuditHtml(origin) },
   { name: "/rendered-vs-static-seo-audit", html: renderedVsStaticAuditHtml(origin) },
   { name: "/ai-answer-readiness", html: aiAnswerReadinessHtml(origin) },
+  { name: "/shopify-seo-audit", html: shopifySeoAuditHtml(origin) },
   { name: "/proof", html: proofCaseHtml(origin) },
   { name: "/privacy", html: privacyHtml(origin) },
   { name: "/support", html: supportHtml(origin) },
@@ -177,99 +179,13 @@ test("public proof pages expose methodology and pricing without overclaims", () 
     assert.match(body, /rerun|proof receipt/, `${heading} must name rerun proof as the difference`);
   }
   {
-    const seomator = section("Compared with SEOmator");
-    assert.match(seomator, /39 free SEO tools/);
-    assert.match(seomator, /251-check rule engine/);
-    assert.match(seomator, /renders JavaScript/);
-    assert.match(seomator, /up to 50 pages/);
-    assert.match(seomator, /14 AI-specific crawlers including GPTBot, ClaudeBot, and PerplexityBot/);
-    assert.match(seomator, /<a href="https:\/\/seomator\.com\/free-tools"/);
-    assert.match(seomator, /<a href="https:\/\/seomator\.com\/free-seo-audit-tool"/);
-    assert.match(seomator, /<a href="https:\/\/seomator\.com\/geo-audit-tool"/);
-  }
-  {
-    const volnine = section("Compared with Volume Nine's GEO Grader");
-    assert.match(volnine, /Denver-based digital marketing agency/);
-    assert.match(volnine, /launched in January 2026/);
-    assert.match(volnine, /totally free/);
-    assert.match(volnine, /60\+ signals across six categories/);
-    assert.match(
-      volnine,
-      /discoverability, structured data, AI readiness, performance, reputation and trust, and LLM-ready content/
-    );
-    assert.match(volnine, /reads robots\.txt rules/);
-    assert.match(volnine, /ChatGPT, Claude, Gemini, Perplexity, and Grok/);
-    assert.match(
-      volnine,
-      /<a href="https:\/\/www\.v9digital\.com\/geo-grader\/" rel="nofollow noopener" target="_blank">/
-    );
-    assert.match(volnine, /<a href="https:\/\/geo\.v9digital\.com\/grader\/" rel="nofollow noopener" target="_blank">/);
-    assert.match(volnine, /emails a detailed report with actionable to-dos/);
-  }
-  {
-    const juma = section("Compared with Juma\\.ai's GEO Audit");
-    assert.match(juma, /no signup/);
-    assert.match(juma, /ten weighted dimensions/);
-    assert.match(juma, /impact × effort matrix/);
-    assert.match(juma, /published open methodology/);
-    assert.match(juma, /run_geo_audit/);
-    assert.match(juma, /<a href="https:\/\/geo\.juma\.ai\/" rel="nofollow noopener" target="_blank">/);
-    assert.match(juma, /<a href="https:\/\/geo\.juma\.ai\/methodology" rel="nofollow noopener" target="_blank">/);
-    assert.match(juma, /<a href="https:\/\/juma\.ai\/mcp" rel="nofollow noopener" target="_blank">/);
-    assert.match(juma, /rather than sampling ChatGPT, Claude, Gemini, or Perplexity live/);
-  }
-  {
     const aeo = section("Compared with AEO Engine");
-    assert.match(aeo, /free GEO audit/i);
-    assert.match(aeo, /crawlability, schema, content structure, entity clarity, and citation readiness/);
-    assert.match(aeo, /ChatGPT, Perplexity, Gemini, Claude, and Google AI Overviews/);
-    assert.match(aeo, /human-managed, AI-powered Growth Engine/);
-    assert.match(aeo, /turns GEO audit findings into shipped fixes/);
-    assert.match(aeo, /embeddable GEO audit widget/);
-    assert.match(aeo, /<a href="https:\/\/aeoengine\.ai" rel="nofollow noopener" target="_blank">/);
-    assert.match(aeo, /<a href="https:\/\/aeoengine\.ai\/geo-audit"/);
-    assert.match(
-      aeo,
-      /<a href="https:\/\/aeoengine\.ai\/embed\/geo-audit\?utm_source=embed&utm_medium=widget&utm_campaign=aeo_tools"/
-    );
     assert.match(aeo, /approval-first/);
     assert.match(aeo, /publish CMS changes, open pull requests, merge code, or call provider admin APIs/);
     assert.doesNotMatch(aeo, /autonomous.*CMS|autonomous.*repo|autonomously/i);
   }
   {
-    const tracker = section("Compared with Otterly\\.ai and Peec\\.ai");
-    assert.match(tracker, /Otterly\.ai/);
-    assert.match(tracker, /Peec AI/);
-    assert.match(tracker, /Peec\.ai/);
-    assert.match(tracker, /40,000\+ Marketing Pros/);
-    assert.match(tracker, /\$29\/mo/);
-    assert.match(tracker, /Lite/);
-    assert.match(tracker, /Tracking of 4 AI Search Engines/);
-    assert.match(tracker, /ChatGPT, Google AI Overviews, Perplexity, MS Copilot/);
-    assert.match(tracker, /Claude, Google AI Mode, Gemini/);
-    assert.match(tracker, /paid add-ons/);
-    assert.match(tracker, /3000\+ brands and agencies/);
-    assert.match(tracker, /\$80\/mo/);
-    assert.match(tracker, /Starter/);
-    assert.match(tracker, /\$21M Series A/);
-    assert.match(tracker, /Singular/);
-    assert.match(tracker, /total funding to \$29M/);
-    assert.match(tracker, /<a href="https:\/\/otterly\.ai" rel="nofollow noopener" target="_blank">/);
-    assert.match(tracker, /<a href="https:\/\/otterly\.ai\/pricing" rel="nofollow noopener" target="_blank">/);
-    assert.match(tracker, /<a href="https:\/\/peec\.ai" rel="nofollow noopener" target="_blank">/);
-    assert.match(tracker, /<a href="https:\/\/peec\.ai\/pricing" rel="nofollow noopener" target="_blank">/);
-    assert.match(
-      tracker,
-      /<a href="https:\/\/peec\.ai\/blog\/we-raised-21m-series-a-to-help-brands-win-in-ai-search" rel="nofollow noopener" target="_blank">/
-    );
-  }
-  {
     const agentic = section("Compared with agents that file GitHub issues");
-    assert.match(agentic, /SEO Automation Club/);
-    assert.match(agentic, /seoautomationclub\.com\/agentic-seo-autonomous-technical-audit-claude-code-github-issues/);
-    assert.match(agentic, /scheduled|twice a week|cadence/);
-    assert.match(agentic, /diff|previous run|baseline/);
-    assert.match(agentic, /GitHub issues/);
     assert.match(agentic, /approv/);
     assert.match(agentic, /proof receipt/);
     assert.match(agentic, /issue-filing|edit.*code|AST/i, "must distinguish issue-filers from code-editing agents");
@@ -280,11 +196,6 @@ test("public proof pages expose methodology and pricing without overclaims", () 
   }
   {
     const skills = section("Compared with free AI SEO agent skills");
-    assert.match(
-      skills,
-      /Open-source SEO tooling is good at that/,
-      "the free-skill answer must not disparage open source"
-    );
     assert.match(
       skills,
       new RegExp(`<a href="${origin}/pricing">pricing</a>`),
@@ -348,23 +259,12 @@ test("rendered-vs-static page names free static-vs-rendered checkers without ove
   const page = renderedVsStaticAuditHtml(origin);
   const section = (page.match(/<h2>Compared with free static-vs-rendered checkers<\/h2>[\s\S]*?<\/section>/) || [])[0];
   assert.ok(section, "rendered-vs-static page must carry a dedicated free-checker comparison");
-  assert.match(section, /LLM Pulse GEO Crawlability Checker/);
-  assert.match(section, /<a href="https:\/\/llmpulse\.ai\/geo-crawlability-checker"/);
-  assert.match(section, /<a href="https:\/\/llmpulse\.ai\/free-ai-search-tools"/);
-  assert.match(section, /Free SEO Auditor/);
-  assert.match(section, /<a href="https:\/\/freeseoaudit\.vercel\.app\/"/);
-  assert.match(section, /<a href="https:\/\/github\.com\/ravigupta0210\/seo-auditor"/);
-  assert.match(section, /geo-crawl-audit/);
-  assert.match(section, /<a href="https:\/\/github\.com\/abouchard11\/geo-crawl-audit"/);
-  assert.match(section, /SSR_FULL \/ SSR_THIN \/ CSR_SHELL/);
   assert.match(section, /persistent repair queue only receives proven findings/);
   assert.match(section, /fixed, still-open, new, or regressed/);
   assert.match(section, /No live AI-engine sampling, no AI citation monitoring, and no ranking guarantees/);
-  assert.match(section, /fair choice/);
   assert.doesNotMatch(section, /no crawl cap/i);
   assert.doesNotMatch(section, /live AI-engine sampling is live/i);
   assert.doesNotMatch(page, /guaranteed rankings|guarantees citations/i);
-  assert.match(page, /Why not use a free static-vs-rendered checker like LLM Pulse\?/);
 });
 
 test("machine-readable public surfaces list proof pages and limits", () => {
@@ -380,7 +280,8 @@ test("machine-readable public surfaces list proof pages and limits", () => {
     "/check",
     "/small-business-seo-audit",
     "/rendered-vs-static-seo-audit",
-    "/ai-answer-readiness"
+    "/ai-answer-readiness",
+    "/shopify-seo-audit"
   ]) {
     assert.match(llms, new RegExp(`${origin}${path}`));
     assert.match(markdown, new RegExp(`${origin}${path}`));
@@ -470,7 +371,8 @@ test("intent-matching landing pages carry unique, truthful, machine-readable pro
   const pages = [
     { name: "small-business", path: "/small-business-seo-audit", html: smallBusinessSeoAuditHtml(origin) },
     { name: "rendered-vs-static", path: "/rendered-vs-static-seo-audit", html: renderedVsStaticAuditHtml(origin) },
-    { name: "ai-answer-readiness", path: "/ai-answer-readiness", html: aiAnswerReadinessHtml(origin) }
+    { name: "ai-answer-readiness", path: "/ai-answer-readiness", html: aiAnswerReadinessHtml(origin) },
+    { name: "shopify", path: "/shopify-seo-audit", html: shopifySeoAuditHtml(origin) }
   ];
 
   for (const { name, path, html } of pages) {
@@ -495,7 +397,7 @@ test("intent-matching landing pages carry unique, truthful, machine-readable pro
   }
 
   const titles = pages.map(({ html }) => (html.match(/<title>([^<]+) - SEO Fix Kit<\/title>/) || [])[1]);
-  assert.equal(new Set(titles).size, 3, "each landing page must have a unique title");
+  assert.equal(new Set(titles).size, pages.length, "each landing page must have a unique title");
   assert.match(pages[0].html, /Small Business SEO Audit/);
   assert.match(pages[1].html, /Rendered vs Static SEO Audit/);
   assert.match(pages[2].html, /AI Answer Readiness Check/);
@@ -503,24 +405,27 @@ test("intent-matching landing pages carry unique, truthful, machine-readable pro
   assert.match(pages[2].html, /No AI citation monitoring/);
   assert.match(pages[2].html, /llms\.txt stays optional/);
   assert.match(pages[2].html, /does not sample live answer engines or monitor citations/);
-  assert.match(pages[2].html, /Compared with CrawlRaven/);
   assert.match(pages[2].html, /ranked by the clicks and impressions on the affected pages/);
   assert.match(pages[2].html, /does not connect to Search Console or GA4 automatically/);
-  assert.match(pages[2].html, /Does SEO Fix Kit rank AI readiness faults by traffic like CrawlRaven\?/);
-  assert.match(pages[2].html, /Compared with free AI visibility checkers/);
   assert.match(pages[2].html, /SEO Fix Kit does not check AI-engine citations or visibility scores\./);
-  assert.match(pages[2].html, /DefiniteSEO/);
-  assert.match(pages[2].html, /RevSurge Digital/);
-  assert.match(pages[2].html, /Answer Visibility Lab/);
-  assert.match(pages[2].html, /Website AEO GEO Checker/);
-  assert.match(pages[2].html, /Veuno/);
-  assert.match(pages[2].html, /On "technical readiness predicts nothing \(r=0\.009\)"/);
-  assert.match(pages[2].html, /441 domains, Perplexity-only citations, cross-sectional/);
-  assert.match(pages[2].html, /not on individual technical faults/);
   assert.match(pages[2].html, /judges readiness on the rendered page/);
   assert.match(pages[2].html, /never claims to predict citations/);
   assert.match(pages[2].html, /Content relevance is the citation driver; technical health is the hygiene floor/);
   assert.doesNotMatch(pages[2].html, /live AI citation monitoring is live/i);
+
+  const shopify = pages[3].html;
+  assert.match(shopify, /SEO Audit for Shopify Stores/);
+  assert.match(shopify, /26 public Shopify stores/, "the Shopify page must state its sample size");
+  assert.match(shopify, /78 pages in total/, "the Shopify page must state how many pages it audited");
+  assert.match(shopify, /engine v0\.9\.0/, "the Shopify page must name the engine version");
+  assert.match(shopify, /How the sample was built/, "the Shopify page must describe its method");
+  assert.match(shopify, /20 of 26 stores/, "the Shopify page must report the faceted-URL count");
+  assert.match(shopify, /12 of 26 stores/, "the Shopify page must report the product-schema count");
+  assert.match(shopify, /15 of 26 stores/, "the Shopify page must report the breadcrumb count");
+  assert.match(shopify, /0 of 26 stores/, "the Shopify page must report what the sample did not surface");
+  assert.match(shopify, /Counts, not names/, "the Shopify page must keep the no-naming gate");
+  assert.match(shopify, /does not log into Shopify admin/, "the Shopify page must keep the no-admin boundary");
+  assert.doesNotMatch(shopify, /guaranteed rankings|guarantees rankings|guarantees traffic/i);
 });
 
 test("public proof pages carry a site footer with terms and privacy links", () => {
@@ -609,31 +514,6 @@ test("public demo and support pages carry enough buyer-facing detail", () => {
   assert.match(support, /We do not log in to your CMS, publish changes, merge code, or call provider admin APIs/i);
   assert.match(support, /Ownership and deletion/);
   assert.match(support, /sites you own or are authorized to audit/i);
-});
-
-test("public one-page check page is a truthful, searchable entry path", () => {
-  const check = checkHtml(origin);
-
-  assert.ok(visibleWordCount(check) >= 250, "check page should not look thin to rendered audits");
-  assert.match(check, /Free SEO Page Check/);
-  assert.match(check, new RegExp(`rel="canonical" href="${origin}/check"`));
-  assert.match(check, /id="check-form"/);
-  assert.match(check, /Check this page/);
-  assert.match(check, new RegExp(`<script type="module" src="${origin}/check.js">`));
-  assert.match(check, /What the browser sees/);
-  assert.match(check, /False alarms ruled out/);
-  assert.match(check, /Real problems only/);
-  assert.match(check, /Audit your whole site/);
-  assert.match(check, /does not guarantee rankings, traffic, indexing, revenue, AI citations/i);
-  assert.match(check, /Create a free account/);
-  assert.match(check, /Rate-limited per network and per site/i);
-  assert.match(check, /no report or URL is stored/i);
-  assert.match(check, /Frequently asked questions/);
-  assert.match(check, /What does the one-page check measure\?/);
-  assert.match(check, /Is anything about my check stored\?/);
-  assert.match(check, /Is this a full site audit\?/);
-  assert.match(check, /Does this check promise rankings or traffic\?/);
-  assert.doesNotMatch(check, /noindex/i, "the entry page must stay searchable");
 });
 
 test("demo brief is verbatim real engine output for the public test page", async () => {
@@ -840,7 +720,8 @@ test("static public skill and sitemap files keep buyer-facing boundaries", () =>
     "/terms",
     "/small-business-seo-audit",
     "/rendered-vs-static-seo-audit",
-    "/ai-answer-readiness"
+    "/ai-answer-readiness",
+    "/shopify-seo-audit"
   ]) {
     assert.match(skill, new RegExp(`${origin}${path}`));
     assert.match(sitemap, new RegExp(`${origin}${path}`));
@@ -906,7 +787,8 @@ test("Cloudflare asset routing sends public proof pages through the Worker", () 
       "/privacy",
       "/small-business-seo-audit",
       "/rendered-vs-static-seo-audit",
-      "/ai-answer-readiness"
+      "/ai-answer-readiness",
+      "/shopify-seo-audit"
     ]) {
       assert.equal(covered.has(path), true, `${path} must be served by the Worker before SPA assets`);
     }

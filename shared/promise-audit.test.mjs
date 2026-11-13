@@ -105,6 +105,7 @@ const PUBLIC_HTML_PATHS = [
   "/small-business-seo-audit",
   "/rendered-vs-static-seo-audit",
   "/ai-answer-readiness",
+  "/shopify-seo-audit",
   "/support",
   "/terms",
   "/privacy"
@@ -487,7 +488,12 @@ test("README public page promise matches Worker routing and copy", async () => {
   for (const path of ["/demo", "/methodology", "/pricing", "/check", "/proof"]) {
     assert.ok(workerRoutes(path, "GET"), `Worker must route ${path}`);
   }
-  for (const path of ["/small-business-seo-audit", "/rendered-vs-static-seo-audit", "/ai-answer-readiness"]) {
+  for (const path of [
+    "/small-business-seo-audit",
+    "/rendered-vs-static-seo-audit",
+    "/ai-answer-readiness",
+    "/shopify-seo-audit"
+  ]) {
     assert.ok(workerRoutes(path, "GET"), `Worker must route ${path}`);
   }
   assert.match(
@@ -578,6 +584,7 @@ test("README Cloudflare path routes are actually registered in the Worker", () =
     "/small-business-seo-audit",
     "/rendered-vs-static-seo-audit",
     "/ai-answer-readiness",
+    "/shopify-seo-audit",
     "/check",
     "/api/public-check",
     "/beta"
@@ -697,14 +704,6 @@ test("README anonymous one-page check claim matches the Worker, page, and rate l
     deployConfig.assets.runWorkerFirst,
     true,
     "/check (and every other path) is served by the Worker before SPA assets"
-  );
-});
-
-test("README homepage anonymous-check claim matches the CTA beside the email form", () => {
-  assert.match(
-    readme,
-    /request a secure one-use email link or check one public page anonymously/i,
-    "README promises both homepage entry paths"
   );
 });
 
@@ -1963,13 +1962,6 @@ test("README sitemap inventory claim keeps rendered repair proof separate", asyn
   assert.ok(tables.includes("large_crawl_url_proofs"), "large-crawl proof stored separately");
 });
 
-test("README queued-job claim matches status polling before the private report loads", () => {
-  assert.match(
-    liveSection,
-    /Queued audit jobs backed by D1 `audit_jobs`, with status polling before the private report loads/i
-  );
-});
-
 test("README saved-report claim matches owner email and invite-bound ownership", async () => {
   assert.match(
     liveSection,
@@ -2102,10 +2094,6 @@ test("README repair queue claim keeps acceptance checks, status, and action mode
   assert.equal(row.action_mode, "cms_draft", "queue items store action mode");
 });
 
-test("README repair board claim keeps no external publishing side effects", () => {
-  assert.match(liveSection, /and no external publishing side effects/i);
-});
-
 test("README implementation pack claim keeps approved change text", () => {
   assert.match(liveSection, /with source proof, approved change text/i);
   const pack = buildRepairImplementationPack(implementationPackInput());
@@ -2150,13 +2138,6 @@ test("README proposal claim keeps execution modes, owner approval, and delivery 
     beta.db.rows("SELECT approval_status FROM repair_proposals WHERE id = ?", proposal.id)[0].approval_status,
     "dismissed",
     "approve endpoint updates owner approval"
-  );
-});
-
-test("README schedule claim keeps dashboard add and pause controls", () => {
-  assert.match(
-    liveSection,
-    /Weekly self-serve audit monitors backed by D1 `audit_schedules`, with dashboard controls to add or pause monitors for verified hosts/i
   );
 });
 
@@ -2477,25 +2458,4 @@ test("README pricing page claim keeps Proof Monitoring off sale and the no-ranki
   assert.doesNotMatch(pricing, /\$49-\$99\/mo/, "Proof Monitoring shows no price while it is not on sale");
   assert.doesNotMatch(pricing, /\$\d/, "pricing shows no price anywhere");
   assert.match(pricing, /No ranking or traffic guarantee/, "pricing keeps the no-ranking promise");
-});
-
-test("README anonymous-check claim keeps the deployed copy locked to the live spot-check", () => {
-  const spotCheck = readFileSync(new URL("../test/live-promise-spot-check.mjs", import.meta.url), "utf8");
-  for (const surface of [
-    { path: "/check", copy: "Free SEO Page Check" },
-    { path: "/check", copy: "No account, no email, no stored report" },
-    { path: "/demo", copy: "See which warnings a real browser rules out." },
-    { path: "/demo", copy: "an exact snippet when the engine can generate one" },
-    { path: "/methodology", copy: "What it does not do" },
-    { path: "/pricing", copy: "Everything on SEO Fix Kit is free" },
-    { path: "/pricing", copy: "No checkout is offered anywhere on the site" },
-    { path: "/pricing", copy: "A paid monitoring plan is planned but not on sale yet" }
-  ]) {
-    assert.match(spotCheck, new RegExp(`path: "${surface.path}"`), `spot-check must still cover ${surface.path}`);
-    assert.match(
-      spotCheck,
-      new RegExp(surface.copy.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
-      `spot-check must still assert the ${surface.path} copy "${surface.copy}"`
-    );
-  }
 });

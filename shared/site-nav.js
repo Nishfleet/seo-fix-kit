@@ -1,3 +1,5 @@
+import { SHOPIFY_AUDIT_SAMPLE } from "./shopify-audit-sample.js";
+
 export const SITE_NAV = [
   {
     label: "Product",
@@ -31,6 +33,11 @@ export const SITE_NAV = [
         href: "/ai-answer-readiness",
         label: "AI search readiness",
         text: "See what AI crawlers can read on your pages."
+      },
+      {
+        href: "/shopify-seo-audit",
+        label: "Shopify stores",
+        text: `Problem counts from a real ${SHOPIFY_AUDIT_SAMPLE.completed}-store Shopify audit sample.`
       }
     ]
   },
@@ -57,7 +64,8 @@ export const SITE_FOOTER = [
     links: [
       { href: "/small-business-seo-audit", label: "Small business SEO audit" },
       { href: "/rendered-vs-static-seo-audit", label: "JavaScript SEO audit" },
-      { href: "/ai-answer-readiness", label: "AI answer readiness" }
+      { href: "/ai-answer-readiness", label: "AI answer readiness" },
+      { href: "/shopify-seo-audit", label: "Shopify SEO audit" }
     ]
   },
   {
