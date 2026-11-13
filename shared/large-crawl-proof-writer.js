@@ -1,5 +1,10 @@
 const LARGE_CRAWL_PROOF_TRUST_ERROR = "Large crawl proof must be saved by SEO Fix Kit's trusted renderer.";
 
+/** @typedef {{ ok: true } | { ok: false, status: number, code: string, error: string }} ProofWriteStatus */
+
+/** @param {{ headers?: unknown, env?: Record<string, unknown>, trustedRenderer?: boolean }} [options]
+ * @returns {ProofWriteStatus}
+ */
 function largeCrawlProofWriteStatus({ headers, env = {}, trustedRenderer = false } = {}) {
   if (trustedRenderer) return { ok: true };
 
@@ -15,6 +20,10 @@ function largeCrawlProofWriteStatus({ headers, env = {}, trustedRenderer = false
   };
 }
 
+/** @param {any} headers
+ * @param {string} name
+ * @returns {string}
+ */
 function headerValue(headers, name) {
   if (!headers) return "";
   if (typeof headers.get === "function") return headers.get(name) || "";
@@ -23,6 +32,10 @@ function headerValue(headers, name) {
   return direct || "";
 }
 
+/** @param {unknown} left
+ * @param {unknown} right
+ * @returns {boolean}
+ */
 function constantTimeEqual(left, right) {
   const leftText = String(left || "");
   const rightText = String(right || "");

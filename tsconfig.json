@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "es2022",
-    "lib": ["es2022"],
+    "lib": ["es2022", "dom"],
     "module": "es2022",
     "moduleResolution": "bundler",
     "allowJs": true,
@@ -12,21 +12,42 @@
     "types": ["@cloudflare/workers-types"]
   },
   "include": [
+    "server/node-env.d.ts",
+    "shared/ai-fix-prompt.js",
+    "shared/competitor-benchmark.js",
+    "shared/crawl-depth.js",
+    "shared/crawl-inventory.js",
     "shared/dodo.js",
     "shared/email-layout.js",
     "shared/fix-patterns.js",
+    "shared/free-tools/checklist.js",
+    "shared/fulfillment.js",
+    "shared/geo-readiness.js",
+    "shared/growth-opportunities.js",
     "shared/html.js",
+    "shared/index-now.js",
+    "shared/large-crawl-proof-writer.js",
     "shared/offers.js",
+    "shared/public-check/check-handoff.js",
+    "shared/public-check/client.js",
+    "shared/report-delta.js",
+    "shared/robots-access.js",
+    "shared/site-nav.js",
+    "shared/site-progress.js",
     "shared/url-safety.js",
+    "shared/zip.js",
+    "worker/d1-backup-workflow.js",
+    "worker/env.d.ts",
     "worker/lib/bounded.js",
     "worker/lib/d1-retry.js",
     "worker/lib/http.js",
     "worker/lib/offers.js",
     "worker/lib/paid-features.js",
+    "worker/lib/repair-proposal-summary.js",
+    "worker/lib/repair-tables.js",
     "worker/lib/security.js",
     "worker/lib/slack.js",
-    "worker/lib/validation.js",
-    "worker/env.d.ts"
+    "worker/lib/validation.js"
   ],
   "exclude": ["**/*.test.mjs", "**/*.test.js"]
 }

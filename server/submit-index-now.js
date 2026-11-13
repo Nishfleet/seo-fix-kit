@@ -8,6 +8,9 @@ import {
 
 const ORIGIN = `https://${INDEX_NOW_HOST}`;
 
+/** @param {string} xml
+ * @returns {string[]}
+ */
 export function parseSitemapLocs(xml) {
   const locs = [];
   const re = /<loc>([^<]+)<\/loc>/g;
@@ -16,6 +19,9 @@ export function parseSitemapLocs(xml) {
   return locs;
 }
 
+/** @param {{ fetchImpl?: typeof fetch }} [options]
+ * @returns {Promise<string[]>}
+ */
 export async function fetchSitemapUrls({ fetchImpl = globalThis.fetch } = {}) {
   const res = await fetchImpl(`${ORIGIN}/sitemap.xml`);
   if (!res.ok) throw new Error(`sitemap fetch failed: HTTP ${res.status}`);
@@ -24,6 +30,9 @@ export async function fetchSitemapUrls({ fetchImpl = globalThis.fetch } = {}) {
   return locs;
 }
 
+/** @param {{ fetchImpl?: typeof fetch }} [options]
+ * @returns {Promise<{ url: string, ok: boolean, detail: string }[]>}
+ */
 export async function verifyKeyFileLive({ fetchImpl = globalThis.fetch } = {}) {
   const expected = indexNowKeyFileBody().trim();
   const results = [];
@@ -37,13 +46,17 @@ export async function verifyKeyFileLive({ fetchImpl = globalThis.fetch } = {}) {
       ok = res.status === 200 && body === expected;
       detail = ok ? "key matches" : `HTTP ${res.status}, body mismatch`;
     } catch (err) {
-      detail = `fetch failed: ${err.message}`;
+      detail = `fetch failed: ${/** @type {Error} */ (err).message}`;
     }
     results.push({ url, ok, detail });
   }
   return results;
 }
 
+/** @param {string[]} urlList
+ * @param {{ endpoints?: string[], fetchImpl?: typeof fetch }} [options]
+ * @returns {Promise<{ endpoint: string, status: number, ok: boolean, error?: string }[]>}
+ */
 export async function submitUrlList(urlList, { endpoints = INDEX_NOW_ENDPOINTS, fetchImpl = globalThis.fetch } = {}) {
   const payload = buildIndexNowPayload(urlList);
   const outcomes = [];
@@ -56,12 +69,15 @@ export async function submitUrlList(urlList, { endpoints = INDEX_NOW_ENDPOINTS, 
       });
       outcomes.push({ endpoint, status: res.status, ok: res.status === 200 || res.status === 202 });
     } catch (err) {
-      outcomes.push({ endpoint, status: 0, ok: false, error: err.message });
+      outcomes.push({ endpoint, status: 0, ok: false, error: /** @type {Error} */ (err).message });
     }
   }
   return outcomes;
 }
 
+/** @param {{ dryRun?: boolean, fetchImpl?: typeof fetch }} [options]
+ * @returns {Promise<{ ok: boolean, code: number, keyChecks?: unknown[], urls?: string[], outcomes?: unknown[], dryRun?: boolean }>}
+ */
 export async function main({ dryRun = false, fetchImpl = globalThis.fetch } = {}) {
   const keyChecks = await verifyKeyFileLive({ fetchImpl });
   const keyLive = keyChecks.every((c) => c.ok);
@@ -101,7 +117,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     const result = await main({ dryRun });
     process.exitCode = result.code;
   } catch (err) {
-    console.error(`submit-indexnow failed: ${err.message}`);
+    console.error(`submit-indexnow failed: ${/** @type {Error} */ (err).message}`);
     process.exitCode = 1;
   }
 }

@@ -17,6 +17,10 @@ export function indexNowKeyLocation() {
   return `https://${INDEX_NOW_HOST}/${INDEX_NOW_KEY}.txt`;
 }
 
+/** @param {Iterable<string>} urls
+ * @param {{ host?: string }} [options]
+ * @returns {{ host: string, key: string, keyLocation: string, urlList: string[] }}
+ */
 export function buildIndexNowPayload(urls, { host = INDEX_NOW_HOST } = {}) {
   return {
     host,

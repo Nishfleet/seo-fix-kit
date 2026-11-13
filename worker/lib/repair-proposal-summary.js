@@ -1,7 +1,15 @@
+/** @param {string} [status]
+ * @returns {{ status: string, total: number, approved: number, approvedExecutable: number, dismissed: number, executable: number, delivered: number }}
+ */
 function emptyRepairProposalSummary(status = "ready") {
   return { status, total: 0, approved: 0, approvedExecutable: 0, dismissed: 0, executable: 0, delivered: 0 };
 }
 
+/** @param {Env} env
+ * @param {string[]} [fixRequestIds]
+ * @param {string} [ownerEmail]
+ * @returns {Promise<Map<string, { status: string, total: number, approved: number, approvedExecutable: number, dismissed: number, executable: number, delivered: number }>>}
+ */
 async function repairProposalSummariesForFixRequests(env, fixRequestIds = [], ownerEmail = "") {
   const ids = [...new Set((fixRequestIds || []).filter(Boolean))];
   const summaries = new Map(ids.map((id) => [id, emptyRepairProposalSummary("ready")]));
@@ -29,8 +37,10 @@ async function repairProposalSummariesForFixRequests(env, fixRequestIds = [], ow
     )
       .bind(...ids, ...(ownerEmail ? [ownerEmail] : []))
       .all();
-    for (const row of rows.results || []) {
-      summaries.set(row.fix_request_id, {
+    for (const row of /** @type {{ fix_request_id: unknown, total?: unknown, approved?: unknown, approved_executable?: unknown, dismissed?: unknown, executable?: unknown, delivered?: unknown }[]} */ (
+      rows.results || []
+    )) {
+      summaries.set(String(row.fix_request_id), {
         status: "ready",
         total: Number(row.total || 0),
         approved: Number(row.approved || 0),
@@ -46,6 +56,11 @@ async function repairProposalSummariesForFixRequests(env, fixRequestIds = [], ow
   return summaries;
 }
 
+/** @param {Env} env
+ * @param {string} fixRequestId
+ * @param {string} [ownerEmail]
+ * @returns {Promise<{ status: string, total: number, approved: number, approvedExecutable: number, dismissed: number, executable: number, delivered: number }>}
+ */
 async function repairProposalSummaryForFixRequest(env, fixRequestId, ownerEmail = "") {
   if (!fixRequestId) return emptyRepairProposalSummary("skipped");
   const summaries = await repairProposalSummariesForFixRequests(env, [fixRequestId], ownerEmail);

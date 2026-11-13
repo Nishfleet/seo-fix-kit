@@ -1,3 +1,11 @@
+/** @typedef {{ id?: string, url?: string, score?: unknown, scannedAt?: string, createdAt?: string, reportPath?: string, summary?: { pagesScanned?: unknown }, pages?: unknown[], findings?: unknown[], params?: Record<string, unknown> }} ReportLike */
+
+/** @typedef {{ key: string, severity: string, title: string, pageUrl: string, pageLabel: string, evidence: string, fix: string, confidence: string, source: string, type: string, previousSeverity?: string, previousEvidence?: string }} DeltaIssueRow */
+
+/** @param {ReportLike} [currentReport]
+ * @param {ReportLike | null} [previousReport]
+ * @returns {any}
+ */
 export function buildReportDelta(currentReport = {}, previousReport = null) {
   if (!previousReport?.id) {
     return {
@@ -25,7 +33,7 @@ export function buildReportDelta(currentReport = {}, previousReport = null) {
   const persistentIssues = currentIssues
     .filter((issue) => previousByKey.has(issue.key))
     .map((issue) => {
-      const before = previousByKey.get(issue.key);
+      const before = /** @type {DeltaIssueRow | undefined} */ (previousByKey.get(issue.key));
       return deltaIssue({
         ...issue,
         previousSeverity: before?.severity || "",
@@ -76,6 +84,9 @@ export function buildReportDelta(currentReport = {}, previousReport = null) {
   };
 }
 
+/** @param {any} [delta]
+ * @returns {string[]}
+ */
 export function reportDeltaBriefLines(delta = {}) {
   if (!["ready", "first_run"].includes(delta.status)) return [];
   const summary = delta.summary || {};
@@ -117,6 +128,10 @@ export function reportDeltaBriefLines(delta = {}) {
   return lines;
 }
 
+/** @param {string} [brief]
+ * @param {any} [delta]
+ * @returns {string}
+ */
 export function appendReportDeltaBrief(brief = "", delta = {}) {
   const lines = reportDeltaBriefLines(delta);
   if (!lines.length) return brief || "";
@@ -128,8 +143,11 @@ export function appendReportDeltaBrief(brief = "", delta = {}) {
   return text.replace(closing, `${section}\n${closing}`);
 }
 
+/** @param {ReportLike} [report]
+ * @returns {DeltaIssueRow[]}
+ */
 function issueRows(report = {}) {
-  return (report.findings || [])
+  return /** @type {any[]} */ (report.findings || [])
     .filter((finding) => finding?.severity && finding.severity !== "good")
     .map((finding) => {
       const row = {
@@ -148,14 +166,21 @@ function issueRows(report = {}) {
     });
 }
 
+/** @param {DeltaIssueRow[]} [issues]
+ * @returns {Map<string, DeltaIssueRow>}
+ */
 function mapByIssueKey(issues = []) {
   const map = new Map();
   for (const issue of issues) {
-    if (!map.has(issue.key)) map.set(issue.key, issue);
+    const key = String(issue.key || "");
+    if (!map.has(key)) map.set(key, issue);
   }
   return map;
 }
 
+/** @param {Partial<Omit<DeltaIssueRow, "key">>} [issue]
+ * @returns {Omit<DeltaIssueRow, "key">}
+ */
 function deltaIssue(issue = {}) {
   return {
     severity: issue.severity || "notice",
@@ -172,6 +197,9 @@ function deltaIssue(issue = {}) {
   };
 }
 
+/** @param {any} [finding]
+ * @returns {string}
+ */
 function issueKey(finding = {}) {
   return [
     finding.type || "",
@@ -181,21 +209,34 @@ function issueKey(finding = {}) {
   ].join("|");
 }
 
+/** @param {Partial<DeltaIssueRow>[]} [issues]
+ * @param {string} [severity]
+ * @returns {number}
+ */
 function severityCount(issues = [], severity = "") {
   return issues.filter((issue) => issue.severity === severity).length;
 }
 
+/** @param {unknown} [value]
+ * @returns {number}
+ */
 function numberOrZero(value) {
   const number = Number(value);
   return Number.isFinite(number) ? number : 0;
 }
 
+/** @param {unknown} [value]
+ * @returns {string}
+ */
 function signed(value) {
   const number = Number(value || 0);
   if (number > 0) return `+${number}`;
   return String(number);
 }
 
+/** @param {string} [value]
+ * @returns {string}
+ */
 function normalizeText(value = "") {
   return String(value || "")
     .toLowerCase()
@@ -203,6 +244,9 @@ function normalizeText(value = "") {
     .trim();
 }
 
+/** @param {string} [value]
+ * @returns {string}
+ */
 function normalizeUrlKey(value = "") {
   try {
     const url = new URL(value);
@@ -214,6 +258,9 @@ function normalizeUrlKey(value = "") {
   }
 }
 
+/** @param {string} [value]
+ * @returns {string}
+ */
 function pageLabel(value = "") {
   try {
     const url = new URL(value);
@@ -223,6 +270,10 @@ function pageLabel(value = "") {
   }
 }
 
+/** @param {unknown} [value]
+ * @param {number} [max]
+ * @returns {string}
+ */
 function cleanText(value = "", max = 500) {
   return String(value || "")
     .replace(/[\u0000-\u001f\u007f]/g, " ")
