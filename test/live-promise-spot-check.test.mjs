@@ -11,6 +11,7 @@ import {
   proofCaseHtml,
   proofCaseMarkdown,
   renderedVsStaticAuditHtml,
+  shopifySeoAuditHtml,
   smallBusinessSeoAuditHtml,
   supportHtml,
   termsHtml
@@ -32,6 +33,7 @@ const pages = {
   "/small-business-seo-audit": smallBusinessSeoAuditHtml(origin),
   "/rendered-vs-static-seo-audit": renderedVsStaticAuditHtml(origin),
   "/ai-answer-readiness": aiAnswerReadinessHtml(origin),
+  "/shopify-seo-audit": shopifySeoAuditHtml(origin),
   "/proof": proofCaseHtml(origin),
   "/support": supportHtml(origin),
   "/terms": termsHtml(origin),
@@ -113,6 +115,7 @@ test("live spot-check covers the public pages including the proof receipt", () =
       "/small-business-seo-audit",
       "/rendered-vs-static-seo-audit",
       "/ai-answer-readiness",
+      "/shopify-seo-audit",
       "/proof",
       "/proof.md",
       "/support",
@@ -156,7 +159,7 @@ test("live spot-check covers the www-to-apex canonical redirect", () => {
 
 test("live spot-check passes against the shipped public page copy", async () => {
   const results = await spotCheckPublicPages({ baseUrl: origin, fetcher: pageFetcher() });
-  assert.equal(results.length, 24);
+  assert.equal(results.length, 25);
   for (const result of results) {
     assert.deepEqual(result.failures, [], `${result.path} must pass: ${result.name}`);
   }
