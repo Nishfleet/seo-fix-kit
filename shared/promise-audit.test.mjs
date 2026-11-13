@@ -105,6 +105,7 @@ const PUBLIC_HTML_PATHS = [
   "/small-business-seo-audit",
   "/rendered-vs-static-seo-audit",
   "/ai-answer-readiness",
+  "/shopify-seo-audit",
   "/support",
   "/terms",
   "/privacy"
@@ -487,7 +488,12 @@ test("README public page promise matches Worker routing and copy", async () => {
   for (const path of ["/demo", "/methodology", "/pricing", "/check", "/proof"]) {
     assert.ok(workerRoutes(path, "GET"), `Worker must route ${path}`);
   }
-  for (const path of ["/small-business-seo-audit", "/rendered-vs-static-seo-audit", "/ai-answer-readiness"]) {
+  for (const path of [
+    "/small-business-seo-audit",
+    "/rendered-vs-static-seo-audit",
+    "/ai-answer-readiness",
+    "/shopify-seo-audit"
+  ]) {
     assert.ok(workerRoutes(path, "GET"), `Worker must route ${path}`);
   }
   assert.match(await publicPage("/pricing"), /\$99\.00 one-time/, "pricing page shows the public Fix Pack price");
@@ -573,6 +579,7 @@ test("README Cloudflare path routes are actually registered in the Worker", () =
     "/small-business-seo-audit",
     "/rendered-vs-static-seo-audit",
     "/ai-answer-readiness",
+    "/shopify-seo-audit",
     "/check",
     "/api/public-check",
     "/beta"
