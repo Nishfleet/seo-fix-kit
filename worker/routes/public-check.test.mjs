@@ -85,7 +85,19 @@ test("engine failures map to visitor copy, never raw browser diagnostics", () =>
 });
 
 test("public check fails fast with visitor copy when the server has no outbound route", async () => {
-  const db = { prepare() { return { bind() { return { async run() { return { meta: { changes: 0 } } } } } } } };
+  const db = {
+    prepare() {
+      return {
+        bind() {
+          return {
+            async run() {
+              return { meta: { changes: 0 } };
+            }
+          };
+        }
+      };
+    }
+  };
   const env = { WAITLIST_DB: db };
   const request = new Request("https://seofixkit.com/api/public-check", {
     method: "POST",
