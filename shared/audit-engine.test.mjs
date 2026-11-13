@@ -1785,3 +1785,26 @@ test("every suggested canonical address is the page's final address", async () =
     "the fix pack canonical must be the address the page ended on"
   );
 });
+
+test("a canonical that differs from the page URL only by a trailing slash raises no canonical or redirect finding", async () => {
+  const engine = createAuditEngine({
+    launchBrowser: async () => fakeBrowser("https://public.example/js/", { canonical: "https://public.example/js" }),
+    fetchImpl: async (url) => {
+      if (url === "https://public.example/js/") {
+        return new Response(
+          "<!doctype html><html><head><title>Proof page</title></head><body><h1>Proof page</h1><p>Useful content.</p></body></html>",
+          { status: 200, headers: { "content-type": "text/html; charset=utf-8" } }
+        );
+      }
+      return new Response("", { status: 404, headers: { "content-type": "text/plain" } });
+    },
+    pagespeedDisabled: true
+  });
+
+  const report = await engine.auditUrl("https://public.example/js/", { maxPages: 1, pageSpeed: false });
+
+  assert.deepEqual(
+    report.findings.filter((finding) => /canonical (differs|conflicts)|redirects before rendering/i.test(finding.title || "")),
+    []
+  );
+});

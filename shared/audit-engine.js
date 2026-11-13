@@ -341,7 +341,7 @@ export function createAuditEngine({
     return {
       url,
       finalUrl,
-      redirected: stripHash(finalUrl) !== stripHash(url),
+      redirected: crawlKey(finalUrl) !== crawlKey(url),
       renderSkippedReason:
         isHtml && !safeToRender
           ? renderPrivateDnsBlocked
@@ -1288,7 +1288,7 @@ function buildFindings({ pages, startUrl, robots, sitemap, performance, declared
       });
     }
 
-    if (page.redirected || stripHash(finalUrl) !== stripHash(page.url)) {
+    if (page.redirected || crawlKey(finalUrl) !== crawlKey(page.url)) {
       add({
         type: "issue",
         severity: "notice",
