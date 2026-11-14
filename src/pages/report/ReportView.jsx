@@ -173,7 +173,7 @@ export function ReportView({ report, onRerun, rerunStatus = "idle", rerunMessage
         <FixRequestStatusPanel fixRequest={report.fixRequest} checkoutReturned={checkoutReturned} />
       )}
 
-      {report.fixRequest && <FixKitDownload reportId={report.id} />}
+      {topFixes.length > 0 && <FixKitDownload reportId={report.id} />}
 
       <section className="app-stats report-stats" aria-label="Audit summary">
         <Metric label="Critical" tone="critical" value={report.summary?.critical || 0} />

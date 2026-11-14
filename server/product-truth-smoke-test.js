@@ -8,12 +8,17 @@ const llms = llmsText(origin);
 const home = homeMarkdown(origin);
 const support = supportHtml(origin);
 const terms = termsHtml(origin);
-const offers = offerCatalog({ fixPackCheckoutReady: true });
-const monitoringOffers = offerCatalog({ fixPackCheckoutReady: true, monitoringCheckoutReady: true });
+const offers = offerCatalog({ fixPackCheckoutEnabled: true, fixPackCheckoutReady: true });
+const monitoringOffers = offerCatalog({
+  fixPackCheckoutEnabled: true,
+  fixPackCheckoutReady: true,
+  monitoringCheckoutReady: true
+});
 const repairSprintOffers = offerCatalog({
   fixPackCheckoutReady: true,
   monitoringCheckoutReady: true,
-  repairSprintCheckoutReady: true
+  repairSprintCheckoutReady: true,
+  fixPackCheckoutEnabled: true
 });
 const index = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const schema = homepageSchema(index);

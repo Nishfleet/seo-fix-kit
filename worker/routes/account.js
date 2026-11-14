@@ -310,7 +310,7 @@ function accountNextActions(reports, requests, sites = [], jobs = [], repairAgen
       {
         id: "review-fixes",
         label: "Review your report",
-        detail: "Open a report and check the problems. Buy a Fix Pack only if you want help fixing them."
+        detail: "Open a report and check the problems. The fix files download free from the report."
       }
     ];
   }

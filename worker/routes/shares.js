@@ -9,7 +9,6 @@ import {
 import { betaAccessResponse, betaAccessStatus } from "../lib/auth.js";
 import { cookieValue, json, jsonNoStore, secureHeaders } from "../lib/http.js";
 import { agencyWorkspaceAccessForOwner } from "../lib/offers.js";
-import { hasPaidFixPack, paidFeatureLockedResponse } from "../lib/paid-features.js";
 import { ownerReportRow, reportJsonForRow } from "../lib/report-data.js";
 import { checkQuotaSet, constantTimeEqual, hmacSha256Hex, requestIpHash, sha256Hex } from "../lib/security.js";
 import {
@@ -83,7 +82,7 @@ async function getReportBranding(request, env) {
     );
   return jsonNoStore({
     ok: true,
-    unlocked: await hasPaidFixPack(env, access.ownerEmail, access),
+    unlocked: Boolean(access.ownerEmail),
     branding: await savedBrandingForOwner(env, access.ownerEmail)
   });
 }
@@ -98,7 +97,6 @@ async function saveReportBranding(request, env) {
       503
     );
   if (parsed.error) return jsonNoStore(parsed.error, 400);
-  if (!(await hasPaidFixPack(env, access.ownerEmail, access))) return paidFeatureLockedResponse();
 
   const current = await savedBrandingForOwner(env, access.ownerEmail);
   const branding = normalizeBrandingInput(parsed.data, current);
@@ -490,7 +488,7 @@ async function unlockClientReport(request, env) {
 }
 
 async function reportBrandingForOwner(env, ownerEmail) {
-  if (!(await hasPaidFixPack(env, ownerEmail))) return defaultBranding();
+  if (!ownerEmail) return defaultBranding();
   return savedBrandingForOwner(env, ownerEmail);
 }
 
@@ -540,7 +538,6 @@ async function createReportDomain(request, env) {
     );
   if (!reportDomainsEnabled(env))
     return jsonNoStore({ error: "Custom report domains are not set up on this server yet." }, 503);
-  if (!(await hasPaidFixPack(env, access.ownerEmail, access))) return paidFeatureLockedResponse();
   const parsed = await parseJsonBody(request, ReportDomainBody);
   if (parsed.error) return jsonNoStore(parsed.error, 400);
   const domainName = cleanReportDomain(parsed.data.domain);

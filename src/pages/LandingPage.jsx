@@ -40,7 +40,7 @@ const FEATURES = [
   {
     icon: "pulse",
     title: "Weekly reruns and downtime alerts",
-    text: "Verified sites are audited again every week. With a Fix Pack, we also check every 15 minutes and email you if a site goes down."
+    text: "Verified sites are audited again every week. We also check every 15 minutes and email you if a site goes down."
   },
   {
     icon: "plug",
@@ -55,8 +55,8 @@ const FAQ = [
     a: "Not to check one page. To audit a whole site, sign in with your email and verify you own the site. Then you can audit up to 1,000 pages at a time, keep every report, and use the repair queue."
   },
   {
-    q: "What does the Fix Pack include?",
-    a: "Every fix on a saved report as ready-to-ship files, a guided repair pass, and a rerun after your fixes ship to confirm them. It costs $99 per report, paid once. You only see the offer when a report finds real problems."
+    q: "What do the fix files include?",
+    a: "Every fix on a saved report as ready-to-ship files, and a rerun after your fixes ship to confirm them. Free with any site audit — download them from the report."
   },
   {
     q: "Do you check AI search?",
@@ -77,9 +77,9 @@ const PLANS = [
     featured: true
   },
   {
-    name: "Fix Pack",
-    price: "$99",
-    text: "Every fix as ready-to-ship files, a guided repair pass and a rerun that confirms it. Per report, offered when it finds real problems."
+    name: "Fix files",
+    price: "Free",
+    text: "Every fix as ready-to-ship files and a rerun that confirms it. Downloaded from any of your reports."
   }
 ];
 
@@ -261,7 +261,7 @@ export function WaitlistPage() {
         <section className="landing-section" aria-labelledby="pricing-title">
           <header className="landing-section-head reveal">
             <p className="eyebrow">Pricing</p>
-            <h2 id="pricing-title">Audits are free. Fixes are $99 per report.</h2>
+            <h2 id="pricing-title">Everything is free.</h2>
           </header>
           <div className="landing-plans">
             {PLANS.map((plan) => (

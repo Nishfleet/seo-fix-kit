@@ -27,6 +27,7 @@ import {
   extractDodoSubscription,
   hasDodoCheckoutConfig,
   hasDodoMonitoringCheckoutConfig,
+  hasFixPackCheckoutEnabled,
   verifyDodoWebhookSignature
 } from "../../shared/dodo.js";
 import {
@@ -89,7 +90,8 @@ const MonitoringCheckoutBody = body({
 const FIX_PACK_OFFER = {
   name: "SEO Fix Pack",
   productKey: "seofixkit_fix_pack",
-  description: "One proof-backed repair pass for this report plus one rerun after fixes."
+  description:
+    "The fix files for this report, free for any signed-in owner: fix checklist, tracker CSV, per-page code and one rerun."
 };
 
 const MONITORING_OFFER = {
@@ -217,6 +219,16 @@ async function expectedFixPackPrice(request, env, access) {
 async function requestFixPack(request, env) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
+  if (!hasFixPackCheckoutEnabled(env)) {
+    return jsonNoStore({
+      ok: true,
+      mode: "request",
+      checkoutAvailable: false,
+      message: "Fix Pack checkout is closed. The fix files are free: download them from the report.",
+      offer: FIX_PACK_OFFER,
+      selectedRepair: null
+    });
+  }
   if (!env.WAITLIST_DB)
     return json(
       { error: "Fix request storage is not set up on this server. Email support@seofixkit.com for help." },
@@ -319,7 +331,7 @@ async function requestFixPack(request, env) {
   if (!repairContext.selectedRepair) {
     return jsonNoStore(
       {
-        error: "This report has no open repairs to buy.",
+        error: "This report has no open repairs to include in a Fix Pack.",
         checkoutAvailable: false,
         offer: FIX_PACK_OFFER,
         selectedRepair: null
@@ -844,6 +856,7 @@ async function claimMonitoringCheckout(env, ownerEmail, targetHost) {
 }
 
 async function getPublicFixPackPricing(request, env, ctx) {
+  if (!hasFixPackCheckoutEnabled(env)) return json({ ok: false }, 503);
   const config = dodoCheckoutConfigStatus(env);
   if (!config.checkoutReady) return json({ ok: false }, 503);
   const cache = caches.default;
@@ -868,6 +881,18 @@ async function getPublicFixPackPricing(request, env, ctx) {
 async function getFixPackPricingPreview(request, env) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return betaAccessResponse(access);
+
+  if (!hasFixPackCheckoutEnabled(env)) {
+    return jsonNoStore(
+      {
+        ok: false,
+        code: "PRICING_UNAVAILABLE",
+        message: "The Fix Pack is free. Checkout is closed, so no price is shown.",
+        pricing: { status: "unavailable", source: "dodo", environment: "", missing: [] }
+      },
+      503
+    );
+  }
 
   const config = dodoCheckoutConfigStatus(env);
   if (!config.checkoutReady) {
@@ -930,6 +955,7 @@ async function getBillingSummary(request, env) {
   const pricing = await billingPricingState(request, env, access, dodoConfig);
   const offers = await offerCatalogForOwner(env, access.ownerEmail, {
     fixPackCheckoutReady: dodoConfig.checkoutReady,
+    fixPackCheckoutEnabled: hasFixPackCheckoutEnabled(env),
     monitoringCheckoutReady,
     repairSprintCheckoutReady: repairSprintConfig.checkoutReady
   });
@@ -981,7 +1007,7 @@ async function getBillingSummary(request, env) {
       ...FIX_PACK_OFFER,
       mode: "one_time_fix_pack",
       checkoutStartsFrom: "report",
-      checkoutNote: "Start checkout from a report with proven fixes so payment stays tied to a repair brief."
+      checkoutNote: "The fix files are free: signed-in owners download them from their own reports."
     },
     pricing,
     offers,

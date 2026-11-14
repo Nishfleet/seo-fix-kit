@@ -41,12 +41,14 @@ const OFFER_CATALOG = [
     name: "SEO Fix Pack",
     type: "one_time",
     stage: "live_beta",
-    statusLabel: "Live beta",
-    priceRange: "Dodo checkout price",
+    statusLabel: "Config gated",
+    priceRange: "Free (checkout off by default)",
     checkoutState: "report_checkout",
-    description: "One guided repair pass on one saved report, then one rerun to check the fixes.",
-    availability: "Buy it from a saved report that has open problems.",
-    requirements: ["Saved report", "Proven findings", "Dodo checkout config", "No ranking promises"],
+    description:
+      "The fix files for one saved report: the fix checklist, tracker CSV, per-page code, sitemap.xml, robots.txt changes, llms.txt, and one rerun to check the fixes.",
+    availability:
+      "Included free. Signed-in owners download the fix files from any of their own reports, with no payment.",
+    requirements: ["Saved report", "Signed-in owner", "No ranking promises"],
     limits: { reports: 1, reruns: 1 }
   },
   {
@@ -112,11 +114,12 @@ const BETA_AGENCY_LIMITS = {
   clientSites: 5
 };
 
-/** @param {{ fixPackCheckoutReady?: boolean, monitoringCheckoutReady?: boolean, repairSprintCheckoutReady?: boolean, entitlements?: OfferEntitlementRow[] }} [options]
+/** @param {{ fixPackCheckoutEnabled?: boolean, fixPackCheckoutReady?: boolean, monitoringCheckoutReady?: boolean, repairSprintCheckoutReady?: boolean, entitlements?: OfferEntitlementRow[] }} [options]
  * @returns {(CatalogOffer & { checkoutLive: boolean, checkoutConfigured: boolean, entitlementStatus: string, entitlementSource: string, currentPeriodEnd: string, limits: Record<string, number> })[]}
  */
 function offerCatalog({
   fixPackCheckoutReady = false,
+  fixPackCheckoutEnabled = false,
   monitoringCheckoutReady = false,
   repairSprintCheckoutReady = false,
   entitlements = []
@@ -127,7 +130,7 @@ function offerCatalog({
     const repairSprintProviderReady = repairSprintCheckoutReady && offer.checkoutState === "report_checkout";
     const liveCheckout =
       offer.key === OFFER_KEYS.FIX_PACK
-        ? fixPackCheckoutReady && offer.checkoutState === "report_checkout"
+        ? fixPackCheckoutEnabled && fixPackCheckoutReady && offer.checkoutState === "report_checkout"
         : offer.key === OFFER_KEYS.MONITORING
           ? monitoringCheckoutReady && offer.checkoutState === "account_checkout"
           : false;

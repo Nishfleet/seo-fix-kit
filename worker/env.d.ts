@@ -8,6 +8,8 @@ interface EnvVars {
   DODO_SEOFIXKIT_PRODUCT_REPAIR_SPRINT_ID: string;
   DODO_SEOFIXKIT_ENVIRONMENT: string;
   DODO_SEOFIXKIT_ADAPTIVE_CURRENCY_FEES_INCLUSIVE: string;
+  /** "1" turns the paid Fix Pack checkout back on; absent (the default) keeps it off. */
+  FIX_PACK_CHECKOUT_ENABLED?: string;
   INTERNAL_EMAIL_DOMAINS: string;
   ACCOUNT_ID: string;
   DATABASE_ID: string;

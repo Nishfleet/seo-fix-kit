@@ -5,8 +5,6 @@ import { json, jsonNoStore } from "../lib/http.js";
 import { ownerReportRow } from "../lib/report-data.js";
 import { parseJson } from "../lib/text.js";
 
-export const FIX_KIT_UNLOCKED_STATUSES = ["paid", "in_progress", "delivered"];
-
 async function fixKitContext(request, env, params) {
   const access = await betaAccessStatus(request, env);
   if (!access.ok) return { response: betaAccessResponse(access) };
@@ -14,15 +12,8 @@ async function fixKitContext(request, env, params) {
   const row = await ownerReportRow(env, params.id, access);
   const report = row ? parseJson(row.report_json, null) : null;
   if (!report) return { response: json({ error: "Report not found." }, 404) };
-  const paid = await env.WAITLIST_DB.prepare(
-    // eslint-disable-next-line no-restricted-syntax -- unlocks the Fix Kit for this one report's own order, which the per-owner view cannot answer
-    `SELECT status FROM fix_requests
-     WHERE report_id = ? AND owner_email = ? AND status IN (${FIX_KIT_UNLOCKED_STATUSES.map(() => "?").join(", ")})
-     LIMIT 1`
-  )
-    .bind(params.id, access.ownerEmail, ...FIX_KIT_UNLOCKED_STATUSES)
-    .first();
-  return { report, unlocked: Boolean(paid) || access.accessMode === "founder-override" };
+
+  return { report, unlocked: true };
 }
 
 export async function getFixKit(request, env, params) {
@@ -34,9 +25,6 @@ export async function getFixKit(request, env, params) {
 export async function downloadFixKit(request, env, params) {
   const context = await fixKitContext(request, env, params);
   if (context.response) return context.response;
-  if (!context.unlocked) {
-    return json({ error: "The fix files come with the Fix Pack for this report.", code: "FIX_KIT_LOCKED" }, 402);
-  }
   const filename = fixKitFilename(context.report);
   const folder = filename.replace(/\.zip$/, "");
   const files = buildFixKitFiles(context.report).map((file) => ({ ...file, path: `${folder}/${file.path}` }));

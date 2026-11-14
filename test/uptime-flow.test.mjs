@@ -192,7 +192,7 @@ test("more than one batch of due sites is checked in the same tick", async () =>
   assert.equal(db.rows("SELECT id FROM audit_schedules WHERE uptime_checked_at IS NULL").length, 0);
 });
 
-test("downtime alerts are a paid perk: no Fix Pack, or a refunded one, means no pings", async () => {
+test("downtime alerts stay a legacy paid-owner perk: no legacy paid order means no pings", async () => {
   const unpaid = setup("active", { paid: false });
   const calls = [];
   const spy = async (url) => {
@@ -212,7 +212,7 @@ test("downtime alerts are a paid perk: no Fix Pack, or a refunded one, means no 
   assert.deepEqual(await runUptimeChecks(paid.env, { fetchImpl: spy, now: T0 }), ["up"]);
 });
 
-test("a test payment never unlocks downtime alerts", async () => {
+test("a test payment never unlocks downtime alerts (legacy paid-owner perk)", async () => {
   const { db, env } = setup("active", { paid: false });
   db.insert("fix_requests", {
     id: "fr-test",

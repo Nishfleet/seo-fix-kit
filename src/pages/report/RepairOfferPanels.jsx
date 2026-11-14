@@ -3,19 +3,12 @@ import { useState } from "react";
 import { repairSprintEligibilityFromProposals } from "../../../shared/offers.js";
 import { apiErrorMessage, apiRequest } from "../../api.js";
 import StatusMessage from "../../StatusMessage.jsx";
-import {
-  fixPackCheckoutDisabled,
-  fixPackCheckoutErrorOutcome,
-  fixPackCheckoutOutcome,
-  fixPackRepairTarget
-} from "../../fix-pack-checkout.js";
+import { fixPackRepairTarget } from "../../fix-pack-checkout.js";
 import { monitoringCheckoutErrorOutcome, monitoringCheckoutOutcome } from "../../monitoring-checkout.js";
-import { usePricingPreview } from "../../hooks/usePricingPreview.js";
-import { FixKitIncludes } from "./FixKitPanel.jsx";
 import { beforeAfterText, formatDate } from "../../lib/format.js";
 import { proposalStatusLabel, checkoutMessage, statusLabel } from "../../lib/labels.js";
 import { queryKeys } from "../../lib/queries.js";
-import { loadRepairQueue, requestFixQuote, patchRepairProposalApproval } from "../../lib/requests.js";
+import { loadRepairQueue, patchRepairProposalApproval } from "../../lib/requests.js";
 
 export function FixRequestStatusPanel({ fixRequest, checkoutReturned }) {
   const status = fixRequest?.status || (checkoutReturned ? "checkout_created" : "new");
@@ -260,9 +253,6 @@ export function RepairProposalPanel({ reportId, initialProposals = [], repairSpr
 }
 
 export function FixQuotePanel({ report, hasPriorityFixes }) {
-  const [status, setStatus] = useState("idle");
-  const [message, setMessage] = useState("");
-  const pricing = usePricingPreview(hasPriorityFixes);
   const repairQueueQuery = useQuery({
     queryKey: queryKeys.repairQueue(report.id),
     queryFn: () => loadRepairQueue(report.id),
@@ -274,45 +264,17 @@ export function FixQuotePanel({ report, hasPriorityFixes }) {
   };
   const selectedRepair = fixPackRepairTarget(report, repairQueue.items);
   const selectedRepairIsLive = selectedRepair?.source === "repair_queue";
-  const checkoutDisabled = fixPackCheckoutDisabled({
-    hasPriorityFixes,
-    pricingStatus: pricing.status,
-    status
-  });
-  const priceLabel =
-    pricing.status === "available"
-      ? pricing.displayPrice
-      : pricing.status === "loading"
-        ? "Loading price…"
-        : "Price unavailable";
 
   return (
     <aside className="paid-panel">
       <div>
-        <p className="beta-eyebrow">{hasPriorityFixes ? "Fix Pack" : "Next step"}</p>
-        <h3>
-          {hasPriorityFixes
-            ? "Get every fix ready to ship, plus a guided repair pass"
-            : "Nothing here needs a Fix Pack"}
-        </h3>
-        {hasPriorityFixes && (
-          <div className={`price-preview ${pricing.status}`}>
-            <strong>{priceLabel}</strong>
-            <span>
-              {pricing.status === "available"
-                ? "One-time, for this report. Local tax included. Paid through Dodo Payments."
-                : pricing.status === "loading"
-                  ? "Checking the current price."
-                  : "Checkout opens once the price loads."}
-            </span>
-          </div>
-        )}
+        <p className="beta-eyebrow">{hasPriorityFixes ? "Fix files" : "Next step"}</p>
+        <h3>{hasPriorityFixes ? "Get every fix ready to ship — free" : "Nothing here needs fixing yet"}</h3>
         <p>
           {hasPriorityFixes
-            ? "Download every fix as files your developer or AI tool can use today. Then we go through the fixes with you and rerun the audit to show what got fixed. We don’t guarantee rankings or traffic."
+            ? "Download every fix as files your developer or AI tool can use today, free with your account. Then rerun the audit to show what got fixed. We don’t guarantee rankings or traffic."
             : "Rerun the audit after you change content or templates."}
         </p>
-        {hasPriorityFixes && <FixKitIncludes reportId={report.id} />}
         {hasPriorityFixes && selectedRepair?.title && (
           <p className="quiet-note">
             {selectedRepairIsLive ? "Starts with" : "Top problem"}: {selectedRepair.title}
@@ -321,53 +283,7 @@ export function FixQuotePanel({ report, hasPriorityFixes }) {
         {hasPriorityFixes && repairQueue.status === "loading" && (
           <p className="quiet-note">Checking your repair queue…</p>
         )}
-        {hasPriorityFixes && repairQueue.status === "error" && (
-          <p className="quiet-note">Your repair queue didn’t load. Checkout will start with the first open problem.</p>
-        )}
       </div>
-      {hasPriorityFixes ? (
-        <span className="checkout-action">
-          <button
-            className="action-link paid-action"
-            disabled={checkoutDisabled}
-            onClick={async () => {
-              setStatus("submitting");
-              setMessage("");
-              try {
-                const result = await requestFixQuote(report.id, selectedRepairIsLive ? selectedRepair : null);
-                const outcome = fixPackCheckoutOutcome(result);
-                setStatus(outcome.status);
-                setMessage(outcome.message);
-                if (outcome.checkoutUrl) {
-                  window.location.assign(outcome.checkoutUrl);
-                }
-              } catch (error) {
-                const outcome = fixPackCheckoutErrorOutcome(error);
-                setStatus(outcome.status);
-                setMessage(outcome.message);
-              }
-            }}
-            type="button"
-          >
-            {status === "success" ? "Request sent" : status === "submitting" ? "Opening checkout…" : "Buy Fix Pack"}
-          </button>
-          {(message || pricing.status === "error") && (
-            <small
-              className={`checkout-message ${status === "error" || pricing.status === "error" ? "error" : status}`}
-            >
-              {message || pricing.message}
-            </small>
-          )}
-          {pricing.status === "error" && (
-            <small className="checkout-message">
-              <button className="action-link" onClick={() => pricing.reload()} type="button">
-                Reload price
-              </button>{" "}
-              or email <a href="mailto:support@seofixkit.com">support@seofixkit.com</a>
-            </small>
-          )}
-        </span>
-      ) : null}
     </aside>
   );
 }

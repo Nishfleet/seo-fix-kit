@@ -1,6 +1,6 @@
 # SEO Fix Kit
 
-SEO Fix Kit is a private-beta SEO audit and paid Fix Pack workflow.
+SEO Fix Kit is a private-beta SEO audit and repair workflow. Everything is free.
 
 ## Live Boundary
 
@@ -14,8 +14,8 @@ SEO Fix Kit is a private-beta SEO audit and paid Fix Pack workflow.
 - Private reports include draft-only growth briefs from verified gaps; this is not auto-publishing.
 - Private reports can create repair queue items, approval-safe action records, private implementation packs after owner approval, and proof receipts after fixed rerun proof.
 - Developer API issue/report responses include safe repair queue status only; approved implementation packs are fetched from `GET /v1/audits/{audit_id}/repair-actions/{action_id}/implementation.md`; fixed repair proof receipts are fetched from `GET /v1/audits/{audit_id}/repair-actions/{action_id}/proof.md`; proposed change text stays private to owner report surfaces.
-- The paid Fix Pack shows the Dodo checkout price before payment.
-- Fix Pack service is one proof-backed repair pass plus one rerun after fixes.
+- The fix files for any signed-in owner's own reports are free: fix checklist, tracker CSV, per-page code, sitemap.xml and robots.txt changes, llms.txt, and one rerun after fixes.
+- No checkout is offered anywhere; Dodo remains the payment provider for legacy paid Fix Packs only.
 - Paid Repair Agent and Growth Add-On package copy is roadmap until the required integrations, billing, and proof gates are live.
 - Implementation packs are private handoff documents only; they do not publish CMS changes, open GitHub pull requests, merge code, or call provider admin APIs.
 - SEO Fix Kit does not provide live AI-engine visibility tracking or AI citation monitoring.
@@ -29,7 +29,7 @@ Free installable SEO agent skills are useful for quick, single-page checks and r
 - Hosted rendered crawl scope: self-serve audits up to 1,000 pages per queued audit, robots.txt and sitemap crawl inventory up to 50,000 discovered URLs, and staged large rendered crawl jobs for 50,000-page targets (early access; batches render gradually, never sold as completed 50K rendered validation).
 - Persistent repair queue: proven issues stay tracked across saved reports with approval state, acceptance checks, status, and fixed-rerun proof receipts.
 - Owner-approved implementation packs: private handoff documents with source proof and approval state for approved repair actions.
-- Paid Fix Pack fulfillment: one proof-backed repair pass per report plus one rerun after fixes, with Dodo as the checkout and visible-price source of truth.
+- Fix Pack features: the fix-files bundle, the tracker CSV, report branding and the audit widget are free for any signed-in account on its own audits.
 - Why not just use a free AI SEO agent skill? The plain answer is on the methodology page: https://seofixkit.com/methodology. The same boundaries apply to both: no live AI-engine sampling, no AI citation monitoring, and no ranking guarantees.
 
 ## Agent Action Catalog

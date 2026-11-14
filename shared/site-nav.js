@@ -8,7 +8,11 @@ export const SITE_NAV = [
       { href: "/check", label: "Free page check", text: "Check one public page in a real browser. No account." },
       { href: "/demo", label: "Sample report", text: "Real engine output for a test page, with the evidence." },
       { href: "/proof", label: "Case study", text: "Our founder’s site, from 85 to 100 in two fixes." },
-      { href: "/pricing#plans", label: "Fix Pack", text: "A $99 repair pass with a rerun that confirms it." }
+      {
+        href: "/pricing#plans",
+        label: "Fix files",
+        text: "Every fix as ready-to-ship files, free with any site audit."
+      }
     ]
   },
   {

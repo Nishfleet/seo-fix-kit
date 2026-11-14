@@ -153,20 +153,17 @@ export function publicPageSpotChecks(baseUrl) {
     },
     {
       path: "/pricing",
-      name: "pricing page shows plans and the Fix Pack price before payment",
+      name: "pricing page shows free plans and no checkout",
       isPage: true,
       acceptStatuses: [200],
       expectations: [
-        { reason: "pricing headline", match: "Audits are free. Fixes are $99 per report." },
-        { reason: "fix pack offer", match: "Fix Pack" },
-        { reason: "public fix pack price", match: "$99.00 one-time" },
-        {
-          reason: "final price shown at checkout",
-          match: "the final price including any local tax is shown at checkout before you pay"
-        },
-        { reason: "Proof Monitoring not on sale", match: "a paid plan is not on sale yet" },
+        { reason: "pricing headline", match: "Everything on SEO Fix Kit is free" },
+        { reason: "fix files offer", match: "Fix files" },
+        { reason: "free answer", match: "No checkout is offered anywhere on the site" },
+        { reason: "done-for-you referral", match: "TinyStudio (tinystudio.io)" },
+        { reason: "legacy paid answer", match: "Everything you paid for stays as it is" },
+        { reason: "monitoring answer", match: "A paid monitoring plan is planned but not on sale yet" },
         { reason: "no ranking promise", match: "No ranking or traffic guarantee is made" },
-        { reason: "names the $29 Agent Fix Mode trade-off", match: "Agent Fix Mode" },
         { reason: "link to terms", match: `href="${baseUrl}/terms"` },
         { reason: "link to privacy", match: `href="${baseUrl}/privacy"` }
       ]
@@ -339,8 +336,8 @@ export function publicPageSpotChecks(baseUrl) {
           match: "one repair pass on one report, plus one rerun after the fixes ship"
         },
         {
-          reason: "refund guard when the queue cannot start",
-          match: "If payment succeeds but the repair pass can’t start, you get a full refund"
+          reason: "legacy refund guard when the queue cannot start",
+          match: "If payment succeeded but the repair pass could not start, you got a full refund"
         },
         { reason: "link to privacy", match: `href="${baseUrl}/privacy"` },
         { reason: "link to the anonymous check", match: `href="${baseUrl}/check"` }
@@ -357,7 +354,7 @@ export function publicPageSpotChecks(baseUrl) {
           match: "No ranking, indexing, traffic, revenue, or search-engine outcome is promised"
         },
         { reason: "Dodo is merchant of record", match: "processed by Dodo Payments as merchant of record" },
-        { reason: "refund window", match: "full refund within 14 days of payment" },
+        { reason: "legacy refunds reviewed", match: "may be granted in full, in part, or declined" },
         { reason: "link to privacy", match: `href="${baseUrl}/privacy"` },
         { reason: "link to support", match: `href="${baseUrl}/support"` },
         { reason: "link to the anonymous check", match: `href="${baseUrl}/check"` }

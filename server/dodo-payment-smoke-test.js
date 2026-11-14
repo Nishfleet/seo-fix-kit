@@ -246,7 +246,7 @@ assert.deepEqual(proposal.acceptance, ["Meta description is present on rerun"]);
 assert.equal(Object.hasOwn(proposal, "admin_note"), false);
 assert.equal(Object.hasOwn(proposal, "adminNote"), false);
 
-const offers = offerCatalog({ fixPackCheckoutReady: true });
+const offers = offerCatalog({ fixPackCheckoutEnabled: true, fixPackCheckoutReady: true });
 assert.equal(offers.find((offer) => offer.key === OFFER_KEYS.FIX_PACK).checkoutLive, true);
 assert.equal(offers.find((offer) => offer.key === OFFER_KEYS.MONITORING).checkoutLive, false);
 assert.equal(offers.find((offer) => offer.key === OFFER_KEYS.SEO_GEO_AGENT).checkoutState, "paused");

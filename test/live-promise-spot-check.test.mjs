@@ -180,11 +180,13 @@ test("live spot-check flags a rendered-vs-static page that lost the free-checker
   );
 });
 
-test("live spot-check flags a page that lost its package price", async () => {
-  const overrides = { "/pricing": pages["/pricing"].split("$99.00 one-time").join("price hidden") };
+test("live spot-check flags a pricing page that lost the free answer", async () => {
+  const overrides = {
+    "/pricing": pages["/pricing"].split("No checkout is offered anywhere on the site").join("checkout coming soon")
+  };
   const results = await spotCheckPublicPages({ baseUrl: origin, fetcher: pageFetcher(overrides) });
   const pricing = results.find((result) => result.path === "/pricing");
-  assert.ok(pricing.failures.includes("public fix pack price"), "price claim must be reported");
+  assert.ok(pricing.failures.includes("free answer"), "the free no-checkout claim must be reported");
 });
 
 test("live spot-check flags a missing page", async () => {

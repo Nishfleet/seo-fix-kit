@@ -1,8 +1,3 @@
-import { json } from "./http.js";
-
-export const PAID_FEATURE_MESSAGE =
-  "Branded client reports, custom report domains and the audit widget come with the Fix Pack. Buy one on any report with open problems to unlock them.";
-
 /** @param {Env} env
  * @param {string} ownerEmail
  * @param {{ accessMode?: unknown } | null} [access]
@@ -15,8 +10,4 @@ export async function hasPaidFixPack(env, ownerEmail, access = null) {
     .bind(ownerEmail)
     .first();
   return Boolean(row);
-}
-
-export function paidFeatureLockedResponse() {
-  return json({ error: PAID_FEATURE_MESSAGE, code: "PAID_FEATURE_LOCKED" }, 402);
 }

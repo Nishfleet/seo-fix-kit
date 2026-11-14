@@ -14,6 +14,7 @@ const DODO_CHECKOUT_URL = "https://test.dodopayments.com/session/cs_test_1";
 
 const BASE_ENV = {
   DODO_SEOFIXKIT_API_KEY: "dodo-test-key",
+  FIX_PACK_CHECKOUT_ENABLED: "1",
   DODO_SEOFIXKIT_PRODUCT_FIX_PACK_ID: "pdt_fix_pack",
   DODO_SEOFIXKIT_PRODUCT_MONITORING_ID: "pdt_monitoring",
   DODO_SEOFIXKIT_BRAND_ID: "brand-1",
