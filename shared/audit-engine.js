@@ -995,11 +995,13 @@ async function abortInterceptedRequest(target) {
 function extractStaticFacts(html, url, fetchResult = {}) {
   const base = new URL(url);
   const head = html.match(/<head[\s\S]*?<\/head>/i)?.[0] || "";
-  const staticMarkup = html.replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<style[\s\S]*?<\/style>/gi, "");
+  const staticMarkup = html
+    .replace(/<script[\s\S]*?<\/script\b[^>]*>/gi, "")
+    .replace(/<style[\s\S]*?<\/style\b[^>]*>/gi, "");
   const withoutScripts = html
-    .replace(/<script[\s\S]*?<\/script>/gi, "")
-    .replace(/<style[\s\S]*?<\/style>/gi, "")
-    .replace(/<noscript[\s\S]*?<\/noscript>/gi, "");
+    .replace(/<script[\s\S]*?<\/script\b[^>]*>/gi, "")
+    .replace(/<style[\s\S]*?<\/style\b[^>]*>/gi, "")
+    .replace(/<noscript[\s\S]*?<\/noscript\b[^>]*>/gi, "");
   const body = withoutScripts.match(/<body[\s\S]*?<\/body>/i)?.[0] || withoutScripts;
   const bodyText = decodeEntities(stripTags(body)).replace(/\s+/g, " ").trim();
   const contentMarkup = (body.match(/<main\b[\s\S]*?<\/main>/i)?.[0] || body).replace(
@@ -3144,36 +3146,36 @@ export const ROOT_PUBLIC_PATHS = [
 ];
 
 export const ROOT_PUBLIC_LASTMODS = {
-  "/": "2026-11-13T16:49:30Z",
-  "/demo": "2026-11-13T16:49:30Z",
-  "/check": "2026-11-13T16:49:30Z",
-  "/methodology": "2026-11-13T16:49:30Z",
-  "/pricing": "2026-11-13T16:49:30Z",
-  "/small-business-seo-audit": "2026-11-13T16:49:30Z",
-  "/rendered-vs-static-seo-audit": "2026-11-13T16:49:30Z",
-  "/ai-answer-readiness": "2026-11-13T16:49:30Z",
-  "/shopify-seo-audit": "2026-11-13T16:49:30Z",
-  "/privacy": "2026-11-13T16:54:00Z",
-  "/proof": "2026-11-13T16:49:30Z",
-  "/support": "2026-11-13T16:54:00Z",
-  "/terms": "2026-11-13T16:49:30Z",
-  "/about": "2026-11-13T16:49:30Z",
-  "/tools": "2026-11-13T16:49:30Z",
-  "/tools/meta-tags": "2026-11-13T16:49:30Z",
-  "/tools/serp-preview": "2026-11-13T16:49:30Z",
-  "/tools/open-graph": "2026-11-13T16:49:30Z",
-  "/tools/schema": "2026-11-13T16:49:30Z",
-  "/tools/robots-txt": "2026-11-13T16:49:30Z",
-  "/tools/robots-txt-tester": "2026-11-13T16:49:30Z",
-  "/tools/llms-txt": "2026-11-13T16:49:30Z",
-  "/tools/hreflang": "2026-11-13T16:49:30Z",
-  "/tools/redirects": "2026-11-13T16:49:30Z",
-  "/tools/sitemap-generator": "2026-11-13T16:49:30Z",
-  "/tools/utm-builder": "2026-11-13T16:49:30Z",
-  "/tools/word-counter": "2026-11-13T16:49:30Z",
-  "/tools/keyword-density": "2026-11-13T16:49:30Z",
-  "/tools/disavow": "2026-11-13T16:49:30Z",
-  "/tools/seo-checklist": "2026-11-13T16:49:30Z"
+  "/": "2026-11-13T16:35:01Z",
+  "/demo": "2026-11-12T19:37:52Z",
+  "/check": "2026-11-12T19:37:52Z",
+  "/methodology": "2026-11-12T19:37:52Z",
+  "/pricing": "2026-11-12T19:37:52Z",
+  "/small-business-seo-audit": "2026-11-12T19:37:52Z",
+  "/rendered-vs-static-seo-audit": "2026-11-12T19:37:52Z",
+  "/ai-answer-readiness": "2026-11-12T19:37:52Z",
+  "/shopify-seo-audit": "2026-11-12T19:58:17Z",
+  "/privacy": "2026-11-12T19:39:50Z",
+  "/proof": "2026-11-12T19:37:52Z",
+  "/support": "2026-11-12T19:39:50Z",
+  "/terms": "2026-11-12T19:37:52Z",
+  "/about": "2026-11-12T19:37:52Z",
+  "/tools": "2026-11-12T19:37:52Z",
+  "/tools/meta-tags": "2026-11-12T19:37:52Z",
+  "/tools/serp-preview": "2026-11-12T19:37:52Z",
+  "/tools/open-graph": "2026-11-12T19:37:52Z",
+  "/tools/schema": "2026-11-12T19:37:52Z",
+  "/tools/robots-txt": "2026-11-12T19:37:52Z",
+  "/tools/robots-txt-tester": "2026-11-12T19:37:52Z",
+  "/tools/llms-txt": "2026-11-12T19:37:52Z",
+  "/tools/hreflang": "2026-11-12T19:37:52Z",
+  "/tools/redirects": "2026-11-12T19:37:52Z",
+  "/tools/sitemap-generator": "2026-11-12T19:37:52Z",
+  "/tools/utm-builder": "2026-11-12T19:37:52Z",
+  "/tools/word-counter": "2026-11-12T19:37:52Z",
+  "/tools/keyword-density": "2026-11-12T19:37:52Z",
+  "/tools/disavow": "2026-11-12T19:37:52Z",
+  "/tools/seo-checklist": "2026-11-12T19:37:52Z"
 };
 
 export function rootSitemap(origin) {

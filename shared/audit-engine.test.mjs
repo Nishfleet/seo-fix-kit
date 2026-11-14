@@ -790,6 +790,49 @@ test("local SEO audit uses private DNS guard for citation helper fetches", async
   assert.deepEqual(fetched, []);
 });
 
+test("static facts drop script and style bodies closed with tolerant end tags", async () => {
+  const engine = createAuditEngine({
+    launchBrowser: async () => fakeBrowser("https://public.example/"),
+    fetchImpl: async (url) => {
+      if (url === "https://public.example/") {
+        return new Response(
+          `<!doctype html><html><head><title>Tag edge</title></head><body>\n<h1>Tag edge page</h1>\n<script >var leak = "script leak marker text";</script >\n<style >.leak { content: "style leak marker text"; }</style\n>\n<p>Ordinary body copy for the static facts extraction check.</p>\n</body></html>`,
+          { status: 200, headers: { "content-type": "text/html; charset=utf-8" } }
+        );
+      }
+      return new Response("", { status: 404, headers: { "content-type": "text/plain; charset=utf-8" } });
+    },
+    pagespeedDisabled: true
+  });
+
+  const report = await engine.auditUrl("https://public.example/", { maxPages: 1, pageSpeed: false });
+
+  assert.equal(report.pages[0].status, 200);
+  assert.doesNotMatch(report.pages[0].static.bodyText, /script leak marker/i);
+  assert.doesNotMatch(report.pages[0].static.bodyText, /style leak marker/i);
+});
+
+test("local SEO citation text drops script and style bodies closed with tolerant end tags", async () => {
+  const audit = await buildLocalSeoAudit(
+    { url: "https://target.example/", pages: [] },
+    {
+      businessName: "Script Leak Marker",
+      phone: "555-0144",
+      citations: [{ sourceUrl: "https://citation.example/listing" }]
+    },
+    {
+      fetcher: async () =>
+        new Response(
+          `<!doctype html><html><body>\n<p>An ordinary listing paragraph with none of the expected details.</p>\n<script >var leak = "Script Leak Marker";</script >\n<style >.leak { content: "call 555-0144"; }</style\n>\n</body></html>`,
+          { status: 200, headers: { "content-type": "text/html" } }
+        )
+    }
+  );
+
+  assert.equal(audit.citationRows[0].sourceOk, true);
+  assert.deepEqual(audit.citationRows[0].mismatches, ["name", "phone"]);
+});
+
 function fakeBrowser(finalUrl, overrides = {}, hooks = {}) {
   return {
     async newPage() {

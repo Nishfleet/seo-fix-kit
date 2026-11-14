@@ -28,6 +28,11 @@ const STEPS = [
 
 const FEATURES = [
   {
+    icon: "sparkle",
+    title: "AI search readiness",
+    text: "ChatGPT, Claude and Perplexity crawl with bots that read raw HTML and skip JavaScript. See whether your content, schema and headings are there, and whether robots.txt lets them in."
+  },
+  {
     icon: "queue",
     title: "Repair queue",
     text: "Assign each fix, leave notes, approve changes, and track it until a rerun confirms it."
@@ -36,11 +41,6 @@ const FEATURES = [
     icon: "pulse",
     title: "Weekly reruns and downtime alerts",
     text: "Verified sites are audited again every week. We also check every 15 minutes and email you if a site goes down."
-  },
-  {
-    icon: "sparkle",
-    title: "AI search readiness",
-    text: "Most AI crawlers don’t run JavaScript. See whether your content and schema are in the HTML they read."
   },
   {
     icon: "plug",
@@ -85,7 +85,7 @@ const PLANS = [
 
 export function WaitlistPage() {
   useEffect(() => {
-    document.title = "SEO Fix Kit - The SEO audit that checks its own work";
+    document.title = "SEO Fix Kit - Google and AI search audit that checks its own work";
     const root = document.documentElement;
     root.dataset.theme = "light";
     return () => {
@@ -105,11 +105,12 @@ export function WaitlistPage() {
           <div className="hero-copy">
             <ProofTicker />
             <h1 className="hero-title enter" id="page-title" style={{ "--enter-delay": "60ms" }}>
-              An SEO audit that checks its own work.
+              Can Google and AI answers read your site?
             </h1>
             <p className="hero-lede enter" style={{ "--enter-delay": "100ms" }}>
-              We load every page in a real browser, list only the problems that are actually there, and rerun after you
-              ship to mark each one fixed.
+              We load every page in a real browser, check what Google and the AI crawlers behind ChatGPT, Claude and
+              Perplexity can read, prove each problem with evidence, and give you the fix. Then we rerun the audit to
+              confirm it worked.
             </p>
             <div className="enter" style={{ "--enter-delay": "140ms" }}>
               <HeroCheckForm />
@@ -183,6 +184,15 @@ export function WaitlistPage() {
             <h2 id="features-title">Each problem comes with what you need to fix it.</h2>
           </header>
           <div className="landing-bento">
+            {FEATURES.map((feature) => (
+              <article className="card reveal" key={feature.title}>
+                <span className="landing-feature-icon">
+                  <Icon name={feature.icon} />
+                </span>
+                <h3>{feature.title}</h3>
+                <p>{feature.text}</p>
+              </article>
+            ))}
             <article className="card landing-bento-wide reveal">
               <div className="landing-bento-copy">
                 <span className="landing-feature-icon">
@@ -217,15 +227,6 @@ export function WaitlistPage() {
                 </code>
               </pre>
             </article>
-            {FEATURES.map((feature) => (
-              <article className="card reveal" key={feature.title}>
-                <span className="landing-feature-icon">
-                  <Icon name={feature.icon} />
-                </span>
-                <h3>{feature.title}</h3>
-                <p>{feature.text}</p>
-              </article>
-            ))}
           </div>
         </section>
 
@@ -426,7 +427,9 @@ function HeroCheckForm() {
           Check it free
         </button>
       </div>
-      <p className="form-message">Free for any public page. No account, no card.</p>
+      <p className="form-message">
+        Free for any public page. No account, no card. Every problem is proven, and a rerun confirms the fix.
+      </p>
       <p className="landing-form-alt">
         Or <a href="#get-started">create a free account to audit the whole site →</a>
       </p>

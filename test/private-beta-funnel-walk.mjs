@@ -37,7 +37,7 @@ export const FUNNEL_STOPS = [
     path: "/",
     name: "home",
     acceptStatuses: [200],
-    titlePattern: /SEO Fix Kit - The SEO audit that checks its own work/,
+    titlePattern: /SEO Fix Kit - Google and AI search audit that checks its own work/,
     copyChecks: [
       { match: "Now in private beta", reason: "home keeps the locked private-beta copy" },
       { match: "Start free", reason: "home keeps the one-use email link CTA" },

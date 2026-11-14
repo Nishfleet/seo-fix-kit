@@ -26,13 +26,15 @@ for (const path of ROOT_PUBLIC_PATHS) {
 test.describe("homepage", () => {
   test("ships its content in the HTML, so it reads without JavaScript", async ({ request, browser }) => {
     const html = await (await request.get("/")).text();
-    expect(html).toContain("An SEO audit that checks its own work.");
-    expect(html).toContain("What do the fix files include?");
+    expect(html).toContain("Can Google and AI answers read your site?");
+    expect(html).toContain("What does the Fix Pack include?");
 
     const context = await browser.newContext({ javaScriptEnabled: false });
     const page = await context.newPage();
     await page.goto("/");
-    await expect(page.getByRole("heading", { level: 1, name: "An SEO audit that checks its own work." })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Can Google and AI answers read your site?" })
+    ).toBeVisible();
     await expect(page.getByRole("link", { name: "Check a page" }).first()).toBeVisible();
     await context.close();
   });
@@ -323,6 +325,8 @@ test.describe("404", () => {
     await expect(page.getByRole("heading", { level: 1, name: "Nothing to fix here." })).toBeVisible();
     await expect(page.getByText("/this-page-does-not-exist")).toBeVisible();
     await page.getByRole("link", { name: "Go to homepage" }).click();
-    await expect(page.getByRole("heading", { level: 1, name: "An SEO audit that checks its own work." })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Can Google and AI answers read your site?" })
+    ).toBeVisible();
   });
 });
