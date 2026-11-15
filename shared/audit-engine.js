@@ -823,11 +823,9 @@ async function extractRenderedFacts(browser, url, options = {}) {
           };
         }
       });
-      const visibleBody = document.body.cloneNode(true);
-      visibleBody.querySelectorAll("script, style, noscript, template").forEach((node) => node.remove());
-      const bodyText = text(visibleBody);
+      const bodyText = text(document.body);
       const leadText =
-        [...(visibleBody.querySelector("main, article, [role=main]") || visibleBody).querySelectorAll("p")]
+        [...(document.querySelector("main, article, [role=main]") || document.body).querySelectorAll("p")]
           .filter((node) => !node.closest("nav, header, footer, aside, [role=navigation]"))
           .map(text)
           .find((value) => value.split(" ").length >= 8) || "";
@@ -997,11 +995,13 @@ async function abortInterceptedRequest(target) {
 function extractStaticFacts(html, url, fetchResult = {}) {
   const base = new URL(url);
   const head = html.match(/<head[\s\S]*?<\/head>/i)?.[0] || "";
-  const staticMarkup = html.replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<style[\s\S]*?<\/style>/gi, "");
+  const staticMarkup = html
+    .replace(/<script[\s\S]*?<\/script\b[^>]*>/gi, "")
+    .replace(/<style[\s\S]*?<\/style\b[^>]*>/gi, "");
   const withoutScripts = html
-    .replace(/<script[\s\S]*?<\/script>/gi, "")
-    .replace(/<style[\s\S]*?<\/style>/gi, "")
-    .replace(/<noscript[\s\S]*?<\/noscript>/gi, "");
+    .replace(/<script[\s\S]*?<\/script\b[^>]*>/gi, "")
+    .replace(/<style[\s\S]*?<\/style\b[^>]*>/gi, "")
+    .replace(/<noscript[\s\S]*?<\/noscript\b[^>]*>/gi, "");
   const body = withoutScripts.match(/<body[\s\S]*?<\/body>/i)?.[0] || withoutScripts;
   const bodyText = decodeEntities(stripTags(body)).replace(/\s+/g, " ").trim();
   const contentMarkup = (body.match(/<main\b[\s\S]*?<\/main>/i)?.[0] || body).replace(
@@ -3136,6 +3136,7 @@ export const ROOT_PUBLIC_PATHS = [
   "/small-business-seo-audit",
   "/rendered-vs-static-seo-audit",
   "/ai-answer-readiness",
+  "/shopify-seo-audit",
   "/privacy",
   "/proof",
   "/support",
@@ -3145,35 +3146,36 @@ export const ROOT_PUBLIC_PATHS = [
 ];
 
 export const ROOT_PUBLIC_LASTMODS = {
-  "/": "2026-10-29T23:22:25Z",
-  "/demo": "2026-11-12T15:21:46Z",
-  "/check": "2026-10-29T22:26:13Z",
-  "/methodology": "2026-10-13T04:43:48Z",
-  "/pricing": "2026-10-15T08:12:19Z",
-  "/small-business-seo-audit": "2026-10-13T04:43:48Z",
-  "/rendered-vs-static-seo-audit": "2026-10-13T04:43:48Z",
-  "/ai-answer-readiness": "2026-10-13T04:43:48Z",
-  "/privacy": "2026-10-28T20:13:46Z",
-  "/proof": "2026-10-13T04:43:48Z",
-  "/support": "2026-10-28T20:13:46Z",
-  "/terms": "2026-10-13T04:43:48Z",
-  "/about": "2026-10-13T04:43:48Z",
-  "/tools": "2026-10-13T04:43:48Z",
-  "/tools/meta-tags": "2026-10-13T04:43:48Z",
-  "/tools/serp-preview": "2026-10-13T04:43:48Z",
-  "/tools/open-graph": "2026-10-13T04:43:48Z",
-  "/tools/schema": "2026-10-13T04:43:48Z",
-  "/tools/robots-txt": "2026-10-13T04:43:48Z",
-  "/tools/robots-txt-tester": "2026-10-13T04:43:48Z",
-  "/tools/llms-txt": "2026-10-13T04:43:48Z",
-  "/tools/hreflang": "2026-10-13T04:43:48Z",
-  "/tools/redirects": "2026-10-13T04:43:48Z",
-  "/tools/sitemap-generator": "2026-10-13T04:43:48Z",
-  "/tools/utm-builder": "2026-10-13T04:43:48Z",
-  "/tools/word-counter": "2026-10-13T04:43:48Z",
-  "/tools/keyword-density": "2026-10-13T04:43:48Z",
-  "/tools/disavow": "2026-10-13T04:43:48Z",
-  "/tools/seo-checklist": "2026-10-13T04:43:48Z"
+  "/": "2026-11-13T16:35:01Z",
+  "/demo": "2026-11-12T19:37:52Z",
+  "/check": "2026-11-12T19:37:52Z",
+  "/methodology": "2026-11-12T19:37:52Z",
+  "/pricing": "2026-11-12T19:37:52Z",
+  "/small-business-seo-audit": "2026-11-12T19:37:52Z",
+  "/rendered-vs-static-seo-audit": "2026-11-12T19:37:52Z",
+  "/ai-answer-readiness": "2026-11-12T19:37:52Z",
+  "/shopify-seo-audit": "2026-11-12T19:58:17Z",
+  "/privacy": "2026-11-12T19:39:50Z",
+  "/proof": "2026-11-12T19:37:52Z",
+  "/support": "2026-11-12T19:39:50Z",
+  "/terms": "2026-11-12T19:37:52Z",
+  "/about": "2026-11-12T19:37:52Z",
+  "/tools": "2026-11-12T19:37:52Z",
+  "/tools/meta-tags": "2026-11-12T19:37:52Z",
+  "/tools/serp-preview": "2026-11-12T19:37:52Z",
+  "/tools/open-graph": "2026-11-12T19:37:52Z",
+  "/tools/schema": "2026-11-12T19:37:52Z",
+  "/tools/robots-txt": "2026-11-12T19:37:52Z",
+  "/tools/robots-txt-tester": "2026-11-12T19:37:52Z",
+  "/tools/llms-txt": "2026-11-12T19:37:52Z",
+  "/tools/hreflang": "2026-11-12T19:37:52Z",
+  "/tools/redirects": "2026-11-12T19:37:52Z",
+  "/tools/sitemap-generator": "2026-11-12T19:37:52Z",
+  "/tools/utm-builder": "2026-11-12T19:37:52Z",
+  "/tools/word-counter": "2026-11-12T19:37:52Z",
+  "/tools/keyword-density": "2026-11-12T19:37:52Z",
+  "/tools/disavow": "2026-11-12T19:37:52Z",
+  "/tools/seo-checklist": "2026-11-12T19:37:52Z"
 };
 
 export function rootSitemap(origin) {

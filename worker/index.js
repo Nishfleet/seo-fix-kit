@@ -42,6 +42,7 @@ import { runScheduledTasks, scheduledTasks } from "./lib/scheduled.js";
 import {
   aboutHtml,
   aiAnswerReadinessHtml,
+  shopifySeoAuditHtml,
   demoHtml,
   homeMarkdown,
   llmsText,
@@ -416,6 +417,7 @@ app.get("/pricing", htmlPage(pricingHtml));
 app.get("/small-business-seo-audit", htmlPage(smallBusinessSeoAuditHtml));
 app.get("/rendered-vs-static-seo-audit", htmlPage(renderedVsStaticAuditHtml));
 app.get("/ai-answer-readiness", htmlPage(aiAnswerReadinessHtml));
+app.get("/shopify-seo-audit", htmlPage(shopifySeoAuditHtml));
 app.get("/tools", htmlPage(toolsIndexHtml));
 app.get("/about", htmlPage(aboutHtml));
 app.get("/status", async (c) =>
