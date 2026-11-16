@@ -39,8 +39,7 @@ test("a submitted request lands on the tinystudio-requests queue", async () => {
 
   assert.equal(response.status, 200);
   assert.equal(payload.ok, true);
-  assert.equal(payload.status, "queued");
-  assert.equal(payload.tinyStudioId, "");
+  assert.equal(payload.requestId.startsWith("ffm_"), true);
   assert.ok(payload.confirmation);
 
   assert.equal(queue.messages.length, 1, "exactly one queue message");
@@ -52,7 +51,6 @@ test("a submitted request lands on the tinystudio-requests queue", async () => {
   assert.equal(message.consentText, FIX_FOR_ME_CONSENT_TEXT);
 
   const row = db.rows("SELECT * FROM fix_for_me_requests").at(-1);
-  assert.equal(row.status, "pending");
   assert.equal(row.email, "owner@example.com");
 
   const event = db.rows("SELECT * FROM access_events WHERE step = 'fix_request_submitted'").at(-1);
@@ -68,7 +66,7 @@ test("the same reportId and email twice returns the first request and queues not
     fixRequest({ site: "example.com", email: "a@example.com", reportId: "rep_dup000000001" }),
     env
   );
-  assert.equal((await first.json()).status, "queued");
+  assert.equal((await first.json()).ok, true);
 
   const second = await runFixForMe(
     fixRequest({ site: "example.com", email: "a@example.com", reportId: "rep_dup000000001" }),
@@ -79,6 +77,26 @@ test("the same reportId and email twice returns the first request and queues not
   assert.equal(secondPayload.alreadyRequested, true);
   assert.equal(queue.messages.length, 1, "no second queue message");
   assert.equal(db.rows("SELECT COUNT(*) AS n FROM fix_for_me_requests")[0].n, 1);
+});
+
+test("a failed queue send returns 503, writes no row, and a resubmit queues it", async () => {
+  const db = createTestD1();
+  const { env, queue } = envFor(db);
+  const send = queue.send;
+  queue.send = async () => {
+    throw new Error("queue down");
+  };
+  const body = { site: "example.com", email: "a@example.com", reportId: "rep_fail00000001" };
+
+  const failed = await runFixForMe(fixRequest(body), env);
+  assert.equal(failed.status, 503);
+  assert.match((await failed.json()).error, /try again/i);
+  assert.equal(db.rows("SELECT COUNT(*) AS n FROM fix_for_me_requests")[0].n, 0);
+
+  queue.send = send;
+  const retry = await runFixForMe(fixRequest(body), env);
+  assert.equal(retry.status, 200);
+  assert.equal(queue.messages.length, 1);
 });
 
 test("private addresses and malformed input are refused before anything is stored or queued", async () => {

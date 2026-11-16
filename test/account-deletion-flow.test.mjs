@@ -236,11 +236,7 @@ function seedEverything(world) {
     site: `https://${host}/`,
     email: e,
     report_id: "rpt-leaver-000001",
-    status: "sent",
-    tiny_studio_id: "ts-leaver",
-    created_at: NOW,
-    last_attempt_at: NOW,
-    sent_at: NOW
+    created_at: NOW
   });
   db.insert("api_tokens", {
     id: "api-token-leaver",

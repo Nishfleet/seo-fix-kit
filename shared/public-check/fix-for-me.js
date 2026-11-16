@@ -106,7 +106,7 @@ export function fixForMeBlock(checkedUrl) {
       confirmation.appendChild(el("h3", "Request received"));
       confirmation.appendChild(el("p", payload.confirmation || DEFAULT_CONFIRMATION));
       confirmation.appendChild(
-        el("p", "Your email is used for this request only — never for a marketing list.", "fix-for-me-consent")
+        el("p", FIX_FOR_ME_CONSENT_TEXT, "fix-for-me-consent")
       );
       section.replaceChildren(confirmation);
     } catch {

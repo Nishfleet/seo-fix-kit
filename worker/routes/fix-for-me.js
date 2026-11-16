@@ -68,21 +68,6 @@ function fixForMeConfirmation(email) {
   return `Request received. We are handing your report to the TinyStudio repair desk — they will reply to ${email} within one business day. TinyStudio sends the fixed-price offer if the fixes need their hands; nothing is charged here.`;
 }
 
-/** @param {Env} env
- *  @param {{ id: string, site: string, email: string, reportId: string }} row — puts the request on the `tinystudio-requests` queue; Cloudflare Queues retries delivery, so a request is never dropped and success is never claimed early */
-async function enqueueFixForMeRequest(env, row) {
-  try {
-    await env.TINY_STUDIO_QUEUE.send(fixForMeQueueMessage(row));
-    return true;
-  } catch (error) {
-    console.error(
-      "Fix-for-me queue send failed; request stays pending in the database, logged without the body so no personal data reaches a log line",
-      error
-    );
-    return false;
-  }
-}
-
 /** @param {Request} request
  *  @param {Env} env — POST /api/fix-for-me, the only place the browser talks to for this */
 export async function runFixForMe(request, env) {
@@ -121,25 +106,28 @@ export async function runFixForMe(request, env) {
         ok: true,
         alreadyRequested: true,
         requestId: existing.id,
-        tinyStudioId: existing.tiny_studio_id || "",
-        status: existing.status,
         confirmation: fixForMeConfirmation(email)
       });
     }
   }
 
-  const now = new Date().toISOString();
   const id = `ffm_${crypto.randomUUID()}`;
+  try {
+    await env.TINY_STUDIO_QUEUE.send(fixForMeQueueMessage({ site, email, reportId }));
+  } catch (error) {
+    console.error(
+      "Fix-for-me queue send failed; no row written so a resubmit can queue it, logged without the body so no personal data reaches a log line",
+      error
+    );
+    return jsonNoStore(
+      { error: "We could not hand your request to the repair desk just now. Please try again in a few minutes." },
+      503
+    );
+  }
   await db
-    .prepare(
-      `INSERT INTO fix_for_me_requests (id, site, email, report_id, status, attempts, created_at, last_attempt_at)
-       VALUES (?, ?, ?, ?, 'pending', 0, ?, ?)`
-    )
-    .bind(id, site, email, reportId, now, now)
+    .prepare(`INSERT INTO fix_for_me_requests (id, site, email, report_id, created_at) VALUES (?, ?, ?, ?, ?)`)
+    .bind(id, site, email, reportId, new Date().toISOString())
     .run();
-
-  const row = { id, site, email, reportId };
-  const queued = await enqueueFixForMeRequest(env, row);
 
   await recordAccessEvent(env, {
     step: "fix_request_submitted",
@@ -147,14 +135,12 @@ export async function runFixForMe(request, env) {
     source: "fix-for-me",
     landingPath: "/api/fix-for-me",
     request,
-    metadata: { fromReport: Boolean(reportId), queued }
+    metadata: { fromReport: Boolean(reportId) }
   });
 
   return jsonNoStore({
     ok: true,
     requestId: id,
-    tinyStudioId: "",
-    status: queued ? "queued" : "pending",
     confirmation: fixForMeConfirmation(email)
   });
 }
