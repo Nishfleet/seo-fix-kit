@@ -62,10 +62,17 @@ export default defineConfig(({ isPreview }) => ({
       }),
       // Producer-only binding for "Have it fixed for you" (issue #412): the request
       // lands on the `tinystudio-requests` queue and TinyStudio's consumer takes it
-      // from there; this Worker makes no HTTP call to TinyStudio.
-      TINY_STUDIO_QUEUE: bindings.queue({
-        name: "tinystudio-requests"
-      }),
+      // from there; this Worker makes no HTTP call to TinyStudio. Production only,
+      // like the triggers above: a preview upload would fail on the queue binding
+      // before the queue exists, and a preview must never enqueue to the live
+      // repair desk — /api/fix-for-me answers 503 without the binding.
+      ...(isPreview
+        ? {}
+        : {
+            TINY_STUDIO_QUEUE: bindings.queue({
+              name: "tinystudio-requests"
+            })
+          }),
       BROWSER: bindings.browser({}),
       ASSETS: bindings.assets(),
       ACCOUNT_ID: bindings.text("f670a698e17bf160c8e4679823e68916"),
