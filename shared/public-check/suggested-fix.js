@@ -4,8 +4,8 @@ const HEADING_MAX = 70;
 
 export function visibleText(value) {
   return String(value || "")
-    .replace(/<script[\s\S]*?<\/script>/gi, "")
-    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<script[\s\S]*?<\/script\b[^>]*>/gi, "")
+    .replace(/<style[\s\S]*?<\/style\b[^>]*>/gi, "")
     .replace(/<[^>]*>/g, " ")
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
