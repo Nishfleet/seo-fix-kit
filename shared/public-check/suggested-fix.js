@@ -2,16 +2,37 @@ const TITLE_MAX = 60;
 const DESCRIPTION_MAX = 155;
 const HEADING_MAX = 70;
 
+function withoutTagBlocks(value) {
+  let text = "";
+  let rest = String(value || "");
+  while (rest) {
+    const open = rest.indexOf("<");
+    if (open === -1) return text + rest;
+    text += rest.slice(0, open);
+    rest = rest.slice(open);
+    const close = rest.indexOf(">");
+    if (close === -1) return text + rest;
+    const tag = rest.slice(1, close).trim().toLowerCase().split(/[\s/]/)[0];
+    rest = rest.slice(close + 1);
+    if (tag === "script" || tag === "style") {
+      const end = rest.toLowerCase().indexOf(`</${tag}`);
+      if (end === -1) return text;
+      const endClose = rest.indexOf(">", end);
+      if (endClose === -1) return text;
+      rest = rest.slice(endClose + 1);
+    }
+  }
+  return text;
+}
+
 export function visibleText(value) {
-  return String(value || "")
-    .replace(/<script[\s\S]*?<\/script\b[^>]*>/gi, "")
-    .replace(/<style[\s\S]*?<\/style\b[^>]*>/gi, "")
+  return withoutTagBlocks(value)
     .replace(/<[^>]*>/g, " ")
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
-    .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&")
     .replace(/\s+/g, " ")
     .trim();
 }
