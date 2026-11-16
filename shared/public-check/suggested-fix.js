@@ -13,8 +13,10 @@ function withoutTagBlocks(value) {
     const close = rest.indexOf(">");
     if (close === -1) return text + rest;
     const tag = rest.slice(1, close).trim().toLowerCase().split(/[\s/]/)[0];
+    const markup = rest.slice(0, close + 1);
     rest = rest.slice(close + 1);
-    if (tag === "script" || tag === "style") {
+    if (tag !== "script" && tag !== "style") text += markup;
+    else {
       const end = rest.toLowerCase().indexOf(`</${tag}`);
       if (end === -1) return text;
       const endClose = rest.indexOf(">", end);
