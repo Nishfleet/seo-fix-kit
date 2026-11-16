@@ -1,4 +1,5 @@
 import { checkHandoffHref } from "./check-handoff.js";
+import { fixForMeBlock } from "./fix-for-me.js";
 
 const INVALID_URL = "Enter a valid public website URL.";
 const STEPS = [
@@ -240,6 +241,8 @@ export function renderResult(payload) {
   for (const guard of guards) ruledOut.appendChild(findingNode({ ...guard, severity: "guard" }));
   body.appendChild(ruledOut);
   card.appendChild(body);
+
+  card.appendChild(fixForMeBlock(payload.finalUrl || payload.checkedUrl));
 
   const foot = el("div", "", "result-foot");
   const text = el("p");

@@ -25,6 +25,7 @@ interface Env extends EnvVars, EnvSecrets {
   BACKUP_BUCKET: R2Bucket;
   BACKUP_WORKFLOW: Workflow;
   AUDIT_QUEUE: Queue;
+  TINY_STUDIO_QUEUE: Queue;
   EMAIL: SendEmail;
   BROWSER: Fetcher;
   ASSETS: Fetcher;

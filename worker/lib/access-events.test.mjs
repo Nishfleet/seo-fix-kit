@@ -40,7 +40,9 @@ test("FUNNEL_STEPS is a stable, ordered source of truth", () => {
     "access_link_sent",
     "access_link_verified",
     "session_created",
-    "audit_started"
+    "audit_started",
+    "fix_request_clicked",
+    "fix_request_submitted"
   ]);
   for (const step of FUNNEL_STEPS) {
     assert.equal(isFunnelStep(step), true, `${step} should be a known step`);

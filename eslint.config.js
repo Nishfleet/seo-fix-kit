@@ -145,7 +145,7 @@ export default [
   },
   {
     // Browser entries for Worker-rendered pages, bundled by Vite to /tools.js and /check.js.
-    files: ["shared/free-tools/client.js", "shared/public-check/client.js"],
+    files: ["shared/free-tools/client.js", "shared/public-check/client.js", "shared/public-check/fix-for-me.js"],
     languageOptions: {
       globals: { ...globals.browser }
     }
@@ -175,6 +175,7 @@ export default [
       "shared/url-safety.js",
       "shared/free-tools/client.js",
       "shared/public-check/client.js",
+      "shared/public-check/fix-for-me.js",
       "server/submit-index-now.js"
     ],
     rules: {

@@ -174,6 +174,7 @@ function deletionStatements(env, ownerEmail, pseudonym, now, loginBucketHash) {
     run(`DELETE FROM audit_widgets WHERE owner_email = ?`, e),
     run(`DELETE FROM score_history WHERE owner_email = ?`, e),
     run(`DELETE FROM audit_jobs WHERE owner_email = ?`, e),
+    run(`DELETE FROM fix_for_me_requests WHERE email = ?`, e),
     run(`DELETE FROM audit_schedules WHERE owner_email = ?`, e),
 
     run(`DELETE FROM large_crawl_url_proofs WHERE crawl_job_id IN (${ownedCrawls})`, e),

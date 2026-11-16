@@ -57,6 +57,7 @@ import {
   termsHtml
 } from "./routes/pages.js";
 import { checkHtml, runPublicCheck } from "./routes/public-check.js";
+import { runFixForMe } from "./routes/fix-for-me.js";
 import { toolPageHtml, toolsIndexHtml } from "./routes/tools.js";
 import { getStatusJson, serviceStatus, statusHtml } from "./routes/status.js";
 import { FREE_TOOLS } from "../shared/free-tools/catalog.js";
@@ -298,6 +299,7 @@ app.post("/api/audit/schedules", route(createAuditSchedule));
 app.delete("/api/audit/schedules/:id", route(deleteAuditSchedule));
 app.all("/api/demo-audit", route(runPrivateDemoAudit));
 app.post("/api/public-check", route(runPublicCheck));
+app.post("/api/fix-for-me", route(runFixForMe));
 
 app.delete("/api/report-shares/:id", route(revokeReportShare));
 app.get("/api/reports/:id/shares", route(listReportShares));
