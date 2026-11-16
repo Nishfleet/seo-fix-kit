@@ -260,6 +260,25 @@ export function publicPageSpotChecks(baseUrl) {
       ]
     },
     {
+      path: "/shopify-seo-audit",
+      name: "Shopify landing page keeps the counts-only boundary",
+      isPage: true,
+      acceptStatuses: [200],
+      expectations: [
+        { reason: "sample-backed headline", match: "An SEO audit built from real Shopify stores." },
+        { reason: "stated sample size", match: "26 public Shopify stores" },
+        { reason: "stated page count", match: "78 pages in total" },
+        { reason: "method section", match: "How the sample was built" },
+        { reason: "counts-not-names gate", match: "Counts, not names" },
+        { reason: "no-admin boundary", match: "does not log into Shopify admin" },
+        { reason: "no-overclaim section", match: "What this page does not claim" },
+        { reason: "clickable CTA into the anonymous check", match: `href="${baseUrl}/check"` },
+        { reason: "link to the proof sample", match: `href="${baseUrl}/demo"` },
+        { reason: "link to methodology limits", match: `href="${baseUrl}/methodology"` },
+        ...landingPageLdExpectations("/shopify-seo-audit", "SEO Audit for Shopify Stores")
+      ]
+    },
+    {
       path: "/proof",
       name: "real before/after repair receipt is published at /proof",
       isPage: true,
