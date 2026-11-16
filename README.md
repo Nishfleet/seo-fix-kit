@@ -235,6 +235,7 @@ The Worker in `worker/index.js` is the only backend, locally and in production. 
 - `/api/audit/schedules` lists and creates verified-host audit monitors; `/api/audit/schedules/:id` pauses a monitor
 - `/api/developer`, `/api/developer/tokens`, and `/api/developer/webhooks` power self-serve API keys and webhook setup for audit and repair-action lifecycle events
 - `/v1/audits`, `/v1/audits/:id`, `/v1/audits/:id/issues`, `/v1/audits/:id/report`, `/v1/audits/:id/repair-actions/:actionId/implementation.md`, `/v1/audits/:id/repair-actions/:actionId/proof.md`, `/v1/large-crawls`, `/v1/large-crawls/:id`, and `/v1/projects` expose bearer-token JSON/API markdown access; audit creation accepts `max_pages`/`maxPages`, `rendered_crawl_target`/`renderedCrawlTarget`, `competitor_urls`/`competitorUrls`, `backlink_rows`/`backlinkRows`, `keyword_rows`/`keywordRows`, and `local_seo`/`localSeo`; issue and report responses include owner-scoped `repair_queue` status without proposed-change text
+- `/mcp` is the MCP server (built on Cloudflare's `agents` MCP support) with one anonymous tool, `page_check`, which runs the same one-page check as `/api/public-check` with the same rate limits and no API key
 - `/api/reports/:id` and `/api/reports/:id/brief.md` return saved private reports only to the report owner
 - `/api/reports/:id/repair-proposals/:proposalId` lets the report owner approve or dismiss generated repair proposals
 - `/api/branding`, `/api/reports/:id/share`, `/api/reports/:id/shares`, and `/api/report-shares/:id` power white-label client report links

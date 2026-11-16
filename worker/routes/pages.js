@@ -86,7 +86,7 @@ Agent-readable acquisition and action surfaces:
 - Bearer-token API actions agents can use today: POST /v1/audits, GET /v1/audits/{audit_id}, GET /v1/audits/{audit_id}/issues, GET /v1/audits/{audit_id}/report, GET/PATCH /v1/audits/{audit_id}/repair-queue, POST /v1/audits/{audit_id}/repair-actions, PATCH /v1/audits/{audit_id}/repair-actions/{action_id}, GET /v1/audits/{audit_id}/repair-actions/{action_id}/implementation.md, GET /v1/audits/{audit_id}/repair-actions/{action_id}/proof.md, GET /v1/projects, POST /v1/large-crawls, and GET /v1/large-crawls/{large_crawl_id}.
 - Webhook events agents can subscribe to today: audit.completed, audit.failed, repair_action.drafted, repair_action.approved, repair_action.applied, repair_action.fixed, and repair_action.regressed.
 - Worker-only large-crawl batch claim/process/proof endpoints require x-seofixkit-worker-token and are not available to normal bearer API keys.
-- There is no live SEO Fix Kit MCP endpoint today; agents should use the documented REST and markdown proof endpoints.
+- MCP: ${origin}/mcp is a live MCP server with one anonymous tool, page_check, which runs the same free one-page check as ${origin}/check with the same rate limits. It needs no API key and offers no account-level tools.
 
 Current product boundary:
 - Public methodology and pricing pages describe the live proof loop, limits, and plans; they are not a public anonymous audit.
@@ -106,7 +106,7 @@ Current product boundary:
 - Implementation packs and repair proof receipts are private handoff/proof documents only; SEO Fix Kit does not publish CMS changes, open GitHub pull requests, merge code, or call provider admin APIs from the browser.
 - Does not replace Ahrefs or Semrush.
 - Does not provide anonymous multi-page audits; the anonymous surface is a single-page proof check with per-network and per-site rate limits.
-- Does not expose unauthenticated agent actions.
+- Does not expose unauthenticated agent actions beyond the single-page check at ${origin}/check and the MCP page_check tool at ${origin}/mcp.
 - Does not guarantee rankings, traffic, indexing, or revenue.
 
 Useful routes:
