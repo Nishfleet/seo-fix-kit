@@ -3071,7 +3071,7 @@ function stripHash(value) {
 
 function pathLabel(url, startUrl) {
   const parsed = new URL(url);
-  if (stripHash(url) === stripHash(startUrl)) return "home";
+  if (stripHash(url) === stripHash(startUrl) && (parsed.pathname === "/" || parsed.pathname === "")) return "home";
   return parsed.pathname || "page";
 }
 
@@ -3147,8 +3147,8 @@ export const ROOT_PUBLIC_PATHS = [
 
 export const ROOT_PUBLIC_LASTMODS = {
   "/": "2026-11-13T16:35:01Z",
-  "/demo": "2026-11-12T19:37:52Z",
-  "/check": "2026-11-12T19:37:52Z",
+  "/demo": "2026-11-16T07:40:32Z",
+  "/check": "2026-11-16T07:40:32Z",
   "/methodology": "2026-11-12T19:37:52Z",
   "/pricing": "2026-11-12T19:37:52Z",
   "/small-business-seo-audit": "2026-11-12T19:37:52Z",

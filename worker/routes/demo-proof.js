@@ -15,21 +15,21 @@ export const DEMO_PROOF = {
   guards: [
     {
       severity: "good",
-      title: "False positive guarded on home: H1 exists after render",
+      title: "False positive guarded on /fixture/rendered-page: H1 exists after render",
       why: "The H1 is added by JavaScript. Tools that only read raw HTML would call it missing. The page is fine.",
       evidence: 'Rendered H1: "Rendered SaaS page with real content"',
       fix: "No change needed. Don't add a second H1."
     },
     {
       severity: "good",
-      title: "False positive guarded on home: internal links exist after render",
+      title: "False positive guarded on /fixture/rendered-page: internal links exist after render",
       why: "The links are added by JavaScript. Raw HTML has none, but the loaded page does.",
       evidence: "3 rendered internal links found.",
       fix: "No change needed. Keep them as normal <a href> links."
     },
     {
       severity: "good",
-      title: "False positive guarded on home: rendered content is not thin",
+      title: "False positive guarded on /fixture/rendered-page: rendered content is not thin",
       why: "Raw HTML has little text, but the loaded page has plenty.",
       evidence: "277 rendered words found.",
       fix: "No change needed."
@@ -38,19 +38,19 @@ export const DEMO_PROOF = {
   repairPlan: [
     {
       severity: "critical",
-      title: "Canonical conflicts with noindex on home",
+      title: "Canonical conflicts with noindex on /fixture/rendered-page",
       fix: "If the page should be in search, remove noindex. If it shouldn't, remove the canonical tag.",
       snippet: ""
     },
     {
       severity: "critical",
-      title: "Noindex found on home",
+      title: "Noindex found on /fixture/rendered-page",
       fix: "If this page should show up in search, remove the noindex tag or header.",
       snippet: ""
     },
     {
       severity: "warning",
-      title: "Social share image incomplete on home",
+      title: "Social share image incomplete on /fixture/rendered-page",
       fix: "Add og:image and twitter:image tags pointing at a 1200x630 image.",
       snippet: `<!-- The audited page had no working og:image. Create {ORIGIN}/og-image.png (1200x630) or replace it with your real share image. -->
 <meta property="og:title" content="Proof Demo App Shell" />
@@ -63,14 +63,14 @@ export const DEMO_PROOF = {
     },
     {
       severity: "notice",
-      title: "Apple touch icon missing on home",
+      title: "Apple touch icon missing on /fixture/rendered-page",
       fix: 'Add a 180x180 PNG icon and link it with <link rel="apple-touch-icon">.',
       snippet: `<!-- No icon file loaded at {ORIGIN}/apple-touch-icon.png during this audit. Create a square 180x180 PNG there, or point href at your real icon file, before shipping this tag. -->
 <link rel="apple-touch-icon" href="{ORIGIN}/apple-touch-icon.png" />`
     },
     {
       severity: "notice",
-      title: "Structured data opportunity on home",
+      title: "Structured data opportunity on /fixture/rendered-page",
       fix: "Add JSON-LD schema that describes only what the page shows.",
       snippet: `<script type="application/ld+json">
 {

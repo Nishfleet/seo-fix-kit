@@ -7,6 +7,7 @@ import { dayWindow, hourWindow } from "../lib/text.js";
 import { body, parseJsonBody, z } from "../lib/validation.js";
 import { auditUrl } from "./audits.js";
 import { SOCIAL_IMAGE_PATH, publicAssetHead, siteFooter, siteHeader, socialImageMeta } from "./pages.js";
+import { suggestedTextFor } from "../../shared/public-check/suggested-fix.js";
 
 export const CHECK_PAGE_PATH = "/check";
 export const PUBLIC_CHECK_API_PATH = "/api/public-check";
@@ -114,6 +115,8 @@ function crawlerSummary(access) {
   }));
 }
 
+const SEVERITY_ORDER = { critical: 0, warning: 1, notice: 2 };
+
 export function buildPublicCheckResponse(report) {
   const page = report?.pages?.[0];
   const plan = report?.repairPlan || [];
@@ -129,13 +132,14 @@ export function buildPublicCheckResponse(report) {
     }));
   const findings = (report?.findings || [])
     .filter((finding) => finding?.severity && finding.severity !== "good")
-    .slice(0, 5)
+    .sort((a, b) => (SEVERITY_ORDER[a.severity] ?? 9) - (SEVERITY_ORDER[b.severity] ?? 9))
     .map((finding) => ({
       severity: finding.severity,
       title: finding.title,
       why: finding.why,
       evidence: finding.evidence,
       fix: finding.fix,
+      suggested: suggestedTextFor(finding, page || {}),
       proposedMarkup: finding.snippet || "",
       scoreGain: plan.find((item) => item.title === finding.title)?.scoreGain || 0
     }));
@@ -359,6 +363,15 @@ export function checkHtml(origin) {
       .measure .value.big { font-size: 22px; font-variant-numeric: tabular-nums; }
       .measure .value .from { color: var(--ink-muted); font-weight: 500; }
       .finding { border: 1px solid var(--line); border-radius: var(--radius-lg); display: grid; gap: 8px; margin: 0 0 10px; padding: 16px; }
+      .finding-group { border: 1px solid var(--line); border-radius: var(--radius-lg); margin: 0 0 10px; }
+      .finding-group > .finding { border: 0; border-radius: 0; border-top: 1px solid var(--line); margin: 0; }
+      .finding-group > summary { align-items: center; cursor: pointer; display: flex; flex-wrap: wrap; gap: 10px; padding: 12px 16px; }
+      .finding-group > summary .group-label { color: var(--ink); font-size: 15px; font-weight: 700; }
+      .finding-group > summary .group-count { color: var(--ink-muted); font-size: 13px; }
+      .finding-group > summary::before { content: "▸"; color: var(--ink-muted); flex: none; }
+      .finding-group[open] > summary { border-bottom: 1px solid var(--line); }
+      .finding-group[open] > summary::before { content: "▾"; }
+      .owner-note { color: var(--warning); }
       .finding-top { align-items: center; display: flex; flex-wrap: wrap; gap: 10px; }
       .finding h4 { font-size: 16px; line-height: 1.35; margin: 0; }
       .finding p { font-size: 15px; margin: 0; }
@@ -436,7 +449,7 @@ export function checkHtml(origin) {
         </article>
         <article class="panel proof">
           <strong>Real problems only</strong>
-          <p>Only issues backed by evidence are reported, each with a concrete fix and a proposed markup change when we can generate one.</p>
+          <p>Only issues backed by evidence are reported, every one of them, worst first. Each carries a concrete fix, a proposed markup change when we can generate one, and suggested text written from your own page where wording can be written for you.</p>
         </article>
         <article class="panel proof">
           <strong>Audit your whole site</strong>

@@ -4,6 +4,7 @@ import http from "node:http";
 import test from "node:test";
 import { createAuditEngine, publicAuditUrlStatus } from "../../shared/audit-engine.js";
 import { compareRows, compareVerdict, publicUrlError, scoreTone } from "../../shared/public-check/client.js";
+import { suggestedTextFor, visibleText } from "../../shared/public-check/suggested-fix.js";
 import { checkHandoffHref, checkedPageUrl, handoffPageUrl } from "../../shared/public-check/check-handoff.js";
 import { robotsAccess } from "../../shared/robots-access.js";
 import { auditUrl } from "../../server/audit/engine.js";
@@ -236,6 +237,77 @@ test("public check response is built only from engine fields with truthful copy"
   assert.equal(payload.issues.critical, 2);
   assert.ok(payload.nextStep.includes("create a free account"), "next step hands off into a free account");
   assert.ok(payload.boundary.includes("does not guarantee rankings"), "boundary keeps the no-ranking promise");
+});
+
+test("the free check shows every problem, worst first, and never an empty fix", () => {
+  const payload = buildPublicCheckResponse(makeEngineShapedReport());
+  const order = { critical: 0, warning: 1, notice: 2 };
+  const severities = payload.findings.map((finding) => finding.severity);
+  assert.deepEqual(
+    severities,
+    [...severities].sort((a, b) => order[a] - order[b]),
+    "findings are ordered worst first"
+  );
+  assert.equal(payload.findings.length, 3, "no finding is dropped from the free check");
+  for (const finding of payload.findings) {
+    const written = finding.suggested?.text || "";
+    assert.ok(
+      (finding.fix || "").trim() || written.trim(),
+      `finding "${finding.title}" carries a written fix, never an empty one`
+    );
+  }
+});
+
+test("every suggested text is written from the page's own visible content and fits its slot", () => {
+  const page = {
+    url: "https://example.com/about",
+    finalUrl: "https://example.com/about",
+    rendered: {
+      title: "Proof Demo App Shell",
+      h1s: ["Rendered SaaS page with real content"],
+      leadText:
+        "This demo page renders real content for founders who need verified findings. It ships a thin static shell, then renders the real page with JavaScript, so a weak static-only audit would misjudge it. Founders read the result and move on. Founders need verified findings, not busywork.",
+      bodySample: "<script>alert(1)</script>Rendered SaaS page with real content"
+    }
+  };
+  const suggestedFor = (title) => suggestedTextFor({ title }, page);
+
+  const weakTitle = suggestedFor("Missing or weak title on /about");
+  assert.ok(weakTitle && weakTitle.text.trim(), "missing-title finding gets a written title");
+  assert.ok(weakTitle.text.length <= 60, `title fits 60 chars, got ${weakTitle.text.length}`);
+
+  const longTitle = suggestedFor("Long title on /about");
+  assert.equal(longTitle.text, "Proof Demo App Shell", "long-title suggestion starts from the current title");
+
+  const description = suggestedFor("Missing meta description on /about");
+  assert.ok(description && description.text.trim(), "description finding gets a written description");
+  assert.ok(description.text.length <= 155, `description fits 155 chars, got ${description.text.length}`);
+  assert.match(description.text, /founders/i, "the description is written from the page's own words");
+
+  const heading = suggestedFor("Missing H1 on /about");
+  assert.ok(heading && heading.text.trim(), "missing-H1 finding gets a written heading");
+  assert.ok(heading.text.length <= 70, `heading fits 70 chars, got ${heading.text.length}`);
+
+  const thin = suggestedFor("Thin rendered content on /about");
+  assert.ok(thin?.owner, "a page that may be short on purpose is flagged as the owner's judgment");
+  assert.ok(thin.text.trim(), "the judgment note is written, not empty");
+
+  for (const suggestion of [weakTitle, longTitle, description, heading]) {
+    assert.ok(!/[<>]/.test(suggestion.text), `no markup leaks into suggested text: ${suggestion.text}`);
+    assert.doesNotMatch(suggestion.text, /alert\(1\)|script|style/i, "no script or style text in the suggestion");
+  }
+
+  const bare = suggestedTextFor({ title: "Missing or weak title on /about" }, { rendered: {} });
+  assert.ok(bare && bare.text.trim(), "even a page with no readable content gets a non-empty suggestion");
+});
+
+test("the suggested-text extractor follows the raw-HTML visible-text rule", () => {
+  assert.equal(
+    visibleText("<p>Hello &amp; welcome</p><script>alert('x')</script><style>.x{}</style>"),
+    "Hello & welcome",
+    "script, style and markup are dropped; entities are decoded; whitespace is collapsed"
+  );
+  assert.equal(visibleText("<style>.menu{}</style>only style text"), "only style text");
 });
 
 test("the free check hands the checked page into the app instead of a bare sign-up link", () => {
@@ -487,6 +559,15 @@ test("public check output is verbatim engine output for the public test page", a
       payload.findings.some((finding) => finding.scoreGain > 0),
       "each fixable problem carries the points it is worth"
     );
+    for (const finding of payload.findings) {
+      assert.ok(
+        (finding.fix || "").trim() || (finding.suggested?.text || "").trim(),
+        `the fixture finding "${finding.title}" shows a written fix, never an empty one`
+      );
+      if (finding.suggested && !finding.suggested.owner) {
+        assert.ok(!/[<>]/.test(finding.suggested.text), "suggested text carries no markup");
+      }
+    }
     assert.match(payload.fixPrompt, new RegExp(`scored it ${report.score}/100`), "one AI prompt covers the page");
     assert.ok(
       payload.crawlers.every((bot) => bot.allowed),
