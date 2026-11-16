@@ -310,7 +310,7 @@ test("machine-readable public surfaces list proof pages and limits", () => {
   assert.match(llms, /POST \/v1\/audits/);
   assert.match(llms, /GET \/v1\/audits\/\{audit_id\}\/repair-actions\/\{action_id\}\/implementation\.md/);
   assert.match(llms, /repair_action\.fixed/);
-  assert.match(llms, /Does not expose unauthenticated agent actions/);
+  assert.match(llms, /Does not expose unauthenticated agent actions beyond the single-page check at .*\/check and the MCP page_check tool/);
   assert.match(llms, /Hosted-only differentiators vs free installable SEO agent skills:/);
   assert.match(llms, /robots\.txt and sitemap crawl inventory up to 50,000 discovered URLs/);
   assert.match(llms, /staged large rendered crawl jobs for 50,000-page targets \(early access/);
